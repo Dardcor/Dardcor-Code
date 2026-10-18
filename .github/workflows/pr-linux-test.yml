@@ -29,16 +29,13 @@ jobs:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-        continue-on-error: true
-        run: |
+      - run: |
           set -e
           # Allow unprivileged user namespaces for Chromium's namespace sandbox
           # Ubuntu 24.04 restricts this by default via AppArmor
@@ -58,14 +55,12 @@ jobs:
           sudo chmod +x /etc/init.d/xvfb
           sudo update-rc.d xvfb defaults
           sudo service xvfb start
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-linux
           key-args: "linux ${{ env.VSCODE_ARCH }} $(node -p process.arch)"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: build
         run: |
           set -e
@@ -80,8 +75,7 @@ jobs:
           done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           set -e
 
@@ -101,24 +95,19 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        run: mkdir -p .build
-        continue-on-error: true
-        run: node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
-        continue-on-error: true
-        id: cache-builtin-extensions
+      - run: mkdir -p .build
+      - run: node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
+      - id: cache-builtin-extensions
         uses: actions/cache/restore@v4
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
           key: "builtin-extensions-${{ hashFiles('.build/builtindepshash') }}"
-        continue-on-error: true
-        if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
+      - if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
         run: node build/lib/builtInExtensions.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        run: |
+      - run: |
           set -e
           # Ubuntu 24.04 ships expat 2.6.1 which has multiple NULL dereference
           # CVEs triggered when fontconfig parses <include> directives via
@@ -217,8 +206,7 @@ jobs:
       # an ELF constructor that runs before main() (and therefore before any thread
       # exists). Pango's later threaded FcInit() then finds fontconfig already
       # initialized and returns immediately, so the concurrent parse never happens.
-        continue-on-error: true
-        run: |
+      - run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/fcpreinit.c" <<'CEOF'
           #define _GNU_SOURCE
@@ -240,8 +228,7 @@ jobs:
           echo "Built fontconfig pre-init shim at $RUNNER_TEMP/libfcpreinit.so"
           # Preload it for every subsequent step that launches Electron/Chromium.
           echo "LD_PRELOAD=$RUNNER_TEMP/libfcpreinit.so${LD_PRELOAD:+:$LD_PRELOAD}" >> "$GITHUB_ENV"
-        continue-on-error: true
-        run: |
+      - run: |
           set -e
           echo "--- Font package versions ---"
           dpkg -l | grep -E 'libexpat|fontconfig|libfreetype|libpango' || true
@@ -281,10 +268,8 @@ jobs:
           if [ -n "${LD_PRELOAD:-}" ]; then
             ls -l "${LD_PRELOAD%%:*}" 2>/dev/null || true
           fi
-        continue-on-error: true
-run: npm run gulp transpile-client-esbuild transpile-extensions
-        continue-on-error: true
-        run: |
+      - run: npm run gulp transpile-client-esbuild transpile-extensions
+      - run: |
           set -e
 
           for i in {1..3}; do # try 3 times (matching retryCountOnTaskFailure: 3)
@@ -303,25 +288,21 @@ run: npm run gulp transpile-client-esbuild transpile-extensions
           done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
+      - if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 15
         run: ./scripts/test.sh --tfs "Unit Tests"
         env:
           DISPLAY: ":10"
           VSCODE_SKIP_PRELAUNCH: '1'
-        continue-on-error: true
-        if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
+      - if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 15
         run: npm run test-node
-        continue-on-error: true
-        if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
+      - if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 30
         run: npm run test-browser-no-install -- --browser chromium --tfs "Browser Unit Tests"
         env:
           DEBUG: "*browser*"
-        continue-on-error: true
-        run: |
+      - run: |
           set -e
           npm run gulp \
             compile-extension:configuration-editing \
@@ -341,30 +322,25 @@ run: npm run gulp transpile-client-esbuild transpile-extensions
             compile-extension:vscode-colorize-tests \
             compile-extension:vscode-colorize-perf-tests \
             compile-extension:vscode-test-resolver
-        continue-on-error: true
-        if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
+      - if: ${{ inputs.electron_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         run: ./scripts/test-integration.sh --tfs "Integration Tests"
         env:
           DISPLAY: ":10"
           VSCODE_SKIP_PRELAUNCH: '1'
-        continue-on-error: true
-        if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
+      - if: ${{ inputs.browser_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         run: ./scripts/test-web-integration.sh --browser chromium
-        continue-on-error: true
-        if: ${{ inputs.remote_tests && inputs.unit_and_integration_tests }}
+      - if: ${{ inputs.remote_tests && inputs.unit_and_integration_tests }}
         timeout-minutes: 20
         run: ./scripts/test-remote-integration.sh
         env:
           DISPLAY: ":10"
           VSCODE_SKIP_PRELAUNCH: '1'
-        continue-on-error: true
-        if: ${{ inputs.smoke_tests }}
+      - if: ${{ inputs.smoke_tests }}
         working-directory: test/smoke
         run: npm run compile
-        continue-on-error: true
-        if: ${{ inputs.smoke_tests }}
+      - if: ${{ inputs.smoke_tests }}
         working-directory: extensions/dardcor
         run: npm run compile
 
@@ -380,42 +356,33 @@ run: npm run gulp transpile-client-esbuild transpile-extensions
       # session smoke tests to time out. See
       # https://github.com/anthropics/claude-agent-sdk-typescript for the SDK
       # resolution order.
-        continue-on-error: true
-        if: ${{ inputs.smoke_tests }}
+      - if: ${{ inputs.smoke_tests }}
         run: rm -rf node_modules/@anthropic-ai/claude-agent-sdk-linux-x64-musl node_modules/@anthropic-ai/claude-agent-sdk-linux-arm64-musl
-        continue-on-error: true
-        run: |
+      - run: |
           set -e
           ps -ef
           cat /proc/sys/fs/inotify/max_user_watches
           lsof | wc -l
-        continue-on-error: true
-        if: ${{ inputs.smoke_tests && always() }}
-        continue-on-error: true
-        if: ${{ inputs.electron_tests && inputs.smoke_tests }}
+      - if: ${{ inputs.electron_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --tracing
         env:
           DISPLAY: ":10"
-        continue-on-error: true
-        if: ${{ inputs.browser_tests && inputs.smoke_tests }}
+      - if: ${{ inputs.browser_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --web --tracing --headless
-        continue-on-error: true
-        if: ${{ inputs.remote_tests && inputs.smoke_tests }}
+      - if: ${{ inputs.remote_tests && inputs.smoke_tests }}
         timeout-minutes: 20
         run: npm run smoketest-no-compile -- --remote --tracing
         env:
           DISPLAY: ":10"
-        continue-on-error: true
-        if: ${{ inputs.smoke_tests && always() }}
+      - if: ${{ inputs.smoke_tests && always() }}
         run: |
           set -e
           ps -ef
           cat /proc/sys/fs/inotify/max_user_watches
           lsof | wc -l
-        continue-on-error: true
-uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         if: failure()
         continue-on-error: true
         with:
@@ -425,16 +392,14 @@ uses: actions/upload-artifact@v7
 
       # In order to properly symbolify above crash reports
       # (if any), we need the compiled native modules too
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         if: failure()
         continue-on-error: true
         with:
           name: ${{ format('node-modules-linux-{0}-{1}-{2}', env.VSCODE_ARCH, env.ARTIFACT_NAME, github.run_attempt) }}
           path: node_modules
           if-no-files-found: ignore
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         if: always()
         continue-on-error: true
         with:

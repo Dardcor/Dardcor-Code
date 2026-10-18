@@ -12,23 +12,18 @@ jobs:
     name: Compile
     runs-on: ubuntu-latest
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-compile
           key-args: "compile $(node -p process.arch)"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: sudo apt update -y && sudo apt install -y build-essential pkg-config libx11-dev libx11-xcb-dev libxkbfile-dev libnotify-bin libkrb5-dev
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           set -e
 
@@ -44,23 +39,19 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.VSCODE_OSS }}
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules
-        continue-on-error: true
-        run: |
+      - run: |
           set -e
           mkdir -p .build
           node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
-        continue-on-error: true
-        id: cache-builtin-extensions
+      - id: cache-builtin-extensions
         uses: actions/cache@v4
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
           key: "builtin-extensions-${{ hashFiles('.build/builtindepshash') }}"
-        continue-on-error: true
-        if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
+      - if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
         run: node build/lib/builtInExtensions.ts
         env:
           GITHUB_TOKEN: ${{ secrets.VSCODE_OSS }}
@@ -72,21 +63,17 @@ jobs:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-linux
           key-args: "linux ${{ env.VSCODE_ARCH }} $(node -p process.arch)"
           lookup-only: 'true'
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: build
         run: |
           set -e
@@ -101,8 +88,7 @@ jobs:
           done
         env:
           GITHUB_TOKEN: ${{ secrets.VSCODE_OSS }}
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           set -e
 
@@ -122,11 +108,9 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.VSCODE_OSS }}
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: node build/azure-pipelines/common/checkNativeOptionalDeps.ts
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules
 
   macOS:
@@ -136,21 +120,17 @@ jobs:
       NPM_ARCH: arm64
       VSCODE_ARCH: arm64
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-macos
           key-args: "darwin ${{ env.VSCODE_ARCH }} $(node -p process.arch)"
           lookup-only: 'true'
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           set -e
           c++ --version
@@ -176,11 +156,9 @@ jobs:
           # flipped the default to support legacy linux distros which shouldn't happen
           # on macOS.
           GYP_DEFINES: "kerberos_use_rtld=false"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: node build/azure-pipelines/common/checkNativeOptionalDeps.ts
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules
 
   windows:
@@ -190,21 +168,17 @@ jobs:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-        continue-on-error: true
-        id: node-modules-cache
+      - id: node-modules-cache
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-windows
           key-args: "win32 ${{ env.VSCODE_ARCH }} $(node -p process.arch)"
           lookup-only: 'true'
-        continue-on-error: true
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           . build/azure-pipelines/win32/exec.ps1
@@ -230,65 +204,51 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.VSCODE_OSS }}
-        continue-on-error: true
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: node build/azure-pipelines/common/checkNativeOptionalDeps.ts
-        continue-on-error: true
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules
 
   dardcor-linux:
     name: Dardcor (Linux)
     runs-on: ubuntu-latest
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: dardcor-node_modules-linux
           key-args: "$(node -p process.platform) $(node -p process.arch)"
           lookup-only: 'true'
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --no-workspaces
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: extensions/dardcor
         run: npm ci
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules
 
   dardcor-windows:
     name: Dardcor (Windows)
     runs-on: windows-latest
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: dardcor-node_modules-windows
           key-args: "$(node -p process.platform) $(node -p process.arch)"
           lookup-only: 'true'
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --no-workspaces
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: extensions/dardcor
         run: npm ci
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: ./.github/actions/save-node-modules

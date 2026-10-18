@@ -21,25 +21,20 @@ jobs:
     name: Compile & Hygiene
     runs-on: ubuntu-latest
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: node_modules-compile
           key-args: "compile $(node -p process.arch)"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: sudo apt update -y && sudo apt install -y build-essential pkg-config libx11-dev libx11-xcb-dev libxkbfile-dev libnotify-bin libkrb5-dev
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: |
           set -e
 
@@ -55,36 +50,29 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        run: npm run typecheck
+      - run: npm run typecheck
         working-directory: build
-        continue-on-error: true
-        shell: pwsh
+      - shell: pwsh
         run: node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
-        continue-on-error: true
-        id: cache-builtin-extensions
+      - id: cache-builtin-extensions
         uses: actions/cache/restore@v4
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
           key: "builtin-extensions-${{ hashFiles('.build/builtindepshash') }}"
-        continue-on-error: true
-        if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
+      - if: steps.cache-builtin-extensions.outputs.cache-hit != 'true'
         run: node build/lib/builtInExtensions.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        run: npm exec -- npm-run-all2 -lp core-ci hygiene eslint valid-layers-check define-class-fields-check vscode-dts-compile-check tsec-compile-check test-build-scripts
+      - run: npm exec -- npm-run-all2 -lp core-ci hygiene eslint valid-layers-check define-class-fields-check vscode-dts-compile-check tsec-compile-check test-build-scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-        run: |
+      - run: |
           git fetch --no-tags --depth=1 origin "$CODEX_SYNC_BASE" || true
           node build/codex/check-protocol-sync.ts --if-changed --base "$CODEX_SYNC_BASE"
         env:
           CODEX_SYNC_BASE: ${{ github.event.pull_request.base.sha }}
-        continue-on-error: true
-        run: node build/lib/checkCyclicDependencies.ts out-build
+      - run: node build/lib/checkCyclicDependencies.ts out-build
 
   linux-cli-tests:
     name: Linux
@@ -190,32 +178,26 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
 
       - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: dardcor-node_modules-linux
           key-args: "$(node -p process.platform) $(node -p process.arch)"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --no-workspaces
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: extensions/dardcor
         run: npm ci
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npx tsx test/base/cache-cli check
-        continue-on-error: true
-        if: github.event_name == 'pull_request'
+      - if: github.event_name == 'pull_request'
         working-directory: extensions/dardcor
         run: npx tsx build/pr-check-cache-files.ts
         env:
@@ -229,16 +211,14 @@ jobs:
     permissions:
       contents: read
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
 
       - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npx --package=@vscode/telemetry-extractor@1.20.4 --yes vscode-telemetry-extractor -s . > /dev/null
 
   dardcor-linux-tests:
@@ -247,72 +227,54 @@ jobs:
     permissions:
       contents: read
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-        continue-on-error: true
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           architecture: 'x64'
-        continue-on-error: true
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0'
-        continue-on-error: true
-        run: pip install setuptools
-        continue-on-error: true
-        run: |
+      - run: pip install setuptools
+      - run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgtk-3-0 libgbm1
-        continue-on-error: true
-        id: cache-node-modules
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: dardcor-node_modules-linux
           key-args: "$(node -p process.platform) $(node -p process.arch)"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --no-workspaces
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: extensions/dardcor
         run: npm ci
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run typecheck
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run lint
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run compile
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run test:unit
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run simulate-ci
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run test:prompt
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: xvfb-run -a npm run test:completions-core
-        continue-on-error: true
-        if: always()
+      - if: always()
         working-directory: extensions/dardcor
         run: |
           set -e
           mkdir -p .simulation-archive
           tar -czf .simulation-archive/simulation.tgz -C .simulation .
-        continue-on-error: true
-        if: always()
+      - if: always()
         uses: actions/upload-artifact@v7
         with:
           name: dardcor-simulation-output-linux-${{ github.run_attempt }}
@@ -324,58 +286,43 @@ jobs:
     permissions:
       contents: read
     steps:
-        continue-on-error: true
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-        continue-on-error: true
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           architecture: 'x64'
-        continue-on-error: true
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0'
-        continue-on-error: true
-        run: pip install setuptools
-        continue-on-error: true
-        id: cache-node-modules
+      - run: pip install setuptools
+      - id: cache-node-modules
         uses: ./.github/actions/restore-node-modules
         with:
           key-prefix: dardcor-node_modules-windows
           key-args: "$(node -p process.platform) $(node -p process.arch)"
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --no-workspaces
-        continue-on-error: true
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - if: steps.cache-node-modules.outputs.cache-hit != 'true'
         working-directory: extensions/dardcor
         run: npm ci
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run typecheck
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run lint
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run compile
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run test:unit
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run simulate-ci
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run test:prompt
-        continue-on-error: true
-        working-directory: extensions/dardcor
+      - working-directory: extensions/dardcor
         run: npm run test:completions-core
 
 
