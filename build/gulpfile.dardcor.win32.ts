@@ -180,6 +180,46 @@ function copyInnoUpdater(arch: string) {
 	};
 }
 
+function validateInnoUpdaterPayload(arch: string): task.CallbackTask {
+	return cb => {
+		try {
+			const toolsPath = path.join(buildPath(arch), 'tools');
+			for (const fileName of ['inno_updater.exe', 'vcruntime140.dll']) {
+				const filePath = path.join(toolsPath, fileName);
+				const image = fs.readFileSync(filePath);
+				if (image.length < 0x40 || image.readUInt16LE(0) !== 0x5a4d) {
+					throw new Error(`Invalid Inno updater payload for ${arch}: ${fileName} has no valid DOS header.`);
+				}
+
+				if (image.readUInt16LE(0x18) !== 0x40) {
+					throw new Error(`Invalid Inno updater payload for ${arch}: ${fileName} has an invalid DOS relocation header.`);
+				}
+
+				const peOffset = image.readUInt32LE(0x3c);
+				if (peOffset < 0x40 || peOffset + 24 > image.length || image.readUInt32LE(peOffset) !== 0x00004550) {
+					throw new Error(`Invalid Inno updater payload for ${arch}: ${fileName} has no valid PE header.`);
+				}
+
+				const machine = image.readUInt16LE(peOffset + 4);
+				const sectionCount = image.readUInt16LE(peOffset + 6);
+				const optionalHeaderSize = image.readUInt16LE(peOffset + 20);
+				const optionalHeaderOffset = peOffset + 24;
+				const sectionTableOffset = optionalHeaderOffset + optionalHeaderSize;
+				if (machine !== 0x014c || optionalHeaderSize < 96 || image.readUInt16LE(optionalHeaderOffset) !== 0x010b) {
+					throw new Error(`Invalid Inno updater payload for ${arch}: ${fileName} is not a valid x86 PE image.`);
+				}
+
+				if (sectionCount === 0 || sectionTableOffset + sectionCount * 40 > image.length) {
+					throw new Error(`Invalid Inno updater payload for ${arch}: ${fileName} has a truncated PE section table.`);
+				}
+			}
+			cb();
+		} catch (error) {
+			cb(error instanceof Error ? error : new Error(String(error)));
+		}
+	};
+}
+
 function updateIcon(executablePath: string): task.CallbackTask {
 	return cb => {
 		const icon = path.join(repoPath, 'public', 'dardcor-code.ico');
@@ -187,5 +227,5 @@ function updateIcon(executablePath: string): task.CallbackTask {
 	};
 }
 
-task.task(task.define('vscode-win32-x64-inno-updater', task.series(copyInnoUpdater('x64'), updateIcon(path.join(buildPath('x64'), 'tools', 'inno_updater.exe')))));
-task.task(task.define('vscode-win32-arm64-inno-updater', task.series(copyInnoUpdater('arm64'), updateIcon(path.join(buildPath('arm64'), 'tools', 'inno_updater.exe')))));
+task.task(task.define('vscode-win32-x64-inno-updater', task.series(copyInnoUpdater('x64'), validateInnoUpdaterPayload('x64'), updateIcon(path.join(buildPath('x64'), 'tools', 'inno_updater.exe')))));
+task.task(task.define('vscode-win32-arm64-inno-updater', task.series(copyInnoUpdater('arm64'), validateInnoUpdaterPayload('arm64'), updateIcon(path.join(buildPath('arm64'), 'tools', 'inno_updater.exe')))));
