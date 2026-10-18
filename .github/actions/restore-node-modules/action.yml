@@ -53,7 +53,7 @@ runs:
     - name: Extract node_modules cache
       if: runner.os != 'Windows' && inputs.lookup-only != 'true' && steps.restore.outputs.cache-hit == 'true'
       shell: bash
-      run: ./.github/workflows/node_modules_cache/cache.sh extract
+      run: bash ./.github/workflows/node_modules_cache/cache.sh extract
 
     - name: Extract node_modules cache
       if: runner.os == 'Windows' && inputs.lookup-only != 'true' && steps.restore.outputs.cache-hit == 'true'

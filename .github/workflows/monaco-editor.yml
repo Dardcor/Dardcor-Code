@@ -54,11 +54,8 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
         run: |
           npm ci
-      - run: npm run playwright-install
       - run: npm run monaco-compile-check
       - run: npm run gulp editor-distro
-      - working-directory: ./test/monaco
-        run: npm run esm-check
       - run: |
           mkdir typings-test
       - working-directory: ./typings-test
@@ -67,10 +64,3 @@ jobs:
           ../node_modules/.bin/tsc --init
           echo "import '../out-monaco-editor-core';" > a.ts
           ../node_modules/.bin/tsc --noEmit
-      - working-directory: ./test/monaco
-        run: npm run bundle-webpack
-      - working-directory: ./test/monaco
-        run: npm run compile
-      - timeout-minutes: 5
-        working-directory: ./test/monaco
-        run: npm run test

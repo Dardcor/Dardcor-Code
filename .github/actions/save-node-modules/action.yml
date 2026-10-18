@@ -7,7 +7,7 @@ runs:
     - name: Create node_modules archive
       if: runner.os != 'Windows'
       shell: bash
-      run: ./.github/workflows/node_modules_cache/cache.sh archive
+      run: bash ./.github/workflows/node_modules_cache/cache.sh archive
 
     - name: Create node_modules archive
       if: runner.os == 'Windows'
