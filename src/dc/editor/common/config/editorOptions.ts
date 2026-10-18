@@ -17,28 +17,15 @@ import * as nls from '../../../nls.js';
 import { AccessibilitySupport } from '../../../platform/accessibility/common/accessibility.js';
 import { IConfigurationPropertySchema } from '../../../platform/configuration/common/configurationRegistry.js';
 
-//#region typed options
 
-/**
- * Configuration options for auto closing quotes and brackets
- */
 export type EditorAutoClosingStrategy = 'always' | 'languageDefined' | 'beforeWhitespace' | 'never';
 
-/**
- * Configuration options for auto wrapping quotes and brackets
- */
 export type EditorAutoSurroundStrategy = 'languageDefined' | 'quotes' | 'brackets' | 'never';
 
-/**
- * Configuration options for typing over closing quotes or brackets
- */
 export type EditorAutoClosingEditStrategy = 'always' | 'auto' | 'never';
 
 type Unknown<T> = { [K in keyof T]: unknown };
 
-/**
- * Configuration options for auto indentation in the editor
- */
 export const enum EditorAutoIndentStrategy {
 	None = 0,
 	Keep = 1,
@@ -47,818 +34,186 @@ export const enum EditorAutoIndentStrategy {
 	Full = 4
 }
 
-/**
- * Configuration options for the editor.
- */
 export interface IEditorOptions {
-	/**
-	 * This editor is used inside a diff editor.
-	 */
 	inDiffEditor?: boolean;
-	/**
-	 * This editor is allowed to use variable line heights.
-	 */
 	allowVariableLineHeights?: boolean;
-	/**
-	 * This editor is allowed to use variable font-sizes and font-families
-	 */
 	allowVariableFonts?: boolean;
-	/**
-	 * This editor is allowed to use variable font-sizes and font-families in accessibility mode
-	 */
 	allowVariableFontsInAccessibilityMode?: boolean;
-	/**
-	 * The aria label for the editor's textarea (when it is focused).
-	 */
 	ariaLabel?: string;
 
-	/**
-	 * Whether the aria-required attribute should be set on the editors textarea.
-	 */
 	ariaRequired?: boolean;
-	/**
-	 * Control whether a screen reader announces inline suggestion content immediately.
-	 */
 	screenReaderAnnounceInlineSuggestion?: boolean;
-	/**
-	 * The `tabindex` property of the editor's textarea
-	 */
 	tabIndex?: number;
-	/**
-	 * Render vertical lines at the specified columns.
-	 * Defaults to empty array.
-	 */
 	rulers?: (number | IRulerOption)[];
-	/**
-	 * Locales used for segmenting lines into words when doing word related navigations or operations.
-	 *
-	 * Specify the BCP 47 language tag of the word you wish to recognize (e.g., ja, zh-CN, zh-Hant-TW, etc.).
-	 * Defaults to empty array
-	 */
 	wordSegmenterLocales?: string | string[];
-	/**
-	 * A string containing the word separators used when doing word navigation.
-	 * Defaults to `~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?
-	 */
 	wordSeparators?: string;
-	/**
-	 * Enable Linux primary clipboard.
-	 * Defaults to true.
-	 */
 	selectionClipboard?: boolean;
-	/**
-	 * Control the rendering of line numbers.
-	 * If it is a function, it will be invoked when rendering a line number and the return value will be rendered.
-	 * Otherwise, if it is a truthy, line numbers will be rendered normally (equivalent of using an identity function).
-	 * Otherwise, line numbers will not be rendered.
-	 * Defaults to `on`.
-	 */
 	lineNumbers?: LineNumbersType;
-	/**
-	 * Controls the minimal number of visible leading and trailing lines surrounding the cursor.
-	 * Defaults to 0.
-	*/
 	cursorSurroundingLines?: number;
-	/**
-	 * Controls when `cursorSurroundingLines` should be enforced
-	 * Defaults to `default`, `cursorSurroundingLines` is not enforced when cursor position is changed
-	 * by mouse.
-	*/
 	cursorSurroundingLinesStyle?: 'default' | 'all';
-	/**
-	 * Render last line number when the file ends with a newline.
-	 * Defaults to 'on' for Windows and macOS and 'dimmed' for Linux.
-	*/
 	renderFinalNewline?: 'on' | 'off' | 'dimmed';
-	/**
-	 * Remove unusual line terminators like LINE SEPARATOR (LS), PARAGRAPH SEPARATOR (PS).
-	 * Defaults to 'prompt'.
-	 */
 	unusualLineTerminators?: 'auto' | 'off' | 'prompt';
-	/**
-	 * Should the corresponding line be selected when clicking on the line number?
-	 * Defaults to true.
-	 */
 	selectOnLineNumbers?: boolean;
-	/**
-	 * Control the width of line numbers, by reserving horizontal space for rendering at least an amount of digits.
-	 * Defaults to 5.
-	 */
 	lineNumbersMinChars?: number;
-	/**
-	 * Enable the rendering of the glyph margin.
-	 * Defaults to true in vscode and to false in monaco-editor.
-	 */
 	glyphMargin?: boolean;
-	/**
-	 * The width reserved for line decorations (in px).
-	 * Line decorations are placed between line numbers and the editor content.
-	 * You can pass in a string in the format floating point followed by "ch". e.g. 1.3ch.
-	 * Defaults to 10.
-	 */
 	lineDecorationsWidth?: number | string;
-	/**
-	 * When revealing the cursor, a virtual padding (px) is added to the cursor, turning it into a rectangle.
-	 * This virtual padding ensures that the cursor gets revealed before hitting the edge of the viewport.
-	 * Defaults to 30 (px).
-	 */
 	revealHorizontalRightPadding?: number;
-	/**
-	 * Render the editor selection with rounded borders.
-	 * Defaults to true.
-	 */
 	roundedSelection?: boolean;
-	/**
-	 * Class name to be added to the editor.
-	 */
 	extraEditorClassName?: string;
-	/**
-	 * Should the editor be read only. See also `domReadOnly`.
-	 * Defaults to false.
-	 */
 	readOnly?: boolean;
-	/**
-	 * The message to display when the editor is readonly.
-	 */
 	readOnlyMessage?: IMarkdownString;
-	/**
-	 * Should the textarea used for input use the DOM `readonly` attribute.
-	 * Defaults to false.
-	 */
 	domReadOnly?: boolean;
-	/**
-	 * Enable linked editing.
-	 * Defaults to false.
-	 */
 	linkedEditing?: boolean;
-	/**
-	 * deprecated, use linkedEditing instead
-	 */
 	renameOnType?: boolean;
-	/**
-	 * Should the editor render validation decorations.
-	 * Defaults to editable.
-	 */
 	renderValidationDecorations?: 'editable' | 'on' | 'off';
-	/**
-	 * Control the behavior and rendering of the scrollbars.
-	 */
 	scrollbar?: IEditorScrollbarOptions;
-	/**
-	 * Control the behavior of sticky scroll options
-	 */
 	stickyScroll?: IEditorStickyScrollOptions;
-	/**
-	 * Control the behavior and rendering of the minimap.
-	 */
 	minimap?: IEditorMinimapOptions;
-	/**
-	 * Control the behavior of the find widget.
-	 */
 	find?: IEditorFindOptions;
-	/**
-	 * Display overflow widgets as `fixed`.
-	 * Defaults to `false`.
-	 */
 	fixedOverflowWidgets?: boolean;
-	/**
-	 * Allow content widgets and overflow widgets to overflow the editor viewport.
-	 * Defaults to `true`.
-	 */
 	allowOverflow?: boolean;
-	/**
-	 * The number of vertical lanes the overview ruler should render.
-	 * Defaults to 3.
-	 */
 	overviewRulerLanes?: number;
-	/**
-	 * Controls if a border should be drawn around the overview ruler.
-	 * Defaults to `true`.
-	 */
 	overviewRulerBorder?: boolean;
-	/**
-	 * Control the cursor animation style, possible values are 'blink', 'smooth', 'phase', 'expand' and 'solid'.
-	 * Defaults to 'blink'.
-	 */
 	cursorBlinking?: 'blink' | 'smooth' | 'phase' | 'expand' | 'solid';
-	/**
-	 * Zoom the font in the editor when using the mouse wheel in combination with holding Ctrl.
-	 * Defaults to false.
-	 */
 	mouseWheelZoom?: boolean;
-	/**
-	 * Control the mouse pointer style, either 'text' or 'default' or 'copy'
-	 * Defaults to 'text'
-	 */
 	mouseStyle?: 'text' | 'default' | 'copy';
-	/**
-	 * Enable smooth caret animation.
-	 * Defaults to 'off'.
-	 */
 	cursorSmoothCaretAnimation?: 'off' | 'explicit' | 'on';
-	/**
-	 * Control the cursor style in insert mode.
-	 * Defaults to 'line'.
-	 */
 	cursorStyle?: 'line' | 'block' | 'underline' | 'line-thin' | 'block-outline' | 'underline-thin';
-	/**
-	 * Control the cursor style in overtype mode.
-	 * Defaults to 'block'.
-	 */
 	overtypeCursorStyle?: 'line' | 'block' | 'underline' | 'line-thin' | 'block-outline' | 'underline-thin';
-	/**
-	 *  Controls whether paste in overtype mode should overwrite or insert.
-	 */
 	overtypeOnPaste?: boolean;
-	/**
-	 * Control the width of the cursor when cursorStyle is set to 'line'
-	 */
 	cursorWidth?: number;
-	/**
-	 * Control the height of the cursor when cursorStyle is set to 'line'
-	 */
 	cursorHeight?: number;
-	/**
-	 * Enable font ligatures.
-	 * Defaults to false.
-	 */
 	fontLigatures?: boolean | string;
-	/**
-	 * Enable font variations.
-	 * Defaults to false.
-	 */
 	fontVariations?: boolean | string;
-	/**
-	 * Controls whether to use default color decorations or not using the default document color provider
-	 */
 	defaultColorDecorators?: 'auto' | 'always' | 'never';
-	/**
-	 * Disable the use of `transform: translate3d(0px, 0px, 0px)` for the editor margin and lines layers.
-	 * The usage of `transform: translate3d(0px, 0px, 0px)` acts as a hint for browsers to create an extra layer.
-	 * Defaults to false.
-	 */
 	disableLayerHinting?: boolean;
-	/**
-	 * Disable the optimizations for monospace fonts.
-	 * Defaults to false.
-	 */
 	disableMonospaceOptimizations?: boolean;
-	/**
-	 * Should the cursor be hidden in the overview ruler.
-	 * Defaults to false.
-	 */
 	hideCursorInOverviewRuler?: boolean;
-	/**
-	 * Enable that scrolling can go one screen size after the last line.
-	 * Defaults to true.
-	 */
 	scrollBeyondLastLine?: boolean;
-	/**
-	 * Scroll editor on middle click
-	 */
 	scrollOnMiddleClick?: boolean;
-	/**
-	 * Enable that scrolling can go beyond the last column by a number of columns.
-	 * Defaults to 5.
-	 */
 	scrollBeyondLastColumn?: number;
-	/**
-	 * Enable that the editor animates scrolling to a position.
-	 * Defaults to false.
-	 */
 	smoothScrolling?: boolean;
-	/**
-	 * Enable that the editor will install a ResizeObserver to check if its container dom node size has changed.
-	 * Defaults to false.
-	 */
 	automaticLayout?: boolean;
-	/**
-	 * Control the wrapping of the editor.
-	 * When `wordWrap` = "off", the lines will never wrap.
-	 * When `wordWrap` = "on", the lines will wrap at the viewport width.
-	 * When `wordWrap` = "wordWrapColumn", the lines will wrap at `wordWrapColumn`.
-	 * When `wordWrap` = "bounded", the lines will wrap at min(viewport width, wordWrapColumn).
-	 * Defaults to "off".
-	 */
 	wordWrap?: 'off' | 'on' | 'wordWrapColumn' | 'bounded';
-	/**
-	 * Control whether an indicator is rendered at the wrapping column of soft wrapped lines.
-	 * Defaults to false.
-	 */
 	wordWrapIndicator?: boolean;
-	/**
-	 * Override the `wordWrap` setting.
-	 */
 	wordWrapOverride1?: 'off' | 'on' | 'inherit';
-	/**
-	 * Override the `wordWrapOverride1` setting.
-	 */
 	wordWrapOverride2?: 'off' | 'on' | 'inherit';
-	/**
-	 * Control the wrapping of the editor.
-	 * When `wordWrap` = "off", the lines will never wrap.
-	 * When `wordWrap` = "on", the lines will wrap at the viewport width.
-	 * When `wordWrap` = "wordWrapColumn", the lines will wrap at `wordWrapColumn`.
-	 * When `wordWrap` = "bounded", the lines will wrap at min(viewport width, wordWrapColumn).
-	 * Defaults to 80.
-	 */
 	wordWrapColumn?: number;
-	/**
-	 * Control indentation of wrapped lines. Can be: 'none', 'same', 'indent' or 'deepIndent'.
-	 * Defaults to 'same' in vscode and to 'none' in monaco-editor.
-	 */
 	wrappingIndent?: 'none' | 'same' | 'indent' | 'deepIndent';
-	/**
-	 * Controls the wrapping strategy to use.
-	 * Defaults to 'simple'.
-	 */
 	wrappingStrategy?: 'simple' | 'advanced';
-	/**
-	 * Create a softwrap on every quoted "\n" literal.
-	 * Defaults to false.
-	 */
 	wrapOnEscapedLineFeeds?: boolean;
-	/**
-	 * Configure word wrapping characters. A break will be introduced before these characters.
-	 */
 	wordWrapBreakBeforeCharacters?: string;
-	/**
-	 * Configure word wrapping characters. A break will be introduced after these characters.
-	 */
 	wordWrapBreakAfterCharacters?: string;
-	/**
-	 * Sets whether line breaks appear wherever the text would otherwise overflow its content box.
-	 * When wordBreak = 'normal', Use the default line break rule.
-	 * When wordBreak = 'keepAll', Word breaks should not be used for Chinese/Japanese/Korean (CJK) text. Non-CJK text behavior is the same as for normal.
-	 */
 	wordBreak?: 'normal' | 'keepAll';
-	/**
-	 * Performance guard: Stop rendering a line after x characters.
-	 * Defaults to 10000.
-	 * Use -1 to never stop rendering
-	 */
 	stopRenderingLineAfter?: number;
-	/**
-	 * Configure the editor's hover.
-	 */
 	hover?: IEditorHoverOptions;
-	/**
-	 * Enable detecting links and making them clickable.
-	 * Defaults to true.
-	 */
 	links?: boolean;
-	/**
-	 * Enable inline color decorators and color picker rendering.
-	 */
 	colorDecorators?: boolean;
-	/**
-	 * Controls what is the condition to spawn a color picker from a color dectorator
-	 */
 	colorDecoratorsActivatedOn?: 'clickAndHover' | 'click' | 'hover';
-	/**
-	 * Controls the max number of color decorators that can be rendered in an editor at once.
-	 */
 	colorDecoratorsLimit?: number;
-	/**
-	 * Control the behaviour of comments in the editor.
-	 */
 	comments?: IEditorCommentsOptions;
-	/**
-	 * Enable custom contextmenu.
-	 * Defaults to true.
-	 */
 	contextmenu?: boolean;
-	/**
-	 * A multiplier to be used on the `deltaX` and `deltaY` of mouse wheel scroll events.
-	 * Defaults to 1.
-	 */
 	mouseWheelScrollSensitivity?: number;
-	/**
-	 * FastScrolling mulitplier speed when pressing `Alt`
-	 * Defaults to 5.
-	 */
 	fastScrollSensitivity?: number;
-	/**
-	 * Enable that the editor scrolls only the predominant axis. Prevents horizontal drift when scrolling vertically on a trackpad.
-	 * Defaults to true.
-	 */
 	scrollPredominantAxis?: boolean;
-	/**
-	 * Make scrolling inertial - mostly useful with touchpad on linux.
-	 */
 	inertialScroll?: boolean;
-	/**
-	 * Enable that the selection with the mouse and keys is doing column selection.
-	 * Defaults to false.
-	 */
 	columnSelection?: boolean;
-	/**
-	 * The modifier to be used to add multiple cursors with the mouse.
-	 * Defaults to 'alt'
-	 */
 	multiCursorModifier?: 'ctrlCmd' | 'alt';
-	/**
-	 * Merge overlapping selections.
-	 * Defaults to true
-	 */
 	multiCursorMergeOverlapping?: boolean;
-	/**
-	 * Configure the behaviour when pasting a text with the line count equal to the cursor count.
-	 * Defaults to 'spread'.
-	 */
 	multiCursorPaste?: 'spread' | 'full';
-	/**
-	 * Controls the max number of text cursors that can be in an active editor at once.
-	 */
 	multiCursorLimit?: number;
-	/**
-	 * Enables middle mouse button to open links and Go To Definition
-	 */
 	mouseMiddleClickAction?: MouseMiddleClickAction;
-	/**
-	 * Configure the editor's accessibility support.
-	 * Defaults to 'auto'. It is best to leave this to 'auto'.
-	 */
 	accessibilitySupport?: 'auto' | 'off' | 'on';
-	/**
-	 * Controls the number of lines in the editor that can be read out by a screen reader
-	 */
 	accessibilityPageSize?: number;
-	/**
-	 * Suggest options.
-	 */
 	suggest?: ISuggestOptions;
 	inlineSuggest?: IInlineSuggestOptions;
-	/**
-	 * Smart select options.
-	 */
 	smartSelect?: ISmartSelectOptions;
-	/**
-	 *
-	 */
 	gotoLocation?: IGotoLocationOptions;
-	/**
-	 * Enable quick suggestions (shadow suggestions)
-	 * Defaults to true.
-	 */
 	quickSuggestions?: boolean | QuickSuggestionsValue | IQuickSuggestionsOptions;
-	/**
-	 * Quick suggestions show delay (in ms)
-	 * Defaults to 10 (ms)
-	 */
 	quickSuggestionsDelay?: number;
-	/**
-	 * Controls the spacing around the editor.
-	 */
 	padding?: IEditorPaddingOptions;
-	/**
-	 * Parameter hint options.
-	 */
 	parameterHints?: IEditorParameterHintOptions;
-	/**
-	 * Options for auto closing brackets.
-	 * Defaults to language defined behavior.
-	 */
 	autoClosingBrackets?: EditorAutoClosingStrategy;
-	/**
-	 * Options for auto closing comments.
-	 * Defaults to language defined behavior.
-	 */
 	autoClosingComments?: EditorAutoClosingStrategy;
-	/**
-	 * Options for auto closing quotes.
-	 * Defaults to language defined behavior.
-	 */
 	autoClosingQuotes?: EditorAutoClosingStrategy;
-	/**
-	 * Options for pressing backspace near quotes or bracket pairs.
-	 */
 	autoClosingDelete?: EditorAutoClosingEditStrategy;
-	/**
-	 * Options for typing over closing quotes or brackets.
-	 */
 	autoClosingOvertype?: EditorAutoClosingEditStrategy;
-	/**
-	 * Options for auto surrounding.
-	 * Defaults to always allowing auto surrounding.
-	 */
 	autoSurround?: EditorAutoSurroundStrategy;
-	/**
-	 * Controls whether the editor should automatically adjust the indentation when users type, paste, move or indent lines.
-	 * Defaults to advanced.
-	 */
 	autoIndent?: 'none' | 'keep' | 'brackets' | 'advanced' | 'full';
-	/**
-	 * Boolean which controls whether to autoindent on paste
-	 */
 	autoIndentOnPaste?: boolean;
-	/**
-	 * Boolean which controls whether to autoindent on paste within a string when autoIndentOnPaste is enabled.
-	 */
 	autoIndentOnPasteWithinString?: boolean;
-	/**
-	 * Emulate selection behaviour of tab characters when using spaces for indentation.
-	 * This means selection will stick to tab stops.
-	 */
 	stickyTabStops?: boolean;
-	/**
-	 * Enable format on type.
-	 * Defaults to false.
-	 */
 	formatOnType?: boolean;
-	/**
-	 * Enable format on paste.
-	 * Defaults to false.
-	 */
 	formatOnPaste?: boolean;
-	/**
-	 * Controls whether double-clicking next to a bracket or quote selects the content inside.
-	 * Defaults to true.
-	 */
 	doubleClickSelectsBlock?: boolean;
-	/**
-	 * Controls if the editor should allow to move selections via drag and drop.
-	 * Defaults to false.
-	 */
 	dragAndDrop?: boolean;
-	/**
-	 * Enable the suggestion box to pop-up on trigger characters.
-	 * Defaults to true.
-	 */
 	suggestOnTriggerCharacters?: boolean;
-	/**
-	 * Accept suggestions on ENTER.
-	 * Defaults to 'on'.
-	 */
 	acceptSuggestionOnEnter?: 'on' | 'smart' | 'off';
-	/**
-	 * Accept suggestions on provider defined characters.
-	 * Defaults to true.
-	 */
 	acceptSuggestionOnCommitCharacter?: boolean;
-	/**
-	 * Enable snippet suggestions. Default to 'true'.
-	 */
 	snippetSuggestions?: 'top' | 'bottom' | 'inline' | 'none';
-	/**
-	 * Copying without a selection copies the current line.
-	 */
 	emptySelectionClipboard?: boolean;
-	/**
-	 * Syntax highlighting is copied.
-	 */
 	copyWithSyntaxHighlighting?: boolean;
-	/**
-	 * The history mode for suggestions.
-	 */
 	suggestSelection?: 'first' | 'recentlyUsed' | 'recentlyUsedByPrefix';
-	/**
-	 * The font size for the suggest widget.
-	 * Defaults to the editor font size.
-	 */
 	suggestFontSize?: number;
-	/**
-	 * The line height for the suggest widget.
-	 * Defaults to the editor line height.
-	 */
 	suggestLineHeight?: number;
-	/**
-	 * Enable tab completion.
-	 */
 	tabCompletion?: 'on' | 'off' | 'onlySnippets';
-	/**
-	 * Enable selection highlight.
-	 * Defaults to true.
-	 */
 	selectionHighlight?: boolean;
-	/**
-	 * Enable selection highlight for multiline selections.
-	 * Defaults to false.
-	 */
 	selectionHighlightMultiline?: boolean;
-	/**
-	 * Maximum length (in characters) for selection highlights.
-	 * Set to 0 to have an unlimited length.
-	 */
 	selectionHighlightMaxLength?: number;
-	/**
-	 * Enable semantic occurrences highlight.
-	 * Defaults to 'singleFile'.
-	 * 'off' disables occurrence highlighting
-	 * 'singleFile' triggers occurrence highlighting in the current document
-	 * 'multiFile'  triggers occurrence highlighting across valid open documents
-	 */
 	occurrencesHighlight?: 'off' | 'singleFile' | 'multiFile';
-	/**
-	 * Controls delay for occurrences highlighting
-	 * Defaults to 250.
-	 * Minimum value is 0
-	 * Maximum value is 2000
-	 */
 	occurrencesHighlightDelay?: number;
-	/**
-	 * Show code lens
-	 * Defaults to true.
-	 */
 	codeLens?: boolean;
-	/**
-	 * Code lens font family. Defaults to editor font family.
-	 */
 	codeLensFontFamily?: string;
-	/**
-	 * Code lens font size. Default to 90% of the editor font size
-	 */
 	codeLensFontSize?: number;
-	/**
-	 * Control the behavior and rendering of the code action lightbulb.
-	 */
 	lightbulb?: IEditorLightbulbOptions;
-	/**
-	 * Timeout for running code actions on save.
-	 */
 	codeActionsOnSaveTimeout?: number;
-	/**
-	 * Enable code folding.
-	 * Defaults to true.
-	 */
 	folding?: boolean;
-	/**
-	 * Selects the folding strategy. 'auto' uses the strategies contributed for the current document, 'indentation' uses the indentation based folding strategy.
-	 * Defaults to 'auto'.
-	 */
 	foldingStrategy?: 'auto' | 'indentation';
-	/**
-	 * Enable highlight for folded regions.
-	 * Defaults to true.
-	 */
 	foldingHighlight?: boolean;
-	/**
-	 * Auto fold imports folding regions.
-	 * Defaults to true.
-	 */
 	foldingImportsByDefault?: boolean;
-	/**
-	 * Maximum number of foldable regions.
-	 * Defaults to 5000.
-	 */
 	foldingMaximumRegions?: number;
-	/**
-	 * Controls whether the fold actions in the gutter stay always visible or hide unless the mouse is over the gutter.
-	 * Defaults to 'mouseover'.
-	 */
 	showFoldingControls?: 'always' | 'never' | 'mouseover';
-	/**
-	 * Controls whether clicking on the empty content after a folded line will unfold the line.
-	 * Defaults to false.
-	 */
 	unfoldOnClickAfterEndOfLine?: boolean;
-	/**
-	 * Enable highlighting of matching brackets.
-	 * Defaults to 'always'.
-	 */
 	matchBrackets?: 'never' | 'near' | 'always';
-	/**
-	 * Enable experimental rendering using WebGPU.
-	 * Defaults to 'off'.
-	 */
 	experimentalGpuAcceleration?: 'on' | 'off';
-	/**
-	 * Enable experimental whitespace rendering.
-	 * Defaults to 'svg'.
-	 */
 	experimentalWhitespaceRendering?: 'svg' | 'font' | 'off';
-	/**
-	 * Enable rendering of whitespace.
-	 * Defaults to 'selection'.
-	 */
 	renderWhitespace?: 'none' | 'boundary' | 'selection' | 'trailing' | 'all';
-	/**
-	 * Enable rendering of control characters.
-	 * Defaults to true.
-	 */
 	renderControlCharacters?: boolean;
-	/**
-	 * Enable rendering of current line highlight.
-	 * Defaults to all.
-	 */
 	renderLineHighlight?: 'none' | 'gutter' | 'line' | 'all';
-	/**
-	 * Control if the current line highlight should be rendered only the editor is focused.
-	 * Defaults to false.
-	 */
 	renderLineHighlightOnlyWhenFocus?: boolean;
-	/**
-	 * Inserting and deleting whitespace follows tab stops.
-	 */
 	useTabStops?: boolean;
-	/**
-	 * Controls whether the editor should automatically remove indentation whitespace when joining lines with Delete.
-	 * Defaults to false.
-	 */
 	trimWhitespaceOnDelete?: boolean;
-	/**
-	 * The font family
-	 */
 	fontFamily?: string;
-	/**
-	 * The font weight
-	 */
 	fontWeight?: string;
-	/**
-	 * The font size
-	 */
 	fontSize?: number;
-	/**
-	 * The line height
-	 */
 	lineHeight?: number;
-	/**
-	 * The letter spacing
-	 */
 	letterSpacing?: number;
-	/**
-	 * Controls fading out of unused variables.
-	 */
 	showUnused?: boolean;
-	/**
-	 * Controls whether to focus the inline editor in the peek widget by default.
-	 * Defaults to false.
-	 */
 	peekWidgetDefaultFocus?: 'tree' | 'editor';
 
-	/**
-	 * Sets a placeholder for the editor.
-	 * If set, the placeholder is shown if the editor is empty.
-	*/
 	placeholder?: string | undefined;
 
-	/**
-	 * Controls whether the definition link opens element in the peek widget.
-	 * Defaults to false.
-	 */
 	definitionLinkOpensInPeek?: boolean;
-	/**
-	 * Controls strikethrough deprecated variables.
-	 */
 	showDeprecated?: boolean;
-	/**
-	 * Controls whether suggestions allow matches in the middle of the word instead of only at the beginning
-	 */
 	matchOnWordStartOnly?: boolean;
-	/**
-	 * Control the behavior and rendering of the inline hints.
-	 */
 	inlayHints?: IEditorInlayHintsOptions;
-	/**
-	 * Control if the editor should use shadow DOM.
-	 */
 	useShadowDOM?: boolean;
-	/**
-	 * Controls the behavior of editor guides.
-	*/
 	guides?: IGuidesOptions;
 
-	/**
-	 * Controls the behavior of the unicode highlight feature
-	 * (by default, ambiguous and invisible characters are highlighted).
-	 */
 	unicodeHighlight?: IUnicodeHighlightOptions;
 
-	/**
-	 * Configures bracket pair colorization (disabled by default).
-	*/
 	bracketPairColorization?: IBracketPairColorizationOptions;
 
-	/**
-	 * Controls dropping into the editor from an external source.
-	 *
-	 * When enabled, this shows a preview of the drop location and triggers an `onDropIntoEditor` event.
-	 */
 	dropIntoEditor?: IDropIntoEditorOptions;
 
-	/**
-	 * Sets whether the new experimental edit context should be used instead of the text area.
-	 */
 	editContext?: boolean;
 
-	/**
-	 * Controls whether to render rich HTML screen reader content when the EditContext is enabled
-	 */
 	renderRichScreenReaderContent?: boolean;
 
-	/**
-	 * Controls support for changing how content is pasted into the editor.
-	 */
 	pasteAs?: IPasteAsOptions;
 
-	/**
-	 * Controls whether the editor / terminal receives tabs or defers them to the workbench for navigation.
-	 */
 	tabFocusMode?: boolean;
 
-	/**
-	 * Controls whether the accessibility hint should be provided to screen reader users when an inline completion is shown.
-	 */
 	inlineCompletionsAccessibilityVerbose?: boolean;
 }
 
@@ -871,41 +226,16 @@ export const MINIMAP_GUTTER_WIDTH = 8;
 export type DiffEditorViewMode = 'inline' | 'sideBySide' | 'automatic';
 
 export interface IDiffEditorBaseOptions {
-	/**
-	 * Allow the user to resize the diff editor split view.
-	 * Defaults to true.
-	 */
 	enableSplitViewResizing?: boolean;
 
-	/**
-	 * The default ratio when rendering side-by-side editors.
-	 * Must be a number between 0 and 1, min sizes apply.
-	 * Defaults to 0.5
-	 */
 	splitViewDefaultRatio?: number;
 
-	/**
-	 * Render the differences in two side-by-side editors.
-	 * Defaults to true.
-	 */
 	renderSideBySide?: boolean;
 
-	/**
-	 * When `renderSideBySide` is enabled, `useInlineViewWhenSpaceIsLimited` is set,
-	 * and the diff editor has a width less than `renderSideBySideInlineBreakpoint`, the inline view is used.
-	 */
 	renderSideBySideInlineBreakpoint?: number | undefined;
 
-	/**
-	 * When `renderSideBySide` is enabled, `useInlineViewWhenSpaceIsLimited` is set,
-	 * and the diff editor has a width less than `renderSideBySideInlineBreakpoint`, the inline view is used.
-	 */
 	useInlineViewWhenSpaceIsLimited?: boolean;
 
-	/**
-	 * If set, the diff editor is optimized for small views.
-	 * Defaults to `false`.
-	*/
 	compactMode?: boolean;
 
 	/**
@@ -915,97 +245,40 @@ export interface IDiffEditorBaseOptions {
 	*/
 	hideOriginalLineNumbers?: boolean;
 
-	/**
-	 * Timeout in milliseconds after which diff computation is cancelled.
-	 * Defaults to 5000.
-	 */
 	maxComputationTime?: number;
 
-	/**
-	 * Maximum supported file size in MB.
-	 * Defaults to 50.
-	 */
 	maxFileSize?: number;
 
-	/**
-	 * Compute the diff by ignoring leading/trailing whitespace
-	 * Defaults to true.
-	 */
 	ignoreTrimWhitespace?: boolean;
 
-	/**
-	 * Render +/- indicators for added/deleted changes.
-	 * Defaults to true.
-	 */
 	renderIndicators?: boolean;
 
-	/**
-	 * Shows icons in the glyph margin to revert changes.
-	 * Default to true.
-	 */
 	renderMarginRevertIcon?: boolean;
 
-	/**
-	 * Indicates if the gutter menu should be rendered.
-	*/
 	renderGutterMenu?: boolean;
 
-	/**
-	 * Original model should be editable?
-	 * Defaults to false.
-	 */
 	originalEditable?: boolean;
 
-	/**
-	 * Should the diff editor enable code lens?
-	 * Defaults to false.
-	 */
 	diffCodeLens?: boolean;
 
-	/**
-	 * Is the diff editor should render overview ruler
-	 * Defaults to true
-	 */
 	renderOverviewRuler?: boolean;
 
-	/**
-	 * Control the wrapping of the diff editor.
-	 */
 	diffWordWrap?: 'off' | 'on' | 'inherit';
 
-	/**
-	 * Diff Algorithm
-	*/
 	diffAlgorithm?: 'legacy' | 'advanced' | 'advanced-external' | 'advanced-wasm';
 
-	/**
-	 * Whether the diff editor aria label should be verbose.
-	 */
 	accessibilityVerbose?: boolean;
 
 	experimental?: {
-		/**
-		 * Defaults to false.
-		 */
 		showMoves?: boolean;
 
 		showEmptyDecorations?: boolean;
 
-		/**
-		 * Only applies when `renderSideBySide` is set to false.
-		*/
 		useTrueInlineView?: boolean;
 	};
 
-	/**
-	 * Is the diff editor inside another editor
-	 * Defaults to false
-	 */
 	isInEmbeddedEditor?: boolean;
 
-	/**
-	 * If the diff editor should only show the difference review mode.
-	 */
 	onlyShowAccessibleDiffViewer?: boolean;
 
 	hideUnchangedRegions?: {
@@ -1016,9 +289,6 @@ export interface IDiffEditorBaseOptions {
 	};
 }
 
-/**
- * Configuration options for the diff editor.
- */
 export interface IDiffEditorOptions extends IEditorOptions, IDiffEditorBaseOptions {
 }
 
@@ -1027,11 +297,7 @@ export interface IDiffEditorOptions extends IEditorOptions, IDiffEditorBaseOptio
  */
 export type ValidDiffEditorBaseOptions = Readonly<Required<IDiffEditorBaseOptions>>;
 
-//#endregion
 
-/**
- * An event describing that the configuration of the editor has changed.
- */
 export class ConfigurationChangedEvent {
 	private readonly _values: boolean[];
 	/**
@@ -1045,14 +311,10 @@ export class ConfigurationChangedEvent {
 	}
 }
 
-/**
- * All computed editor options.
- */
 export interface IComputedEditorOptions {
 	get<T extends EditorOption>(id: T): FindComputedEditorOptionValueById<T>;
 }
 
-//#region IEditorOption
 
 /**
  * @internal
@@ -1108,9 +370,6 @@ export interface IEditorOption<K extends EditorOption, V> {
 	 */
 	compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: V): V;
 
-	/**
-	 * Might modify `value`.
-	*/
 	applyUpdate(value: V | undefined, update: V): ApplyUpdateResult<V>;
 }
 
@@ -1239,7 +498,6 @@ export function boolean(value: unknown, defaultValue: boolean): boolean {
 		return defaultValue;
 	}
 	if (value === 'false') {
-		// treat the string 'false' as false
 		return false;
 	}
 	return Boolean(value);
@@ -1441,9 +699,7 @@ class EditorEnumOption<K extends EditorOption, T extends string, V> extends Base
 	}
 }
 
-//#endregion
 
-//#region autoIndent
 
 function _autoIndentFromString(autoIndent: 'none' | 'keep' | 'brackets' | 'advanced' | 'full'): EditorAutoIndentStrategy {
 	switch (autoIndent) {
@@ -1455,9 +711,7 @@ function _autoIndentFromString(autoIndent: 'none' | 'keep' | 'brackets' | 'advan
 	}
 }
 
-//#endregion
 
-//#region accessibilitySupport
 
 class EditorAccessibilitySupport extends BaseEditorOption<EditorOption.accessibilitySupport, 'auto' | 'off' | 'on', AccessibilitySupport> {
 
@@ -1490,30 +744,16 @@ class EditorAccessibilitySupport extends BaseEditorOption<EditorOption.accessibi
 
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: AccessibilitySupport): AccessibilitySupport {
 		if (value === AccessibilitySupport.Unknown) {
-			// The editor reads the `accessibilitySupport` from the environment
 			return env.accessibilitySupport;
 		}
 		return value;
 	}
 }
 
-//#endregion
 
-//#region comments
 
-/**
- * Configuration options for editor comments
- */
 export interface IEditorCommentsOptions {
-	/**
-	 * Insert a space after the line comment token and inside the block comments tokens.
-	 * Defaults to true.
-	 */
 	insertSpace?: boolean;
-	/**
-	 * Ignore empty lines when inserting line comments.
-	 * Defaults to true.
-	 */
 	ignoreEmptyLines?: boolean;
 }
 
@@ -1558,37 +798,14 @@ class EditorComments extends BaseEditorOption<EditorOption.comments, IEditorComm
 	}
 }
 
-//#endregion
 
-//#region cursorBlinking
 
-/**
- * The kind of animation in which the editor's cursor should be rendered.
- */
 export const enum TextEditorCursorBlinkingStyle {
-	/**
-	 * Hidden
-	 */
 	Hidden = 0,
-	/**
-	 * Blinking
-	 */
 	Blink = 1,
-	/**
-	 * Blinking with smooth fading
-	 */
 	Smooth = 2,
-	/**
-	 * Blinking with prolonged filled state and smooth fading
-	 */
 	Phase = 3,
-	/**
-	 * Expand collapse animation on the y axis
-	 */
 	Expand = 4,
-	/**
-	 * No-Blinking
-	 */
 	Solid = 5
 }
 
@@ -1605,37 +822,14 @@ export function cursorBlinkingStyleFromString(cursorBlinkingStyle: 'blink' | 'sm
 	}
 }
 
-//#endregion
 
-//#region cursorStyle
 
-/**
- * The style in which the editor's cursor should be rendered.
- */
 export enum TextEditorCursorStyle {
-	/**
-	 * As a vertical line (sitting between two characters).
-	 */
 	Line = 1,
-	/**
-	 * As a block (sitting on top of a character).
-	 */
 	Block = 2,
-	/**
-	 * As a horizontal line (sitting under a character).
-	 */
 	Underline = 3,
-	/**
-	 * As a thin vertical line (sitting between two characters).
-	 */
 	LineThin = 4,
-	/**
-	 * As an outlined block (sitting on top of a character).
-	 */
 	BlockOutline = 5,
-	/**
-	 * As a thin horizontal line (sitting under a character).
-	 */
 	UnderlineThin = 6
 }
 
@@ -1667,9 +861,7 @@ export function cursorStyleFromString(cursorStyle: 'line' | 'block' | 'underline
 	}
 }
 
-//#endregion
 
-//#region editorClassName
 
 class EditorClassName extends ComputedEditorOption<EditorOption.editorClassName, string> {
 
@@ -1703,9 +895,7 @@ class EditorClassName extends ComputedEditorOption<EditorOption.editorClassName,
 	}
 }
 
-//#endregion
 
-//#region emptySelectionClipboard
 
 class EditorEmptySelectionClipboard extends EditorBooleanOption<EditorOption.emptySelectionClipboard> {
 
@@ -1721,46 +911,20 @@ class EditorEmptySelectionClipboard extends EditorBooleanOption<EditorOption.emp
 	}
 }
 
-//#endregion
 
-//#region find
 
-/**
- * Configuration options for editor find widget
- */
 export interface IEditorFindOptions {
-	/**
-	* Controls whether the cursor should move to find matches while typing.
-	*/
 	cursorMoveOnType?: boolean;
-	/**
-	 * Controls whether the find widget should search as you type.
-	 */
 	findOnType?: boolean;
-	/**
-	 * Controls if we seed search string in the Find Widget with editor selection.
-	 */
 	seedSearchStringFromSelection?: 'never' | 'always' | 'selection';
-	/**
-	 * Controls if Find in Selection flag is turned on in the editor.
-	 */
 	autoFindInSelection?: 'never' | 'always' | 'multiline';
-	/*
-	 * Controls whether the Find Widget should add extra lines on top of the editor.
-	 */
 	addExtraSpaceOnTop?: boolean;
 	/**
 	 * @internal
 	 * Controls if the Find Widget should read or modify the shared find clipboard on macOS
 	 */
 	globalFindClipboard?: boolean;
-	/**
-	 * Controls whether the search result and diff result automatically restarts from the beginning (or the end) when no further matches can be found
-	 */
 	loop?: boolean;
-	/**
-	 * Controls whether to close the Find Widget after an explicit find navigation command lands on a match.
-	 */
 	closeOnResult?: boolean;
 	/**
 	 * @internal
@@ -1898,9 +1062,7 @@ class EditorFind extends BaseEditorOption<EditorOption.find, IEditorFindOptions,
 	}
 }
 
-//#endregion
 
-//#region fontLigatures
 
 /**
  * @internal
@@ -1950,18 +1112,14 @@ export class EditorFontLigatures extends BaseEditorOption<EditorOption.fontLigat
 	}
 }
 
-//#endregion
 
-//#region fontVariations
 
 /**
  * @internal
  */
 export class EditorFontVariations extends BaseEditorOption<EditorOption.fontVariations, boolean | string, string> {
-	// Text is laid out using default settings.
 	public static OFF = FONT_VARIATION_OFF;
 
-	// Translate `fontWeight` config to the `font-variation-settings` CSS property.
 	public static TRANSLATE = FONT_VARIATION_TRANSLATE;
 
 	constructor() {
@@ -2004,15 +1162,11 @@ export class EditorFontVariations extends BaseEditorOption<EditorOption.fontVari
 	}
 
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: string): string {
-		// The value is computed from the fontWeight if it is true.
-		// So take the result from env.fontInfo
 		return env.fontInfo.fontVariationSettings;
 	}
 }
 
-//#endregion
 
-//#region fontInfo
 
 class EditorFontInfo extends ComputedEditorOption<EditorOption.fontInfo, FontInfo> {
 
@@ -2042,9 +1196,7 @@ class EditorFontInfo extends ComputedEditorOption<EditorOption.fontInfo, FontInf
 	}
 }
 
-//#endregion
 
-//#region effectiveCursorStyle
 
 class EffectiveCursorStyle extends ComputedEditorOption<EditorOption.effectiveCursorStyle, TextEditorCursorStyle> {
 
@@ -2059,9 +1211,7 @@ class EffectiveCursorStyle extends ComputedEditorOption<EditorOption.effectiveCu
 	}
 }
 
-//#endregion
 
-//#region effectiveExperimentalEditContext
 
 class EffectiveEditContextEnabled extends ComputedEditorOption<EditorOption.effectiveEditContext, boolean> {
 
@@ -2074,9 +1224,7 @@ class EffectiveEditContextEnabled extends ComputedEditorOption<EditorOption.effe
 	}
 }
 
-//#endregion
 
-//#region effectiveAllowVariableFonts
 
 class EffectiveAllowVariableFonts extends ComputedEditorOption<EditorOption.effectiveAllowVariableFonts, boolean> {
 
@@ -2094,9 +1242,7 @@ class EffectiveAllowVariableFonts extends ComputedEditorOption<EditorOption.effe
 	}
 }
 
-//#engregion
 
-//#region fontSize
 
 class EditorFontSize extends SimpleEditorOption<EditorOption.fontSize, number> {
 
@@ -2121,15 +1267,11 @@ class EditorFontSize extends SimpleEditorOption<EditorOption.fontSize, number> {
 		return EditorFloatOption.clamp(r, 6, 100);
 	}
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: number): number {
-		// The final fontSize respects the editor zoom level.
-		// So take the result from env.fontInfo
 		return env.fontInfo.fontSize;
 	}
 }
 
-//#endregion
 
-//#region fontWeight
 
 class EditorFontWeight extends BaseEditorOption<EditorOption.fontWeight, string, string> {
 	private static SUGGESTION_VALUES = ['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
@@ -2169,15 +1311,10 @@ class EditorFontWeight extends BaseEditorOption<EditorOption.fontWeight, string,
 	}
 }
 
-//#endregion
 
-//#region gotoLocation
 
 export type GoToLocationValues = 'peek' | 'gotoAndPeek' | 'goto';
 
-/**
- * Configuration options for go to location
- */
 export interface IGotoLocationOptions {
 
 	multiple?: GoToLocationValues;
@@ -2314,43 +1451,14 @@ class EditorGoToLocation extends BaseEditorOption<EditorOption.gotoLocation, IGo
 	}
 }
 
-//#endregion
 
-//#region hover
 
-/**
- * Configuration options for editor hover
- */
 export interface IEditorHoverOptions {
-	/**
-	 * Enable the hover.
-	 * Defaults to 'on'.
-	 */
 	enabled?: 'on' | 'off' | 'onKeyboardModifier';
-	/**
-	 * Delay for showing the hover.
-	 * Defaults to 300.
-	 */
 	delay?: number;
-	/**
-	 * Is the hover sticky such that it can be clicked and its contents selected?
-	 * Defaults to true.
-	 */
 	sticky?: boolean;
-	/**
-	 * Controls how long the hover is visible after you hovered out of it.
-	 * Require sticky setting to be true.
-	 */
 	hidingDelay?: number;
-	/**
-	 * Should the hover be shown above the line if possible?
-	 * Defaults to false.
-	 */
 	above?: boolean;
-	/**
-	 * Should long line warning hovers be shown (tokenization skipped, rendering paused)?
-	 * Defaults to true.
-	 */
 	showLongLineWarning?: boolean;
 }
 
@@ -2433,29 +1541,12 @@ class EditorHover extends BaseEditorOption<EditorOption.hover, IEditorHoverOptio
 	}
 }
 
-//#endregion
 
-//#region layoutInfo
 
-/**
- * A description for the overview ruler position.
- */
 export interface OverviewRulerPosition {
-	/**
-	 * Width of the overview ruler
-	 */
 	readonly width: number;
-	/**
-	 * Height of the overview ruler
-	 */
 	readonly height: number;
-	/**
-	 * Top position for the overview ruler
-	 */
 	readonly top: number;
-	/**
-	 * Right position for the overview ruler
-	 */
 	readonly right: number;
 }
 
@@ -2465,93 +1556,39 @@ export const enum RenderMinimap {
 	Blocks = 2,
 }
 
-/**
- * The internal layout details of the editor.
- */
 export interface EditorLayoutInfo {
 
-	/**
-	 * Full editor width.
-	 */
 	readonly width: number;
-	/**
-	 * Full editor height.
-	 */
 	readonly height: number;
 
-	/**
-	 * Left position for the glyph margin.
-	 */
 	readonly glyphMarginLeft: number;
-	/**
-	 * The width of the glyph margin.
-	 */
 	readonly glyphMarginWidth: number;
 
-	/**
-	 * The number of decoration lanes to render in the glyph margin.
-	 */
 	readonly glyphMarginDecorationLaneCount: number;
 
-	/**
-	 * Left position for the line numbers.
-	 */
 	readonly lineNumbersLeft: number;
-	/**
-	 * The width of the line numbers.
-	 */
 	readonly lineNumbersWidth: number;
 
-	/**
-	 * Left position for the line decorations.
-	 */
 	readonly decorationsLeft: number;
-	/**
-	 * The width of the line decorations.
-	 */
 	readonly decorationsWidth: number;
 
-	/**
-	 * Left position for the content (actual text)
-	 */
 	readonly contentLeft: number;
-	/**
-	 * The width of the content (actual text)
-	 */
 	readonly contentWidth: number;
 
-	/**
-	 * Layout information for the minimap
-	 */
 	readonly minimap: EditorMinimapLayoutInfo;
 
-	/**
-	 * The number of columns (of typical characters) fitting on a viewport line.
-	 */
 	readonly viewportColumn: number;
 
 	readonly isWordWrapMinified: boolean;
 	readonly isViewportWrapping: boolean;
 	readonly wrappingColumn: number;
 
-	/**
-	 * The width of the vertical scrollbar.
-	 */
 	readonly verticalScrollbarWidth: number;
-	/**
-	 * The height of the horizontal scrollbar.
-	 */
 	readonly horizontalScrollbarHeight: number;
 
-	/**
-	 * The position of the overview ruler.
-	 */
 	readonly overviewRuler: OverviewRulerPosition;
 }
 
-/**
- * The internal layout details of the editor.
- */
 export interface EditorMinimapLayoutInfo {
 	readonly renderMinimap: RenderMinimap;
 	readonly minimapLeft: number;
@@ -2731,11 +1768,9 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			};
 		}
 
-		// Can use memory if only the `viewLineCount` and `remainingWidth` have changed
 		const stableMinimapLayoutInput = memory.stableMinimapLayoutInput;
 		const couldUseMemory = (
 			stableMinimapLayoutInput
-			// && input.outerWidth === lastMinimapLayoutInput.outerWidth !!! INTENTIONAL OMITTED
 			&& input.outerHeight === stableMinimapLayoutInput.outerHeight
 			&& input.lineHeight === stableMinimapLayoutInput.lineHeight
 			&& input.typicalHalfwidthCharacterWidth === stableMinimapLayoutInput.typicalHalfwidthCharacterWidth
@@ -2751,8 +1786,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			&& input.minimap.maxColumn === stableMinimapLayoutInput.minimap.maxColumn
 			&& input.minimap.scale === stableMinimapLayoutInput.minimap.scale
 			&& input.verticalScrollbarWidth === stableMinimapLayoutInput.verticalScrollbarWidth
-			// && input.viewLineCount === lastMinimapLayoutInput.viewLineCount !!! INTENTIONAL OMITTED
-			// && input.remainingWidth === lastMinimapLayoutInput.remainingWidth !!! INTENTIONAL OMITTED
 			&& input.isViewportWrapping === stableMinimapLayoutInput.isViewportWrapping
 		);
 
@@ -2788,8 +1821,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 				lineHeight: lineHeight,
 				pixelRatio: pixelRatio
 			});
-			// ratio is intentionally not part of the layout to avoid the layout changing all the time
-			// when doing sampling
 			const ratio = viewLineCount / minimapLineCount;
 
 			if (ratio > 1) {
@@ -2805,11 +1836,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 				if (minimapSize === 'fit') {
 					const effectiveMinimapHeight = Math.ceil((extraLinesBeforeFirstLine + viewLineCount + extraLinesBeyondLastLine) * minimapLineHeight);
 					if (isViewportWrapping && couldUseMemory && remainingWidth <= memory.stableFitRemainingWidth) {
-						// There is a loop when using `fit` and viewport wrapping:
-						// - view line count impacts minimap layout
-						// - minimap layout impacts viewport width
-						// - viewport width impacts view line count
-						// To break the loop, once we go to a smaller minimap scale, we try to stick with it.
 						fitBecomesFill = true;
 						maxMinimapScale = memory.stableFitMaxMinimapScale;
 					} else {
@@ -2822,11 +1848,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 					const configuredMinimapScale = minimapScale;
 					minimapLineHeight = Math.min(lineHeight * pixelRatio, Math.max(1, Math.floor(1 / desiredRatio)));
 					if (isViewportWrapping && couldUseMemory && remainingWidth <= memory.stableFitRemainingWidth) {
-						// There is a loop when using `fill` and viewport wrapping:
-						// - view line count impacts minimap layout
-						// - minimap layout impacts viewport width
-						// - viewport width impacts view line count
-						// To break the loop, once we go to a smaller minimap scale, we try to stick with it.
 						maxMinimapScale = memory.stableFitMaxMinimapScale;
 					}
 					minimapScale = Math.min(maxMinimapScale, Math.max(1, Math.floor(minimapLineHeight / baseCharHeight)));
@@ -2836,7 +1857,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 					minimapCharWidth = minimapScale / pixelRatio / minimapWidthMultiplier;
 					minimapCanvasInnerHeight = Math.ceil((Math.max(typicalViewportLineCount, extraLinesBeforeFirstLine + viewLineCount + extraLinesBeyondLastLine)) * minimapLineHeight);
 					if (isViewportWrapping) {
-						// remember for next time
 						memory.stableMinimapLayoutInput = input;
 						memory.stableFitRemainingWidth = remainingWidth;
 						memory.stableFitMaxMinimapScale = minimapScale;
@@ -2848,18 +1868,7 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			}
 		}
 
-		// Given:
-		// (leaving 2px for the cursor to have space after the last character)
-		// viewportColumn = (contentWidth - verticalScrollbarWidth - 2) / typicalHalfwidthCharacterWidth
-		// minimapWidth = viewportColumn * minimapCharWidth
-		// contentWidth = remainingWidth - minimapWidth
-		// What are good values for contentWidth and minimapWidth ?
 
-		// minimapWidth = ((contentWidth - verticalScrollbarWidth - 2) / typicalHalfwidthCharacterWidth) * minimapCharWidth
-		// typicalHalfwidthCharacterWidth * minimapWidth = (contentWidth - verticalScrollbarWidth - 2) * minimapCharWidth
-		// typicalHalfwidthCharacterWidth * minimapWidth = (remainingWidth - minimapWidth - verticalScrollbarWidth - 2) * minimapCharWidth
-		// (typicalHalfwidthCharacterWidth + minimapCharWidth) * minimapWidth = (remainingWidth - verticalScrollbarWidth - 2) * minimapCharWidth
-		// minimapWidth = ((remainingWidth - verticalScrollbarWidth - 2) * minimapCharWidth) / (typicalHalfwidthCharacterWidth + minimapCharWidth)
 
 		const minimapMaxWidth = Math.floor(minimapMaxColumn * minimapCharWidth);
 		const minimapWidth = Math.min(minimapMaxWidth, Math.max(0, Math.floor(((remainingWidth - verticalScrollbarWidth - 2) * minimapCharWidth) / (typicalHalfwidthCharacterWidth + minimapCharWidth))) + MINIMAP_GUTTER_WIDTH);
@@ -2948,7 +1957,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 		let wrappingColumn = -1;
 
 		if (options.get(EditorOption.accessibilitySupport) === AccessibilitySupport.Enabled && wordWrapOverride1 === 'inherit' && isDominatedByLongLines) {
-			// Force viewport width wrapping if model is dominated by long lines
 			isWordWrapMinified = true;
 			isViewportWrapping = true;
 		} else if (wordWrap === 'on' || wordWrap === 'bounded') {
@@ -2974,7 +1982,6 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 		}, env.memory || new ComputeOptionsMemory());
 
 		if (minimapLayout.renderMinimap !== RenderMinimap.None && minimapLayout.minimapLeft === 0) {
-			// the minimap is rendered to the left, so move everything to the right
 			glyphMarginLeft += minimapLayout.minimapWidth;
 			lineNumbersLeft += minimapLayout.minimapWidth;
 			decorationsLeft += minimapLayout.minimapWidth;
@@ -2982,15 +1989,11 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 		}
 		const contentWidth = remainingWidth - minimapLayout.minimapWidth;
 
-		// (leaving 2px for the cursor to have space after the last character)
 		const viewportColumn = Math.max(1, Math.floor((contentWidth - verticalScrollbarWidth - 2) / typicalHalfwidthCharacterWidth));
 
 		const verticalArrowSize = (verticalScrollbarHasArrows ? scrollbarArrowSize : 0);
 
 		if (isViewportWrapping) {
-			// compute the actual wrappingColumn
-			// (leaving the rightmost column for the word wrap indicator so that it does not overlap
-			// the wrapped text or end up underneath the vertical scrollbar)
 			wrappingColumn = Math.max(1, viewportColumn - (wordWrapIndicator ? 1 : 0));
 			if (wordWrap === 'bounded') {
 				wrappingColumn = Math.min(wrappingColumn, wordWrapColumn);
@@ -3035,9 +2038,7 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 	}
 }
 
-//#endregion
 
-//#region WrappingStrategy
 class WrappingStrategy extends BaseEditorOption<EditorOption.wrappingStrategy, 'simple' | 'advanced', 'simple' | 'advanced'> {
 
 	constructor() {
@@ -3064,16 +2065,12 @@ class WrappingStrategy extends BaseEditorOption<EditorOption.wrappingStrategy, '
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: 'simple' | 'advanced'): 'simple' | 'advanced' {
 		const accessibilitySupport = options.get(EditorOption.accessibilitySupport);
 		if (accessibilitySupport === AccessibilitySupport.Enabled) {
-			// if we know for a fact that a screen reader is attached, we switch our strategy to advanced to
-			// help that the editor's wrapping points match the textarea's wrapping points
 			return 'advanced';
 		}
 		return value;
 	}
 }
-//#endregion
 
-//#region lightbulb
 
 export enum ShowLightbulbIconMode {
 	Off = 'off',
@@ -3081,17 +2078,7 @@ export enum ShowLightbulbIconMode {
 	On = 'on'
 }
 
-/**
- * Configuration options for editor lightbulb
- */
 export interface IEditorLightbulbOptions {
-	/**
-	 * Enable the lightbulb code action.
-	 * The three possible values are `off`, `on` and `onCode` and the default is `onCode`.
-	 * `off` disables the code action menu.
-	 * `on` shows the code action menu on code and on empty lines.
-	 * `onCode` shows the code action menu on code only.
-	 */
 	enabled?: ShowLightbulbIconMode;
 }
 
@@ -3133,26 +2120,12 @@ class EditorLightbulb extends BaseEditorOption<EditorOption.lightbulb, IEditorLi
 	}
 }
 
-//#endregion
 
-//#region stickyScroll
 
 export interface IEditorStickyScrollOptions {
-	/**
-	 * Enable the sticky scroll
-	 */
 	enabled?: boolean;
-	/**
-	 * Maximum number of sticky lines to show
-	 */
 	maxLineCount?: number;
-	/**
-	 * Model to choose for sticky scroll by default
-	 */
 	defaultModel?: 'outlineModel' | 'foldingProviderModel' | 'indentationModel';
-	/**
-	 * Define whether to scroll sticky scroll with editor horizontal scrollbae
-	 */
 	scrollWithEditor?: boolean;
 }
 
@@ -3209,42 +2182,17 @@ class EditorStickyScroll extends BaseEditorOption<EditorOption.stickyScroll, IEd
 	}
 }
 
-//#endregion
 
-//#region inlayHints
 
-/**
- * Configuration options for editor inlayHints
- */
 export interface IEditorInlayHintsOptions {
-	/**
-	 * Enable the inline hints.
-	 * Defaults to true.
-	 */
 	enabled?: 'on' | 'off' | 'offUnlessPressed' | 'onUnlessPressed';
 
-	/**
-	 * Font size of inline hints.
-	 * Default to 90% of the editor font size.
-	 */
 	fontSize?: number;
 
-	/**
-	 * Font family of inline hints.
-	 * Defaults to editor font family.
-	 */
 	fontFamily?: string;
 
-	/**
-	 * Enables the padding around the inlay hint.
-	 * Defaults to false.
-	 */
 	padding?: boolean;
 
-	/**
-	 * Maximum length for inlay hints per line
-	 * Set to 0 to have an unlimited length.
-	 */
 	maximumLength?: number;
 }
 
@@ -3314,9 +2262,7 @@ class EditorInlayHints extends BaseEditorOption<EditorOption.inlayHints, IEditor
 	}
 }
 
-//#endregion
 
-//#region lineDecorationsWidth
 
 class EditorLineDecorationsWidth extends BaseEditorOption<EditorOption.lineDecorationsWidth, number | string, number> {
 
@@ -3327,7 +2273,7 @@ class EditorLineDecorationsWidth extends BaseEditorOption<EditorOption.lineDecor
 	public validate(input: unknown): number {
 		if (typeof input === 'string' && /^\d+(\.\d+)?ch$/.test(input)) {
 			const multiple = parseFloat(input.substring(0, input.length - 2));
-			return -multiple; // negative numbers signal a multiple
+			return -multiple;
 		} else {
 			return EditorIntOption.clampedInt(input, this.defaultValue, 0, 1000);
 		}
@@ -3335,7 +2281,6 @@ class EditorLineDecorationsWidth extends BaseEditorOption<EditorOption.lineDecor
 
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: number): number {
 		if (value < 0) {
-			// negative numbers signal a multiple
 			return EditorIntOption.clampedInt(-value * env.fontInfo.typicalHalfwidthCharacterWidth, this.defaultValue, 0, 1000);
 		} else {
 			return value;
@@ -3343,9 +2288,7 @@ class EditorLineDecorationsWidth extends BaseEditorOption<EditorOption.lineDecor
 	}
 }
 
-//#endregion
 
-//#region lineHeight
 
 class EditorLineHeight extends EditorFloatOption<EditorOption.lineHeight> {
 
@@ -3361,85 +2304,25 @@ class EditorLineHeight extends EditorFloatOption<EditorOption.lineHeight> {
 	}
 
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: number): number {
-		// The lineHeight is computed from the fontSize if it is 0.
-		// Moreover, the final lineHeight respects the editor zoom level.
-		// So take the result from env.fontInfo
 		return env.fontInfo.lineHeight;
 	}
 }
 
-//#endregion
 
-//#region minimap
 
-/**
- * Configuration options for editor minimap
- */
 export interface IEditorMinimapOptions {
-	/**
-	 * Enable the rendering of the minimap.
-	 * Defaults to true.
-	 */
 	enabled?: boolean;
-	/**
-	 * Control the rendering of minimap.
-	 */
 	autohide?: 'none' | 'mouseover' | 'scroll';
-	/**
-	 * Control the side of the minimap in editor.
-	 * Defaults to 'right'.
-	 */
 	side?: 'right' | 'left';
-	/**
-	 * Control the minimap rendering mode.
-	 * Defaults to 'actual'.
-	 */
 	size?: 'proportional' | 'fill' | 'fit';
-	/**
-	 * Control the rendering of the minimap slider.
-	 * Defaults to 'mouseover'.
-	 */
 	showSlider?: 'always' | 'mouseover';
-	/**
-	 * Render the actual text on a line (as opposed to color blocks).
-	 * Defaults to true.
-	 */
 	renderCharacters?: boolean;
-	/**
-	 * Limit the width of the minimap to render at most a certain number of columns.
-	 * Defaults to 120.
-	 */
 	maxColumn?: number;
-	/**
-	 * Relative size of the font in the minimap. Defaults to 1.
-	 */
 	scale?: number;
-	/**
-	 * Whether to show named regions as section headers. Defaults to true.
-	 */
 	showRegionSectionHeaders?: boolean;
-	/**
-	 * Whether to show MARK: comments as section headers. Defaults to true.
-	 */
 	showMarkSectionHeaders?: boolean;
-	/**
-	 * When specified, is used to create a custom section header parser regexp.
-	 * Must contain a match group named 'label' (written as (?<label>.+)) that encapsulates the section header.
-	 * Optionally can include another match group named 'separator'.
-	 * To match multi-line headers like:
-	 *   // ==========
-	 *   // My Section
-	 *   // ==========
-	 * Use a pattern like: ^={3,}\n^\/\/ *(?<label>[^\n]*?)\n^={3,}$
-	 */
 	markSectionHeaderRegex?: string;
-	/**
-	 * Font size of section headers. Defaults to 9.
-	 */
 	sectionHeaderFontSize?: number;
-	/**
-	 * Spacing between the section header characters (in CSS px). Defaults to 1.
-	 */
 	sectionHeaderLetterSpacing?: number;
 }
 
@@ -3561,7 +2444,6 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, IEditorMinima
 		}
 		const input = _input as Unknown<IEditorMinimapOptions>;
 
-		// Validate mark section header regex
 		let markSectionHeaderRegex = this.defaultValue.markSectionHeaderRegex;
 		const inputRegex = input.markSectionHeaderRegex;
 		if (typeof inputRegex === 'string') {
@@ -3589,9 +2471,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, IEditorMinima
 	}
 }
 
-//#endregion
 
-//#region multiCursorModifier
 
 function _multiCursorModifierFromString(multiCursorModifier: 'ctrlCmd' | 'alt'): 'altKey' | 'metaKey' | 'ctrlKey' {
 	if (multiCursorModifier === 'ctrlCmd') {
@@ -3600,21 +2480,10 @@ function _multiCursorModifierFromString(multiCursorModifier: 'ctrlCmd' | 'alt'):
 	return 'altKey';
 }
 
-//#endregion
 
-//#region padding
 
-/**
- * Configuration options for editor padding
- */
 export interface IEditorPaddingOptions {
-	/**
-	 * Spacing between top edge of editor and first line.
-	 */
 	top?: number;
-	/**
-	 * Spacing between bottom edge of editor and last line.
-	 */
 	bottom?: number;
 }
 
@@ -3659,23 +2528,10 @@ class EditorPadding extends BaseEditorOption<EditorOption.padding, IEditorPaddin
 		};
 	}
 }
-//#endregion
 
-//#region parameterHints
 
-/**
- * Configuration options for parameter hints
- */
 export interface IEditorParameterHintOptions {
-	/**
-	 * Enable parameter hints.
-	 * Defaults to true.
-	 */
 	enabled?: boolean;
-	/**
-	 * Enable cycling of parameter hints.
-	 * Defaults to false.
-	 */
 	cycle?: boolean;
 }
 
@@ -3720,9 +2576,7 @@ class EditorParameterHints extends BaseEditorOption<EditorOption.parameterHints,
 	}
 }
 
-//#endregion
 
-//#region pixelRatio
 
 class EditorPixelRatio extends ComputedEditorOption<EditorOption.pixelRatio, number> {
 
@@ -3735,9 +2589,7 @@ class EditorPixelRatio extends ComputedEditorOption<EditorOption.pixelRatio, num
 	}
 }
 
-//#endregion
 
-//#region
 
 class PlaceholderOption extends BaseEditorOption<EditorOption.placeholder, string | undefined, string | undefined> {
 	constructor() {
@@ -3754,15 +2606,10 @@ class PlaceholderOption extends BaseEditorOption<EditorOption.placeholder, strin
 		return this.defaultValue;
 	}
 }
-//#endregion
 
-//#region quickSuggestions
 
 export type QuickSuggestionsValue = 'on' | 'inline' | 'off' | 'offWhenInlineCompletions';
 
-/**
- * Configuration options for quick suggestions
- */
 export interface IQuickSuggestionsOptions {
 	other?: boolean | QuickSuggestionsValue;
 	comments?: boolean | QuickSuggestionsValue;
@@ -3834,18 +2681,15 @@ class EditorQuickSuggestions extends BaseEditorOption<EditorOption.quickSuggesti
 
 	public validate(input: unknown): InternalQuickSuggestionsOptions {
 		if (typeof input === 'boolean') {
-			// boolean -> all on/off
 			const value = input ? 'on' : 'off';
 			return { comments: value, strings: value, other: value };
 		}
 		if (typeof input === 'string') {
-			// string shorthand -> apply same value to all token types
 			const allowedValues: QuickSuggestionsValue[] = ['on', 'inline', 'off', 'offWhenInlineCompletions'];
 			const validated = stringSet<QuickSuggestionsValue>(input as QuickSuggestionsValue, this.defaultValue.other, allowedValues);
 			return { comments: validated, strings: validated, other: validated };
 		}
 		if (!input || typeof input !== 'object') {
-			// invalid input
 			return this.defaultValue;
 		}
 
@@ -3878,9 +2722,7 @@ class EditorQuickSuggestions extends BaseEditorOption<EditorOption.quickSuggesti
 	}
 }
 
-//#endregion
 
-//#region renderLineNumbers
 
 export type LineNumbersType = 'on' | 'off' | 'relative' | 'interval' | ((lineNumber: number) => string);
 
@@ -3943,9 +2785,7 @@ class EditorRenderLineNumbersOption extends BaseEditorOption<EditorOption.lineNu
 	}
 }
 
-//#endregion
 
-//#region renderValidationDecorations
 
 /**
  * @internal
@@ -3958,9 +2798,7 @@ export function filterValidationDecorations(options: IComputedEditorOptions): bo
 	return renderValidationDecorations === 'on' ? false : true;
 }
 
-//#endregion
 
-//#region filterFontDecorations
 
 /**
  * @internal
@@ -3969,9 +2807,7 @@ export function filterFontDecorations(options: IComputedEditorOptions): boolean 
 	return !options.get(EditorOption.effectiveAllowVariableFonts);
 }
 
-//#endregion
 
-//#region rulers
 
 export interface IRulerOption {
 	readonly column: number;
@@ -4035,13 +2871,8 @@ class EditorRulers extends BaseEditorOption<EditorOption.rulers, (number | IRule
 	}
 }
 
-//#endregion
 
-//#region readonly
 
-/**
- * Configuration options for readonly message
- */
 class ReadonlyMessage extends BaseEditorOption<EditorOption.readOnlyMessage, IMarkdownString | undefined, IMarkdownString | undefined> {
 	constructor() {
 		const defaults = undefined;
@@ -4059,91 +2890,23 @@ class ReadonlyMessage extends BaseEditorOption<EditorOption.readOnlyMessage, IMa
 	}
 }
 
-//#endregion
 
-//#region scrollbar
 
-/**
- * Configuration options for editor scrollbars
- */
 export interface IEditorScrollbarOptions {
-	/**
-	 * The size of arrows (if displayed).
-	 * Defaults to 11.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	arrowSize?: number;
-	/**
-	 * Render vertical scrollbar.
-	 * Defaults to 'auto'.
-	 */
 	vertical?: 'auto' | 'visible' | 'hidden';
-	/**
-	 * Render horizontal scrollbar.
-	 * Defaults to 'auto'.
-	 */
 	horizontal?: 'auto' | 'visible' | 'hidden';
-	/**
-	 * Cast horizontal and vertical shadows when the content is scrolled.
-	 * Defaults to true.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	useShadows?: boolean;
-	/**
-	 * Render arrows at the top and bottom of the vertical scrollbar.
-	 * Defaults to false.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	verticalHasArrows?: boolean;
-	/**
-	 * Render arrows at the left and right of the horizontal scrollbar.
-	 * Defaults to false.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	horizontalHasArrows?: boolean;
-	/**
-	 * Listen to mouse wheel events and react to them by scrolling.
-	 * Defaults to true.
-	 */
 	handleMouseWheel?: boolean;
-	/**
-	 * Always consume mouse wheel events (always call preventDefault() and stopPropagation() on the browser events).
-	 * Defaults to true.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	alwaysConsumeMouseWheel?: boolean;
-	/**
-	 * Height in pixels for the horizontal scrollbar.
-	 * Defaults to 12 (px).
-	 */
 	horizontalScrollbarSize?: number;
-	/**
-	 * Width in pixels for the vertical scrollbar.
-	 * Defaults to 14 (px).
-	 */
 	verticalScrollbarSize?: number;
-	/**
-	 * Width in pixels for the vertical slider.
-	 * Defaults to `verticalScrollbarSize`.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	verticalSliderSize?: number;
-	/**
-	 * Height in pixels for the horizontal slider.
-	 * Defaults to `horizontalScrollbarSize`.
-	 * **NOTE**: This option cannot be updated using `updateOptions()`
-	 */
 	horizontalSliderSize?: number;
-	/**
-	 * Scroll gutter clicks move by page vs jump to position.
-	 * Defaults to false.
-	 */
 	scrollByPage?: boolean;
 
-	/**
-	 * When set, the horizontal scrollbar will not increase content height.
-	 * Defaults to false.
-	 */
 	ignoreHorizontalScrollbarInContentHeight?: boolean;
 }
 
@@ -4269,9 +3032,7 @@ class EditorScrollbar extends BaseEditorOption<EditorOption.scrollbar, IEditorSc
 	}
 }
 
-//#endregion
 
-//#region UnicodeHighlight
 
 export type InUntrustedWorkspace = 'inUntrustedWorkspace';
 
@@ -4280,44 +3041,20 @@ export type InUntrustedWorkspace = 'inUntrustedWorkspace';
 */
 export const inUntrustedWorkspace: InUntrustedWorkspace = 'inUntrustedWorkspace';
 
-/**
- * Configuration options for unicode highlighting.
- */
 export interface IUnicodeHighlightOptions {
 
-	/**
-	 * Controls whether all non-basic ASCII characters are highlighted. Only characters between U+0020 and U+007E, tab, line-feed and carriage-return are considered basic ASCII.
-	 */
 	nonBasicASCII?: boolean | InUntrustedWorkspace;
 
-	/**
-	 * Controls whether characters that just reserve space or have no width at all are highlighted.
-	 */
 	invisibleCharacters?: boolean;
 
-	/**
-	 * Controls whether characters are highlighted that can be confused with basic ASCII characters, except those that are common in the current user locale.
-	 */
 	ambiguousCharacters?: boolean;
 
-	/**
-	 * Controls whether characters in comments should also be subject to unicode highlighting.
-	 */
 	includeComments?: boolean | InUntrustedWorkspace;
 
-	/**
-	 * Controls whether characters in strings should also be subject to unicode highlighting.
-	 */
 	includeStrings?: boolean | InUntrustedWorkspace;
 
-	/**
-	 * Defines allowed characters that are not being highlighted.
-	 */
 	allowedCharacters?: Record<string, true>;
 
-	/**
-	 * Unicode characters that are common in allowed locales are not being highlighted.
-	 */
 	allowedLocales?: Record<string | '_os' | '_vscode', true>;
 }
 
@@ -4412,14 +3149,12 @@ class UnicodeHighlight extends BaseEditorOption<EditorOption.unicodeHighlighting
 	public override applyUpdate(value: Required<Readonly<IUnicodeHighlightOptions>> | undefined, update: Required<Readonly<IUnicodeHighlightOptions>>): ApplyUpdateResult<Required<Readonly<IUnicodeHighlightOptions>>> {
 		let didChange = false;
 		if (update.allowedCharacters && value) {
-			// Treat allowedCharacters atomically
 			if (!objects.equals(value.allowedCharacters, update.allowedCharacters)) {
 				value = { ...value, allowedCharacters: update.allowedCharacters };
 				didChange = true;
 			}
 		}
 		if (update.allowedLocales && value) {
-			// Treat allowedLocales atomically
 			if (!objects.equals(value.allowedLocales, update.allowedLocales)) {
 				value = { ...value, allowedLocales: update.allowedLocales };
 				didChange = true;
@@ -4463,23 +3198,11 @@ class UnicodeHighlight extends BaseEditorOption<EditorOption.unicodeHighlighting
 	}
 }
 
-//#endregion
 
-//#region inlineSuggest
 
 export interface IInlineSuggestOptions {
-	/**
-	 * Enable or disable the rendering of automatic inline completions.
-	*/
 	enabled?: boolean;
 
-	/**
-	 * Configures the mode.
-	 * Use `prefix` to only show ghost text if the text to replace is a prefix of the suggestion text.
-	 * Use `subword` to only show ghost text if the replace text is a subword of the suggestion text.
-	 * Use `subwordSmart` to only show ghost text if the replace text is a subword of the suggestion text, but the subword must start after the cursor position.
-	 * Defaults to `prefix`.
-	*/
 	mode?: 'prefix' | 'subword' | 'subwordSmart';
 
 	showToolbar?: 'always' | 'onHover' | 'never';
@@ -4490,14 +3213,8 @@ export interface IInlineSuggestOptions {
 
 	minShowDelay?: number;
 	suppressInSnippetMode?: boolean;
-	/**
-	 * Does not clear active inline suggestions when the editor loses focus.
-	 */
 	keepOnBlur?: boolean;
 
-	/**
-	 * Font family for inline suggestions.
-	 */
 	fontFamily?: string | 'default';
 
 	edits?: {
@@ -4509,10 +3226,6 @@ export interface IInlineSuggestOptions {
 
 		showLongDistanceHint?: boolean;
 
-		/**
-		 * Controls how many lines of surrounding context are shown above and below the target line
-		 * in the long distance inline suggestion hint preview. `0` shows only the target line.
-		 */
 		longDistanceHintContextLineCount?: number;
 
 		/**
@@ -4553,9 +3266,6 @@ type RequiredRecursive<T> = {
  */
 export type InternalInlineSuggestOptions = Readonly<RequiredRecursive<IInlineSuggestOptions>>;
 
-/**
- * Configuration options for inline suggestions
- */
 class InlineEditorSuggest extends BaseEditorOption<EditorOption.inlineSuggest, IInlineSuggestOptions, InternalInlineSuggestOptions> {
 	constructor() {
 		const defaults: InternalInlineSuggestOptions = {
@@ -4761,19 +3471,11 @@ class InlineEditorSuggest extends BaseEditorOption<EditorOption.inlineSuggest, I
 	}
 }
 
-//#endregion
 
-//#region bracketPairColorization
 
 export interface IBracketPairColorizationOptions {
-	/**
-	 * Enable or disable bracket pair colorization.
-	*/
 	enabled?: boolean;
 
-	/**
-	 * Use independent color pool per bracket type.
-	*/
 	independentColorPoolPerBracketType?: boolean;
 }
 
@@ -4782,9 +3484,6 @@ export interface IBracketPairColorizationOptions {
  */
 export type InternalBracketPairColorizationOptions = Readonly<Required<IBracketPairColorizationOptions>>;
 
-/**
- * Configuration options for inline suggestions
- */
 class BracketPairColorization extends BaseEditorOption<EditorOption.bracketPairColorization, IBracketPairColorizationOptions, InternalBracketPairColorizationOptions> {
 	constructor() {
 		const defaults: InternalBracketPairColorizationOptions = {
@@ -4821,39 +3520,17 @@ class BracketPairColorization extends BaseEditorOption<EditorOption.bracketPairC
 	}
 }
 
-//#endregion
 
-//#region guides
 
 export interface IGuidesOptions {
-	/**
-	 * Enable rendering of bracket pair guides.
-	 * Defaults to false.
-	*/
 	bracketPairs?: boolean | 'active';
 
-	/**
-	 * Enable rendering of vertical bracket pair guides.
-	 * Defaults to 'active'.
-	 */
 	bracketPairsHorizontal?: boolean | 'active';
 
-	/**
-	 * Enable highlighting of the active bracket pair.
-	 * Defaults to true.
-	*/
 	highlightActiveBracketPair?: boolean;
 
-	/**
-	 * Enable rendering of indent guides.
-	 * Defaults to true.
-	 */
 	indentation?: boolean;
 
-	/**
-	 * Enable highlighting of the active indent guide.
-	 * Defaults to true.
-	 */
 	highlightActiveIndentation?: boolean | 'always';
 }
 
@@ -4862,9 +3539,6 @@ export interface IGuidesOptions {
  */
 export type InternalGuidesOptions = Readonly<Required<IGuidesOptions>>;
 
-/**
- * Configuration options for inline suggestions
- */
 class GuideOptions extends BaseEditorOption<EditorOption.guides, IGuidesOptions, InternalGuidesOptions> {
 	constructor() {
 		const defaults: InternalGuidesOptions = {
@@ -4951,57 +3625,22 @@ function primitiveSet<T extends string | boolean>(value: unknown, defaultValue: 
 	return allowedValues[idx];
 }
 
-//#endregion
 
-//#region suggest
 
-/**
- * Configuration options for editor suggest widget
- */
 export interface ISuggestOptions {
-	/**
-	 * Overwrite word ends on accept. Default to false.
-	 */
 	insertMode?: 'insert' | 'replace';
-	/**
-	 * Enable graceful matching. Defaults to true.
-	 */
 	filterGraceful?: boolean;
-	/**
-	 * Prevent quick suggestions when a snippet is active. Defaults to true.
-	 */
 	snippetsPreventQuickSuggestions?: boolean;
-	/**
-	 * Favors words that appear close to the cursor.
-	 */
 	localityBonus?: boolean;
 	/**
 	 * Enable using global storage for remembering suggestions.
 	 */
 	shareSuggestSelections?: boolean;
-	/**
-	 * Select suggestions when triggered via quick suggest or trigger characters
-	 */
 	selectionMode?: 'always' | 'never' | 'whenTriggerCharacter' | 'whenQuickSuggestion';
-	/**
-	 * Enable or disable icons in suggestions. Defaults to true.
-	 */
 	showIcons?: boolean;
-	/**
-	 * Enable or disable the suggest status bar.
-	 */
 	showStatusBar?: boolean;
-	/**
-	 * Enable or disable the rendering of the suggestion preview.
-	 */
 	preview?: boolean;
-	/**
-	 * Configures the mode of the preview.
-	*/
 	previewMode?: 'prefix' | 'subword' | 'subwordSmart';
-	/**
-	 * Show details inline with the label. Defaults to true.
-	 */
 	showInlineDetails?: boolean;
 	/**
 	 * Grow the suggest widget's preferred width to fit the inline detail text so it
@@ -5009,121 +3648,34 @@ export interface ISuggestOptions {
 	 * @internal
 	 */
 	fitWidthToDetails?: boolean;
-	/**
-	 * Show method-suggestions.
-	 */
 	showMethods?: boolean;
-	/**
-	 * Show function-suggestions.
-	 */
 	showFunctions?: boolean;
-	/**
-	 * Show constructor-suggestions.
-	 */
 	showConstructors?: boolean;
-	/**
-	 * Show deprecated-suggestions.
-	 */
 	showDeprecated?: boolean;
-	/**
-	 * Controls whether suggestions allow matches in the middle of the word instead of only at the beginning
-	 */
 	matchOnWordStartOnly?: boolean;
-	/**
-	 * Show field-suggestions.
-	 */
 	showFields?: boolean;
-	/**
-	 * Show variable-suggestions.
-	 */
 	showVariables?: boolean;
-	/**
-	 * Show class-suggestions.
-	 */
 	showClasses?: boolean;
-	/**
-	 * Show struct-suggestions.
-	 */
 	showStructs?: boolean;
-	/**
-	 * Show interface-suggestions.
-	 */
 	showInterfaces?: boolean;
-	/**
-	 * Show module-suggestions.
-	 */
 	showModules?: boolean;
-	/**
-	 * Show property-suggestions.
-	 */
 	showProperties?: boolean;
-	/**
-	 * Show event-suggestions.
-	 */
 	showEvents?: boolean;
-	/**
-	 * Show operator-suggestions.
-	 */
 	showOperators?: boolean;
-	/**
-	 * Show unit-suggestions.
-	 */
 	showUnits?: boolean;
-	/**
-	 * Show value-suggestions.
-	 */
 	showValues?: boolean;
-	/**
-	 * Show constant-suggestions.
-	 */
 	showConstants?: boolean;
-	/**
-	 * Show enum-suggestions.
-	 */
 	showEnums?: boolean;
-	/**
-	 * Show enumMember-suggestions.
-	 */
 	showEnumMembers?: boolean;
-	/**
-	 * Show keyword-suggestions.
-	 */
 	showKeywords?: boolean;
-	/**
-	 * Show text-suggestions.
-	 */
 	showWords?: boolean;
-	/**
-	 * Show color-suggestions.
-	 */
 	showColors?: boolean;
-	/**
-	 * Show file-suggestions.
-	 */
 	showFiles?: boolean;
-	/**
-	 * Show reference-suggestions.
-	 */
 	showReferences?: boolean;
-	/**
-	 * Show folder-suggestions.
-	 */
 	showFolders?: boolean;
-	/**
-	 * Show typeParameter-suggestions.
-	 */
 	showTypeParameters?: boolean;
-	/**
-	 * Show issue-suggestions.
-	 */
 	showIssues?: boolean;
-	/**
-	 * Show user-suggestions.
-	 */
 	showUsers?: boolean;
-	/**
-	 * Show snippet-suggestions.
-	 */
 	showSnippets?: boolean;
 }
 
@@ -5452,9 +4004,7 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, ISuggestOptio
 	}
 }
 
-//#endregion
 
-//#region smart select
 
 export interface ISmartSelectOptions {
 	selectLeadingAndTrailingWhitespace?: boolean;
@@ -5501,15 +4051,8 @@ class SmartSelect extends BaseEditorOption<EditorOption.smartSelect, ISmartSelec
 	}
 }
 
-//#endregion
 
-//#region wordSegmenterLocales
 
-/**
- * Locales used for segmenting lines into words when doing word related navigations or operations.
- *
- * Specify the BCP 47 language tag of the word you wish to recognize (e.g., ja, zh-CN, zh-Hant-TW, etc.).
- */
 class WordSegmenterLocales extends BaseEditorOption<EditorOption.wordSegmenterLocales, string | string[], string[]> {
 	constructor() {
 		const defaults: string[] = [];
@@ -5550,7 +4093,6 @@ class WordSegmenterLocales extends BaseEditorOption<EditorOption.wordSegmenterLo
 							validLocales.push(locale);
 						}
 					} catch {
-						// ignore invalid locales
 					}
 				}
 			}
@@ -5562,29 +4104,12 @@ class WordSegmenterLocales extends BaseEditorOption<EditorOption.wordSegmenterLo
 }
 
 
-//#endregion
 
-//#region wrappingIndent
 
-/**
- * Describes how to indent wrapped lines.
- */
 export const enum WrappingIndent {
-	/**
-	 * No indentation => wrapped lines begin at column 1.
-	 */
 	None = 0,
-	/**
-	 * Same => wrapped lines get the same indentation as the parent.
-	 */
 	Same = 1,
-	/**
-	 * Indent => wrapped lines get +1 indentation toward the parent.
-	 */
 	Indent = 2,
-	/**
-	 * DeepIndent => wrapped lines get +2 indentation toward the parent.
-	 */
 	DeepIndent = 3
 }
 
@@ -5622,17 +4147,13 @@ class WrappingIndentOption extends BaseEditorOption<EditorOption.wrappingIndent,
 	public override compute(env: IEnvironmentalOptions, options: IComputedEditorOptions, value: WrappingIndent): WrappingIndent {
 		const accessibilitySupport = options.get(EditorOption.accessibilitySupport);
 		if (accessibilitySupport === AccessibilitySupport.Enabled) {
-			// if we know for a fact that a screen reader is attached, we use no indent wrapping to
-			// help that the editor's wrapping points match the textarea's wrapping points
 			return WrappingIndent.None;
 		}
 		return value;
 	}
 }
 
-//#endregion
 
-//#region wrappingInfo
 
 export interface EditorWrappingInfo {
 	readonly isDominatedByLongLines: boolean;
@@ -5664,24 +4185,11 @@ class EditorWrappingInfoComputer extends ComputedEditorOption<EditorOption.wrapp
 	}
 }
 
-//#endregion
 
-//#region dropIntoEditor
 
-/**
- * Configuration options for editor drop into behavior
- */
 export interface IDropIntoEditorOptions {
-	/**
-	 * Enable dropping into editor.
-	 * Defaults to true.
-	 */
 	enabled?: boolean;
 
-	/**
-	 * Controls if a widget is shown after a drop.
-	 * Defaults to 'afterDrop'.
-	 */
 	showDropSelector?: 'afterDrop' | 'never';
 }
 
@@ -5731,24 +4239,11 @@ class EditorDropIntoEditor extends BaseEditorOption<EditorOption.dropIntoEditor,
 	}
 }
 
-//#endregion
 
-//#region pasteAs
 
-/**
- * Configuration options for editor pasting as into behavior
- */
 export interface IPasteAsOptions {
-	/**
-	 * Enable paste as functionality in editors.
-	 * Defaults to true.
-	 */
 	enabled?: boolean;
 
-	/**
-	 * Controls if a widget is shown after a drop.
-	 * Defaults to 'afterPaste'.
-	 */
 	showPasteSelector?: 'afterPaste' | 'never';
 }
 
@@ -5798,7 +4293,6 @@ class EditorPasteAs extends BaseEditorOption<EditorOption.pasteAs, IPasteAsOptio
 	}
 }
 
-//#endregion
 
 /**
  * @internal
@@ -5973,7 +4467,6 @@ export const enum EditorOption {
 	inertialScroll,
 	inlayHints,
 	wrapOnEscapedLineFeeds,
-	// Leave these at the end (because they have dependencies!)
 	effectiveCursorStyle,
 	editorClassName,
 	pixelRatio,
@@ -6367,7 +4860,7 @@ export const EditorOptions = {
 	)),
 	foldingMaximumRegions: register(new EditorIntOption(
 		EditorOption.foldingMaximumRegions, 'foldingMaximumRegions',
-		5000, 10, 65000, // limit must be less than foldingRanges MAX_FOLDING_REGIONS
+		5000, 10, 65000,
 		{ description: nls.localize('foldingMaximumRegions', "The maximum number of foldable regions. Increasing this value may result in the editor becoming less responsive when the current source has a large number of foldable regions.") }
 	)),
 	unfoldOnClickAfterEndOfLine: register(new EditorBooleanOption(
@@ -6474,7 +4967,7 @@ export const EditorOptions = {
 					'- `ctrlCmd` refers to a value the setting can take and should not be localized.',
 					'- `Control` and `Command` refer to the modifier keys Ctrl or Cmd on the keyboard and can be localized.'
 				]
-			}, "The modifier to be used to add multiple cursors with the mouse. The Go to Definition and Open Link mouse gestures will adapt such that they do not conflict with the [multicursor modifier](https://code.visualstudio.com/docs/editor/codebasics#_multicursor-modifier).")
+			}, "The modifier to be used to add multiple cursors with the mouse. The Go to Definition and Open Link mouse gestures will adapt such that they do not conflict with the [multicursor modifier](https://www.dardcor-code.web.id/docs/editor/codebasics#_multicursor-modifier).")
 		}
 	)),
 	mouseMiddleClickAction: register(new EditorStringEnumOption(
@@ -6838,12 +5331,10 @@ export const EditorOptions = {
 	)),
 	wordWrapBreakAfterCharacters: register(new EditorStringOption(
 		EditorOption.wordWrapBreakAfterCharacters, 'wordWrapBreakAfterCharacters',
-		// allow-any-unicode-next-line
 		' \t})]?|/&.,;¢°′″‰℃、。｡､￠，．：；？！％・･ゝゞヽヾーァィゥェォッャュョヮヵヶぁぃぅぇぉっゃゅょゎゕゖㇰㇱㇲㇳㇴㇵㇶㇷㇸㇹㇺㇻㇼㇽㇾㇿ々〻ｧｨｩｪｫｬｭｮｯｰ”〉》」』】〕）］｝｣',
 	)),
 	wordWrapBreakBeforeCharacters: register(new EditorStringOption(
 		EditorOption.wordWrapBreakBeforeCharacters, 'wordWrapBreakBeforeCharacters',
-		// allow-any-unicode-next-line
 		'([{‘“〈《「『【〔（［｛｢£¥＄￡￥+＋'
 	)),
 	wordWrapColumn: register(new EditorIntOption(
@@ -6883,7 +5374,6 @@ export const EditorOptions = {
 		{ markdownDescription: nls.localize('wrapOnEscapedLineFeeds', "Controls whether literal `\\n` shall trigger a wordWrap when `#editor.wordWrap#` is enabled.\n\nFor example:\n```c\nchar* str=\"hello\\nworld\"\n```\nwill be displayed as\n```c\nchar* str=\"hello\\n\n           world\"\n```") }
 	)),
 
-	// Leave these at the end (because they have dependencies!)
 	effectiveCursorStyle: register(new EffectiveCursorStyle()),
 	editorClassName: register(new EditorClassName()),
 	defaultColorDecorators: register(new EditorStringEnumOption(

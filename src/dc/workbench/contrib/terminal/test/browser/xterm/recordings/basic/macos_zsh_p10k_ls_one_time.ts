@@ -4,13 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 /* eslint-disable */
 
-// macOS 15.5
-// zsh 5.9
-// powerlevel10k 8fa10f4
-// Steps:
-// - Open terminal
-// - Type ls
-// - Press enter
 export const events = [
 	{
 		"type": "resize",

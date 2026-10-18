@@ -148,9 +148,9 @@ jobs:
       - name: Transpile source
         run: npm run transpile-client
 
-      - name: Build copilot extension
+      - name: Build Dardcor extension
         run: npm run compile
-        working-directory: extensions/copilot
+        working-directory: extensions/dardcor
 
       - name: Download Electron
         run: node build/lib/preLaunch.ts
@@ -198,7 +198,7 @@ jobs:
           name: build-output
           path: |
             out/
-            extensions/copilot/dist/
+            extensions/dardcor/dist/
           retention-days: 1
 
   # ── Perf comparison (split across matrix groups) ─────────────────────

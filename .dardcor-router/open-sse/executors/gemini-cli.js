@@ -23,9 +23,7 @@ export class GeminiCLIExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
-    // Store model for use in buildHeaders (called by base.execute after transformRequest)
     this._currentModel = model;
-    // Cloud Code Assist wraps the Gemini payload: { project, model, request: <body> }
     if (body && body.request && body.model) return body;
     return {
       project: credentials?.projectId || body?.project,
@@ -34,7 +32,6 @@ export class GeminiCLIExecutor extends BaseExecutor {
     };
   }
 
-  // Parse RetryInfo.retryDelay from Google API 429 body to surface upstream retry hint
   parseError(response, bodyText) {
     const base = super.parseError(response, bodyText);
     if (response.status !== 429 || !bodyText) return base;

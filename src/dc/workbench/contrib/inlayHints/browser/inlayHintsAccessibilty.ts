@@ -88,7 +88,6 @@ export class InlayHintsAccessibility implements IEditorContribution {
 			return;
 		}
 		const model = this._editor.getModel();
-		// const text = this._editor.getModel().getLineContent(line);
 		const newChildren: (string | HTMLElement)[] = [];
 
 		let start = 0;
@@ -96,21 +95,18 @@ export class InlayHintsAccessibility implements IEditorContribution {
 
 		for (const item of hints) {
 
-			// text
 			const part = model.getValueInRange({ startLineNumber: line, startColumn: start + 1, endLineNumber: line, endColumn: item.hint.position.column });
 			if (part.length > 0) {
 				newChildren.push(part);
 				start = item.hint.position.column - 1;
 			}
 
-			// check length
 			if (start > 750) {
 				newChildren.push('…');
 				tooLongToRead = true;
 				break;
 			}
 
-			// hint
 			const em = document.createElement('em');
 			const { label } = item.hint;
 			if (typeof label === 'string') {
@@ -132,7 +128,6 @@ export class InlayHintsAccessibility implements IEditorContribution {
 			newChildren.push(em);
 		}
 
-		// trailing text
 		if (!tooLongToRead) {
 			newChildren.push(model.getValueInRange({ startLineNumber: line, startColumn: start + 1, endLineNumber: line, endColumn: Number.MAX_SAFE_INTEGER }));
 		}
@@ -141,7 +136,6 @@ export class InlayHintsAccessibility implements IEditorContribution {
 		this._ariaElement.focus();
 		this._ctxIsReading.set(true);
 
-		// reset on blur
 		this._sessionDispoosables.add(dom.addDisposableListener(this._ariaElement, 'focusout', () => {
 			this._reset();
 		}));

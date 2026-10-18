@@ -17,8 +17,8 @@
 	"include": [
 		"src/**/*",
 		"src/completions/index.d.ts",
-		"../../src/vscode-dts/vscode.d.ts",
-		"../../src/vscode-dts/vscode.proposed.terminalCompletionProvider.d.ts",
-		"../../src/vscode-dts/vscode.proposed.terminalShellEnv.d.ts"
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.terminalCompletionProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.terminalShellEnv.d.ts"
 	]
 }

@@ -13,13 +13,8 @@ import { ChatSubagentToolInvocationData, ChatToolInvocationPart, LanguageModelTe
 import { toolCategories, ToolCategory, ToolName } from '../../common/toolNames';
 import { ToolRegistry } from '../../common/toolsRegistry';
 
-// Ensure side-effect registration
 import { CONTEXT_OVERFLOW_FALLBACK, mapLoopResponseToText } from '../searchSubagentTool';
 
-/**
- * Returns an invokeFunction stub that dequeues outcomes in call order.
- * Each outcome is either a value to resolve with, or a thunk that throws.
- */
 function sequencedInvokeFunction(...outcomes: Array<unknown | (() => never)>) {
 	let i = 0;
 	return async (_fn: unknown) => {
@@ -31,7 +26,6 @@ function sequencedInvokeFunction(...outcomes: Array<unknown | (() => never)>) {
 	};
 }
 
-/** Minimal vscode.TextDocument-shaped object that satisfies TextDocumentSnapshot.create. */
 function makeFakeDocument(uri: URI, text: string) {
 	return {
 		uri,
@@ -42,7 +36,6 @@ function makeFakeDocument(uri: URI, text: string) {
 	} as unknown as vscode.TextDocument;
 }
 
-/** Minimal stub for LanguageModelToolInformation */
 function makeToolInfo(overrides: Partial<vscode.LanguageModelToolInformation> = {}): vscode.LanguageModelToolInformation {
 	return {
 		name: ToolName.SearchSubagent,
@@ -54,7 +47,6 @@ function makeToolInfo(overrides: Partial<vscode.LanguageModelToolInformation> = 
 	} as unknown as vscode.LanguageModelToolInformation;
 }
 
-/** Returns an instance of the (private) SearchSubagentTool via the registry */
 function makeToolInstance(
 	thoroughnessEnabled: boolean,
 	toolCallLimit: number = 4,
@@ -80,12 +72,10 @@ function makeToolInstance(
 	};
 	const experimentationService = {};
 
-	// instantiationService just passes through createInstance calls with the remaining args
 	const capturedLoopOptions: { toolCallLimit?: number; thoroughness?: string; subAgentInvocationId?: string; parentToolCallId?: string }[] = [];
 	const instantiationService = {
 		createInstance(_ctor: unknown, options: { toolCallLimit: number; thoroughness?: string; subAgentInvocationId?: string; parentToolCallId?: string }) {
 			capturedLoopOptions.push({ toolCallLimit: options.toolCallLimit, thoroughness: options.thoroughness, subAgentInvocationId: options.subAgentInvocationId, parentToolCallId: options.parentToolCallId });
-			// Return a minimal stub that exposes run()
 			return {
 				getModelName: async () => overrides.modelName ?? 'Search Model',
 				run: async () => overrides.loopResult ?? ({ response: { type: 'error', reason: 'stub' }, toolCallRounds: [], round: { response: '' } }),
@@ -101,7 +91,7 @@ function makeToolInstance(
 
 	const tool = new (toolCtor as any)(
 		instantiationService,
-		{ captureInvocation: async (_token: unknown, fn: () => unknown) => fn() }, // requestLogger
+		{ captureInvocation: async (_token: unknown, fn: () => unknown) => fn() },
 		workspaceService,
 		configService,
 		experimentationService,
@@ -196,7 +186,7 @@ suite('SearchSubagentTool', () => {
 			await tool.invoke({
 				input: { query: 'test', description: 'desc', details: 'details', thoroughness: 'deep' },
 				chatStreamToolCallId: undefined,
-			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { /* stub errors expected */ });
+			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { });
 
 			expect(capturedLoopOptions[0]?.toolCallLimit).toBe(baseLimit * 2);
 		});
@@ -213,7 +203,7 @@ suite('SearchSubagentTool', () => {
 			await tool.invoke({
 				input: { query: 'test', description: 'desc', details: 'details', thoroughness: 'normal' },
 				chatStreamToolCallId: undefined,
-			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { /* stub errors expected */ });
+			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { });
 
 			expect(capturedLoopOptions[0]?.toolCallLimit).toBe(baseLimit);
 		});
@@ -230,7 +220,7 @@ suite('SearchSubagentTool', () => {
 			await tool.invoke({
 				input: { query: 'test', description: 'desc', details: 'details' },
 				chatStreamToolCallId: undefined,
-			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { /* stub errors expected */ });
+			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { });
 
 			expect(capturedLoopOptions[0]?.toolCallLimit).toBe(baseLimit);
 		});
@@ -247,7 +237,7 @@ suite('SearchSubagentTool', () => {
 			await tool.invoke({
 				input: { query: 'test', description: 'desc', details: 'details', thoroughness: 'deep' },
 				chatStreamToolCallId: undefined,
-			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { /* stub errors expected */ });
+			}, { isCancellationRequested: true } as vscode.CancellationToken).catch(() => { });
 
 			expect(capturedLoopOptions[0]?.toolCallLimit).toBe(baseLimit);
 		});

@@ -12,11 +12,6 @@ import { IChatService } from '../../../../chat/common/chatService/chatService.js
 import { ChatConfiguration, isAutoApproveLevel } from '../../../../chat/common/constants.js';
 import { TerminalChatAgentToolsSettingId } from '../../common/terminalChatAgentToolsConfiguration.js';
 
-/**
- * Returns true if the chat session's permission level (Autopilot/Bypass Approvals)
- * auto-approves all tool calls, unless enterprise policy restricts it.
- * Checks both the request-stamped level and the live picker level.
- */
 export function isSessionAutoApproveLevel(
 	chatSessionResource: URI,
 	configurationService: IConfigurationService,
@@ -27,25 +22,16 @@ export function isSessionAutoApproveLevel(
 	if (inspected.policyValue === false) {
 		return false;
 	}
-	// Check the live widget picker level (handles mid-session switches).
-	// Fall back to lastFocusedWidget if the session-specific widget isn't found
-	// (e.g., widget was backgrounded or URI mismatch).
 	const widget = chatWidgetService.getWidgetBySessionResource(chatSessionResource)
 		?? chatWidgetService.lastFocusedWidget;
 	if (widget && isAutoApproveLevel(widget.input.currentModeInfo.permissionLevel)) {
 		return true;
 	}
-	// Fall back to the request-stamped level
 	const model = chatService.getSession(chatSessionResource);
 	const request = model?.getRequests().at(-1);
 	return isAutoApproveLevel(request?.modeInfo?.permissionLevel);
 }
 
-/**
- * Checks whether a terminal tool is eligible for auto-approval based on user configuration.
- * @param toolReferenceName The tool's reference name (e.g. 'runInTerminal', 'sendToTerminal').
- * @param legacyToolReferenceFullNames Legacy names to check for backward compatibility.
- */
 export function isToolEligibleForTerminalAutoApproval(
 	toolReferenceName: string,
 	configurationService: IConfigurationService,
@@ -64,14 +50,9 @@ export function isToolEligibleForTerminalAutoApproval(
 			}
 		}
 	}
-	// Default
 	return true;
 }
 
-/**
- * Determines whether terminal auto-approve rules are allowed to take effect.
- * This checks the setting enablement, the opt-in warning acceptance, and the per-tool eligibility.
- */
 export function isTerminalAutoApproveAllowed(
 	toolReferenceName: string,
 	configurationService: IConfigurationService,

@@ -33,41 +33,18 @@ import { HoverStyle } from '../../../base/browser/ui/hover/hover.js';
 
 export interface ICompositeBar {
 
-	/**
-	 * Unpins a composite from the composite bar.
-	 */
 	unpin(compositeId: string): void;
 
-	/**
-	 * Pin a composite inside the composite bar.
-	 */
 	pin(compositeId: string): void;
 
-	/**
-	 * Find out if a composite is pinned in the composite bar.
-	 */
 	isPinned(compositeId: string): boolean;
 
-	/**
-	 * Get pinned composite ids in the composite bar.
-	 */
 	getPinnedCompositeIds(): string[];
 
-	/**
-	 * Returns if badges are enabled for that specified composite.
-	 * @param compositeId The id of the composite to check
-	 */
 	areBadgesEnabled(compositeId: string): boolean;
 
-	/**
-	 * Toggles whether or not badges are shown on that particular composite.
-	 * @param compositeId The composite to toggle badge enablement for
-	 */
 	toggleBadgeEnablement(compositeId: string): void;
 
-	/**
-	 * Reorder composite ordering by moving a composite to the location of another composite.
-	 */
 	move(compositeId: string, tocompositeId: string): void;
 }
 
@@ -195,11 +172,9 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 			if (this.options.icon) {
 				const foreground = this._action.checked ? colors.activeForegroundColor : colors.inactiveForegroundColor;
 				if (this.compositeBarActionItem.iconUrl) {
-					// Apply background color to activity bar item provided with iconUrls
 					this.label.style.backgroundColor = foreground ? foreground.toString() : '';
 					this.label.style.color = '';
 				} else {
-					// Apply foreground color to activity bar items provided with codicons
 					this.label.style.color = foreground ? foreground.toString() : '';
 					this.label.style.backgroundColor = '';
 				}
@@ -213,7 +188,6 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 			this.container.style.setProperty('--insert-border-color', colors.dragAndDropBorder ? colors.dragAndDropBorder.toString() : '');
 		}
 
-		// Badge
 		if (this.badgeContent) {
 			const badgeStyles = this.getActivities()[0]?.badge.getColors(theme);
 			const badgeFg = badgeStyles?.badgeForeground ?? colors.badgeForeground ?? theme.getColor(badgeForeground);
@@ -237,14 +211,12 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 			this.container.classList.add('icon');
 		}
 
-		// Use 'tab' inside tablist, 'button' for popup items outside tablist
 		const role = this.options.isTabList || !this.options.hasPopup ? 'tab' : 'button';
 		this.container.setAttribute('role', role);
 		if (this.options.hasPopup) {
 			this.container.setAttribute('aria-haspopup', 'true');
 		}
 
-		// Try hard to prevent keyboard only focus feedback when using mouse
 		this._register(addDisposableListener(this.container, EventType.MOUSE_DOWN, () => {
 			this.container.classList.add('clicked');
 		}));
@@ -256,7 +228,7 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 
 			this.mouseUpTimeout = setTimeout(() => {
 				this.container.classList.remove('clicked');
-			}, 800); // delayed to prevent focus feedback from showing on mouse up
+			}, 800);
 		}));
 
 		this._register(this.hoverService.setupDelayedHover(this.container, () => ({
@@ -270,14 +242,11 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 			},
 		}), { groupId: 'composite-bar-actions' }));
 
-		// Label
 		this.label = append(container, $('a'));
 
-		// Badge
 		this.badge = append(container, $('.badge'));
 		this.badgeContent = append(this.badge, $('.badge-content'));
 
-		// pane composite bar active border + background
 		append(container, $('.active-item-indicator'));
 
 		hide(this.badge);
@@ -327,13 +296,11 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 				classes.push('compact');
 			}
 
-			// Progress
 			if (type === 'progress') {
 				show(this.badge);
 				classes.push('progress-badge');
 			}
 
-			// Number
 			else if (type === 'number') {
 				const total = badges.reduce((r, b) => r + (b instanceof NumberBadge ? b.number : 0), 0);
 				if (total > 0) {
@@ -351,7 +318,6 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 				}
 			}
 
-			// Icon
 			else if (type === 'icon') {
 				classes.push('icon-badge');
 				const badgeContentClassess = ['icon-overlay', ...ThemeIcon.asClassNameArray((badges[0] as IconBadge).icon)];
@@ -554,7 +520,6 @@ export class CompositeActionViewItem extends CompositeBarActionViewItem {
 			this.showContextMenu(container);
 		}));
 
-		// Allow to drag
 		let insertDropBefore: Before2D | undefined = undefined;
 		this._register(CompositeDragAndDropObserver.INSTANCE.registerDraggable(this.container, () => { return { type: 'composite', id: this.compositeBarActionItem.id }; }, {
 			onDragOver: e => {
@@ -582,11 +547,10 @@ export class CompositeActionViewItem extends CompositeBarActionViewItem {
 					e.eventData.dataTransfer.effectAllowed = 'move';
 				}
 
-				this.blur(); // Remove focus indicator when dragging
+				this.blur();
 			}
 		}));
 
-		// Activate on drag over to reveal targets
 		[this.badge, this.label].forEach(element => this._register(new DelayedDragHandler(element, () => {
 			if (!this.action.checked) {
 				this.action.run();

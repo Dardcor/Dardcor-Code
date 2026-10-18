@@ -44,11 +44,6 @@ import { IAgentHostEnablementService } from '../../../../../platform/agentHost/c
 import { IAgentSubscription } from '../../../../../platform/agentHost/common/state/agentSubscription.js';
 import { ResolveSessionConfigResult } from '../../../../../platform/agentHost/common/state/protocol/commands.js';
 import { RootState, StateComponents } from '../../../../../platform/agentHost/common/state/sessionState.js';
-import { IAgentSessionsService } from '../../../../contrib/chat/browser/agentSessions/agentSessionsService.js';
-import { IAgentHostUntitledProvisionalSessionService } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostUntitledProvisionalSessionService.js';
-import { IAgentHostSessionWorkingDirectoryResolver } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostSessionWorkingDirectoryResolver.js';
-import { IAgentHostNewSessionFolderService } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostNewSessionFolderService.js';
-import { IAgentHostCustomizationService } from '../../../../contrib/chat/browser/agentSessions/agentHost/agentHostCustomizationService.js';
 import { IVoiceModeOnboardingService } from '../../../../contrib/agentsVoice/browser/voiceModeOnboarding.js';
 import { IChatAccessibilityService, IChatWidget, IChatWidgetService } from '../../../../contrib/chat/browser/chat.js';
 import { IChatResponseFileChangesService } from '../../../../contrib/chat/browser/chatResponseFileChangesService.js';
@@ -86,10 +81,6 @@ import { IChatToolRiskAssessmentService } from '../../../../contrib/chat/browser
 import { IVoiceSessionController } from '../../../../contrib/chat/browser/voiceClient/voiceSessionController.js';
 import { ServiceRegistration, registerWorkbenchServices } from '../fixtureUtils.js';
 
-/**
- * A minimal IMenuService implementation backed by an in-memory map. Tests can
- * register menu items with addItem() before the component renders the menu.
- */
 export class FixtureMenuService implements IMenuService {
 	declare readonly _serviceBrand: undefined;
 	private readonly _items = new Map<string, IMenuItem[]>();
@@ -125,23 +116,12 @@ export class FixtureMenuService implements IMenuService {
 }
 
 export interface IChatFixtureServicesOptions {
-	/** Observable backing IChatArtifactsService.getArtifacts().artifactGroups. */
 	readonly artifactGroups?: IObservable<readonly IArtifactSourceGroup[]>;
-	/** Initial todos returned from IChatTodoListService.getTodos(). */
 	readonly todos?: readonly IChatTodo[];
-	/** Active notification returned from IChatInputNotificationService. */
 	readonly notification?: IChatInputNotification;
-	/** Resolved Agent Host session configuration used by real chat input picker fixtures. */
 	readonly agentHostSessionConfig?: ResolveSessionConfigResult;
 }
 
-/**
- * Registers the wide set of service mocks needed to instantiate chat widgets
- * (input part, list widget, content parts). All of these are no-op mocks
- * suitable for fixtures.
- *
- * Callers can override any service by registering it again after this call.
- */
 export function registerChatFixtureServices(reg: ServiceRegistration, options: IChatFixtureServicesOptions = {}): void {
 	registerWorkbenchServices(reg);
 	reg.define(IMenuService, FixtureMenuService);
@@ -166,9 +146,6 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 	reg.defineInstance(IPathService, new class extends mock<IPathService>() { }());
 	reg.defineInstance(IWorkbenchAssignmentService, new class extends mock<IWorkbenchAssignmentService>() { override async getCurrentExperiments() { return []; } override async getTreatment() { return undefined; } override onDidRefetchAssignments = Event.None; }());
 	reg.defineInstance(IWorkspaceContextService, new class extends mock<IWorkspaceContextService>() { override onDidChangeWorkspaceFolders = Event.None; override getWorkspace(): IWorkspace { return { id: '', folders: [], configuration: undefined }; } }());
-	// `getContainer` stands in for the workbench container that widgets use to host
-	// overflow nodes (suggest widget, post-paste selector); the fixture document body
-	// is the closest equivalent.
 	reg.defineInstance(IWorkbenchLayoutService, new class extends mock<IWorkbenchLayoutService>() {
 		override readonly mainContainer = document.body;
 		override onDidChangePartVisibility = Event.None;
@@ -197,7 +174,6 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 	reg.defineInstance(ISharedWebContentExtractorService, new class extends mock<ISharedWebContentExtractorService>() { }());
 	reg.defineInstance(IAccessibleViewService, new class extends mock<IAccessibleViewService>() { override getOpenAriaHint() { return null; } }());
 
-	// Chat services
 	reg.define(IChatAgentService, class FixtureChatAgentService extends ChatAgentService {
 		override getDefaultAgent(): IChatAgent {
 			// eslint-disable-next-line local/code-no-dangerous-type-assertions
@@ -301,8 +277,6 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 		override readonly onDidChangeEntitlement = Event.None;
 		override readonly onDidChangeSentiment = Event.None;
 		override readonly onDidChangeAnonymous = Event.None;
-		// A signed-in, set-up user so the picker renders normally (no Restricted /
-		// Sign In state) in fixtures.
 		override readonly entitlement = ChatEntitlement.Pro;
 		override readonly sentiment = { completed: true, installed: true };
 		override readonly anonymous = false;
@@ -318,12 +292,9 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 	}());
 	reg.defineInstance(IChatContextService, new class extends mock<IChatContextService>() { }());
 	reg.defineInstance(IChatContextPickService, new class extends mock<IChatContextPickService>() { }());
-	// Needed whenever chat markdown contains a code block; returns no custom renderer so
-	// code blocks fall back to the normal editor-backed CodeBlockPart.
 	reg.defineInstance(IChatOutputRendererService, new class extends mock<IChatOutputRendererService>() {
 		override hasCodeBlockRenderer() { return false; }
 	}());
-	// Chat code blocks generate a suggestion id for edit telemetry when the response completes.
 	reg.defineInstance(IAiEditTelemetryService, new class extends mock<IAiEditTelemetryService>() {
 		override createSuggestionId() { return EditSuggestionId.newId(); }
 	}());
@@ -344,14 +315,6 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 		override deleteEntry() { }
 		override getEntries() { return []; }
 	}());
-	reg.defineInstance(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
-		override readonly model = new class extends mock<IAgentSessionsService['model']>() { override readonly onDidChangeSessions = Event.None; }();
-		override getSession() { return undefined; }
-	}());
-	// Agent-host chat widgets (e.g. the turn changes summary fixtures) create the
-	// generic config chips lane, which opens a session subscription. Return an
-	// inert, never-hydrating subscription (value `undefined`) so no config chips
-	// render and nothing crashes.
 	reg.defineInstance(IAgentHostService, new class extends mock<IAgentHostService>() {
 		override readonly onAgentHostStart = Event.None;
 		override readonly rootState: IAgentSubscription<RootState> = {
@@ -380,25 +343,7 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 			return options.agentHostSessionConfig ?? { schema: { type: 'object', properties: {} }, values: {} };
 		}
 	}());
-	reg.defineInstance(IAgentHostUntitledProvisionalSessionService, new class extends mock<IAgentHostUntitledProvisionalSessionService>() {
-		override readonly onDidChange = Event.None;
-		override get() { return undefined; }
-		override getOrCreate() { return Promise.resolve(undefined); }
-	}());
-	reg.defineInstance(IAgentHostSessionWorkingDirectoryResolver, new class extends mock<IAgentHostSessionWorkingDirectoryResolver>() {
-		override resolve() { return undefined; }
-	}());
-	reg.defineInstance(IAgentHostNewSessionFolderService, new class extends mock<IAgentHostNewSessionFolderService>() {
-		override readonly onDidChangeFolder = Event.None;
-		override getFolder() { return undefined; }
-		override getDefaultFolder() { return undefined; }
-		override resolveNewSessionPrimary() { return undefined; }
-	}());
-	reg.defineInstance(IAgentHostCustomizationService, new class extends mock<IAgentHostCustomizationService>() {
-		override readonly onDidChangeCustomizations = Event.None;
-		override getFolderPickerDecision() { return undefined; }
-	}());
-	reg.defineInstance(IAgentHostEnablementService, new class extends mock<IAgentHostEnablementService>() {
+					reg.defineInstance(IAgentHostEnablementService, new class extends mock<IAgentHostEnablementService>() {
 		override readonly enabled = constObservable(false);
 		override readonly managedSandboxEnforced = constObservable(false);
 	}());

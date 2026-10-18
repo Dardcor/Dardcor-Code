@@ -6,7 +6,6 @@
 import { describe, expect, test } from 'vitest';
 import type * as vscode from 'vscode';
 import { IChatHookService, type IPreToolUseHookResult } from '../../../../../platform/chat/common/chatHookService';
-import { ConfigKey, IConfigurationService } from '../../../../../platform/configuration/common/configurationService';
 import { IEndpointProvider } from '../../../../../platform/endpoint/common/endpointProvider';
 import type { IChatEndpoint } from '../../../../../platform/networking/common/networking';
 import { DeferredPromise } from '../../../../../util/dardcor/base/common/async';
@@ -90,7 +89,7 @@ class CapturingToolsService implements IToolsService {
 		this.tools = [tool];
 	}
 
-	getCopilotTool(): undefined {
+	getAgentTool(): undefined {
 		return undefined;
 	}
 
@@ -148,7 +147,7 @@ class ParallelAwareToolsService implements IToolsService {
 		this.tools = [tool];
 	}
 
-	getCopilotTool(): undefined {
+	getAgentTool(): undefined {
 		return undefined;
 	}
 
@@ -346,7 +345,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 			toolCallResults: undefined,
 		});
 
-		// Hook called with validated (original) input
 		expect(hookService.lastPreToolUseCall).toEqual({
 			toolName,
 			toolInput: { x: 1 },
@@ -356,7 +354,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 			token: CancellationToken.None,
 		});
 
-		// Tool invoked with updatedInput from hook
 		expect(toolsService.lastInvocation?.name).toBe(toolName);
 		expect(toolsService.lastInvocation?.options.input).toEqual(updatedInput);
 		expect(toolsService.lastInvocation?.options.subAgentInvocationId).toBe('execution-parent-call');
@@ -366,7 +363,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 			updatedInput,
 		});
 
-		// Hook additionalContext is appended to the tool result content
 		const contentText = (toolsService.lastToolResult?.content ?? [])
 			.filter((p): p is LanguageModelTextPart => p instanceof LanguageModelTextPart)
 			.map(p => p.value)
@@ -433,13 +429,10 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 			toolCallResults: undefined,
 		});
 
-		// PreToolUse hook was called
 		expect(hookService.lastPreToolUseCall).toBeDefined();
 
-		// PostToolUse hook should NOT have been called since PreToolUse denied the tool
 		expect(hookService.postToolUseCalled).toBe(false);
 
-		// The tool is still invoked with the deny preToolUseResult passed through
 		expect(toolsService.lastInvocation).toBeDefined();
 		expect(toolsService.lastInvocation?.name).toBe('blockedTool');
 		expect(toolsService.lastInvocation?.options.preToolUseResult).toEqual({
@@ -447,7 +440,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 			permissionDecisionReason: 'Blocked by security policy',
 			updatedInput: undefined,
 		});
-		// PreToolUse context should still be appended to the tool result
 		const contentText = (toolsService.lastToolResult?.content ?? [])
 			.filter((p): p is LanguageModelTextPart => p instanceof LanguageModelTextPart)
 			.map(p => p.value)
@@ -516,7 +508,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 		const serialized = JSON.stringify(messages);
 		expect(serialized).toContain('Image was previously shown to you');
 		expect(serialized).toContain('some text result');
-		// Should not contain base64 image data
 		expect(serialized).not.toContain('image_url');
 	});
 
@@ -542,11 +533,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 		const endpointProvider = accessor.get(IEndpointProvider);
 		const endpoint = await endpointProvider.getChatEndpoint('dardcor-utility');
 
-		// Disable image uploads so images go through the base64 path where the budget applies
-		const configService = accessor.get(IConfigurationService);
-		await configService.setConfig(ConfigKey.EnableChatImageUpload, false);
-
-		// Each image is 3MB — individually exceeds the 2.5MB shared budget (half of 5MB CAPI limit)
 		const bigImage = new Uint8Array(3 * 1024 * 1024);
 		const toolCallResults: Record<string, vscode.LanguageModelToolResult> = {
 			[firstCallId]: new LanguageModelToolResult([
@@ -587,16 +573,11 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 		});
 
 		const serialized = JSON.stringify(messages);
-		// Both images exceed the 2.5MB shared budget and should be replaced with placeholders
 		expect(serialized).toContain('context image budget exceeded');
 		expect(serialized).not.toContain('image_url');
 	});
 
 	test('sendInvokedToolTelemetry handles tool results with images without crashing', async () => {
-		// Regression test for issue #312813: ensure sendInvokedToolTelemetry uses DI to instantiate
-		// PrimitiveToolResult so that @IPromptEndpoint is properly injected when rendering images.
-		// Previously, it used raw BasePromptRenderer which bypassed DI, causing 'Cannot read properties
-		// of undefined (reading "supportsVision")' when a tool result contained an image.
 
 		const testingServiceCollection = createExtensionUnitTestingServices();
 		const spyingTelemetryService = new SpyingTelemetryService();
@@ -606,24 +587,14 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 		const endpointProvider = accessor.get(IEndpointProvider);
 		const endpoint = await endpointProvider.getChatEndpoint('dardcor-utility');
 		const telemetryService = accessor.get(ITelemetryService);
-		const configService = accessor.get(IConfigurationService);
-
-		// Disable image uploads in test environment to avoid auth requirement
-		await configService.setConfig(ConfigKey.EnableChatImageUpload, false);
-
-		// Import the function we're testing
 		const { sendInvokedToolTelemetry } = await import('../toolCalling');
 
-		// Create a tool result with an image
 		const imageData = new Uint8Array(1024);
 		const toolResult = new LanguageModelToolResult([
 			new LanguageModelTextPart('Tool executed successfully'),
 			LanguageModelDataPart.image(imageData, 'image/png'),
 		]);
 
-		// This should not throw — the endpoint and all services must be properly injected so that
-		// onImage() can read this.endpoint.supportsVision without crashing.
-		// The function is fire-and-forget (returns undefined), so we just verify it doesn't throw.
 		expect(() => {
 			sendInvokedToolTelemetry(
 				instantiationService,
@@ -635,7 +606,6 @@ describe('ChatToolCalls (toolCalling.tsx)', () => {
 			);
 		}).not.toThrow();
 
-		// Give async rendering a moment to complete without unhandled rejection
 		await new Promise(resolve => setTimeout(resolve, 100));
 
 		const telemetryEvent = spyingTelemetryService.getEvents().telemetryServiceEvents.find(event => event.eventName === 'agent.tool.responseLength');

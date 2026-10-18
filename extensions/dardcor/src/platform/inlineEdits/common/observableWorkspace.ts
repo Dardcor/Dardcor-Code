@@ -30,16 +30,13 @@ export abstract class ObservableWorkspace {
 
 	private _version = 0;
 
-	/**
-	 * Is fired when any open document changes.
-	*/
 	public readonly onDidOpenDocumentChange = derivedHandleChanges({
 		owner: this,
 		changeTracker: {
 			createChangeSummary: () => ({ didChange: false }),
 			handleChange: (ctx, changeSummary) => {
 				if (!ctx.didChange(this.openDocuments)) {
-					changeSummary.didChange = true; // A document changed
+					changeSummary.didChange = true;
 				}
 				return true;
 			}
@@ -47,23 +44,13 @@ export abstract class ObservableWorkspace {
 	}, (reader, changeSummary) => {
 		const docs = this.openDocuments.read(reader);
 		for (const d of docs) {
-			d.value.read(reader); // add dependency
+			d.value.read(reader);
 		}
 		if (changeSummary.didChange) {
-			this._version++; // to force a change
+			this._version++;
 		}
 		return this._version;
 
-		// TODO@hediet make this work:
-		/*
-		const docs = this.openDocuments.read(reader);
-		for (const d of docs) {
-			if (reader.readChangesSinceLastRun(d.value).length > 0) {
-				reader.reportChange(d);
-			}
-		}
-		return undefined;
-		*/
 	});
 
 	public readonly lastActiveDocument = derivedWithStore((_reader, store) => {
@@ -84,18 +71,9 @@ export interface IObservableDocument {
 	readonly id: DocumentId;
 	readonly value: IObservableWithChange<StringText, StringEditWithReason>;
 
-	/**
-	 * Increases whenever the value changes. Is also used to reference document states from the past.
-	*/
 	readonly version: IObservable<number>;
 
-	/**
-	 * `selection` is an array because of `multi-cursor` support.
-	 */
 	readonly selection: IObservable<readonly OffsetRange[]>;
-	/**
-	 * 0-based line number of the primary cursor.
-	 */
 	readonly primarySelectionLine: IObservable<number | undefined>;
 	readonly visibleRanges: IObservable<readonly OffsetRange[]>;
 	readonly languageId: IObservable<LanguageId>;
@@ -117,9 +95,6 @@ export class MutableObservableWorkspace extends ObservableWorkspace {
 
 	private readonly _documents = new Map<DocumentId, MutableObservableDocument>();
 
-	/**
-	 * Dispose to remove.
-	*/
 	public addDocument(options: { id: DocumentId; workspaceRoot?: URI; initialValue?: string; initialVersionId?: number; languageId?: LanguageId }, tx: ITransaction | undefined = undefined): MutableObservableDocument {
 		assert(!this._documents.has(options.id));
 

@@ -53,7 +53,7 @@ const emptyWindowEntries: WatermarkEntry[] = coalesce([
 	...baseEntries,
 	openRecent,
 	...(isMacintosh && !isWeb ? [openFileOrFolder] : [openFile, openFolder]),
-	isMacintosh && !isWeb ? newUntitledFile : undefined, // fill in one more on macOS to get to 5 entries
+	isMacintosh && !isWeb ? newUntitledFile : undefined,
 ]);
 
 const workspaceEntries: WatermarkEntry[] = [
@@ -203,11 +203,11 @@ export class EditorGroupWatermark extends Disposable {
 		const filteredEntries = entries
 			.filter(entry => {
 				if (this.cachedWhen[entry.id]) {
-					return true; // cached from previous session
+					return true;
 				}
 
 				const contextKey = isWeb ? entry.when?.web : entry.when?.native;
-				return !contextKey /* works without context */ || this.contextKeyService.contextMatchesRules(contextKey);
+				return !contextKey || this.contextKeyService.contextMatchesRules(contextKey);
 			})
 			.filter(entry => !!CommandsRegistry.getCommand(entry.id))
 			.filter(entry => !!this.keybindingService.lookupKeybinding(entry.id));

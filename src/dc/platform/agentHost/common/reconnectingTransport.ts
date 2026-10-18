@@ -10,26 +10,17 @@ import type { AgentHostClientConnectionKind } from './agentHostTelemetry.js';
 import type { AhpServerNotification, JsonRpcNotification, JsonRpcParseErrorResponse, JsonRpcRequest, JsonRpcResponse, ProtocolMessage } from './state/sessionProtocol.js';
 import type { IClientTransport, IProtocolTransport } from './state/sessionTransport.js';
 
-/**
- * A connected transport and the optional owner-specific resource teardown for its establishment attempt.
- */
 export interface IEstablishedTransport {
-	/** The live inner transport to route traffic through. */
 	readonly transport: IProtocolTransport;
-	/** Tear down whatever this attempt established. Omitted when the caller owns teardown. */
 	close?(): Promise<void>;
 }
 
-/** Owns one adopted transport and the listeners and resources associated with it. */
 class EstablishedTransportStore extends DisposableStore {
 	constructor(readonly transport: IProtocolTransport) {
 		super();
 	}
 }
 
-/**
- * Establishes an inner transport on demand and forwards its protocol traffic.
- */
 export class ReconnectingTransport extends Disposable implements IClientTransport {
 
 	private readonly _onMessage = this._register(new Emitter<ProtocolMessage>());
@@ -51,7 +42,6 @@ export class ReconnectingTransport extends Disposable implements IClientTranspor
 		super();
 	}
 
-	/** Establishes and adopts the inner transport. */
 	connect(): Promise<void> {
 		if (this._store.isDisposed) {
 			return Promise.reject(new Error('Transport is disposed'));
@@ -61,7 +51,6 @@ export class ReconnectingTransport extends Disposable implements IClientTranspor
 		return this._connectPromise;
 	}
 
-	/** Routes a protocol message through the established inner transport. */
 	send(message: ProtocolMessage | AhpServerNotification | JsonRpcNotification | JsonRpcParseErrorResponse | JsonRpcResponse | JsonRpcRequest): void {
 		const establishedTransport = this._establishedTransport.value;
 		if (!establishedTransport) {
@@ -73,10 +62,8 @@ export class ReconnectingTransport extends Disposable implements IClientTranspor
 	}
 
 	private async _establishTransport(): Promise<void> {
-		// Do not catch: NonReconnectableTransportError must reach the protocol client unchanged.
 		const establishedTransport = await this._establish();
 		if (this._store.isDisposed) {
-			// A late establishment needs releasing, while its caller must not proceed without a live channel.
 			await this._disposeEstablishedTransport(establishedTransport);
 			throw new Error(`${this._logPrefix} transport was disposed while establishing`);
 		}

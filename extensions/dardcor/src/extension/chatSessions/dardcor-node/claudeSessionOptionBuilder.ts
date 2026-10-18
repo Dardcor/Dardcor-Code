@@ -13,7 +13,7 @@ import { CancellationToken } from '../../../util/dardcor/base/common/cancellatio
 import { basename } from '../../../util/dardcor/base/common/resources';
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { IChatFolderMruService } from '../common/folderRepositoryManager';
-import { folderMRUToChatProviderOptions, getSelectedOption, toWorkspaceFolderOptionItem } from './sessionOptionGroupBuilder';
+import { folderMRUToChatProviderOptions, getSelectedOption, toWorkspaceFolderOptionItem } from '../common/sessionProviderOptions';
 
 const permissionModes: ReadonlySet<PermissionMode> = new Set<PermissionMode>(['default', 'acceptEdits', 'bypassPermissions', 'plan', 'dontAsk', 'auto']);
 
@@ -25,11 +25,6 @@ export const PERMISSION_MODE_OPTION_ID = 'permissionMode';
 export const FOLDER_OPTION_ID = 'folder';
 const MAX_MRU_ENTRIES = 10;
 
-/**
- * Builds and reads chat session option groups (permission mode, folder picker).
- * Pure construction logic with no metadata or session-state dependencies — the
- * controller resolves session-specific values and delegates here.
- */
 export class ClaudeSessionOptionBuilder {
 	private _lastUsedPermissionMode: PermissionMode = 'acceptEdits';
 
@@ -142,10 +137,6 @@ export class ClaudeSessionOptionBuilder {
 		return undefined;
 	}
 
-	/**
-	 * Reads the current selections from option groups and updates
-	 * {@link lastUsedPermissionMode} as a side-effect.
-	 */
 	getSelections(groups: readonly vscode.ChatSessionProviderOptionGroup[]): { permissionMode?: PermissionMode; folderUri?: URI } {
 		const selectedPermission = getSelectedOption(groups, PERMISSION_MODE_OPTION_ID);
 		let permissionMode: PermissionMode | undefined;
@@ -161,12 +152,7 @@ export class ClaudeSessionOptionBuilder {
 	}
 }
 
-// #region Pure group-building functions (observable-friendly)
 
-/**
- * Build the permission mode option group from explicit inputs.
- * Pure and synchronous — suitable for use in `derived` computations.
- */
 export function buildPermissionModeItems(bypassEnabled: boolean, autoEnabled: boolean = false): vscode.ChatSessionProviderOptionGroup {
 	const items: vscode.ChatSessionProviderOptionItem[] = [
 		{ id: 'default', name: l10n.t('Ask before edits'), slashCommand: 'ask' },
@@ -191,4 +177,3 @@ export function buildPermissionModeItems(bypassEnabled: boolean, autoEnabled: bo
 	};
 }
 
-// #endregion

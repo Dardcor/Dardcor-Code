@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -12,12 +11,6 @@ import { observableFromEvent } from '../observables/observableFromEvent';
 import { autorunOpts } from '../reactions/autorun';
 import { derivedObservableWithCache } from '../utils/utils';
 
-/**
- * Creates an observable that has the latest changed value of the given observables.
- * Initially (and when not observed), it has the value of the last observable.
- * When observed and any of the observables change, it has the value of the last changed observable.
- * If multiple observables change in the same transaction, the last observable wins.
-*/
 export function latestChangedValue<T extends IObservable<any>[]>(owner: DebugOwner, observables: T): IObservable<ReturnType<T[number]['get']>> {
 	if (observables.length === 0) {
 		throw new BugIndicatingError();
@@ -52,11 +45,6 @@ export function latestChangedValue<T extends IObservable<any>[]>(owner: DebugOwn
 	return result;
 }
 
-/**
- * Works like a derived.
- * However, if the value is not undefined, it is cached and will not be recomputed anymore.
- * In that case, the derived will unsubscribe from its dependencies.
-*/
 export function derivedConstOnceDefined<T>(owner: DebugOwner, fn: (reader: IReader) => T): IObservable<T | undefined> {
 	return derivedObservableWithCache<T | undefined>(owner, (reader, lastValue) => lastValue ?? fn(reader));
 }

@@ -51,10 +51,8 @@ export class ApplyFileSnippetAction extends SnippetsAction {
 		}
 
 		if (editor.hasModel()) {
-			// set language before applying so snippet comment variables resolve against this language
 			editor.getModel().setLanguage(langService.createById(selection.langId), ApplyFileSnippetAction.Id);
 
-			// apply snippet edit -> replaces everything
 			SnippetController2.get(editor)?.apply([{
 				range: editor.getModel().getFullModelRange(),
 				template: selection.snippet.body
@@ -66,7 +64,6 @@ export class ApplyFileSnippetAction extends SnippetsAction {
 
 	private async _pick(quickInputService: IQuickInputService, langService: ILanguageService, snippets: Snippet[]) {
 
-		// spread snippet onto each language it supports
 		type SnippetAndLanguage = { langId: string; snippet: Snippet };
 		const all: SnippetAndLanguage[] = [];
 		for (const snippet of snippets) {

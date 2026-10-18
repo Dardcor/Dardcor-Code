@@ -11,25 +11,6 @@ import { nodesToArrays, TestView } from './util.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../common/utils.js';
 import { DisposableStore } from '../../../../common/lifecycle.js';
 
-// Simple example:
-//
-//  +-----+---------------+
-//  |  4  |      2        |
-//  +-----+---------+-----+
-//  |        1      |     |
-//  +---------------+  3  |
-//  |        5      |     |
-//  +---------------+-----+
-//
-//  V
-//  +-H
-//  | +-4
-//  | +-2
-//  +-H
-//    +-V
-//    | +-1
-//    | +-5
-//    +-3
 
 suite('Grid', function () {
 
@@ -488,8 +469,6 @@ suite('Grid', function () {
 
 		grid.maximizeView(view1);
 
-		// Views 2, 3, 4 are hidden
-		// Splitview (2,4) and ((2,4),3) are hidden
 		assert.deepStrictEqual(view1.size, [800, 600]);
 		assert.deepStrictEqual(view2.size, [0, 0]);
 		assert.deepStrictEqual(view3.size, [0, 0]);
@@ -502,8 +481,6 @@ suite('Grid', function () {
 		assert.deepStrictEqual(view3.size, size3);
 		assert.deepStrictEqual(view4.size, size4);
 
-		// Views 1, 3, 4 are hidden
-		// All splitviews are still visible => only orthogonalsize is 0
 		grid.maximizeView(view2);
 
 		assert.deepStrictEqual(view1.size, [0, 600]);
@@ -540,7 +517,6 @@ suite('Grid', function () {
 
 			assert.deepStrictEqual(grid.hasMaximizedView(), true);
 
-			// When a view is maximized, no view can be expanded even if it is maximized
 			assert.deepStrictEqual(grid.isViewExpanded(view1), false);
 			assert.deepStrictEqual(grid.isViewExpanded(view2), false);
 			assert.deepStrictEqual(grid.isViewExpanded(view3), false);
@@ -572,7 +548,6 @@ suite('Grid', function () {
 
 		const view4 = store.add(new TestView(50, Number.MAX_VALUE, 50, Number.MAX_VALUE));
 
-		// Adding a view unmaximizes the view
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.addView(view4, Sizing.Distribute, view2, Direction.Right);
@@ -583,7 +558,6 @@ suite('Grid', function () {
 		assert.deepStrictEqual(grid.isViewVisible(view3), true);
 		assert.deepStrictEqual(grid.isViewVisible(view4), true);
 
-		// Removing a view unmaximizes the view
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.removeView(view4);
@@ -593,7 +567,6 @@ suite('Grid', function () {
 		assert.deepStrictEqual(grid.isViewVisible(view2), true);
 		assert.deepStrictEqual(grid.isViewVisible(view3), true);
 
-		// Changing the visibility of any view while a view is maximized, unmaximizes the view
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.setViewVisible(view3, true);
@@ -620,7 +593,6 @@ suite('Grid', function () {
 		const view4 = store.add(new TestView(50, Number.MAX_VALUE, 50, Number.MAX_VALUE));
 		grid.addView(view4, Sizing.Distribute, view2, Direction.Right);
 
-		// Maximizing a different view unmaximizes the current one and maximizes the new one
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.maximizeView(view2);
@@ -631,7 +603,6 @@ suite('Grid', function () {
 		assert.deepStrictEqual(grid.isViewVisible(view3), false);
 		assert.deepStrictEqual(grid.isViewVisible(view4), false);
 
-		// Distributing the size unmaximizes the view
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.distributeViewSizes();
@@ -642,7 +613,6 @@ suite('Grid', function () {
 		assert.deepStrictEqual(grid.isViewVisible(view3), true);
 		assert.deepStrictEqual(grid.isViewVisible(view4), true);
 
-		// Expanding a different view unmaximizes the view
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.expandView(view2);
@@ -653,7 +623,6 @@ suite('Grid', function () {
 		assert.deepStrictEqual(grid.isViewVisible(view3), true);
 		assert.deepStrictEqual(grid.isViewVisible(view4), true);
 
-		// Expanding the maximized view unmaximizes the view
 		grid.maximizeView(view1);
 		assert.deepStrictEqual(grid.hasMaximizedView(), true);
 		grid.expandView(view1);
@@ -920,7 +889,7 @@ suite('SerializableGrid', function () {
 		const view4Copy = deserializer.getView('view4');
 		const view5Copy = deserializer.getView('view5');
 
-		grid2.layout(400, 800); // [/2, *4/3]
+		grid2.layout(400, 800);
 		assert.deepStrictEqual(view1Copy.size, [300, 400]);
 		assert.deepStrictEqual(view2Copy.size, [300, 267]);
 		assert.deepStrictEqual(view3Copy.size, [100, 533]);
@@ -1071,7 +1040,6 @@ suite('SerializableGrid', function () {
 		const grid = store.add(SerializableGrid.deserialize(serializedGrid, deserializer));
 		assert.strictEqual(views.length, 3);
 
-		// should not throw
 		grid.removeView(views[2]);
 	});
 

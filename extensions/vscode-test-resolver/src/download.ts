@@ -36,13 +36,13 @@ async function downloadVSCodeServerArchive(updateUrl: string, commit: string, qu
 		https.get(requestOptions, res => {
 			if (res.statusCode !== 302) {
 				reject('Failed to get VS Code server archive location');
-				res.resume(); // read the rest of the response data and discard it
+				res.resume();
 				return;
 			}
 			const archiveUrl = res.headers.location;
 			if (!archiveUrl) {
 				reject('Failed to get VS Code server archive location');
-				res.resume(); // read the rest of the response data and discard it
+				res.resume();
 				return;
 			}
 
@@ -65,9 +65,6 @@ async function downloadVSCodeServerArchive(updateUrl: string, commit: string, qu
 	});
 }
 
-/**
- * Unzip a .zip or .tar.gz VS Code archive
- */
 function unzipVSCodeServer(vscodeArchivePath: string, extractDir: string, destDir: string, log: (messsage: string) => void) {
 	log(`Extracting ${vscodeArchivePath}`);
 	if (vscodeArchivePath.endsWith('.zip')) {
@@ -86,7 +83,6 @@ function unzipVSCodeServer(vscodeArchivePath: string, extractDir: string, destDi
 		}
 		fs.renameSync(path.join(tempDir, process.platform === 'win32' ? 'vscode-server-win32-x64' : 'vscode-server-darwin-x64'), extractDir);
 	} else {
-		// tar does not create extractDir by default
 		if (!fs.existsSync(extractDir)) {
 			fs.mkdirSync(extractDir);
 		}
@@ -105,7 +101,6 @@ export async function downloadAndUnzipVSCodeServer(updateUrl: string, commit: st
 			const vscodeArchivePath = await downloadVSCodeServerArchive(updateUrl, commit, quality, destDir, log);
 			if (fs.existsSync(vscodeArchivePath)) {
 				unzipVSCodeServer(vscodeArchivePath, extractDir, destDir, log);
-				// Remove archive
 				fs.unlinkSync(vscodeArchivePath);
 			}
 		} catch (err) {

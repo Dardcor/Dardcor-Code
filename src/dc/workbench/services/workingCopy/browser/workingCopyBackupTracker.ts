@@ -31,28 +31,24 @@ export class BrowserWorkingCopyBackupTracker extends WorkingCopyBackupTracker im
 
 	protected onFinalBeforeShutdown(reason: ShutdownReason): boolean {
 
-		// Web: we cannot perform long running in the shutdown phase
-		// As such we need to check sync if there are any modified working
-		// copies that have not been backed up yet and then prevent the
-		// shutdown if that is the case.
 
 		const modifiedWorkingCopies = this.workingCopyService.modifiedWorkingCopies;
 		if (!modifiedWorkingCopies.length) {
-			return false; // nothing modified: no veto
+			return false;
 		}
 
 		if (!this.filesConfigurationService.isHotExitEnabled) {
-			return true; // modified without backup: veto
+			return true;
 		}
 
 		for (const modifiedWorkingCopy of modifiedWorkingCopies) {
 			if (!this.workingCopyBackupService.hasBackupSync(modifiedWorkingCopy, this.getContentVersion(modifiedWorkingCopy))) {
 				this.logService.warn('Unload veto: pending backups');
 
-				return true; // modified without backup: veto
+				return true;
 			}
 		}
 
-		return false; // modified and backed up: no veto
+		return false;
 	}
 }

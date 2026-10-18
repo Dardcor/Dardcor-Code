@@ -54,13 +54,11 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 			return;
 		}
 
-		// Initialize checkpoint state and capture baseline checkpoint
 		const checkpointRef = await this._createCheckpoint(sessionId, repository, 0);
 		if (!checkpointRef) {
 			return;
 		}
 
-		// Update session metadata
 		const worktreeProperties = await this.worktreeService.getWorktreeProperties(sessionId);
 		if (!worktreeProperties || typeof worktreeProperties === 'string' || worktreeProperties.version === 1) {
 			this.logService.trace(`[ChatSessionWorktreeCheckpointService][handleRequest] Session ${sessionId} does not use a git worktree, skipping checkpoint metadata update`);
@@ -95,7 +93,6 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 			return;
 		}
 
-		// Create checkpoint
 		const currentTurn = parseInt(parentCheckpointRef.split('/').pop() ?? '0') + 1;
 		const checkpointRef = await this._createCheckpoint(sessionId, repository, currentTurn, parentCheckpointRef);
 		if (!checkpointRef) {
@@ -104,7 +101,6 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 
 		const worktreeProperties = await this.worktreeService.getWorktreeProperties(sessionId);
 		if (worktreeProperties && typeof worktreeProperties !== 'string' && worktreeProperties.version === 2) {
-			// Worktree isolation mode
 			await this.worktreeService.setWorktreeProperties(sessionId, {
 				...worktreeProperties,
 				changes: undefined,
@@ -112,7 +108,6 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 			});
 		}
 
-		// Update request metadata with new checkpoint ref
 		await this.metadataStore.updateRequestDetails(sessionId, [{ vscodeRequestId: requestId, checkpointRef }]);
 	}
 
@@ -142,12 +137,10 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 		const pathspecFile = path.join(this.extensionContext.globalStorageUri.fsPath, tmpDirName, `pathspec.txt`);
 
 		try {
-			// Resolve the parent commit of the existing checkpoint (if any) so we preserve the chain.
 			let parentCommitOid: string | undefined;
 			try {
 				parentCommitOid = await this.gitService.exec(repository.rootUri, ['rev-parse', `${lastCheckpointRef}^`]);
 			} catch {
-				// Turn 0 (baseline) checkpoints are parentless; treat as no parent.
 				parentCommitOid = undefined;
 			}
 
@@ -173,7 +166,6 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 	private async _getSessionRepository(sessionId: string): Promise<Uri | undefined> {
 		const worktreeProperties = await this.worktreeService.getWorktreeProperties(sessionId);
 		if (worktreeProperties) {
-			// Worktree isolation mode
 			if (typeof worktreeProperties === 'string' || worktreeProperties.version === 1) {
 				return undefined;
 			}
@@ -181,7 +173,6 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 			return Uri.file(worktreeProperties.worktreePath);
 		}
 
-		// Workspace isolation mode
 		return this.workspaceFolderService.getSessionWorkspaceFolder(sessionId);
 	}
 
@@ -263,18 +254,14 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 		const repositoryUri = repository.rootUri;
 		const env = buildTempIndexEnv(repository, checkpointIndexFile);
 
-		// Create temp index file directory
 		await fs.mkdir(path.dirname(checkpointIndexFile), { recursive: true });
 
-		// Populate temp index from HEAD
 		await this.gitService.exec(repositoryUri, ['read-tree', 'HEAD'], env);
 
-		// Stage entire working directory into temp index
 		const uncommittedFilePaths = getUncommittedFilePaths(repository);
 		await fs.writeFile(pathspecFile, uncommittedFilePaths.join('\n'), 'utf8');
 		await this.gitService.exec(repositoryUri, ['add', '-A', `--pathspec-from-file=${pathspecFile}`], env);
 
-		// Write the temp index as a tree object
 		return this.gitService.exec(repositoryUri, ['write-tree'], env);
 	}
 
@@ -288,16 +275,13 @@ export class ChatSessionWorktreeCheckpointService extends Disposable implements 
 		try {
 			const treeOid = await this._writeWorktreeTree(repository, checkpointIndexFile, pathspecFile);
 
-			// Resolve parent checkpoint ref
 			const parentCommitOid = parentCheckpointRef
 				? await this.gitService.exec(repositoryUri, ['rev-parse', parentCheckpointRef])
 				: undefined;
 
-			// Create a commit pointing to the tree, chained to the previous checkpoint
 			const commitTreeArgs = ['commit-tree', treeOid, ...(parentCommitOid ? ['-p', parentCommitOid] : []), '-m', `Session ${sessionId} - checkpoint turn ${turnNumber}`];
 			const commitOid = await this.gitService.exec(repositoryUri, commitTreeArgs);
 
-			// Point a new ref at the commit
 			const checkpointRef = getCheckpointRef(sessionId, turnNumber);
 			await this.gitService.exec(repositoryUri, ['update-ref', checkpointRef, commitOid]);
 

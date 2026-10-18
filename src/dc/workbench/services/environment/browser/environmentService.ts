@@ -22,27 +22,14 @@ import { EXTENSION_IDENTIFIER_WITH_LOG_REGEX } from '../../../../platform/enviro
 
 export const IBrowserWorkbenchEnvironmentService = refineServiceDecorator<IEnvironmentService, IBrowserWorkbenchEnvironmentService>(IEnvironmentService);
 
-/**
- * A subclass of the `IWorkbenchEnvironmentService` to be used only environments
- * where the web API is available (browsers, Electron).
- */
 export interface IBrowserWorkbenchEnvironmentService extends IWorkbenchEnvironmentService {
 
-	/**
-	 * Options used to configure the workbench.
-	 */
 	readonly options?: IWorkbenchConstructionOptions;
 
-	/**
-	 * Gets whether a resolver extension is expected for the environment.
-	 */
 	readonly expectsResolverExtension: boolean;
 
 	readonly sessionTitle?: string;
 
-	/**
-	 * Gets whether the workbench is running as an agent host.
-	 */
 	readonly isAgentHost: boolean;
 }
 
@@ -135,13 +122,6 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 	@memoize
 	get stateResource(): URI { return joinPath(this.userRoamingDataHome, 'State', 'storage.json'); }
 
-	/**
-	 * In Web every workspace can potentially have scoped user-data
-	 * and/or extensions and if Sync state is shared then it can make
-	 * Sync error prone - say removing extensions from another workspace.
-	 * Hence scope Sync state per workspace. Sync scoped to a workspace
-	 * is capable of handling opening same workspace in multiple windows.
-	 */
 	@memoize
 	get userDataSyncHome(): URI { return joinPath(this.userRoamingDataHome, 'sync', this.workspaceId); }
 
@@ -296,7 +276,7 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 			try {
 				this.payload = new Map(options.workspaceProvider.payload);
 			} catch (error) {
-				onUnexpectedError(error); // possible invalid payload for map
+				onUnexpectedError(error);
 			}
 		}
 	}
@@ -313,7 +293,6 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 			extensionDevelopmentKind: undefined
 		};
 
-		// Fill in selected extra environmental properties
 		if (this.payload) {
 			for (const [key, value] of this.payload) {
 				switch (key) {
@@ -379,7 +358,6 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 			if (fileToOpen) {
 				const fileUri = URI.parse(fileToOpen);
 
-				// Support: --goto parameter to open on line/col
 				if (this.payload.has('gotoLineMode')) {
 					const pathColumnAware = parseLineAndColumnAware(fileUri.path);
 

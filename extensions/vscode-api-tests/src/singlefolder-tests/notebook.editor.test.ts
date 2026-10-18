@@ -30,7 +30,6 @@ import * as utils from '../utils';
 
 			const sub = vscode.window.onDidChangeActiveNotebookEditor(() => {
 				if (vscode.window.activeNotebookEditor === undefined) {
-					// skip if there is no active notebook editor (e.g. when opening a new notebook)
 					return;
 				}
 
@@ -65,8 +64,6 @@ import * as utils from '../utils';
 		testDisposables.length = 0;
 	});
 
-	// #138683
-	// TODO@rebornix https://github.com/microsoft/vscode/issues/170072
 	test.skip('Opening a notebook should fire activeNotebook event changed only once', utils.withVerboseLogs(async function () {
 		const openedEditor = onDidOpenNotebookEditor();
 		const resource = await utils.createRandomFile(undefined, undefined, '.nbdtest');
@@ -76,7 +73,6 @@ import * as utils from '../utils';
 		assert.strictEqual(editor.notebook.uri.toString(), resource.toString());
 	}));
 
-	// TODO@rebornix https://github.com/microsoft/vscode/issues/173125
 	test.skip('Active/Visible Editor', async function () {
 		const firstEditorOpen = onDidOpenNotebookEditor();
 		const resource = await utils.createRandomFile(undefined, undefined, '.nbdtest');
@@ -88,8 +84,6 @@ import * as utils from '../utils';
 		assert.strictEqual(vscode.window.visibleNotebookEditors.includes(firstEditor), true);
 
 		const secondEditor = await vscode.window.showNotebookDocument(document, { viewColumn: vscode.ViewColumn.Beside });
-		// There is no guarantee that when `showNotebookDocument` resolves, the active notebook editor is already updated correctly.
-		// assert.strictEqual(secondEditor === vscode.window.activeNotebookEditor, true);
 		assert.notStrictEqual(firstEditor, secondEditor);
 		assert.strictEqual(vscode.window.visibleNotebookEditors.includes(secondEditor), true);
 		assert.strictEqual(vscode.window.visibleNotebookEditors.includes(firstEditor), true);

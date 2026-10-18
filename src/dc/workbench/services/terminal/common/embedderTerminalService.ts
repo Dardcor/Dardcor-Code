@@ -11,9 +11,6 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 
 export const IEmbedderTerminalService = createDecorator<IEmbedderTerminalService>('embedderTerminalService');
 
-/**
- * Manages terminals that the embedder can create before the terminal contrib is available.
- */
 export interface IEmbedderTerminalService {
 	readonly _serviceBrand: undefined;
 
@@ -28,16 +25,8 @@ export interface IEmbedderTerminalOptions {
 	name: string;
 	pty: IEmbedderTerminalPty;
 
-	// Extension APIs that have not been implemented for embedders:
-	//   iconPath?: URI | { light: URI; dark: URI } | ThemeIcon;
-	//   color?: ThemeColor;
-	//   location?: TerminalLocation | TerminalEditorLocationOptions | TerminalSplitLocationOptions;
-	//   isTransient?: boolean;
 }
 
-/**
- * See Pseudoterminal on the vscode API for usage.
- */
 export interface IEmbedderTerminalPty {
 	readonly onDidWrite: Event<string>;
 	readonly onDidClose?: Event<void | number>;
@@ -46,10 +35,6 @@ export interface IEmbedderTerminalPty {
 	open(): void;
 	close(): void;
 
-	// Extension APIs that have not been implemented for embedders:
-	//   onDidOverrideDimensions?: Event<TerminalDimensions | undefined>;
-	//   handleInput?(data: string): void;
-	//   setDimensions?(dimensions: TerminalDimensions): void;
 }
 
 class EmbedderTerminalService implements IEmbedderTerminalService {
@@ -112,29 +97,20 @@ class EmbedderTerminalProcess extends Disposable implements ITerminalChildProces
 		this._pty.close();
 	}
 
-	// TODO: A lot of these aren't useful for some implementations of ITerminalChildProcess, should
-	// they be optional? Should there be a base class for "external" consumers to implement?
 
 	input(): void {
-		// not supported
 	}
 	sendSignal(): void {
-		// not supported
 	}
 	async processBinary(): Promise<void> {
-		// not supported
 	}
 	resize(): void {
-		// no-op
 	}
 	clearBuffer(): void {
-		// no-op
 	}
 	acknowledgeDataEvent(): void {
-		// no-op, flow control not currently implemented
 	}
 	async setUnicodeVersion(): Promise<void> {
-		// no-op
 	}
 	async getInitialCwd(): Promise<string> {
 		return '';

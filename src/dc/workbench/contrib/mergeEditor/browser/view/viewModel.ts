@@ -115,7 +115,6 @@ export class MergeEditorViewModel extends Disposable {
 		});
 		this.activeModifiedBaseRange = derived(this,
 			(reader) => {
-				/** @description activeModifiedBaseRange */
 				const focusedEditor = this.lastFocusedEditor.read(reader);
 				const manualRange = this.manuallySetActiveModifiedBaseRange.read(reader);
 				if (manualRange.counter > focusedEditor.counter) {
@@ -166,7 +165,6 @@ export class MergeEditorViewModel extends Disposable {
 				model: this.model,
 				redo() {
 					transaction(tx => {
-						/** @description Mark conflicts touched by manual edits as handled */
 						for (const r of baseRangeStates) {
 							this.model.setHandled(r, true, tx);
 						}
@@ -174,7 +172,6 @@ export class MergeEditorViewModel extends Disposable {
 				},
 				undo() {
 					transaction(tx => {
-						/** @description Mark conflicts touched by manual edits as handled */
 						for (const r of baseRangeStates) {
 							this.model.setHandled(r, false, tx);
 						}
@@ -193,9 +190,6 @@ export class MergeEditorViewModel extends Disposable {
 
 	public readonly baseShowDiffAgainst;
 
-	/**
-	 * Returns an observable that tracks which editor type is currently focused
-	 */
 	public readonly focusedEditorType;
 
 	public readonly selectionInBase;
@@ -298,7 +292,6 @@ export class MergeEditorViewModel extends Disposable {
 			return;
 		}
 		transaction(tx => {
-			/** @description Toggle Active Conflict */
 			this.setState(
 				activeModifiedBaseRange,
 				this.model.getState(activeModifiedBaseRange).get().toggle(inputNumber),
@@ -310,7 +303,6 @@ export class MergeEditorViewModel extends Disposable {
 
 	public acceptAll(inputNumber: 1 | 2): void {
 		transaction(tx => {
-			/** @description Toggle Active Conflict */
 			for (const range of this.model.modifiedBaseRanges.get()) {
 				this.setState(
 					range,
@@ -350,8 +342,6 @@ class AttachedHistory extends Disposable {
 				}
 
 			} else {
-				// The user destroyed the redo stack by performing a non redo/undo operation.
-				// Thus we also need to remove all history elements after the last version id.
 				while (
 					this.attachedHistory.length > 0
 					&& this.attachedHistory[this.attachedHistory.length - 1]!.altId > this.previousAltId
@@ -364,10 +354,6 @@ class AttachedHistory extends Disposable {
 		}));
 	}
 
-	/**
-	 * Pushes an history item that is tied to the last text edit (or an extension of it).
-	 * When the last text edit is undone/redone, so is is this history item.
-	 */
 	public pushAttachedHistoryElement(element: IAttachedHistoryElement): void {
 		this.attachedHistory.push({ altId: this.model.getAlternativeVersionId(), element });
 	}

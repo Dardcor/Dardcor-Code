@@ -41,14 +41,6 @@ function getChatTerminalBackgroundColor(theme: IColorTheme, contextKeyService: I
 	return theme.getColor(isInEditor ? editorBackground : PANEL_BACKGROUND);
 }
 
-/**
- * Computes the maximum column width of content in a terminal buffer.
- * Iterates through each line and finds the rightmost non-empty cell.
- *
- * @param buffer The buffer to measure
- * @param cols The terminal column count (used to clamp line length)
- * @returns The maximum column width (number of columns used), or 0 if all lines are empty
- */
 export function computeMaxBufferColumnWidth(buffer: { readonly length: number; getLine(y: number): { readonly length: number; getCell(x: number): { getChars(): string } | undefined } | undefined }, cols: number): number {
 	let maxWidth = 0;
 
@@ -58,7 +50,6 @@ export function computeMaxBufferColumnWidth(buffer: { readonly length: number; g
 			continue;
 		}
 
-		// Find the last non-empty cell by iterating backwards
 		const lineLength = Math.min(line.length, cols);
 		for (let x = lineLength - 1; x >= 0; x--) {
 			if (line.getCell(x)?.getChars()) {
@@ -71,17 +62,6 @@ export function computeMaxBufferColumnWidth(buffer: { readonly length: number; g
 	return maxWidth;
 }
 
-/**
- * Checks if two VT strings match around a boundary where we would slice.
- * This is an efficient O(1) check that verifies a small window of characters
- * before the slice point to detect if the VT sequences have diverged (common on Windows).
- *
- * @param newVT The new VT text to compare.
- * @param oldVT The old VT text to compare against.
- * @param slicePoint The point where we would slice. Must be <= both string lengths.
- * @param windowSize The number of characters before slicePoint to check (default 50).
- * @returns True if the boundary matches, false if VT sequences have diverged.
- */
 export function vtBoundaryMatches(newVT: string, oldVT: string, slicePoint: number, windowSize: number = 50): boolean {
 	const start = Math.max(0, slicePoint - windowSize);
 	const end = slicePoint;
@@ -111,31 +91,10 @@ interface IDetachedTerminalCommandMirror {
 const enum ChatTerminalMirrorMetrics {
 	MirrorRowCount = 10,
 	MirrorColCountFallback = 80,
-	/**
-	 * Pre-attach estimate of the horizontal space the mirror content cannot use: the gutter
-	 * every workbench xterm gets via `.monaco-workbench .xterm { padding-left: 20px }`
-	 * (terminal.css). Once attached, the real value is measured from computed styles.
-	 */
 	MirrorHorizontalPaddingPx = 20,
-	/**
-	 * Maximum number of lines for which we compute the max column width.
-	 * Computing max column width iterates the entire buffer, so we skip it
-	 * for large outputs to avoid performance issues.
-	 */
 	MaxLinesForColumnWidthComputation = 100
 }
 
-/**
- * Computes the number of columns a chat terminal mirror should use to fill the available width
- * of its container, using the same cell math as {@link getXtermScaledDimensions}.
- *
- * @param availableWidthPx The container width in CSS pixels.
- * @param font The terminal font with measured char metrics.
- * @param devicePixelRatio The window's device pixel ratio.
- * @param horizontalChromePx Horizontal space the DOM chrome takes from the container width,
- * measured from computed styles when available; defaults to the static estimate.
- * @returns The column count, or the default fallback when the width or font is unmeasurable.
- */
 export function computeChatTerminalMirrorCols(availableWidthPx: number, font: ITerminalFont, devicePixelRatio: number, horizontalChromePx: number = ChatTerminalMirrorMetrics.MirrorHorizontalPaddingPx): number {
 	if (!isFinite(availableWidthPx) || availableWidthPx <= 0 || !font.charWidth) {
 		return ChatTerminalMirrorMetrics.MirrorColCountFallback;
@@ -150,29 +109,14 @@ function getMirrorRaw(detached: IDetachedTerminalInstance): RawXtermTerminal {
 	return (detached.xterm as IDetachedXtermTerminal & { raw: RawXtermTerminal }).raw;
 }
 
-/**
- * Enables cursor line reflow on a mirror's terminal. The mirror is a readonly output preview
- * with no prompt line to protect, so resize reflow should re-wrap the cursor line like any
- * other line (xterm skips it by default).
- */
 function enableCursorLineReflow(detached: IDetachedTerminalInstance): void {
 	getMirrorRaw(detached).options.reflowCursorLine = true;
 }
 
-/**
- * Gets the device pixel ratio of the window the mirror's terminal is rendered in, so cell
- * math stays correct in auxiliary windows on monitors with different scaling.
- */
 function getMirrorDevicePixelRatio(detached: IDetachedTerminalInstance): number {
 	return getWindow(getMirrorRaw(detached).element).devicePixelRatio;
 }
 
-/**
- * Measures the horizontal space the mirror's DOM chrome takes from the container width by
- * reading the xterm element's computed padding, the same way the panel terminal does. xterm's
- * own scrollbar is hidden in the chat preview, so unlike the panel terminal it takes no
- * space. Returns undefined before the terminal is attached.
- */
 function measureMirrorHorizontalChrome(detached: IDetachedTerminalInstance): number | undefined {
 	const element = getMirrorRaw(detached).element;
 	if (!element) {
@@ -183,12 +127,6 @@ function measureMirrorHorizontalChrome(detached: IDetachedTerminalInstance): num
 	return isNaN(chrome) ? undefined : Math.max(chrome, 0);
 }
 
-/**
- * Computes the height in CSS pixels of one rendered row from the mirror's font. Once the
- * renderer has initialized, {@link XtermTerminal.getFont} reports its actual cell metrics,
- * so the value matches what xterm paints; before that it is the configuration-based
- * estimate. Returns undefined while the terminal or its metrics are unavailable.
- */
 function getMirrorRowHeightPx(detached: IDetachedTerminalInstance | undefined): number | undefined {
 	const font = detached?.xterm.getFont();
 	if (!font?.charHeight || font.charHeight <= 0) {
@@ -198,19 +136,10 @@ function getMirrorRowHeightPx(detached: IDetachedTerminalInstance | undefined): 
 	return font.charHeight * lineHeight;
 }
 
-/**
- * Computes the line count for terminal output between start and end lines.
- * The end line is exclusive (points to the line after output ends).
- */
 function computeOutputLineCount(startLine: number, endLine: number): number {
 	return Math.max(endLine - startLine, 0);
 }
 
-/**
- * Computes the number of rendered rows occupied by a terminal snapshot.
- * The cursor line is included when it contains content and excluded when it
- * is the empty line after a trailing newline.
- */
 export function computeSnapshotLineCount(buffer: {
 	readonly baseY: number;
 	readonly cursorY: number;
@@ -292,36 +221,7 @@ export async function getCommandOutputSnapshot(
 	return { text, lineCount };
 }
 
-/**
- * Mirrors a terminal command's output into a detached terminal instance.
- * Used in the chat terminal tool progress part to show command output.
- */
 export class DetachedTerminalCommandMirror extends Disposable implements IDetachedTerminalCommandMirror {
-	// Streaming approach
-	// ------------------
-	// The mirror maintains a VT snapshot of the command's output and incrementally updates a
-	// detached xterm instance instead of re-rendering the whole range on every change.
-	//
-	// - A *dirty range* is the set of buffer rows that may have diverged between the source
-	//   terminal and the detached mirror. It is tracked by:
-	//     - `_lastUpToDateCursorY`: the last cursor row in the source buffer for which the
-	//       mirror is known to be fully up to date.
-	//     - `_lowestDirtyCursorY`: the smallest (top-most) cursor row that has been affected
-	//       by new data or cursor movement since the last flush.
-	//
-	// - When new data arrives or the cursor moves, xterm events and `onData` callbacks are
-	//   used to update `_lowestDirtyCursorY`. This effectively marks everything from that row
-	//   downwards as potentially stale.
-	//
-	// - If the dirty range starts exactly at the previous end of the mirrored output (that is,
-	//   `_lowestDirtyCursorY` is at or after `_lastUpToDateCursorY` and no earlier rows have
-	//   changed), the mirror can *append* VT that corresponds only to the new rows.
-	//
-	// - If the cursor moves or data is written above the previously mirrored end (for example,
-	//   when the command rewrites lines, uses carriage returns, or modifies earlier rows),
-	//   `_lowestDirtyCursorY` will be before `_lastUpToDateCursorY`. In that case the mirror
-	//   cannot safely append and instead falls back to taking a fresh VT snapshot of the
-	//   entire command range and *rewrites* the detached terminal content.
 
 	private _detachedTerminal: IDetachedTerminalInstance | undefined;
 	private _detachedTerminalPromise: Promise<IDetachedTerminalInstance> | undefined;
@@ -382,11 +282,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		this._installFirstRenderListener(terminal);
 	}
 
-	/**
-	 * The height in CSS pixels of one rendered row of this mirror, or undefined until the
-	 * detached terminal exists. Reflects the renderer's actual cell metrics once it has
-	 * rendered, so box-height math matches what xterm paints.
-	 */
 	getRowHeightPx(): number | undefined {
 		if (this._store.isDisposed) {
 			return undefined;
@@ -399,10 +294,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 			return;
 		}
 		this._renderListenerInstalled = true;
-		// Renders can change the cell metrics: the first render replaces the measured font
-		// estimate with the renderer's actual dimensions, and later ones can reflect DPR
-		// changes (e.g. the window moving to a differently scaled monitor). Only the
-		// changes are announced, so the per-frame cost is one number comparison.
 		this._register(getMirrorRaw(detached).onRender(() => this._notifyRowHeightIfChanged()));
 	}
 
@@ -434,7 +325,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		try {
 			vt = await this._getCommandOutputAsVT(this._xtermTerminal);
 		} catch {
-			// ignore and treat as no output
 		}
 		if (!vt) {
 			return undefined;
@@ -444,13 +334,8 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		}
 
 		await new Promise<void>(resolve => {
-			// Only append if the boundary around the slice point matches; otherwise rewrite.
-			// This is an efficient constant-time check (checking up to 50 characters) instead of comparing the entire prefix.
-			// On Windows, VT sequences can differ even for equivalent content, causing corruption
-			// if we blindly append.
 			const canAppend = !!this._lastVT && vt.text.length >= this._lastVT.length && this._vtBoundaryMatches(vt.text, this._lastVT.length);
 			if (!canAppend) {
-				// Use \x1bc (RIS) + new content in one write to avoid a blank frame
 				const payload = this._lastVT ? `\x1bc${vt.text}` : vt.text;
 				if (payload) {
 					detached.xterm.write(payload, resolve);
@@ -479,7 +364,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		}
 
 		this._lineCount = this._getRenderedLineCount();
-		// Only compute max column width after the command finishes and for small outputs
 		const commandFinished = this._command.endMarker && !this._command.endMarker.isDisposed;
 		if (commandFinished && this._lineCount <= ChatTerminalMirrorMetrics.MaxLinesForColumnWidthComputation) {
 			this._maxColumnWidth = this._computeMaxColumnWidth();
@@ -488,12 +372,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		return { lineCount: this._lineCount, maxColumnWidth: this._maxColumnWidth };
 	}
 
-	/**
-	 * Resizes the mirror to fill the given width, relying on xterm's native resize reflow to
-	 * re-wrap soft-wrapped lines. No-op when the resulting cols are unchanged. The column
-	 * count derives from the mirror's own xterm font metrics, which reflect the actual
-	 * renderer cell size rather than a configuration-based estimate.
-	 */
 	async layout(widthPx: number): Promise<IDetachedTerminalCommandMirrorRenderResult | undefined> {
 		if (this._store.isDisposed || widthPx <= 0) {
 			return undefined;
@@ -514,13 +392,10 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		if (detached.xterm.cols === cols) {
 			return undefined;
 		}
-		// Wait for any in-flight streaming flush so the resize does not interleave with it
 		await this._flushPromise;
 		if (this._store.isDisposed || detached.xterm.cols === cols) {
 			return undefined;
 		}
-		// Native resize reflow re-wraps the buffer in place; rewriting the cached VT here
-		// instead would flash a cleared frame on every resize
 		detached.xterm.resize(cols, ChatTerminalMirrorMetrics.MirrorRowCount);
 		if (!this._lastVT) {
 			return undefined;
@@ -555,14 +430,11 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 	}
 
 	private _getRenderedLineCount(): number {
-		// Prefer counting the mirror's own rendered rows: they reflect the mirror's column
-		// count, which can differ from the source terminal's after a width layout
 		const detachedBuffer = this._detachedTerminal?.xterm.buffer.active;
 		if (detachedBuffer) {
 			return computeSnapshotLineCount(detachedBuffer);
 		}
 
-		// Calculate line count from the command's markers when available
 		const endMarker = this._command.endMarker;
 		if (this._command.executedMarker && endMarker && !endMarker.isDisposed) {
 			const startLine = this._command.executedMarker.line;
@@ -570,7 +442,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 			return computeOutputLineCount(startLine, endLine);
 		}
 
-		// During streaming (no end marker), calculate from the source terminal buffer
 		const executedMarker = this._command.executedMarker ?? (this._command as unknown as ICurrentPartialCommand).commandExecutedMarker;
 		if (executedMarker && this._sourceRaw) {
 			const buffer = this._sourceRaw.buffer.active;
@@ -622,7 +493,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 			this._register(processInfo);
 			this._register(detached);
 
-			// Forward input from the mirror terminal to the source terminal
 			this._register(detached.onData(data => this._onDidInputEmitter.fire(data)));
 			return detached;
 		})();
@@ -712,7 +582,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		this._lowestDirtyCursorY = undefined;
 
 		const startLine = Math.min(previousCursor, startCandidate);
-		// Ensure we resolve any pending flush even when no actual new output is available.
 		const vt = await this._getCommandOutputAsVT(this._xtermTerminal);
 		if (!vt) {
 			return;
@@ -729,13 +598,9 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 			return;
 		}
 
-		// Only append if: (1) cursor hasn't moved backwards, and (2) boundary around slice point matches.
-		// This is an efficient O(1) check instead of comparing the entire prefix.
-		// On Windows, VT sequences can differ even for equivalent content, so we must verify.
 		const canAppend = !!this._lastVT && startLine >= previousCursor && vt.text.length >= this._lastVT.length && this._vtBoundaryMatches(vt.text, this._lastVT.length);
 		await new Promise<void>(resolve => {
 			if (!canAppend) {
-				// Use \x1bc (RIS) + new content in one write to avoid a blank frame
 				const payload = this._lastVT ? `\x1bc${vt.text}` : vt.text;
 				if (payload) {
 					detachedRaw.write(payload, resolve);
@@ -758,7 +623,6 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 
 		const commandFinished = this._command.endMarker && !this._command.endMarker.isDisposed;
 		if (commandFinished) {
-			// Only compute max column width after the command finishes and for small outputs
 			if (this._lineCount <= ChatTerminalMirrorMetrics.MaxLinesForColumnWidthComputation) {
 				this._maxColumnWidth = this._computeMaxColumnWidth();
 			}
@@ -772,18 +636,11 @@ export class DetachedTerminalCommandMirror extends Disposable implements IDetach
 		return raw.buffer.active.baseY + raw.buffer.active.cursorY;
 	}
 
-	/**
-	 * Checks if the new VT text matches the old VT around the boundary where we would slice.
-	 */
 	private _vtBoundaryMatches(newVT: string, slicePoint: number): boolean {
 		return vtBoundaryMatches(newVT, this._lastVT, slicePoint);
 	}
 }
 
-/**
- * Mirrors a terminal output snapshot into a detached terminal instance.
- * Used when the terminal has been disposed of but we still want to show the output.
- */
 export class DetachedTerminalSnapshotMirror extends Disposable {
 	private _detachedTerminal: Promise<IDetachedTerminalInstance> | undefined;
 	private _resolvedTerminal: IDetachedTerminalInstance | undefined;
@@ -824,7 +681,6 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 				}
 			}
 		}).then(terminal => {
-			// If the store is already disposed, dispose the terminal immediately
 			if (this._store.isDisposed) {
 				terminal.dispose();
 				return terminal;
@@ -835,11 +691,6 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 		});
 	}
 
-	/**
-	 * The height in CSS pixels of one rendered row of this mirror, or undefined until the
-	 * detached terminal exists. Reflects the renderer's actual cell metrics once it has
-	 * rendered, so box-height math matches what xterm paints.
-	 */
 	public getRowHeightPx(): number | undefined {
 		if (this._store.isDisposed) {
 			return undefined;
@@ -872,10 +723,6 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 		}
 		if (!this._renderListenerInstalled) {
 			this._renderListenerInstalled = true;
-			// Renders can change the cell metrics: the first render replaces the measured font
-			// estimate with the renderer's actual dimensions, and later ones can reflect DPR
-			// changes (e.g. the window moving to a differently scaled monitor). Only the
-			// changes are announced, so the per-frame cost is one number comparison.
 			this._register(getMirrorRaw(terminal).onRender(() => {
 				const rowHeight = this.getRowHeightPx();
 				if (rowHeight !== undefined && rowHeight !== this._lastObservedRowHeight) {
@@ -893,12 +740,6 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 		return this._renderSequencer.queue(() => this._render());
 	}
 
-	/**
-	 * Resizes the mirror to fill the given width, relying on xterm's native resize reflow to
-	 * re-wrap soft-wrapped lines. No-op when the resulting cols are unchanged. The column
-	 * count derives from the mirror's own xterm font metrics, which reflect the actual
-	 * renderer cell size rather than a configuration-based estimate.
-	 */
 	public async layout(widthPx: number): Promise<{ lineCount?: number; maxColumnWidth?: number } | undefined> {
 		if (widthPx <= 0) {
 			return undefined;
@@ -912,14 +753,10 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 			if (terminal.xterm.cols === cols) {
 				return undefined;
 			}
-			// Native resize reflow re-wraps the rendered content in place; rewriting the
-			// snapshot here instead would flash a cleared frame on every resize
 			terminal.xterm.resize(cols, ChatTerminalMirrorMetrics.MirrorRowCount);
 			if (!this._lastRenderedText) {
 				return undefined;
 			}
-			// Same rule as _render: a truncated snapshot's buffer under-represents the real
-			// output, so its explicit lineCount must survive the resize
 			const lineCount = computeSnapshotLineCount(terminal.xterm.buffer.active, this._output?.truncated ? this._output.lineCount : undefined);
 			this._lastRenderedLineCount = lineCount;
 			if (this._shouldComputeMaxColumnWidth(lineCount)) {
@@ -966,14 +803,10 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 		if (this._store.isDisposed) {
 			return undefined;
 		}
-		// A persisted lineCount reflects the wrap width of the source terminal, which can differ
-		// from this mirror's cols after a width layout. Only trust it for truncated output,
-		// where the text under-represents the real row count.
 		const lineCount = computeSnapshotLineCount(terminal.xterm.buffer.active, output.truncated ? output.lineCount : undefined);
 		this._renderedVersion = outputVersion;
 		this._lastRenderedText = text;
 		this._lastRenderedLineCount = lineCount;
-		// Only compute max column width for small outputs to avoid performance issues
 		if (this._shouldComputeMaxColumnWidth(lineCount)) {
 			this._lastRenderedMaxColumnWidth = this._computeMaxColumnWidth(terminal);
 		}

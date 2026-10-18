@@ -72,7 +72,6 @@ const languageModelToolsExtensionPoint = extensionsRegistry.ExtensionsRegistry.r
 				name: {
 					description: localize('toolName', "A unique name for this tool. This name must be a globally unique identifier, and is also used as a name when presenting this tool to a language model."),
 					type: 'string',
-					// [\\w-]+ is OpenAI's requirement for tool names
 					pattern: '^(?!copilot_|vscode_)[\\w-]+$'
 				},
 				toolReferenceName: {
@@ -139,9 +138,6 @@ const languageModelToolsExtensionPoint = extensionsRegistry.ExtensionsRegistry.r
 
 export interface IRawToolSetContribution {
 	name: string;
-	/**
-	 * @deprecated
-	 */
 	referenceName?: string;
 	legacyFullNames?: string[];
 	description: string;
@@ -201,7 +197,6 @@ export function toToolSetKey(extensionIdentifier: ExtensionIdentifier, toolName:
 	return `toolset:${extensionIdentifier.value}/${toolName}`;
 }
 
-/** Key used to register the auto-synthesized per-extension tool set (one per extension contributing tools but no `languageModelToolSets`). */
 function toSyntheticToolSetKey(extensionIdentifier: ExtensionIdentifier) {
 	return `synthetic-toolset:${extensionIdentifier.value}`;
 }
@@ -218,8 +213,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 
 		languageModelToolsExtensionPoint.setHandler((_extensions, delta) => {
 			for (const extension of delta.added) {
-				// Collect tools we successfully register so we can synthesize a per-extension tool set below
-				// for extensions that don't ship their own `languageModelToolSets` contribution.
 				const successfullyRegisteredTools: IToolData[] = [];
 				let extensionSource: ToolDataSource | undefined;
 
@@ -267,7 +260,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 						};
 					}
 
-					// If OSS and the product.json is not set up, fall back to checking api proposal
 					const isBuiltinTool = productService.defaultChatAgent?.chatExtensionId ?
 						ExtensionIdentifier.equals(extension.description.identifier, productService.defaultChatAgent.chatExtensionId) :
 						isProposedApiEnabled(extension.description, 'chatParticipantPrivate');
@@ -295,7 +287,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 					}
 				}
 
-				// Synthesize a per-extension tool set so the extension surfaces as single row in the Chat Customizations.
 				const hasOwnToolSets = !isFalsyOrEmpty(extension.description.contributes?.languageModelToolSets);
 				if (!hasOwnToolSets && extensionSource?.type === 'extension' && successfullyRegisteredTools.length > 0) {
 					const syntheticKey = toSyntheticToolSetKey(extension.description.identifier);
@@ -392,7 +383,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 					const mergeExisting = isBuiltinTool && existingToolSet?.source === ToolDataSource.Internal;
 
 					let obj: ToolSet & IDisposable;
-					// Allow built-in tool to update the tool set if it already exists
 					if (mergeExisting) {
 						obj = existingToolSet as ToolSet & IDisposable;
 					} else {
@@ -404,7 +394,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 								icon: toolSet.icon ? ThemeIcon.fromString(toolSet.icon) : undefined,
 								description: toolSet.description,
 								legacyFullNames: toolSet.legacyFullNames,
-								// Built-in tool sets are deprecated and hidden from Chat Customizations → Tools; extension-contributed sets surface there.
 								deprecated: source.type !== 'extension',
 							}
 						);
@@ -418,7 +407,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 						toolSets.forEach(toolSet => store.add(obj.addToolSet(toolSet, tx)));
 					});
 
-					// Listen for late-registered tools that weren't available at contribution time
 					if (missingToolNames.length > 0) {
 						const pending = new Set(missingToolNames);
 						const listener = store.add(languageModelToolsService.onDidChangeTools(() => {
@@ -436,7 +424,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 								}
 							}
 							if (pending.size === 0) {
-								// done
 								store.delete(listener);
 							}
 						}));
@@ -456,7 +443,6 @@ export class LanguageModelToolsExtensionPointHandler implements IWorkbenchContri
 }
 
 
-// --- render
 
 class LanguageModelToolDataRenderer extends Disposable implements IExtensionFeatureTableRenderer {
 	readonly type = 'table';

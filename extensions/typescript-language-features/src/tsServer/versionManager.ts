@@ -93,7 +93,7 @@ export class TypeScriptVersionManager extends Disposable {
 			{
 				kind: vscode.QuickPickItemKind.Separator,
 				label: '',
-				run: () => { /* noop */ },
+				run: () => { },
 			},
 			LearnMorePickItem,
 		);

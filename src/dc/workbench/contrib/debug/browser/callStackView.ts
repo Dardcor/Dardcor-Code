@@ -98,7 +98,6 @@ export function getContext(element: CallStackItem | null): ICallStackItemContext
 	}
 }
 
-// Extensions depend on this context, should not be changed even though it is not fully deterministic
 export function getContextForContributedActions(element: CallStackItem | null): string | number {
 	if (element instanceof StackFrame) {
 		if (element.source.inMemory) {
@@ -118,8 +117,6 @@ export function getContextForContributedActions(element: CallStackItem | null): 
 }
 
 export function getSpecificSourceName(stackFrame: IStackFrame): string {
-	// To reduce flashing of the path name and the way we fetch stack frames
-	// We need to compute the source name based on the other frames in the stale call stack
 	let callStack = (<Thread>stackFrame.thread).getStaleCallStack();
 	callStack = callStack.length > 0 ? callStack : stackFrame.thread.getCallStack();
 	const otherSources = callStack.map(sf => sf.source).filter(s => s !== stackFrame.source);
@@ -174,7 +171,6 @@ export class CallStackView extends ViewPane {
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 
-		// Create scheduler to prevent unnecessary flashing of tree when reacting to changes
 		this.onCallStackChangeScheduler = this._register(new RunOnceScheduler(async () => {
 			// Only show the global pause message if we do not display threads.
 			// Otherwise there will be a pause message per thread and there is no need for a global one.
@@ -205,7 +201,6 @@ export class CallStackView extends ViewPane {
 			try {
 				const toExpand = new Set<IDebugSession>();
 				sessions.forEach(s => {
-					// Automatically expand sessions that have children, but only do this once.
 					if (s.parentSession && !this.autoExpandedSessions.has(s.parentSession)) {
 						toExpand.add(s.parentSession);
 					}
@@ -215,7 +210,6 @@ export class CallStackView extends ViewPane {
 					this.autoExpandedSessions.add(session);
 				}
 			} catch (e) {
-				// Ignore tree expand errors if element no longer present
 			}
 			if (this.selectionNeedsUpdate) {
 				this.selectionNeedsUpdate = false;
@@ -331,7 +325,6 @@ export class CallStackView extends ViewPane {
 				if (thread) {
 					const totalFrames = thread.stoppedDetails?.totalFrames;
 					const remainingFramesCount = typeof totalFrames === 'number' ? (totalFrames - thread.getCallStack().length) : undefined;
-					// Get all the remaining frames
 					await (<Thread>thread).fetchCallStack(remainingFramesCount);
 					await this.tree.updateChildren();
 				}
@@ -371,7 +364,6 @@ export class CallStackView extends ViewPane {
 		}));
 		this._register(this.tree.onContextMenu(e => this.onContextMenu(e)));
 
-		// Schedule the update of the call stack tree if the viewlet is opened after a session started #14684
 		if (this.debugService.state === State.Stopped) {
 			this.onCallStackChangeScheduler.schedule(0);
 		}
@@ -385,15 +377,12 @@ export class CallStackView extends ViewPane {
 		this._register(this.debugService.onDidNewSession(s => {
 			const sessionListeners: IDisposable[] = [];
 			sessionListeners.push(s.onDidChangeName(() => {
-				// this.tree.updateChildren is called on a delay after a session is added,
-				// so don't rerender if the tree doesn't have the node yet
 				if (this.tree.hasNode(s)) {
 					this.tree.rerender(s);
 				}
 			}));
 			sessionListeners.push(s.onDidEndAdapter(() => dispose(sessionListeners)));
 			if (s.parentSession) {
-				// A session we already expanded has a new child session, allow to expand it again.
 				this.autoExpandedSessions.delete(s.parentSession);
 			}
 		}));
@@ -415,7 +404,6 @@ export class CallStackView extends ViewPane {
 
 	private async updateTreeSelection(): Promise<void> {
 		if (!this.tree || !this.tree.getInput()) {
-			// Tree not initialized yet
 			return;
 		}
 
@@ -423,8 +411,6 @@ export class CallStackView extends ViewPane {
 			this.ignoreSelectionChangedEvent = true;
 			try {
 				this.tree.setSelection([element]);
-				// If the element is outside of the screen bounds,
-				// position it in the middle
 				if (this.tree.getRelativeTop(element) === null) {
 					this.tree.reveal(element, 0.5);
 				} else {
@@ -446,7 +432,6 @@ export class CallStackView extends ViewPane {
 				updateSelectionAndReveal(session);
 			}
 		} else {
-			// Ignore errors from this expansions because we are not aware if we rendered the threads and sessions or we hide them to declutter the view
 			try {
 				await expandTo(thread.session, this.tree);
 			} catch (e) { }
@@ -603,8 +588,6 @@ class SessionsRenderer implements ICompressibleTreeRenderer<IDebugSession, Fuzzy
 
 			const { primary } = getActionBarActions(menu.getActions({ arg: getContextForContributedActions(session), shouldForwardArgs: true }), 'inline');
 			data.actionBar.push(primary, { icon: true, label: false });
-			// We need to set our internal context on the action bar, since our commands depend on that one
-			// While the external context our extensions rely on
 			data.actionBar.context = getContext(session);
 		};
 		data.elementDisposable.add(menu.onDidChange(() => setupActionBar()));
@@ -688,8 +671,6 @@ class ThreadsRenderer implements ICompressibleTreeRenderer<IThread, FuzzyScore, 
 
 			const { primary } = getActionBarActions(menu.getActions({ arg: getContextForContributedActions(thread), shouldForwardArgs: true }), 'inline');
 			data.actionBar.push(primary, { icon: true, label: false });
-			// We need to set our internal context on the action bar, since our commands depend on that one
-			// While the external context our extensions rely on
 			data.actionBar.context = getContext(thread);
 		};
 		data.elementDisposable.add(menu.onDidChange(() => setupActionBar()));
@@ -825,7 +806,6 @@ class ErrorsRenderer implements ICompressibleTreeRenderer<string, FuzzyScore, IE
 	}
 
 	disposeTemplate(templateData: IErrorTemplateData): void {
-		// noop
 	}
 }
 
@@ -854,7 +834,6 @@ class LoadMoreRenderer implements ICompressibleTreeRenderer<ThreadAndSessionIds,
 	}
 
 	disposeTemplate(templateData: ILabelTemplateData): void {
-		// noop
 	}
 }
 
@@ -888,7 +867,6 @@ class ShowMoreRenderer implements ICompressibleTreeRenderer<IStackFrame[], Fuzzy
 	}
 
 	disposeTemplate(templateData: ILabelTemplateData): void {
-		// noop
 	}
 }
 
@@ -922,7 +900,6 @@ class CallStackDelegate implements IListVirtualDelegate<CallStackItem> {
 			return LoadMoreRenderer.ID;
 		}
 
-		// element instanceof Array
 		return ShowMoreRenderer.ID;
 	}
 }
@@ -969,13 +946,11 @@ class CallStackDataSource implements IAsyncDataSource<IDebugModel, CallStackItem
 			}
 
 			const threads = sessions[0].getAllThreads();
-			// Only show the threads in the call stack if there is more than 1 thread.
 			return threads.length === 1 ? this.getThreadChildren(<Thread>threads[0]) : Promise.resolve(threads);
 		} else if (isDebugSession(element)) {
 			const childSessions = this.debugService.getModel().getSessions().filter(s => s.parentSession === element);
 			const threads: CallStackItem[] = element.getAllThreads();
 			if (threads.length === 1) {
-				// Do not show thread when there is only one to be compact.
 				const children = await this.getThreadChildren(<Thread>threads[0]);
 				return children.concat(childSessions);
 			}
@@ -988,16 +963,13 @@ class CallStackDataSource implements IAsyncDataSource<IDebugModel, CallStackItem
 
 	private getThreadChildren(thread: Thread): Promise<CallStackItem[]> {
 		return this.getThreadCallstack(thread).then(children => {
-			// Check if some stack frames should be hidden under a parent element since they are deemphasized
 			const result: CallStackItem[] = [];
 			children.forEach((child, index) => {
 				if (child instanceof StackFrame && child.source && isFrameDeemphasized(child)) {
-					// Check if the user clicked to show the deemphasized source
 					if (!this.deemphasizedStackFramesToShow.has(child)) {
 						if (result.length) {
 							const last = result[result.length - 1];
 							if (last instanceof Array) {
-								// Collect all the stackframes that will be "collapsed"
 								last.push(child);
 								return;
 							}
@@ -1005,7 +977,6 @@ class CallStackDataSource implements IAsyncDataSource<IDebugModel, CallStackItem
 
 						const nextChild = index < children.length - 1 ? children[index + 1] : undefined;
 						if (nextChild instanceof StackFrame && nextChild.source && isFrameDeemphasized(nextChild)) {
-							// Start collecting stackframes that will be "collapsed"
 							result.push([child]);
 							return;
 						}
@@ -1027,8 +998,6 @@ class CallStackDataSource implements IAsyncDataSource<IDebugModel, CallStackItem
 		}
 
 		if (callStack.length === 1 && thread.session.capabilities.supportsDelayedStackTraceLoading && thread.stoppedDetails && thread.stoppedDetails.totalFrames && thread.stoppedDetails.totalFrames > 1) {
-			// To reduce flashing of the call stack view simply append the stale call stack
-			// once we have the correct data the tree will refresh and we will no longer display it.
 			callStack = callStack.concat(thread.getStaleCallStack().slice(1));
 		}
 
@@ -1050,7 +1019,6 @@ class CallStackAccessibilityProvider implements IListAccessibilityProvider<CallS
 	}
 
 	getWidgetRole(): AriaRole {
-		// Use treegrid as a role since each element can have additional actions inside #146210
 		return 'treegrid';
 	}
 
@@ -1077,7 +1045,6 @@ class CallStackAccessibilityProvider implements IListAccessibilityProvider<CallS
 			return localize('showMoreStackFrames', "Show {0} More Stack Frames", element.length);
 		}
 
-		// element instanceof ThreadAndSessionIds
 		return LoadMoreRenderer.LABEL;
 	}
 }

@@ -76,9 +76,6 @@ function querySemanticTargets(language: WASMLanguage, root: Parser.SyntaxNode): 
 }
 
 
-/**
- * Get the positions of all function calls in the given piece of source code.
- */
 export async function _getCallExpressions(language: WASMLanguage, source: string, selection: TreeSitterOffsetRange): Promise<TreeSitterExpressionInfo[]> {
 	const treeRef = await _parse(language, source);
 	try {
@@ -88,7 +85,7 @@ export async function _getCallExpressions(language: WASMLanguage, source: string
 			if (TreeSitterOffsetRange.doIntersect(selection, fn)) {
 				let identifier;
 				let identifierNode;
-				if (language === 'ruby') { // strip preceding : from any captured simple symbols
+				if (language === 'ruby') {
 					identifierNode = res.captures.find(c => c.name === 'symbol')?.node;
 					identifier = identifierNode?.text?.slice(1);
 				}
@@ -109,9 +106,6 @@ export async function _getCallExpressions(language: WASMLanguage, source: string
 	}
 }
 
-/**
- * Get function definition info for all function definitions in the given piece of source code.
- */
 export async function _getFunctionDefinitions(language: WASMLanguage, source: string): Promise<TreeSitterExpressionInfo[]> {
 	const treeRef = await _parse(language, source);
 	try {
@@ -139,9 +133,9 @@ export async function _getClassDeclarations(language: WASMLanguage, source: stri
 		const positions = results.map(res => {
 			const fn = res.captures.find(c => c.name === 'class_declaration')!.node;
 			const identifier = fn?.children.find(c =>
-				c.type === 'type_identifier' // typescript
-				|| c.type === 'identifier' // python
-				|| c.type === 'constant' // ruby
+				c.type === 'type_identifier'
+				|| c.type === 'identifier'
+				|| c.type === 'constant'
 			)?.text;
 			return {
 				identifier: identifier ?? '',
@@ -163,7 +157,7 @@ export async function _getTypeDeclarations(language: WASMLanguage, source: strin
 		const positions = results.map(res => {
 			const fn = res.captures.find(c => c.name === 'type_declaration')!.node;
 			let identifier = res.captures.find(c => c.name === 'type_identifier')?.node.text;
-			if (!identifier) { // TODO@joyceerhl debt: move this into query captures
+			if (!identifier) {
 				identifier = fn?.children.find(c => c.type === 'type_identifier')?.text;
 			}
 			return {
@@ -267,9 +261,6 @@ export async function _getSemanticChunkNames(language: WASMLanguage, source: str
 }
 
 
-/**
- * Get the positions of all function bodies nodes in the given piece of source code.
- */
 export async function _getFunctionBodies(language: WASMLanguage, source: string): Promise<TreeSitterOffsetRange[]> {
 	const treeRef = await _parse(language, source);
 	try {
@@ -312,9 +303,6 @@ export async function _getCoarseParentScope(language: WASMLanguage, source: stri
 	}
 }
 
-/**
- * Find the selection of interest for the /fix command
- */
 export async function _getFixSelectionOfInterest(language: WASMLanguage, source: string, range: TreeSitterPointRange, maxNumberOfLines: number): Promise<TreeSitterPointRange> {
 	const treeRef = await _parse(language, source);
 	try {
@@ -330,9 +318,6 @@ export async function _getFixSelectionOfInterest(language: WASMLanguage, source:
 	}
 }
 
-/**
- * Find the smallest range containing the node
- */
 function _getSmallestRangeContainingNode(language: WASMLanguage, node: Parser.SyntaxNode): TreeSitterPointRange {
 	const parent = node.parent;
 	const range = { startPosition: node.startPosition, endPosition: node.endPosition };
@@ -348,9 +333,6 @@ function _getSmallestRangeContainingNode(language: WASMLanguage, node: Parser.Sy
 	return _getSmallestRangeContainingNode(language, parent);
 }
 
-/**
- * Get the biggest range containing the node of length smaller than the max number of lines
- */
 function _getBiggestRangeContainingNodeSmallerThan(language: WASMLanguage, node: Parser.SyntaxNode, maxNumberOfLines: number, range: TreeSitterPointRange, firstCall: boolean): TreeSitterPointRange {
 	const children = node.children;
 	const lengthSpannedByNode = node.endPosition.row - node.startPosition.row + 1;
@@ -368,9 +350,6 @@ function _numberOfLinesSpannedByRanges(range1: TreeSitterPointRange, range2: Tre
 	return range2.endPosition.row - range1.startPosition.row + 1;
 }
 
-/**
- * Search the nodes and find the biggest range made of statements or scopes that surrounds the range
- */
 function _getBiggestRangeContainingNodeAmongNodesSmallerThan(language: WASMLanguage, nodes: Parser.SyntaxNode[], maxNumberOfLines: number, lastRange: TreeSitterPointRange, firstCall: boolean): TreeSitterPointRange {
 	if (nodes.length === 0) {
 		return lastRange;
@@ -383,7 +362,6 @@ function _getBiggestRangeContainingNodeAmongNodesSmallerThan(language: WASMLangu
 
 	while (_numberOfLinesSpannedByRanges(siblingAbove, siblingBelow) > maxNumberOfLines) {
 		if (siblingAboveIndex === siblingBelowIndex) {
-			// The two indices are equal to the insertion index
 			break;
 		} else if (indexOfInterest - siblingAboveIndex < siblingBelowIndex - indexOfInterest) {
 			siblingBelowIndex--;
@@ -399,9 +377,6 @@ function _getBiggestRangeContainingNodeAmongNodesSmallerThan(language: WASMLangu
 	return lastRange;
 }
 
-/**
- * Filter the nodes that are scopes or statements and find the index of the node containing the given range, or append the range to the array
- */
 function _findFilteredRangesAndIndexOfInterest(language: WASMLanguage, nodes: Parser.SyntaxNode[], range: TreeSitterPointRange, firstCall: boolean): { filteredRanges: TreeSitterPointRange[]; indexOfInterest: number } {
 	let filteredRanges: TreeSitterPointRange[];
 	let indexOfInterest: number;
@@ -426,7 +401,6 @@ export async function _getFineScopes(language: WASMLanguage, source: string, sel
 	const syntaxNode = treeRef.tree.rootNode.descendantForIndex(selection.startIndex, selection.endIndex);
 	let currentNode: Parser.SyntaxNode | null = syntaxNode;
 
-	// Ascend the parse tree until we reach the root node, collecting all block scopes that intersect with the provided selection
 	while (currentNode !== null) {
 		if (_isFineScope(language, currentNode)) {
 			blockScopes.push({ startIndex: currentNode.startIndex, endIndex: currentNode.endIndex });
@@ -439,16 +413,11 @@ export async function _getFineScopes(language: WASMLanguage, source: string, sel
 
 export type NodeToExplainContext = {
 
-	/** is undefined when we couldn't determine the identifier */
 	nodeIdentifier: string | undefined;
 
 	nodeToExplain: Node;
 };
 
-/**
- *
- * Given a selection around an identifier, returns the definition node.
- */
 export async function _getNodeToExplain(
 	language: WASMLanguage,
 	source: string,
@@ -483,7 +452,7 @@ function isExplainableNode(node: Parser.SyntaxNode, language: WASMLanguage) {
 }
 
 export function getBlockNameTree(language: WASMLanguage, queryMatches: Parser.QueryMatch[], root: Parser.SyntaxNode): QueryMatchTree<BlockNameDetail> {
-	const matches: Map<number, MatchGroup<BlockNameDetail>> = new Map(); // map nodes to their starting position to ensure that we get rid of duplicates
+	const matches: Map<number, MatchGroup<BlockNameDetail>> = new Map();
 	queryMatches.forEach(n => {
 		const captures = n.captures;
 
@@ -527,9 +496,6 @@ export function getBlockNameTree(language: WASMLanguage, queryMatches: Parser.Qu
 
 
 
-/**
- * helper workspace chunker functions
- */
 
 function getQueryMatchTree(language: WASMLanguage, queryMatches: Parser.QueryMatch[], root: Parser.SyntaxNode): QueryMatchTree<DetailBlock> {
 	let groups: MatchGroup<DetailBlock>[];
@@ -553,7 +519,7 @@ function getQueryMatchTree(language: WASMLanguage, queryMatches: Parser.QueryMat
 }
 
 function queryCapturesToGenericSemanticGroup(queryMatches: Parser.QueryMatch[], wasmLang: WASMLanguage): MatchGroup<GenericDetail>[] {
-	const matches: Map<number, MatchGroup<GenericDetail>> = new Map(); // map nodes to their starting position to ensure that we get rid of duplicates
+	const matches: Map<number, MatchGroup<GenericDetail>> = new Map();
 
 	queryMatches
 		.forEach(n => {
@@ -599,7 +565,6 @@ function queryCapturesToGenericSemanticGroup(queryMatches: Parser.QueryMatch[], 
 }
 
 function getFirstBodyParamForRuby(namedNodes: Parser.SyntaxNode[]) {
-	// the children must have at least 2 nodes. The second node is the first potential body node, since the first is the identifier.
 
 	if (namedNodes.length < 2) {
 		return undefined;
@@ -615,7 +580,7 @@ function getFirstBodyParamForRuby(namedNodes: Parser.SyntaxNode[]) {
 }
 
 function queryCapturesToRubySemanticGroup(queryMatches: Parser.QueryMatch[]): MatchGroup<GenericDetail>[] {
-	const matches: Map<number, MatchGroup<GenericDetail>> = new Map(); // map nodes to their starting position to ensure that we get rid of duplicates
+	const matches: Map<number, MatchGroup<GenericDetail>> = new Map();
 	queryMatches
 		.forEach(n => {
 			const captures = n.captures;
@@ -655,7 +620,7 @@ function queryCapturesToRubySemanticGroup(queryMatches: Parser.QueryMatch[]): Ma
 }
 
 function queryCapturesToPythonSemanticGroup(queryMatches: Parser.QueryMatch[]): MatchGroup<PythonDetail>[] {
-	const matches: Map<number, MatchGroup<PythonDetail>> = new Map(); // map nodes to their starting position to ensure that we get rid of duplicates
+	const matches: Map<number, MatchGroup<PythonDetail>> = new Map();
 
 	queryMatches
 		.forEach(n => {
@@ -681,14 +646,8 @@ function queryCapturesToPythonSemanticGroup(queryMatches: Parser.QueryMatch[]): 
 	return Array.from(matches.values());
 }
 
-/**
- * For Generic (Cpp/Cs/Go) workspace chunks
- */
 function getCommentsFromDefinition(definition: Parser.SyntaxNode, commentNodeNames = ['comment']): Parser.SyntaxNode[] {
 
-	// there is an issue where the query sometimes returns comments that are at the beginning of the file
-	// instead of one that actually close to the declaration.
-	// Therefore, we should programatically find comments for more reliability
 	const ret: Parser.SyntaxNode[] = [];
 	let prevSibling = definition.previousNamedSibling;
 	while (prevSibling && commentNodeNames.some(e => e === prevSibling?.type)) {
@@ -698,9 +657,6 @@ function getCommentsFromDefinition(definition: Parser.SyntaxNode, commentNodeNam
 	return ret.reverse();
 }
 
-/**
- * For TS/JS workspace chunks
- */
 function getCommentsAndDefFromTSJSDefinition(definition: Parser.SyntaxNode): {
 	definition: Parser.SyntaxNode;
 	comments: Parser.SyntaxNode[];
@@ -719,17 +675,11 @@ function getCommentsAndDefFromTSJSDefinition(definition: Parser.SyntaxNode): {
 	};
 }
 
-/**
- * For Java workspace chunks
- */
 function getCommentsFromJavaRustDefinition(definition: Parser.SyntaxNode): Parser.SyntaxNode[] {
 	return getCommentsFromDefinition(definition, ['block_comment', 'line_comment']);
 }
 
 
-/**
- * For Python workspace chunks
- */
 function getDecoratorFromDefinition(definition: Parser.SyntaxNode) {
 	const prevSibling = definition.previousNamedSibling;
 	return prevSibling?.type === 'decorator' ? prevSibling : undefined;
@@ -756,7 +706,6 @@ export async function _getParseErrorCount(language: WASMLanguage, source: string
 			return 0;
 		}
 
-		// Recursively count error nodes
 		function countErrors(node: Parser.SyntaxNode): number {
 			let count = node.type === 'ERROR' ? 1 : 0;
 			for (const child of node.children) {

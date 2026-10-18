@@ -5,8 +5,6 @@ export const STATUS_FILTER_OPTIONS = [
   { value: "none", label: "No connection" },
 ];
 
-// noAuth providers (e.g. free proxies) are always usable even though they
-// never have a stored connection record, so they never fall into "none".
 export function getConnectionStatus(stats, isNoAuth = false) {
   if (isNoAuth) return "active";
   if (!stats || stats.total === 0) return "none";

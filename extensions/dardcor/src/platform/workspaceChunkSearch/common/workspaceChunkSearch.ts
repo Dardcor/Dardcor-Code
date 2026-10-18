@@ -11,9 +11,6 @@ import { Embedding } from '../../embeddings/common/embeddingsComputer';
 import { IChatEndpoint } from '../../networking/common/networking';
 
 export interface WorkspaceChunkQuery {
-	/**
-	 * The original text of the query.
-	 */
 	readonly queryText: string;
 }
 
@@ -21,9 +18,6 @@ export interface WorkspaceChunkQueryWithEmbeddings extends WorkspaceChunkQuery {
 	resolveQueryEmbeddings(token: CancellationToken): Promise<Embedding>;
 }
 
-/**
- * Sizing hints for the search strategy.
- */
 export interface StrategySearchSizing {
 	readonly endpoint: IChatEndpoint;
 	readonly tokenBudget: number | undefined;

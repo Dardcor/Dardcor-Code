@@ -22,17 +22,10 @@ export interface ICellExecutionStateUpdate {
 }
 
 export interface ICellErrorStackFrame {
-	/**
-	 * The location of this stack frame. This should be provided as a URI if the
-	 * location of the call frame can be accessed by the editor.
-	 */
 	readonly uri?: UriComponents;
 
 	readonly location?: IRange;
 
-	/**
-	 * The name of the stack frame, typically a method or function name.
-	 */
 	readonly label: string;
 }
 
@@ -57,14 +50,14 @@ export interface ICellExecutionStateChangedEvent {
 	type: NotebookExecutionType.cell;
 	notebook: URI;
 	cellHandle: number;
-	changed?: INotebookCellExecution; // undefined -> execution was completed
+	changed?: INotebookCellExecution;
 	affectsCell(cell: URI): boolean;
 	affectsNotebook(notebook: URI): boolean;
 }
 export interface IExecutionStateChangedEvent {
 	type: NotebookExecutionType.notebook;
 	notebook: URI;
-	changed?: INotebookExecution; // undefined -> execution was completed
+	changed?: INotebookExecution;
 	affectsNotebook(notebook: URI): boolean;
 }
 export interface INotebookFailStateChangedEvent {

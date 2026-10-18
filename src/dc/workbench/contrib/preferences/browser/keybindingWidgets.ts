@@ -74,7 +74,6 @@ export class KeybindingsSearchWidget extends SearchWidget {
 		this.recordDisposables.add(dom.addDisposableListener(this.inputBox.inputElement, dom.EventType.KEY_DOWN, (e: KeyboardEvent) => this._onKeyDown(new StandardKeyboardEvent(e))));
 		this.recordDisposables.add(dom.addDisposableListener(this.inputBox.inputElement, dom.EventType.BLUR, () => this._onBlur.fire()));
 		this.recordDisposables.add(dom.addDisposableListener(this.inputBox.inputElement, dom.EventType.INPUT, () => {
-			// Prevent other characters from showing up
 			this.setInputValue(this._inputValue);
 		}));
 	}
@@ -113,12 +112,11 @@ export class KeybindingsSearchWidget extends SearchWidget {
 			this._chords = [];
 		}
 
-		// TODO: note that we allow a keybinding "shift shift", but this widget doesn't allow input "shift shift" because the first "shift" will be incomplete - this is _not_ a regression
 		const hasIncompleteChord = this._chords.length > 0 && this._chords[this._chords.length - 1].getDispatchChords()[0] === null;
 		if (hasIncompleteChord) {
 			this._chords[this._chords.length - 1] = keybinding;
 		} else {
-			if (this._chords.length === 2) { // TODO: limit chords # to 2 for now
+			if (this._chords.length === 2) {
 				this._chords = [];
 			}
 			this._chords.push(keybinding);
@@ -203,8 +201,6 @@ export class DefineKeybindingWidget extends Widget {
 				dom.clearNode(this._outputNode);
 				dom.clearNode(this._showExistingKeybindingsNode);
 
-				// Input is not getting focus without timeout in safari
-				// https://github.com/microsoft/vscode/issues/108817
 				await timeout(0);
 
 				this._keybindingInputWidget.focus();

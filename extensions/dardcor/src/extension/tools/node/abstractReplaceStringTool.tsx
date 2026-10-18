@@ -37,7 +37,7 @@ import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer'
 import { CellOrNotebookEdit, processFullRewriteNotebookEdits } from '../../prompts/node/codeMapper/codeMapper';
 import { EditTools, IEditToolLearningService } from '../common/editToolLearningService';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool } from '../common/toolsRegistry';
+import { IAgentTool } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 import { ActionType } from './applyPatch/parser';
 import { CorrectedEditResult, healReplaceStringParams } from './editFileHealing';
@@ -65,10 +65,9 @@ export interface IPrepareEdit {
 }
 
 
-export abstract class AbstractReplaceStringTool<T extends { explanation: string }> implements ICopilotTool<T> {
+export abstract class AbstractReplaceStringTool<T extends { explanation: string }> implements IAgentTool<T> {
 	protected _promptContext: IBuildPromptContext | undefined;
 
-	// Cache for ReplaceStringsOperation instances
 	private lastOperation?: { inputKey: string; operation: Promise<IPrepareEdit[]> } | undefined;
 
 	constructor(
@@ -94,11 +93,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 
 	protected abstract toolName(): ToolName;
 
-	/**
-	 * Extract one or more IAbstractReplaceStringInput from the tool's input type T.
-	 * For single-file tools, return an array with one element.
-	 * For multi-file tools, return an array with multiple elements.
-	 */
 	protected abstract extractReplaceInputs(input: T): IAbstractReplaceStringInput[];
 
 	protected prepareEdits(options: vscode.LanguageModelToolInvocationOptions<T> | vscode.LanguageModelToolInvocationPrepareOptions<T>, token: vscode.CancellationToken): Promise<IPrepareEdit[]> {
@@ -125,7 +119,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 			const rootPath = workspaceFolders?.[0]?.fsPath || process.cwd();
 			void GitCheckpointEngine.getInstance(rootPath).capture(`AI edit via ${this.toolName()}`);
 		} catch {
-			// Non-blocking fallback
 		}
 
 		const results = await Promise.all(input.map(i => this._prepareEditsForFile(options, i, token)));
@@ -191,13 +184,11 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 			throw error;
 		}
 
-		// Validate parameters
 		if (!input.filePath || input.oldString === undefined || input.newString === undefined || !this._promptContext) {
 			this.sendReplaceTelemetry('invalidStrings', options, input, undefined, undefined, undefined);
 			throw new Error('Invalid input');
 		}
 
-		// Sometimes the model replaces an empty string in a new file to create it. Allow that pattern.
 		const exists = await this.instantiationService.invokeFunction(canExistingFileBeEdited, uri);
 		if (!exists) {
 			return {
@@ -246,7 +237,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 				generatedEdit: { success: true, textEdits: edits, notebookEdits, updated }
 			};
 		} catch (error) {
-			// Enhanced error message with more helpful details
 			let errorMessage = 'String replacement failed: ';
 			let outcome: string;
 
@@ -297,7 +287,7 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 
 			let editSurvivalTracker: IEditSurvivalTrackingSession | undefined;
 			let responseStream = this._promptContext.stream;
-			if (document && document instanceof TextDocumentSnapshot) { // Only for existing text documents
+			if (document && document instanceof TextDocumentSnapshot) {
 				const tracker = editSurvivalTracker = this._editSurvivalTrackerService.initialize(document.document);
 				responseStream = ChatResponseStreamImpl.spy(this._promptContext.stream, (part) => {
 					if (part instanceof ChatResponseTextEditPart) {
@@ -327,24 +317,7 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 				responseStream.textEdit(uri, true);
 
 				timeout(2000).then(() => {
-					// The tool can't wait for edits to be applied, so just wait before starting the survival tracker.
-					// TODO@roblourens see if this improves the survival metric, find a better fix.
 					editSurvivalTracker?.startReporter(res => {
-						/* __GDPR__
-							"codeMapper.trackEditSurvival" : {
-								"owner": "aeschli",
-								"comment": "Tracks how much percent of the AI edits survived after 5 minutes of accepting",
-								"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-								"speculationRequestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the speculation request." },
-								"requestSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The source from where the request was made" },
-								"chatRequestModel": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model used for the base chat request to generate the edit object." },
-								"mapper": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The code mapper used: One of 'fast', 'fast-lora', 'full' and 'patch'" },
-								"survivalRateFourGram": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the AI edit is still present in the document." },
-								"survivalRateNoRevert": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The rate between 0 and 1 of how much of the ranges the AI touched ended up being reverted." },
-								"didBranchChange": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Indicates if the branch changed in the meantime. If the branch changed (value is 1), this event should probably be ignored." },
-								"timeDelayMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The time delay between the user accepting the edit and measuring the survival rate." }
-							}
-						*/
 						res.telemetryService.sendMSFTTelemetryEvent('codeMapper.trackEditSurvival', { requestId: this._promptContext?.requestId, requestSource: 'agent', mapper: 'stringReplaceTool' }, {
 							survivalRateFourGram: res.fourGram,
 							survivalRateNoRevert: res.noRevert,
@@ -410,8 +383,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 					this.instantiationService,
 					EditFileResult,
 					{ files: fileResults, diagnosticsTimeout: isInlineChat ? -1 : 2000, toolName: this.toolName(), requestId: options.chatRequestId, model: options.model },
-					// If we are not called with tokenization options, have _some_ fake tokenizer
-					// otherwise we end up returning the entire document
 					options.tokenizationOptions ?? {
 						tokenBudget: 5000,
 						countTokens: (t) => Promise.resolve(t.length * 3 / 4)
@@ -444,7 +415,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 		const oldString = removeLeadingFilepathComment(input.oldString, document.languageId, filePath).replace(/\r?\n/g, eol);
 		const newString = removeLeadingFilepathComment(input.newString, document.languageId, filePath).replace(/\r?\n/g, eol);
 
-		// Apply the edit using the improved applyEdit function that uses VS Code APIs
 		let updatedFile: string;
 		let edits: vscode.TextEdit[] = [];
 		try {
@@ -482,7 +452,7 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 				}
 			} catch (e2) {
 				this.sendHealingTelemetry(options, String(e2), undefined);
-				throw e; // original error
+				throw e;
 			}
 
 			didHealRef.healed = healed.params;
@@ -501,7 +471,7 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 				edits = result.edits;
 			} catch (e2) {
 				this.sendHealingTelemetry(options, undefined, String(e2));
-				throw e; // original error
+				throw e;
 			}
 		}
 
@@ -512,19 +482,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 		const model = await this.modelForTelemetry(options);
 		const isNotebook = isNotebookDocument ? 1 : (isNotebookDocument === false ? 0 : -1);
 		const isMulti = this.toolName() === ToolName.MultiReplaceString ? 1 : 0;
-		/* __GDPR__
-			"replaceStringToolInvoked" : {
-				"owner": "roblourens",
-				"comment": "The replace_string tool was invoked",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"interactionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current interaction." },
-				"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the invocation was successful, or a failure reason" },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"isNotebook": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook, 1 = yes, 0 = no, other = unknown." },
-				"didHeal": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook, 1 = yes, 0 = no, other = unknown." },
-				"isMulti": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a multi-replace operation, 1 = yes, 0 = no." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('replaceStringToolInvoked',
 			{
 				requestId: options.chatRequestId,
@@ -540,23 +497,10 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 			messageText: file,
 			completionTextJson: JSON.stringify(input),
 			postProcessingOutcome: outcome,
-		}).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('replaceStringTool', properties, { isNotebook })).catch(() => { /* best-effort telemetry */ });
+		}).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('replaceStringTool', properties, { isNotebook })).catch(() => { });
 	}
 
 	private async sendHealingTelemetry(options: vscode.LanguageModelToolInvocationOptions<T> | vscode.LanguageModelToolInvocationPrepareOptions<T>, healError: string | undefined, applicationError: string | undefined) {
-		/* __GDPR__
-			"replaceStringHealingStat" : {
-				"owner": "roblourens",
-				"comment": "The replace_string tool was invoked",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"interactionId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current interaction." },
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that invoked the tool" },
-				"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the invocation was successful, or a failure reason" },
-				"healError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Any error that happened during healing" },
-				"applicationError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Any error that happened after application" },
-				"success": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Whether the document is a notebook, 1 = yes, 0 = no, other = unknown." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('replaceStringHealingStat',
 			{
 				requestId: options.chatRequestId,
@@ -586,12 +530,11 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 	}
 
 	async resolveInput(input: T, promptContext: IBuildPromptContext): Promise<T> {
-		this._promptContext = promptContext; // TODO@joyceerhl @roblourens HACK: Avoid types in the input being serialized and not deserialized when they go through invokeTool
+		this._promptContext = promptContext;
 		return input;
 	}
 
 	async prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<T>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation> {
-		// Extract all replace inputs from the tool input
 		const replaceInputs = this.extractReplaceInputs(options.input);
 		const allUris = replaceInputs.map(input => resolveToolInputPath(input.filePath, this.promptPathRepresentationService));
 
@@ -616,12 +559,10 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 
 		const allPreparedEdits = await this.prepareEdits(options, token);
 
-		// Generate diffs only for files needing confirmation
 		const diffResults = await Promise.all(
 			allPreparedEdits.map(async (preparedEdit) => {
 				const uri = preparedEdit.uri;
 
-				// Only show diff if this URI needs confirmation
 				if (!urisNeedingConfirmationSet.has(uri)) {
 					return;
 				}

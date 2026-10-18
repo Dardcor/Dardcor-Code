@@ -41,15 +41,6 @@ export async function assertThrowsAsync(block: () => any, message: string | Erro
 	throw err;
 }
 
-/**
- * Use this function to ensure that all disposables are cleaned up at the end of each test in the current suite.
- *
- * Use `markAsSingleton` if disposable singletons are created lazily that are allowed to outlive the test.
- * Make sure that the singleton properly registers all child disposables so that they are excluded too.
- *
- * @returns A {@link DisposableStore} that can optionally be used to track disposables in the test.
- * This will be automatically disposed on test teardown.
-*/
 export function ensureNoDisposablesAreLeakedInTestSuite(): Pick<DisposableStore, 'add'> {
 	let tracker: DisposableTracker | undefined;
 	let store: DisposableStore;
@@ -71,7 +62,6 @@ export function ensureNoDisposablesAreLeakedInTestSuite(): Pick<DisposableStore,
 		}
 	});
 
-	// Wrap store as the suite function is called before it's initialized
 	const testContext = {
 		add<T extends IDisposable>(o: T): T {
 			return store.add(o);

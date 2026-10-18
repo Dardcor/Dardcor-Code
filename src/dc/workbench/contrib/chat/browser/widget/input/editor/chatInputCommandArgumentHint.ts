@@ -19,31 +19,10 @@ import { getInputPlaceholderColor, getRangeForPlaceholder } from './chatInputPla
 const decorationDescription = 'chat';
 const commandArgumentHintDecorationType = 'chat-command-argument-hint';
 
-/**
- * Renders an inline placeholder (ghost text) argument hint after an accepted
- * agent-host slash-command completion (e.g. `/rename `). The hint text is
- * carried on the completion's dynamic-variable reference `_meta` (see
- * {@link getCommandArgumentHint}); it is shown only while the command reference
- * is the sole content followed by a single trailing space, i.e. before any
- * argument has been typed.
- *
- * Reads the accepted references directly from {@link ChatDynamicVariableModel}
- * rather than the parsed input, because the chat request parser resolves a
- * leading `/command` as a slash-prompt part (which carries no `_meta`) before
- * dynamic-variable parsing runs.
- */
 class InputEditorCommandArgumentHint extends Disposable {
 
 	public readonly id = 'inputEditorCommandArgumentHint';
 
-	/**
-	 * Subscription to {@link ChatDynamicVariableModel.onDidChangeReferences}.
-	 * Established lazily because that contribution may be constructed after this
-	 * one; accepting a completion adds the reference via a command that runs
-	 * after the insert, and it does not change the parsed input, so neither
-	 * `onDidChangeModelContent` nor `onDidChangeParsedInput` re-fires with the
-	 * reference present — this event is what triggers the hint on accept.
-	 */
 	private readonly _referencesListener = this._register(new MutableDisposable());
 
 	constructor(
@@ -87,7 +66,6 @@ class InputEditorCommandArgumentHint extends Disposable {
 			return undefined;
 		}
 
-		// Find an agent-host command reference that carries an argument hint.
 		for (const ref of dynamicVariableModel.variables) {
 			if (getAgentHostCompletionReferenceKindFromValue(ref.data) !== AgentHostCompletionReferenceKind.Command) {
 				continue;
@@ -97,8 +75,6 @@ class InputEditorCommandArgumentHint extends Disposable {
 				continue;
 			}
 
-			// Only show the hint while the command is the sole content followed by exactly
-			// one trailing space (i.e. no argument has been typed yet).
 			if (!this.isCommandOnlyContent(model, ref.range)) {
 				return undefined;
 			}
@@ -118,13 +94,11 @@ class InputEditorCommandArgumentHint extends Disposable {
 	}
 
 	private isCommandOnlyContent(model: ITextModel, range: IRange): boolean {
-		// Nothing meaningful before the command reference.
 		const beforeRange = new Range(1, 1, range.startLineNumber, range.startColumn);
 		if (model.getValueInRange(beforeRange).trim().length > 0) {
 			return false;
 		}
 
-		// Exactly one space after the command reference and nothing else.
 		const fullRange = model.getFullModelRange();
 		const afterRange = new Range(range.endLineNumber, range.endColumn, fullRange.endLineNumber, fullRange.endColumn);
 		return model.getValueInRange(afterRange) === ' ';

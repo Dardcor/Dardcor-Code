@@ -13,14 +13,6 @@ import { IExtension } from '../../../extensions/common/extensions.js';
 
 const $ = DOM.$;
 
-/**
- * Compact detail view for a tool-contributing extension inside the AI Customizations management
- * editor's split-pane host. Renders identity (name + publisher), description and the list of
- * tools the extension contributes (read from its manifest).
- *
- * Mirrors {@link EmbeddedMcpServerDetail} / {@link EmbeddedAgentPluginDetail}; installing the
- * extension is handled by the gallery row the user came from, so this component stays read-only.
- */
 export class EmbeddedExtensionToolsDetail extends Disposable {
 
 	private readonly root: HTMLElement;
@@ -45,8 +37,6 @@ export class EmbeddedExtensionToolsDetail extends Disposable {
 		this.root = DOM.append(parent, $('.ai-customization-embedded-detail.embedded-tool-detail'));
 
 		this.headerEl = DOM.append(this.root, $('.embedded-detail-header'));
-		// Slot at the start of the header for callers to append leading chrome
-		// (e.g. a back button) without reaching into private DOM structure.
 		this.leadingSlotEl = DOM.append(this.headerEl, $('.embedded-detail-leading-slot'));
 		const headerText = DOM.append(this.headerEl, $('.embedded-detail-header-text'));
 		this.nameEl = DOM.append(headerText, $('h2.embedded-detail-name'));
@@ -77,10 +67,6 @@ export class EmbeddedExtensionToolsDetail extends Disposable {
 		return this.headerEl;
 	}
 
-	/**
-	 * Header slot reserved for leading chrome (e.g. a back button).
-	 * Prefer this over reaching into the header element directly.
-	 */
 	get leadingSlot(): HTMLElement {
 		return this.leadingSlotEl;
 	}
@@ -128,10 +114,6 @@ export class EmbeddedExtensionToolsDetail extends Disposable {
 		this.loadTools(extension);
 	}
 
-	/**
-	 * Reads the contributed tools from the extension manifest. The manifest may be fetched from
-	 * the gallery for not-yet-installed extensions, so this is async and cancellation-safe.
-	 */
 	private loadTools(extension: IExtension): void {
 		const cts = new CancellationTokenSource();
 		this._manifestLoad.value = toDisposable(() => cts.dispose(true));
@@ -169,8 +151,6 @@ export class EmbeddedExtensionToolsDetail extends Disposable {
 			const row = DOM.append(this.toolsListEl, $('.embedded-detail-tool'));
 			row.setAttribute('role', 'listitem');
 			DOM.append(row, $('.embedded-detail-tool-name')).textContent = resolveNls(tool.displayName) || tool.name;
-			// Prefer the human-authored userDescription; the modelDescription is written for the
-			// model and tends to be verbose, so it is only a fallback and is clamped in CSS.
 			const description = resolveNls(tool.userDescription) || resolveNls(tool.modelDescription);
 			if (description) {
 				DOM.append(row, $('.embedded-detail-tool-description')).textContent = description;
@@ -187,11 +167,6 @@ export class EmbeddedExtensionToolsDetail extends Disposable {
 	}
 }
 
-/**
- * Manifests fetched from the gallery for not-yet-installed extensions are not NLS-resolved, so
- * localizable fields come back as raw `%key%` placeholders. Treat those as absent rather than
- * showing the placeholder to the user.
- */
 function resolveNls(value: string | undefined): string | undefined {
 	const trimmed = value?.trim();
 	if (!trimmed || (trimmed.startsWith('%') && trimmed.endsWith('%'))) {

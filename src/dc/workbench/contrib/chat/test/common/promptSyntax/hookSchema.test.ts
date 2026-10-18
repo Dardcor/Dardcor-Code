@@ -450,7 +450,6 @@ suite('HookSchema', () => {
 				type: 'command',
 				command: 'echo hello'
 			};
-			// No platform badge when using default command
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Windows), 'echo hello');
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Macintosh), 'echo hello');
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Linux), 'echo hello');
@@ -471,7 +470,6 @@ suite('HookSchema', () => {
 				linux: 'linux-command',
 				osx: 'osx-command'
 			};
-			// Should resolve to platform-specific command
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Windows), 'win-command');
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Macintosh), 'osx-command');
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Linux), 'linux-command');
@@ -481,9 +479,7 @@ suite('HookSchema', () => {
 			const hook: IHookCommand = {
 				type: 'command',
 				command: 'default-command'
-				// No platform-specific overrides
 			};
-			// Should not include badge when using default command
 			assert.strictEqual(formatHookCommandLabel(hook, OperatingSystem.Windows), 'default-command');
 		});
 	});
@@ -512,10 +508,6 @@ suite('HookSchema', () => {
 		}
 
 		test('parses direct command format (without matcher)', () => {
-			// hooks:
-			//   PreToolUse:
-			//     - type: command
-			//       command: "./scripts/validate.sh"
 			const hooksMap = makeMap({
 				'PreToolUse': makeSequence([
 					makeMap({
@@ -532,12 +524,6 @@ suite('HookSchema', () => {
 		});
 
 		test('parses Claude format (with matcher)', () => {
-			// hooks:
-			//   PreToolUse:
-			//     - matcher: "Bash"
-			//       hooks:
-			//         - type: command
-			//           command: "./scripts/validate-readonly.sh"
 			const hooksMap = makeMap({
 				'PreToolUse': makeSequence([
 					makeMap({

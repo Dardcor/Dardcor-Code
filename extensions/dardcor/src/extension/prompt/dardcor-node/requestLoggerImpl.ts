@@ -31,7 +31,6 @@ import { IInstantiationService } from '../../../util/dardcor/platform/instantiat
 import { renderDataPartToString, renderToolResultToStringNoBudget } from './requestLoggerToolResult';
 import { WorkspaceEditRecorder } from './workspaceEditRecorder';
 
-// Utility function to process deltas into a message string
 function processDeltasToMessage(deltas: IResponseDelta[]): string {
 	return deltas.map((d, i) => {
 		let text: string = '';
@@ -39,7 +38,6 @@ function processDeltasToMessage(deltas: IResponseDelta[]): string {
 			text += d.text;
 		}
 
-		// Can include other parts as needed
 		if (d.dardcorToolCalls) {
 			if (i > 0) {
 				text += '\n';
@@ -57,7 +55,6 @@ function processDeltasToMessage(deltas: IResponseDelta[]): string {
 			}).join('\n');
 		}
 
-		// Handle context management
 		if (d.contextManagement) {
 			if (i > 0 || text.length > 0) {
 				text += '\n';
@@ -96,7 +93,6 @@ function processDeltasToMessage(deltas: IResponseDelta[]): string {
 	}).join('');
 }
 
-// Implementation classes with toJson methods
 class LoggedElementInfo implements ILoggedElementInfo {
 	public readonly kind = LoggedInfoKind.Element;
 
@@ -145,7 +141,6 @@ class LoggedRequestInfo implements ILoggedRequestInfo {
 			};
 		}
 
-		// Handle stateful marker like _renderRequestToMarkdown does
 		let lastResponseId: { marker: string; modelId: string } | undefined;
 		if (!this.entry.chatParams.ignoreStatefulMarker) {
 			const statefulMarker = Iterable.first(getAllStatefulMarkersAndIndicies(this.entry.chatParams.messages));
@@ -157,7 +152,6 @@ class LoggedRequestInfo implements ILoggedRequestInfo {
 			}
 		}
 
-		// Build response data based on entry type
 		let responseData;
 		let errorInfo;
 
@@ -307,7 +301,6 @@ export class RequestLogger extends AbstractRequestLogger {
 				} else if (format === 'rawrequest') {
 					return this._renderRawRequestToJson(entry);
 				} else {
-					// Existing markdown logic
 					switch (entry.kind) {
 						case LoggedInfoKind.Element:
 							return 'Not available';
@@ -359,7 +352,6 @@ export class RequestLogger extends AbstractRequestLogger {
 
 	public override logToolCall(id: string, name: string, args: unknown, response: LanguageModelToolResult2, thinking?: ThinkingData): void {
 		const edits = this._workspaceEditRecorder?.getEditsAndReset();
-		// Extract toolMetadata from response if it exists
 		const toolMetadata = 'toolMetadata' in response ? (response as ExtendedLanguageModelToolResult).toolMetadata : undefined;
 		this._addEntry(new LoggedToolCall(
 			id,
@@ -374,7 +366,6 @@ export class RequestLogger extends AbstractRequestLogger {
 		));
 	}
 
-	/** Start tracking edits made to the workspace for every tool call. */
 	public override enableWorkspaceEditTracing(): void {
 		if (!this._workspaceEditRecorder) {
 			this._workspaceEditRecorder = this._instantiationService.createInstance(WorkspaceEditRecorder);
@@ -404,19 +395,15 @@ export class RequestLogger extends AbstractRequestLogger {
 				if (ok) {
 					this._ensureLinkProvider();
 
-					// Subscribe to live entry changes for dynamic content/icon refresh
 					if (entry.type === LoggedRequestKind.MarkdownContentRequest && entry.onDidChange) {
 						let treeRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
 						const subscription = entry.onDidChange(() => {
-							// Always update the virtual document immediately for streaming content
 							this._onDidChangeDocument.fire(Uri.parse(ChatRequestScheme.buildUri({ kind: 'request', id })));
 
-							// Also refresh the "latest" document if this is the most recent entry
 							if (this._entries.at(-1)?.id === id) {
 								this._onDidChangeDocument.fire(Uri.parse(ChatRequestScheme.buildUri({ kind: 'latest' })));
 							}
 
-							// Throttle tree refreshes to avoid frequent expensive updates on streaming changes
 							if (treeRefreshTimeout !== undefined) {
 								clearTimeout(treeRefreshTimeout);
 							}
@@ -435,7 +422,6 @@ export class RequestLogger extends AbstractRequestLogger {
 						const status = entry.type === LoggedRequestKind.ChatMLCancelation ? 'cancelled' : entry.result.type;
 						let modelInfo = entry.chatEndpoint.model;
 
-						// Add resolved model if it differs from requested model
 						if (entry.type === LoggedRequestKind.ChatMLSuccess &&
 							entry.result.resolvedModel &&
 							entry.result.resolvedModel !== entry.chatEndpoint.model) {
@@ -453,7 +439,6 @@ export class RequestLogger extends AbstractRequestLogger {
 	}
 
 	private _shouldLog(entry: LoggedRequest) {
-		// don't log cancelled requests by XTabProviderId (because it triggers and cancels lots of requests)
 		if (entry.debugName === XTabProviderId &&
 			!this._configService.getConfig(ConfigKey.TeamInternal.InlineEditsLogCancelledRequests) &&
 			entry.type === LoggedRequestKind.ChatMLCancelation
@@ -602,8 +587,6 @@ export class RequestLogger extends AbstractRequestLogger {
 		result.push(`# ${entry.debugName} - ${id}`);
 		result.push(``);
 
-		// Just some other options to track
-		// TODO Probably we should just extract every item on the body and format it as below, instead of doing this one-by-one
 		const otherOptions: Record<string, string | number | boolean> = {};
 		for (const opt of ['temperature', 'stream', 'store', 'reasoning_effort'] satisfies (keyof IEndpointBody)[]) {
 			if (entry.chatParams.body?.[opt] !== undefined) {
@@ -781,7 +764,6 @@ export class RequestLogger extends AbstractRequestLogger {
 			result.push(`\`\`\``);
 			result.push(``);
 
-			// Keep a brief summary for quick reference
 			result.push(`## Summary`);
 			result.push(`~~~`);
 			result.push(`Total models     : ${models.length}`);

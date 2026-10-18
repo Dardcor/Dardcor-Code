@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* -- Activation -- */
 
 export type VoiceEnabledEvent = {
 	source: string;
@@ -38,7 +37,6 @@ export type VoiceOnboardingCompletedClassification = {
 	comment: 'Fired when the user completes the voice onboarding flow.';
 };
 
-/* -- Usage -- */
 
 export type VoiceSessionStartedEvent = {
 	sessionIndex: number;
@@ -82,7 +80,6 @@ export type VoiceTtsListenThroughClassification = {
 	listenedPct: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'Approximate percentage of the response the user heard (0-100).' };
 };
 
-/* -- Quality -- */
 
 export type VoiceToolApprovalEvent = {
 	toolName: string;
@@ -104,7 +101,6 @@ export type VoiceReconnectClassification = {
 	timeSinceLastConnectSec: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'Seconds since the previous successful connect.' };
 };
 
-/* -- Latency -- */
 
 export type VoiceLatencyEvent = {
 	timeToFirstTranscriptionMs: number;

@@ -37,7 +37,6 @@ export default class ErrorTelemetry extends BaseErrorTelemetry {
 		};
 
 		if (err) {
-			// If it's the no telemetry error it doesn't get logged
 			if (ErrorNoTelemetry.isErrorNoTelemetry(err)) {
 				return;
 			}
@@ -54,10 +53,6 @@ export default class ErrorTelemetry extends BaseErrorTelemetry {
 			}
 		}
 
-		// The browser does not expose which observer or skipped target caused a
-		// ResizeObserver loop warning. Include the wrapped observers that ran
-		// recently as delivery context instead of falsely attributing the loop
-		// to whichever callback happened to run last.
 		const resizeObserverContext = getRecentDisposableResizeObserverContextForLoopError(msg);
 		if (resizeObserverContext) {
 			data.msg = resizeObserverContext;

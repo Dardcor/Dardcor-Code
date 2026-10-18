@@ -14,27 +14,23 @@ function apiContentToGeminiContent(content: (LanguageModelTextPart | LanguageMod
 
 	for (const part of content) {
 		if (part instanceof LanguageModelThinkingPart) {
-			// Extract thought signature from thinking part metadata
 			if (part.metadata && typeof part.metadata === 'object' && 'signature' in part.metadata) {
 				const metadataObj = part.metadata as Record<string, unknown>;
 				if (typeof metadataObj.signature === 'string') {
 					pendingSignature = metadataObj.signature;
 				}
 			}
-			// Note: We don't emit thinking content to Gemini as it's already been processed
-			// The signature will be attached to the next function call
 		} else if (part instanceof LanguageModelToolCallPart) {
 			const functionCallPart: Part = {
 				functionCall: {
 					name: part.name,
 					args: part.input as Record<string, unknown> || {}
 				},
-				// Attach pending thought signature if available (required by Gemini 3 for function calling)
 				...(pendingSignature ? { thoughtSignature: pendingSignature } : {})
 			};
 
 			if (pendingSignature) {
-				pendingSignature = undefined; // Clear after use
+				pendingSignature = undefined;
 			}
 
 			convertedContent.push(functionCallPart);
@@ -48,33 +44,26 @@ function apiContentToGeminiContent(content: (LanguageModelTextPart | LanguageMod
 				});
 			}
 		} else if (part instanceof LanguageModelToolResultPart || part instanceof LanguageModelToolResultPart2) {
-			// Convert tool result content - handle both text and image parts
 			const textContent = part.content
 				.filter((p): p is LanguageModelTextPart => p instanceof LanguageModelTextPart)
 				.map(p => p.value)
 				.join('');
 
-			// Handle image parts in tool results
 			const imageParts = part.content.filter((p): p is LanguageModelDataPart =>
 				p instanceof LanguageModelDataPart &&
 				p.mimeType !== CustomDataPartMimeTypes.StatefulMarker &&
 				p.mimeType !== CustomDataPartMimeTypes.CacheControl
 			);
 
-			// If there are images, we need to handle them differently
-			// For now, we'll include image info in the text response since Gemini function responses expect structured data
 			let imageDescription = '';
 			if (imageParts.length > 0) {
 				imageDescription = `\n[Contains ${imageParts.length} image(s) with types: ${imageParts.map(p => p.mimeType).join(', ')}]`;
 			}
 
-			// extraction: functionName_timestamp => split on first underscore
 			const functionName = part.callId?.split('_')[0] || 'unknown_function';
 
-			// Preserve structured JSON if possible
 			let responsePayload: any = {};
 			if (textContent) {
-				// Handle case with text content (may also have images)
 				try {
 					responsePayload = JSON.parse(textContent);
 					if (typeof responsePayload !== 'object' || responsePayload === null || Array.isArray(responsePayload)) {
@@ -83,7 +72,6 @@ function apiContentToGeminiContent(content: (LanguageModelTextPart | LanguageMod
 				} catch {
 					responsePayload = { result: textContent + imageDescription };
 				}
-				// Add image info if present
 				if (imageParts.length > 0) {
 					responsePayload.images = imageParts.map(p => ({
 						mimeType: p.mimeType,
@@ -92,7 +80,6 @@ function apiContentToGeminiContent(content: (LanguageModelTextPart | LanguageMod
 					}));
 				}
 			} else if (imageParts.length > 0) {
-				// Only images, no text content
 				responsePayload = {
 					images: imageParts.map(p => ({
 						mimeType: p.mimeType,
@@ -109,7 +96,6 @@ function apiContentToGeminiContent(content: (LanguageModelTextPart | LanguageMod
 
 			convertedContent.push({ functionResponse });
 		} else if (part instanceof LanguageModelTextPart) {
-			// Text content - only filter completely empty strings, keep whitespace
 			if (part.value !== '') {
 				convertedContent.push({
 					text: part.value
@@ -124,12 +110,10 @@ export function apiMessageToGeminiMessage(messages: LanguageModelChatMessage[]):
 	const contents: Content[] = [];
 	let systemInstruction: Content | undefined;
 
-	// Track tool calls to match with their responses
 	const pendingToolCalls = new Map<string, FunctionCall>();
 
 	for (const message of messages) {
 		if (message.role === LanguageModelChatMessageRole.System) {
-			// Gemini uses system instruction separately
 			const systemText = message.content
 				.filter((p): p is LanguageModelTextPart => p instanceof LanguageModelTextPart)
 				.map(p => p.value)
@@ -144,7 +128,6 @@ export function apiMessageToGeminiMessage(messages: LanguageModelChatMessage[]):
 		} else if (message.role === LanguageModelChatMessageRole.Assistant) {
 			const parts = apiContentToGeminiContent(message.content);
 
-			// Store function calls for later matching with responses
 			parts.forEach(part => {
 				if (part.functionCall && part.functionCall.name) {
 					pendingToolCalls.set(part.functionCall.name, part.functionCall);
@@ -165,9 +148,6 @@ export function apiMessageToGeminiMessage(messages: LanguageModelChatMessage[]):
 		}
 	}
 
-	// Post-process: ensure functionResponse parts are not embedded in 'model' role messages.
-	// Gemini expects tool responses to be supplied by the *user*/caller after the model issues a functionCall.
-	// If upstream accidentally placed tool result parts inside an assistant/model role, we split them out here.
 	for (let i = 0; i < contents.length; i++) {
 		const c = contents[i];
 		if (c.role === 'model' && c.parts && c.parts.some(p => 'functionResponse' in p)) {
@@ -180,16 +160,13 @@ export function apiMessageToGeminiMessage(messages: LanguageModelChatMessage[]):
 					modelParts.push(p);
 				}
 			}
-			// Replace original with model-only parts
 			c.parts = modelParts;
-			// Insert a new user role content immediately after with the function responses
 			if (toolResultParts.length) {
 				contents.splice(i + 1, 0, { role: 'user', parts: toolResultParts });
-				i++; // Skip over inserted element
+				i++;
 			}
 		}
 	}
-	// Cleanup: remove any model messages that became empty after extraction
 	for (let i = contents.length - 1; i >= 0; i--) {
 		const c = contents[i];
 		if (c.role === 'model' && (!c.parts || c.parts.length === 0)) {
@@ -203,7 +180,6 @@ export function apiMessageToGeminiMessage(messages: LanguageModelChatMessage[]):
 export function geminiMessagesToRawMessagesForLogging(contents: Content[], systemInstruction?: Content): Raw.ChatMessage[] {
 	const fullMessages = geminiMessagesToRawMessages(contents, systemInstruction);
 
-	// Replace bulky content with placeholders for logging
 	return fullMessages.map(message => {
 		const content = message.content.map(part => {
 			if (part.type === Raw.ChatCompletionContentPartKind.Image) {
@@ -232,7 +208,6 @@ export function geminiMessagesToRawMessagesForLogging(contents: Content[], syste
 export function geminiMessagesToRawMessages(contents: Content[], systemInstruction?: Content): Raw.ChatMessage[] {
 	const rawMessages: Raw.ChatMessage[] = [];
 
-	// Add system instruction if present
 	if (systemInstruction && systemInstruction.parts) {
 		const systemContent: Raw.ChatCompletionContentPart[] = [];
 		systemInstruction.parts.forEach((part: Part) => {
@@ -245,7 +220,6 @@ export function geminiMessagesToRawMessages(contents: Content[], systemInstructi
 		}
 	}
 
-	// Convert Gemini contents to raw messages
 	for (const content of contents) {
 		const messageParts: Raw.ChatCompletionContentPart[] = [];
 		let toolCalls: Raw.ChatMessageToolCall[] | undefined;
@@ -262,7 +236,7 @@ export function geminiMessagesToRawMessages(contents: Content[], systemInstructi
 				} else if (part.functionCall && part.functionCall.name) {
 					toolCalls ??= [];
 					toolCalls.push({
-						id: part.functionCall.name, // Gemini doesn't have call IDs, use name
+						id: part.functionCall.name,
 						type: 'function',
 						function: {
 							name: part.functionCall.name,
@@ -270,13 +244,10 @@ export function geminiMessagesToRawMessages(contents: Content[], systemInstructi
 						}
 					});
 				} else if (part.functionResponse && part.functionResponse.name) {
-					// Function responses should be emitted as tool messages
 					const toolContent: Raw.ChatCompletionContentPart[] = [];
 
-					// Handle structured response that might contain image data
 					const response = part.functionResponse.response;
 					if (response && typeof response === 'object' && 'images' in response && Array.isArray(response.images)) {
-						// Extract images from structured response and convert to Raw format
 						for (const img of response.images) {
 							if (img && typeof img === 'object' && 'data' in img && 'mimeType' in img) {
 								toolContent.push({
@@ -286,7 +257,6 @@ export function geminiMessagesToRawMessages(contents: Content[], systemInstructi
 							}
 						}
 
-						// Create a clean response object without the raw image data for text content
 						const cleanResponse = { ...response };
 						if ('images' in cleanResponse) {
 							cleanResponse.images = response.images.map((img: any) => ({
@@ -296,7 +266,6 @@ export function geminiMessagesToRawMessages(contents: Content[], systemInstructi
 						}
 						toolContent.push({ type: Raw.ChatCompletionContentPartKind.Text, text: JSON.stringify(cleanResponse) });
 					} else {
-						// Standard text-only response
 						toolContent.push({ type: Raw.ChatCompletionContentPartKind.Text, text: JSON.stringify(response) });
 					}
 
@@ -309,7 +278,6 @@ export function geminiMessagesToRawMessages(contents: Content[], systemInstructi
 			});
 		}
 
-		// Add the main message if it has content
 		if (messageParts.length > 0 || toolCalls) {
 			const role = content.role === 'model' ? Raw.ChatRole.Assistant : Raw.ChatRole.User;
 			const msg: Raw.ChatMessage = { role, content: messageParts };

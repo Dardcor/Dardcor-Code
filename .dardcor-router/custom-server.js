@@ -6,10 +6,6 @@ const { pathToFileURL } = require("url");
 
 const origCreate = http.createServer.bind(http);
 
-// Per-process secret proving x-9r-real-ip was stamped below rather than sent by the client.
-// A bare `next start` / `next dev` never loads this file, so it cannot produce a matching
-// header even though the env var is inherited by child processes. Named like x-9r-cli-token
-// so the request-detail header sanitizer redacts it too.
 const PEER_TOKEN = crypto.randomBytes(24).toString("hex");
 process.env.DARDCORROUTER_PEER_TOKEN = PEER_TOKEN;
 
@@ -34,8 +30,6 @@ let backgroundRefreshStarted = false;
 function startBackgroundTokenRefreshFromCustomServer() {
   if (backgroundRefreshStarted) return;
   backgroundRefreshStarted = true;
-  // Prefer source path (repo / standalone that still has src). Fail-open if missing
-  // — initializeApp also starts the same scheduler when the Next app boots.
   const modPath = path.join(__dirname, "src", "sse", "services", "backgroundTokenRefresh.js");
   import(pathToFileURL(modPath).href)
     .then((m) => {
@@ -48,23 +42,18 @@ function startBackgroundTokenRefreshFromCustomServer() {
         try {
           m.stopBackgroundTokenRefresh();
         } catch {
-          /* ignore */
         }
       };
       process.once("SIGINT", stop);
       process.once("SIGTERM", stop);
     })
     .catch((e) => {
-      // Expected in published CLI standalone (src/ not on disk). App bootstrap covers it.
       if (process.env.DEBUG_BACKGROUND_TOKEN_REFRESH) {
         console.error("[BackgroundTokenRefresh] import failed:", e && e.message ? e.message : e);
       }
     });
 }
 
-// Wrap Next standalone HTTP server: derive client IP from the TCP socket
-// (unspoofable) and strip client-supplied forwarding headers so downstream
-// rate-limiting keys on the real peer address instead of attacker-controlled XFF.
 http.createServer = (...args) => {
   const handler = args.find((a) => typeof a === "function");
   const rest = args.filter((a) => typeof a !== "function");
@@ -121,14 +110,12 @@ http.createServer = (...args) => {
       return origWriteHead(statusCode, ...rest);
     };
 
-    // Inject base CORS headers
     origSetHeader("Access-Control-Allow-Origin", "*");
     origSetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
     origSetHeader("Access-Control-Allow-Headers", "*");
     origSetHeader("Access-Control-Allow-Private-Network", "true");
     origSetHeader("Access-Control-Expose-Headers", "*");
 
-    // Intercept OPTIONS preflight immediately with 204 No Content
     if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
@@ -140,8 +127,6 @@ http.createServer = (...args) => {
     const xRealIp = req.headers["x-real-ip"];
     const viaProxy = !!(xff || xRealIp);
     const isLoopbackProxy = socketIp === "127.0.0.1" || socketIp === "::1" || socketIp === "::ffff:127.0.0.1";
-    // Trust forwarding headers only when the TCP peer is a local reverse proxy.
-    // Direct/public sockets remain keyed by the unspoofable peer address.
     const proxyIp = xRealIp || (xff ? String(xff).split(",")[0].trim() : "");
     const ip = isLoopbackProxy && proxyIp ? proxyIp : socketIp;
     delete req.headers["x-9r-real-ip"];
@@ -158,7 +143,6 @@ http.createServer = (...args) => {
     startBackgroundTokenRefreshFromCustomServer();
   });
   const origEmit = server.emit;
-  // JBR 25 sends h2c upgrades that the HTTP/1.1 server would otherwise close.
   server.emit = function (event, ...eventArgs) {
     const [req, socket, head] = eventArgs;
     if (event !== "upgrade" || String(req.headers.upgrade || "").toLowerCase() !== "h2c") {
@@ -173,7 +157,6 @@ http.createServer = (...args) => {
     const chunks = [head];
     let received = head.length;
     const serve = () => {
-      // Replay the upgraded request through the existing HTTP/1.1 handler.
       const replay = new http.IncomingMessage(socket);
       Object.assign(replay, { method: req.method, url: req.url, headers: req.headers, complete: true });
       if (received) replay.push(Buffer.concat(chunks, received).subarray(0, contentLength));
@@ -218,8 +201,6 @@ if (require.main === module) {
   } else if (fs.existsSync(standaloneRoot)) {
     require(standaloneRoot);
   } else {
-    // Repo checkout has no standalone build next to us. `next start` builds its HTTP
-    // server in-process, so the wrapper above still sanitizes every request.
     const nextBin = require.resolve("next/dist/bin/next");
     process.argv = [process.argv[0], nextBin, "start", ...process.argv.slice(2)];
     require(nextBin);

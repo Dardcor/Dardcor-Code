@@ -117,7 +117,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 
 	aiSearch(onResult: (result: ISearchProgressItem | undefined) => void): Promise<ISearchComplete> {
 		if (this.hasAIResults) {
-			// already has matches or pending matches
 			throw Error('AI results already exist');
 		}
 		if (!this._searchQuery) {
@@ -139,7 +138,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 			}).then(
 				value => {
 					if (value.results.length === 0) {
-						// alert of no results since onProgress won't be called
 						onResult(undefined);
 					}
 					this.onSearchCompleted(value, Date.now() - start, searchInstanceID, true);
@@ -183,7 +181,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 		const getAsyncResults = async (): Promise<ISearchComplete> => {
 			const searchStart = Date.now();
 
-			// resolve async parts of search
 			const allClosedEditorResults = await textResult.asyncResults;
 			const resolvedNotebookResults = await notebookResult.completeData;
 			const searchLength = Date.now() - searchStart;
@@ -229,7 +226,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 		const progressEmitter = this._register(new Emitter<void>());
 		this._replacePattern = new ReplacePattern(this.replaceString, this._searchQuery.contentPattern);
 
-		// In search on type case, delay the streaming of results just a bit, so that we don't flash the only "local results" fast path
 		this._startStreamDelay = new Promise(resolve => setTimeout(resolve, this.searchConfig.searchOnType ? 150 : 0));
 
 		const req = this.doSearch(query, progressEmitter, this._searchQuery, searchInstanceID, onProgress, callerToken);
@@ -253,12 +249,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 		});
 
 		Promise.race([asyncResults, progressEmitterPromise]).finally(() => {
-			/* __GDPR__
-				"searchResultsFirstRender" : {
-					"owner": "roblourens",
-					"duration" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true }
-				}
-			*/
 			event?.dispose();
 			this.telemetryService.publicLog('searchResultsFirstRender', { duration: Date.now() - start });
 		});
@@ -277,12 +267,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 				syncResults
 			};
 		} finally {
-			/* __GDPR__
-				"searchResultsFinished" : {
-					"owner": "roblourens",
-					"duration" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true }
-				}
-			*/
 			this.telemetryService.publicLog('searchResultsFinished', { duration: Date.now() - start });
 		}
 	}
@@ -314,18 +298,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 			otherSchemeOnly ? 'other' :
 				'mixed';
 
-		/* __GDPR__
-			"searchResultsShown" : {
-				"owner": "roblourens",
-				"count" : { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"fileCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true },
-				"options": { "${inline}": [ "${IPatternInfo}" ] },
-				"duration": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true },
-				"type" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" },
-				"scheme" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" },
-				"searchOnTypeEnabled" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-			}
-		*/
 		this.telemetryService.publicLog('searchResultsShown', {
 			count: this._searchResult.count(),
 			fileCount: this._searchResult.fileCount(),
@@ -396,7 +368,6 @@ export class SearchModelImpl extends Disposable implements ISearchModel {
 	}
 	clearAiSearchResults(): void {
 		this._aiResultQueue.length = 0;
-		// it's not clear all as we are only clearing the AI results
 		this._searchResult.aiTextSearchResult.clear(false);
 	}
 	override dispose(): void {

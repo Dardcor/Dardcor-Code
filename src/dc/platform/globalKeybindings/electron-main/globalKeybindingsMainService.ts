@@ -29,12 +29,6 @@ export interface IGlobalKeybindingsMainService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Replaces the set of system-wide (OS global) keybindings owned by the given window with the
-	 * provided set, reconciling the actual OS registrations. The result reports the user settings
-	 * labels (or accelerators) that could not be registered (e.g. because the accelerator is already
-	 * taken by the OS or another application).
-	 */
 	updateKeybindings(windowId: number, keybindings: readonly INativeSystemWideKeybinding[]): INativeSystemWideKeybindingResult;
 }
 
@@ -42,13 +36,10 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 
 	declare readonly _serviceBrand: undefined;
 
-	/** Per-window desired bindings, keyed by window id then by accelerator. */
 	private readonly registry = new Map<number, Map<string, INativeSystemWideKeybinding>>();
 
-	/** Accelerators this service currently owns an OS registration for. */
 	private readonly registeredAccelerators = new Set<string>();
 
-	/** Accelerators that were desired but failed to register (e.g. already taken). */
 	private readonly failedAccelerators = new Set<string>();
 
 	constructor(
@@ -101,10 +92,6 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 			&& typeof keybinding.commandId === 'string' && keybinding.commandId.length > 0;
 	}
 
-	/**
-	 * Reconciles the OS registrations against the union of all windows' desired accelerators.
-	 * Unregisters only accelerators this service owns; never touches shortcuts owned elsewhere.
-	 */
 	private reconcile(): void {
 		const desired = new Set<string>();
 		for (const perWindow of this.registry.values()) {
@@ -113,7 +100,6 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 			}
 		}
 
-		// Unregister accelerators we own but no longer want
 		for (const accelerator of [...this.registeredAccelerators]) {
 			if (!desired.has(accelerator)) {
 				this.globalShortcut.unregister(accelerator);
@@ -122,7 +108,6 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 			}
 		}
 
-		// Register newly desired accelerators (retries previously failed ones too)
 		for (const accelerator of desired) {
 			if (this.registeredAccelerators.has(accelerator)) {
 				continue;
@@ -130,8 +115,6 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 
 			let registered = false;
 			try {
-				// Register once with a stable callback that reads the CURRENT registry at fire time,
-				// so command/args are never captured from a stale snapshot.
 				registered = this.globalShortcut.register(accelerator, () => this.onTrigger(accelerator));
 			} catch (error) {
 				this.logService.error(`[GlobalKeybindings] error registering '${accelerator}'`, error);
@@ -155,12 +138,9 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 			}
 		}
 		if (owners.length === 0) {
-			return; // stale registration; will be unregistered on next reconcile
+			return;
 		}
 
-		// Target window selection:
-		// 1. the focused window if it owns this accelerator (respect that window's own binding)
-		// 2. otherwise the deterministic winner (lowest window id) among alive owners
 		let target: ICodeWindow | undefined;
 		const focused = this.windowsMainService.getFocusedWindow();
 		if (focused && this.registry.get(focused.id)?.has(accelerator)) {
@@ -185,10 +165,6 @@ export class GlobalKeybindingsMainService extends Disposable implements IGlobalK
 
 		this.logService.trace(`[GlobalKeybindings] trigger '${accelerator}' -> '${binding.commandId}' in window ${target.id}`);
 
-		// We deliberately do NOT focus the routing window here. A system-wide keybinding fires while
-		// VS Code is typically unfocused, and the command may open or reveal another window. Pulling
-		// the routing window forward first produces a visible flicker. Let the command decide what to
-		// surface and focus. `sendWhenReady` only needs the web contents to be ready, not focused.
 		const payload: INativeRunActionInWindowRequest = {
 			id: binding.commandId,
 			from: 'systemWideKeybinding',

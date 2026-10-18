@@ -71,59 +71,33 @@ use super::socket_signal::{
 type HttpRequestsMap = Arc<std::sync::Mutex<HashMap<u32, DelegatedHttpRequest>>>;
 type CodeServerCell = Arc<Mutex<Option<SocketCodeServer>>>;
 
-/// Shared, cloneable future that resolves once the agent host supervisor
-/// is up. We kick it off from `serve()` so the tunnel can start accepting
-/// connections immediately and only block on the supervisor in places
-/// that actually need it (currently `handle_serve` and the agent-host
-/// port forwarder).
 pub type SharedActiveAgentHost =
 	Shared<BoxFuture<'static, Result<Arc<ActiveAgentHost>, Arc<AnyError>>>>;
 
 struct HandlerContext {
-	/// Log handle for the server
 	log: log::Logger,
-	/// Whether the server update during the handler session.
 	did_update: Arc<AtomicBool>,
-	/// Whether authentication is still required on the socket.
 	auth_state: Arc<std::sync::Mutex<AuthState>>,
-	/// A loopback channel to talk to the socket server task.
 	socket_tx: mpsc::Sender<SocketSignal>,
-	/// Configured launcher paths.
 	launcher_paths: LauncherPaths,
-	/// Connected VS Code Server
 	code_server: CodeServerCell,
-	/// Potentially many "websocket" connections to client
 	server_bridges: ServerMultiplexer,
-	// the cli arguments used to start the code server
 	code_server_args: CodeServerArgs,
-	/// port forwarding functionality
 	port_forwarding: Option<PortForwarding>,
-	/// install platform for the VS Code server
 	platform: Platform,
-	/// http client to make download/update requests
 	http: Arc<FallbackSimpleHttp>,
-	/// requests being served by the client
 	http_requests: HttpRequestsMap,
-	/// Shared handle to the background `ensure_supervisor_running` task,
-	/// awaited in `handle_serve` to mix the bridge info into the spawned
-	/// server's args. `None` for callers (e.g. `command-shell`) that
-	/// already applied the bridge eagerly.
 	active_agent_host: Option<SharedActiveAgentHost>,
 }
 
-/// Handler auth state.
 enum AuthState {
-	/// Auth is required, we're waiting for the client to send its challenge optionally bearing a token.
 	WaitingForChallenge(Option<String>),
-	/// A challenge has been issued. Waiting for a verification.
 	ChallengeIssued(String),
-	/// Auth is no longer required.
 	Authenticated,
 }
 
 static MESSAGE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 
-// Gets a next incrementing number that can be used in logs
 pub fn next_message_id() -> u32 {
 	MESSAGE_ID_COUNTER.fetch_add(1, Ordering::SeqCst)
 }
@@ -136,20 +110,12 @@ impl HandlerContext {
 }
 
 enum ServerSignal {
-	/// Signalled when the server has been updated and we want to respawn.
-	/// We'd generally need to stop and then restart the launcher, but the
-	/// program might be managed by a supervisor like systemd. Instead, we
-	/// will stop the TCP listener and spawn the launcher again as a subprocess
-	/// with the same arguments we used.
 	Respawn,
 }
 
 pub enum Next {
-	/// Whether the server should be respawned in a new binary (see ServerSignal.Respawn).
 	Respawn,
-	/// Whether the tunnel should be restarted
 	Restart,
-	/// Whether the process should exit
 	Exit,
 }
 
@@ -174,7 +140,6 @@ async fn preload_extensions(
 		platform,
 	};
 
-	// cannot use delegated HTTP here since there's no remote connection yet
 	let http = Arc::new(ReqwestSimpleHttp::new());
 	let resolved = params_raw.resolve(log, http.clone()).await?;
 	let sb = ServerBuilder::new(log, &resolved, &launcher_paths, http.clone());
@@ -183,9 +148,6 @@ async fn preload_extensions(
 	sb.install_extensions().await
 }
 
-// Runs the launcher server. Exits on a ctrl+c or when requested by a user.
-// Note that client connections may not be closed when this returns; use
-// `close_all_clients()` on the ServerTermination to make this happen.
 pub async fn serve(
 	log: &log::Logger,
 	mut tunnel: ActiveTunnel,
@@ -200,16 +162,6 @@ pub async fn serve(
 	let (tx, mut rx) = mpsc::channel::<ServerSignal>(4);
 	let (exit_barrier, signal_exit) = new_barrier();
 
-	// Kick off the agent host supervisor in the background. The supervisor
-	// is the only process that binds the user-facing TCP listener and owns
-	// the canonical lockfile; we never spawn an in-process sidecar here.
-	// We deliberately do NOT await this here — the tunnel needs to start
-	// accepting connections immediately. Consumers that need the
-	// supervisor's endpoint (currently `handle_serve` for the
-	// `agentHostProxy` bridge, and the `agent-host` port forwarder below)
-	// await this shared future when they actually need it. Driving a
-	// clone with `tokio::spawn` ensures the work makes progress even if no
-	// one is currently awaiting it.
 	let active_agent_host: SharedActiveAgentHost = {
 		let launcher_paths = launcher_paths.clone();
 		let log = log.clone();
@@ -234,7 +186,6 @@ pub async fn serve(
 		let log = log.clone();
 		let code_server_args = code_server_args.clone();
 		let launcher_paths = launcher_paths.clone();
-		// This is run async to the primary tunnel setup to be speedy.
 		tokio::spawn(async move {
 			if let Err(e) =
 				preload_extensions(&log, platform, code_server_args, launcher_paths).await
@@ -358,8 +309,6 @@ pub async fn serve_stream(
 	writehalf: impl AsyncWrite + Unpin,
 	params: ServeStreamParams,
 ) -> SocketStats {
-	// Currently the only server signal is respawn, that doesn't have much meaning
-	// when serving a stream, so make an ignored channel.
 	let (server_rx, server_tx) = mpsc::channel(1);
 	drop(server_tx);
 
@@ -570,7 +519,7 @@ fn ensure_auth(is_authed: &Arc<std::sync::Mutex<AuthState>>) -> Result<(), AnyEr
 	}
 }
 
-#[allow(clippy::too_many_arguments)] // necessary here
+#[allow(clippy::too_many_arguments)]
 async fn process_socket(
 	readhalf: impl AsyncRead + Send + Unpin + 'static,
 	mut writehalf: impl AsyncWrite + Unpin,
@@ -629,7 +578,6 @@ async fn process_socket(
 
 			let ctx = rpc.context();
 
-			// The connection is now closed, asked to respawn if needed
 			if ctx.did_update.load(Ordering::SeqCst) {
 				server_tx.send(ServerSignal::Respawn).await.ok();
 			}
@@ -784,15 +732,10 @@ async fn handle_serve(
 	c: Arc<HandlerContext>,
 	params: ServeParams,
 ) -> Result<EmptyObject, AnyError> {
-	// fill params.extensions into code_server_args.install_extensions
 	let mut csa = c.code_server_args.clone();
 	csa.connection_token = params.connection_token.or(csa.connection_token);
 	csa.install_extensions.extend(params.extensions);
 
-	// Mix in the agent-host bridge info now that we actually need to spawn
-	// the VS Code server. The supervisor was started in the background by
-	// `serve()`, so this only blocks if it hasn't finished yet. If it
-	// failed we still serve — the renderer just won't see `agentHostProxy`.
 	if let Some(ah_fut) = c.active_agent_host.clone() {
 		match ah_fut.await {
 			Ok(a) => a.apply_to_bridge(&mut csa),
@@ -859,9 +802,6 @@ async fn handle_serve(
 			let server = match server {
 				Ok(s) => s,
 				Err(e) => {
-					// we don't loop to avoid doing so infinitely: allow the client to reconnect in this case.
-					// Permission errors (ServerNotExecutable) are not "corruption" -- re-downloading
-					// will not fix them, so skip eviction and let the user see the real error.
 					if let AnyError::CodeError(CodeError::ServerUnexpectedExit(ref e)) = e {
 						warning!(
 							c.log,
@@ -932,8 +872,6 @@ async fn attach_server_bridge(
 	}
 }
 
-/// Handle an incoming server message. This is synchronous and uses a 'write loop'
-/// to ensure message order is preserved exactly, which is necessary for compression.
 fn handle_server_message(
 	log: &log::Logger,
 	multiplexer: &ServerMultiplexer,
@@ -987,7 +925,7 @@ async fn handle_update(
 	{
 		return Ok(UpdateResult {
 			up_to_date: true,
-			did_update: true, // well, another thread did, but same difference...
+			did_update: true,
 		});
 	}
 
@@ -1207,8 +1145,6 @@ async fn handle_call_server_http(
 	use http_body_util::{BodyExt, Full};
 	use hyper_util::rt::TokioIo;
 
-	// We use Hyper directly here since reqwest doesn't support sockets/pipes.
-	// See https://github.com/seanmonstar/reqwest/issues/39
 
 	let socket = match &code_server {
 		Some(cs) => &cs.socket,
@@ -1221,7 +1157,6 @@ async fn handle_call_server_http(
 		.await
 		.map_err(|e| wrap(e, "error establishing connection"))?;
 
-	// start the connection processing; it's shut down when the sender is dropped
 	tokio::spawn(connection);
 
 	let mut request_builder = Request::builder()
@@ -1363,7 +1298,6 @@ async fn handle_spawn_cli(
 	let mut p = new_tokio_command(&params.command);
 	p.args(&params.args);
 
-	// CLI args to spawn a server; contracted with clients that they should _not_ provide these.
 	p.arg("--verbose");
 	p.arg("command-shell");
 
@@ -1381,11 +1315,8 @@ async fn handle_spawn_cli(
 	let mut stdout = p.stdout.take().unwrap();
 	let mut stderr = p.stderr.take().unwrap();
 
-	// Start handling logs while doing the handshake in case there's some kind of error
 	let log_pump = tokio::spawn(async move { tokio::io::copy(&mut stdout, &mut log_out).await });
 
-	// note: intentionally do not wrap stdin in a bufreader, since we don't
-	// want to read anything other than our handshake messages.
 	if let Err(e) = spawn_do_child_authentication(log, &mut stdin, &mut stderr).await {
 		warning!(log, "failed to authenticate with child process {}", e);
 		let _ = p.kill().await;
@@ -1412,9 +1343,6 @@ async fn get_joined_result(
 	r
 }
 
-/// Wait for the process to exit and sends the spawn result. Waits until the
-/// `block_futs` and the process have exited, and polls the `poll_futs` while
-/// doing so.
 async fn wait_for_process_exit(
 	log: &log::Logger,
 	command: &str,
@@ -1472,7 +1400,6 @@ async fn spawn_do_child_authentication(
 	tokio::select! {
 		r = &mut rpc => {
 			match r {
-				// means shutdown happened cleanly already, we're good
 				Ok(_) => Ok(()),
 				Err(e) => Err(CodeError::ProcessSpawnHandshakeFailed(e))
 			}

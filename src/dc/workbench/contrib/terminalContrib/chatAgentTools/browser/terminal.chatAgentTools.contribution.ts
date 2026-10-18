@@ -40,12 +40,10 @@ import { IWindowsMxcTerminalSandboxRuntime, WindowsMxcTerminalSandboxRuntime } f
 import { ITerminalSandboxService, TerminalSandboxService } from '../common/terminalSandboxService.js';
 import { isNumber } from '../../../../../base/common/types.js';
 
-// #region Services
 
 registerSingleton(IWindowsMxcTerminalSandboxRuntime, WindowsMxcTerminalSandboxRuntime, InstantiationType.Delayed);
 registerSingleton(ITerminalSandboxService, TerminalSandboxService, InstantiationType.Delayed);
 
-// #endregion Services
 
 class ShellIntegrationTimeoutMigrationContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'terminal.shellIntegrationTimeoutMigration';
@@ -73,7 +71,6 @@ class OutputLocationMigrationContribution extends Disposable implements IWorkben
 		@IConfigurationService configurationService: IConfigurationService,
 	) {
 		super();
-		// Migrate legacy 'none' value to 'chat'
 		const currentValue = configurationService.getValue<unknown>(TerminalChatAgentToolsSettingId.OutputLocation);
 		if (currentValue === 'none') {
 			configurationService.updateValue(TerminalChatAgentToolsSettingId.OutputLocation, 'chat');
@@ -99,7 +96,6 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 
 		registerTerminalCompressors(toolResultCompressor);
 
-		// #region Terminal
 
 		const confirmTerminalCommandTool = _instantiationService.createInstance(ConfirmTerminalCommandTool);
 		this._register(_toolsService.registerTool(ConfirmTerminalCommandToolData, confirmTerminalCommandTool));
@@ -126,9 +122,7 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 		this._register(_toolsService.readToolSet.addTool(GetTerminalSelectionToolData));
 		this._register(_toolsService.readToolSet.addTool(GetTerminalLastCommandToolData));
 
-		// #endregion
 
-		// #region Tasks
 
 		const runTaskTool = _instantiationService.createInstance(RunTaskTool);
 		this._register(_toolsService.registerTool(RunTaskToolData, runTaskTool));
@@ -142,11 +136,7 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 		this._register(_toolsService.executeToolSet.addTool(CreateAndRunTaskToolData));
 		this._register(_toolsService.readToolSet.addTool(GetTaskOutputToolData));
 
-		// #endregion
 
-		// Re-register run_in_terminal tool when sandbox-related settings change,
-		// so the tool description and input schema stay in sync with the current
-		// sandbox state.
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (
 				e.affectsConfiguration(AgentSandboxSettingId.AgentSandboxEnabled) ||
@@ -175,8 +165,6 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 			if (!this._runInTerminalTool) {
 				this._runInTerminalTool = this._register(this._instantiationService.createInstance(RunInTerminalTool));
 			}
-			// Dispose old registration first so registerToolData doesn't throw
-			// "already registered" for the same tool ID.
 			this._runInTerminalToolRegistration.value = undefined;
 			const store = new DisposableStore();
 			store.add(this._toolsService.registerToolData(runInTerminalToolData));
@@ -189,9 +177,7 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 registerWorkbenchContribution2(ChatAgentToolsContribution.ID, ChatAgentToolsContribution, WorkbenchPhase.AfterRestored);
 registerWorkbenchContribution2(AgentHostSandboxForwarder.ID, AgentHostSandboxForwarder, WorkbenchPhase.AfterRestored);
 
-// #endregion Contributions
 
-// #region Actions
 
 registerActiveInstanceAction({
 	id: TerminalChatAgentToolsCommandId.ChatAddTerminalSelection,
@@ -230,4 +216,3 @@ registerActiveInstanceAction({
 	}
 });
 
-// #endregion Actions

@@ -25,20 +25,13 @@ async function main() {
 
 	let exitCode;
 	try {
-		// The folder containing the Extension Manifest package.json
-		// Passed to `--extensionDevelopmentPath`
 		const extensionDevelopmentPath = path.resolve(__dirname, '../..');
 
-		// The path to the extension test script (must be javascript)
-		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, './run');
 
 		const launchArgs = [];
-		// Disable other extensions while testing,
 		launchArgs.push('--disable-extensions');
 
-		// use a temporary folder so we can run multiple instances of the same VS Code together
-		// see https://github.com/microsoft/vscode/issues/137678
 		launchArgs.push('--user-data-dir', tempdir);
 
 		const argv = await yargs(hideBin(process.argv))
@@ -55,7 +48,6 @@ async function main() {
 			})
 			.parse();
 		const extensionTestsEnv: typeof process.env = {};
-		// Pass arguments to mocha by environment variables
 		if (argv.grep) { extensionTestsEnv.MOCHA_GREP = argv.grep; }
 		if (argv._.length > 0) { extensionTestsEnv.MOCHA_FILES = argv._.join('\n'); }
 		if (!process.stdout.isTTY) { extensionTestsEnv.NO_COLOR = 'true'; }
@@ -63,7 +55,6 @@ async function main() {
 		launchArgs.push(workspaceFolder);
 
 		extensionTestsEnv.CORETEST = 'true';
-		//@dbaeumer This can be removed as soon as we have the cache handle CORETEST
 		extensionTestsEnv.VITEST = 'true';
 		extensionTestsEnv.TSX_TSCONFIG_PATH = path.resolve(__dirname, '../../../../../../tsconfig.json');
 
@@ -80,7 +71,6 @@ async function main() {
 			testOptions.version = argv.stable ? 'stable' : 'insiders';
 		}
 
-		// Download VS Code, unzip it and run the integration test
 		exitCode = await runTests(testOptions);
 	} catch (err) {
 		console.error('Failed to run tests', err);

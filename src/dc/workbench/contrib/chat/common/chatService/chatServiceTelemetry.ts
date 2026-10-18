@@ -295,7 +295,6 @@ export class ChatRequestTelemetry {
 		totalTime: number | undefined;
 		result: ChatProviderInvokedEvent['result'];
 		requestType: ChatProviderInvokedEvent['requestType'];
-		// Should rearrange so these 2 can be in the constructor
 		request: ChatRequestModel;
 		detectedAgent: IChatAgentData | undefined;
 	}) {
@@ -329,12 +328,10 @@ export class ChatRequestTelemetry {
 	}
 
 	private attachmentKindsForTelemetry(variableData: IChatRequestVariableData): string[] {
-		// this shows why attachments still have to be cleaned up somewhat
 		return variableData.variables.map(v => {
 			if (v.kind === 'implicit') {
 				return 'implicit';
 			} else if (v.range) {
-				// 'range' is range within the prompt text
 				if (v.kind === 'tool') {
 					return 'toolInPrompt';
 				} else if (v.kind === 'toolset') {
@@ -373,16 +370,9 @@ export class ChatRequestTelemetry {
 
 function getChatSessionTypeForTelemetry(sessionResource: URI): string {
 	const sessionType = getChatSessionType(sessionResource);
-	// Collapse the high-cardinality, host-specific authority into a single
-	// value (the authority is PII); the harness is reported separately.
 	return isRemoteAgentHostSessionType(sessionType) ? 'remote-agent-host' : sessionType;
 }
 
-/**
- * For remote agent host sessions, the underlying harness/provider so remote
- * activity can be split by harness (the collapsed sessionType cannot). See
- * telemetry gap #2 in #8209. Undefined for non-remote sessions.
- */
 function getHarnessForTelemetry(sessionResource: URI): string | undefined {
 	return parseRemoteAgentHostHarness(getChatSessionType(sessionResource));
 }

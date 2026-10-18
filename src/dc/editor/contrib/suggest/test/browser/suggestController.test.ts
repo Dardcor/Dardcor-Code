@@ -48,7 +48,6 @@ suite('SuggestController', function () {
 		disposables.clear();
 	});
 
-	// ensureNoDisposablesAreLeakedInTestSuite();
 
 	setup(function () {
 
@@ -113,12 +112,10 @@ suite('SuggestController', function () {
 		editor.setValue('    foo.le');
 		editor.setSelection(new Selection(1, 11, 1, 11));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(false, false);
 		await p2;
@@ -152,17 +149,14 @@ suite('SuggestController', function () {
 		editor.setValue('hello\nhallo');
 		editor.setSelection(new Selection(2, 6, 2, 6));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(false, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'I came synchello\nhallohello');
 	});
 
@@ -196,25 +190,20 @@ suite('SuggestController', function () {
 		editor.setValue('hello\nhallo');
 		editor.setSelection(new Selection(2, 6, 2, 6));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(false, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'hello\nhallohello');
 		assert.strictEqual(resolveCallCount, 1);
 
-		// additional edits happened after a litte wait
 		await timeout(20);
 		assert.strictEqual(editor.getValue(), 'I came latehello\nhallohello');
 
-		// single undo stop
 		editor.getModel()?.undo();
 		assert.strictEqual(editor.getValue(), 'hello\nhallo');
 	});
@@ -249,21 +238,17 @@ suite('SuggestController', function () {
 		editor.setValue('hello\nhallo');
 		editor.setSelection(new Selection(2, 6, 2, 6));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(false, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'hello\nhallohello');
 		assert.strictEqual(resolveCallCount, 1);
 
-		// additional edits happened after a litte wait
 		assert.ok(editor.getSelection()?.equalsSelection(new Selection(2, 11, 2, 11)));
 		editor.trigger('test', 'type', { text: 'TYPING' });
 
@@ -275,7 +260,6 @@ suite('SuggestController', function () {
 		assert.ok(editor.getSelection()?.equalsSelection(new Selection(2, 17, 2, 17)));
 	});
 
-	// additional edit come late and are AFTER the selection -> cancel
 	test('resolve additionalTextEdits async when needed (simple conflict)', async function () {
 
 		let resolveCallCount = 0;
@@ -306,17 +290,14 @@ suite('SuggestController', function () {
 		editor.setValue('');
 		editor.setSelection(new Selection(1, 1, 1, 1));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(false, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'hello');
 		assert.strictEqual(resolveCallCount, 1);
 
@@ -325,7 +306,6 @@ suite('SuggestController', function () {
 		assert.strictEqual(editor.getValue(), 'hello');
 	});
 
-	// additional edit come late and are AFTER the position at which the user typed -> cancelled
 	test('resolve additionalTextEdits async when needed (conflict)', async function () {
 
 		let resolveCallCount = 0;
@@ -356,21 +336,17 @@ suite('SuggestController', function () {
 		editor.setValue('hello\nhallo');
 		editor.setSelection(new Selection(2, 6, 2, 6));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(false, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'hello\nhallohello');
 		assert.strictEqual(resolveCallCount, 1);
 
-		// additional edits happened after a litte wait
 		editor.setSelection(new Selection(1, 1, 1, 1));
 		editor.trigger('test', 'type', { text: 'TYPING' });
 
@@ -415,28 +391,22 @@ suite('SuggestController', function () {
 		editor.setValue('abc');
 		editor.setSelection(new Selection(1, 1, 1, 1));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(true, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'helloabc');
 
-		// next
 		controller.acceptNextSuggestion();
 
-		// resolve additional edits (MUST be cancelled)
 		resolve.forEach(fn => fn);
 		resolve.length = 0;
 		await timeout(10);
 
-		// next suggestion used
 		assert.strictEqual(editor.getValue(), 'halloabc');
 	});
 
@@ -464,17 +434,14 @@ suite('SuggestController', function () {
 		editor.setValue('');
 		editor.setSelection(new Selection(1, 1, 1, 1));
 
-		// trigger
 		const p1 = Event.toPromise(controller.model.onDidSuggest);
 		controller.triggerSuggest();
 		await p1;
 
-		//
 		const p2 = Event.toPromise(controller.model.onDidCancel);
 		controller.acceptSelectedSuggestion(true, false);
 		await p2;
 
-		// insertText happens sync!
 		assert.strictEqual(editor.getValue(), 'import "my_class.txt";\nMyClassName');
 
 	});
@@ -519,7 +486,7 @@ suite('SuggestController', function () {
 		assert.strictEqual(second.textLabel, 'filter');
 
 		assert.deepStrictEqual(editor.getSelection(), new Selection(1, 6, 1, 6));
-		editor.trigger('keyboard', 'type', { text: 'r' }); // now filter "overtakes" filterBankSize because it is fully matched
+		editor.trigger('keyboard', 'type', { text: 'r' });
 		assert.deepStrictEqual(editor.getSelection(), new Selection(1, 7, 1, 7));
 
 		controller.acceptSelectedSuggestion(false, false);
@@ -576,7 +543,7 @@ suite('SuggestController', function () {
 		assert.strictEqual(fourth.textLabel, 'foreach');
 
 		assert.deepStrictEqual(editor.getSelection(), new Selection(1, 2, 1, 2));
-		editor.trigger('keyboard', 'type', { text: 'o' }); // filters`false` and `float`
+		editor.trigger('keyboard', 'type', { text: 'o' });
 		assert.deepStrictEqual(editor.getSelection(), new Selection(1, 3, 1, 3));
 
 		controller.acceptSelectedSuggestion(false, false);
@@ -636,7 +603,7 @@ suite('SuggestController', function () {
 			}
 		}));
 
-		{ // PART1 - no typing
+		{
 			editor.setValue(`123456789123456789`);
 			editor.setSelection(new Selection(1, 1, 1, 1));
 			const p1 = Event.toPromise(controller.model.onDidSuggest);
@@ -651,7 +618,7 @@ suite('SuggestController', function () {
 			assert.strictEqual(editor.getValue(), 'aaa1234567891aaa23456789');
 		}
 
-		{ // PART2 - typing
+		{
 			editor.setValue(`123456789123456789`);
 			editor.setSelection(new Selection(1, 1, 1, 1));
 			const p1 = Event.toPromise(controller.model.onDidSuggest);

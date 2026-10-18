@@ -32,7 +32,7 @@ export class NesHistoryContextProvider extends Disposable implements IHistoryCon
 		this._register(autorun(reader => {
 			const branch = reader.readObservable(observableGit.branch);
 			if (branch === undefined) {
-				return; // probably git extension hasn't activated or no repository found, so don't do anything
+				return;
 			}
 			this._lastGitCheckout = now();
 			this._documentState.forEach(d => d.applyAllEdits());
@@ -91,7 +91,7 @@ export class NesHistoryContextProvider extends Disposable implements IHistoryCon
 
 		for (const doc of this._lastDocuments.getItemsReversed()) {
 			const result = doc.getRecentEdit(editCount);
-			if (result === undefined) { // result is undefined if the document is not a user document
+			if (result === undefined) {
 				continue;
 			}
 			if (result.editCount === 0 && hasProcessedCurrentDocument) {
@@ -107,7 +107,6 @@ export class NesHistoryContextProvider extends Disposable implements IHistoryCon
 			}
 		}
 		docs.reverse();
-		// Docs is sorted from least recent to most recent now
 
 		if (!docs.some(d => d.docId === docId)) {
 			return undefined;
@@ -120,7 +119,7 @@ export class NesHistoryContextProvider extends Disposable implements IHistoryCon
 		if (!this._lastGitCheckout) {
 			return false;
 		}
-		const isInCooldown = now() - this._lastGitCheckout < 2 * 1000 /* 2 seconds */;
+		const isInCooldown = now() - this._lastGitCheckout < 2 * 1000 ;
 		if (!isInCooldown) {
 			this._lastGitCheckout = undefined;
 		}
@@ -197,7 +196,6 @@ class DocumentState {
 			return undefined;
 		}
 
-		// note that `editCount` may not match the actual number of edits in the history because it's computed by transforming to line edits
 		const { editCount } = this._applyStaleEdits(maxEditCount);
 
 		const edits = new Edits(StringEdit, this._edits.map(e => e.edit));
@@ -230,14 +228,13 @@ class DocumentState {
 
 			const potentialNewTextLengthEdit = e.textLengthEdit.compose(recentTextLengthEdit);
 			const potentialNewRange = potentialNewTextLengthEdit.getRange();
-			// FIXME@ulugbekna: the code below can actually throw if one edit cancels another one out
 			assertType(potentialNewRange, 'we only compose non-empty Edits');
 			if (potentialNewRange.endLineNumber - potentialNewRange.startLineNumber > 100) {
 				break;
 			}
 
 			const changedLines = sum(e.textLengthEdit.edits, e => (e.range.endLineNumber - e.range.startLineNumber) + e.newLength.lineCount);
-			if (changedLines > DocumentState.MAX_EDITED_LINES_PER_EDIT) { // 5k line long -- it should work for both deletion & insertion
+			if (changedLines > DocumentState.MAX_EDITED_LINES_PER_EDIT) {
 				break;
 			}
 			const newCharacterCount = sum(e.edit.replacements, singleEdit => singleEdit.newText.length);
@@ -257,9 +254,6 @@ class DocumentState {
 					mostRecentEdit = swapResult.e1;
 				} else {
 					if (changedLines >= 2) {
-						// If the most recent edit (transformed to the current state) intersects with the current edit
-						// and the current edit is too big, composing them would hide the effect of the most recent edit
-						// relative to current edit. So, we stop here.
 						break;
 					}
 					mostRecentEdit = e.edit.compose(mostRecentEdit);
@@ -271,19 +265,17 @@ class DocumentState {
 
 			const potentialRecentEdit = e.edit.compose(recentEdit);
 			const potentialLineEdit = RootedEdit.toLineEdit(new RootedEdit(lastValue, potentialRecentEdit));
-			const rootedLineEdit = new RootedLineEdit(lastValue, potentialLineEdit).removeCommonSuffixPrefixLines(); // do not take into account no-op edits
+			const rootedLineEdit = new RootedLineEdit(lastValue, potentialLineEdit).removeCommonSuffixPrefixLines();
 			const editLineCount = rootedLineEdit.edit.replacements.length;
 			if (editLineCount > maxEditCount) {
 				break;
 			}
 
-			// We take the edit!
 			editCount = editLineCount;
 			recentEdit = potentialRecentEdit;
 			recentTextLengthEdit = potentialNewTextLengthEdit;
 		}
 
-		// remove & apply the edits we didn't take
 		for (let j = 0; j <= i; j++) {
 			const e = this._edits[j];
 			this._baseValue = e.edit.applyOnText(this._baseValue);

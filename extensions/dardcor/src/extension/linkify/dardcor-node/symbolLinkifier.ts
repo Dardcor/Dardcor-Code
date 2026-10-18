@@ -26,13 +26,6 @@ interface ResolvedSymbolLinkMatch {
 	readonly initialLocation: vscode.Location | undefined;
 }
 
-/**
- * Linkifies symbol paths in responses. For example:
- *
- * ```
- * [`symbol`](file.md)
- * ```
- */
 export class SymbolLinkifier implements IContributedLinkifier {
 
 	private readonly symbolFileCache: SymbolFileCache = new Map();
@@ -105,7 +98,6 @@ export class SymbolLinkifier implements IContributedLinkifier {
 		try {
 			symbolPath = decodeURIComponent(symbolPath);
 		} catch {
-			// noop
 		}
 
 		const resolvedUri = await this.resolveInWorkspace(symbolPath, workspaceFolders);
@@ -129,17 +121,13 @@ export class SymbolLinkifier implements IContributedLinkifier {
 			try {
 				symbols = await vscode.commands.executeCommand<Array<vscode.SymbolInformation | vscode.DocumentSymbol> | undefined>('vscode.executeDocumentSymbolProvider', resolvedUri);
 			} catch {
-				// noop
 			}
 
-			// Tree-sitter gives a best-effort initial location. Document symbols remain
-			// the richer source for symbol kind and nested same-name disambiguation.
 			if (symbols?.length) {
 				const matchingSymbol = findBestSymbolByPath(symbols, symbolText);
 				if (matchingSymbol) {
 					info.kind = matchingSymbol.kind;
 
-					// Not a real instance of 'vscode.DocumentSymbol' so use cast to check
 					if ((matchingSymbol as vscode.DocumentSymbol).children) {
 						const symbol = matchingSymbol as vscode.DocumentSymbol;
 						info.location = new vscode.Location(resolvedUri, collapseRangeToStart(symbol.selectionRange));

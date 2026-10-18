@@ -82,7 +82,6 @@ suite('AgentHostManagedSettings', () => {
 			[AgentHostMapLegacySettingsToManagedSettingsSettingId]: { defaultValue: false, userValue: true },
 			[AgentNetworkDomainSettingId.NetworkFilter]: { defaultValue: false, policyValue: true },
 			[AgentNetworkDomainSettingId.AllowedNetworkDomains]: { defaultValue: [] },
-			// Three spellings of the same host, which all normalize to one rule.
 			[AgentNetworkDomainSettingId.DeniedNetworkDomains]: {
 				defaultValue: [],
 				policyValue: ['evil.example', 'https://evil.example/path', 'evil.example:8443'],
@@ -235,8 +234,6 @@ suite('AgentHostManagedSettings', () => {
 	test('keeps an absolute command path that VS Code treats as a literal', () => {
 		const configurationService = createConfigurationService({
 			[AgentHostMapLegacySettingsToManagedSettingsSettingId]: { defaultValue: false, userValue: true },
-			// Starts and ends with `/` but the trailing segment is not a flag list,
-			// so the auto-approver reads it as a path rather than a regular expression.
 			[TERMINAL_AUTO_APPROVE_SETTING_ID]: { defaultValue: {}, policyValue: { '/usr/bin/rm': false } },
 		});
 
@@ -248,8 +245,6 @@ suite('AgentHostManagedSettings', () => {
 	test('skips a wildcard command key rather than broadening it', () => {
 		const configurationService = createConfigurationService({
 			[AgentHostMapLegacySettingsToManagedSettingsSettingId]: { defaultValue: false, userValue: true },
-			// `*` is a literal in VS Code but a command-boundary wildcard in the SDK,
-			// so bridging this would require approval for every git command.
 			[TERMINAL_AUTO_APPROVE_SETTING_ID]: { defaultValue: {}, policyValue: { 'git *': false, 'rm': false } },
 		});
 
@@ -286,7 +281,6 @@ suite('AgentHostManagedSettings', () => {
 	test('contributes nothing when every tool is left eligible for auto-approval', () => {
 		const configurationService = createConfigurationService({
 			[AgentHostMapLegacySettingsToManagedSettingsSettingId]: { defaultValue: false, userValue: true },
-			// Only `true` entries: the policy re-affirms the default and removes nothing.
 			[ELIGIBLE_FOR_AUTO_APPROVAL_SETTING_ID]: { defaultValue: {}, policyValue: { fetch: true, runTask: true } },
 		});
 

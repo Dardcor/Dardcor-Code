@@ -28,7 +28,6 @@ function isValidTag(t: string) {
 
 	const [major, minor, bug] = t.split('.');
 
-	// Only release for tags like 1.34.0
 	if (bug !== '0') {
 		return false;
 	}

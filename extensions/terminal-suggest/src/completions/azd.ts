@@ -90,14 +90,12 @@ const azdGenerators: Record<string, Fig.Generator> = {
 				const templates: AzdTemplateListItem[] = JSON.parse(out);
 				const tagsSet = new Set<string>();
 
-				// Collect all unique tags from all templates
 				templates.forEach((template) => {
 					if (template.tags && Array.isArray(template.tags)) {
 						template.tags.forEach((tag) => tagsSet.add(tag));
 					}
 				});
 
-				// Convert set to array and return as suggestions
 				return Array.from(tagsSet).sort().map((tag) => ({
 					name: tag,
 				}));
@@ -111,7 +109,6 @@ const azdGenerators: Record<string, Fig.Generator> = {
 	},
 	listTemplatesFiltered: {
 		custom: async (tokens, executeCommand, generatorContext) => {
-			// Find if there's a -f or --filter flag in the tokens
 			let filterValue: string | undefined;
 			for (let i = 0; i < tokens.length; i++) {
 				if ((tokens[i] === '-f' || tokens[i] === '--filter') && i + 1 < tokens.length) {
@@ -120,7 +117,6 @@ const azdGenerators: Record<string, Fig.Generator> = {
 				}
 			}
 
-			// Build the azd command with filter if present
 			const args = ['template', 'list', '--output', 'json'];
 			if (filterValue) {
 				args.push('--filter', filterValue);
@@ -198,7 +194,7 @@ const azdGenerators: Record<string, Fig.Generator> = {
 			try {
 				const options: AzdConfigOption[] = JSON.parse(out);
 				return options
-					.filter((opt) => opt.Type !== 'envvar') // Exclude environment-only options
+					.filter((opt) => opt.Type !== 'envvar')
 					.map((opt) => ({
 						name: opt.Key,
 						description: opt.Description,

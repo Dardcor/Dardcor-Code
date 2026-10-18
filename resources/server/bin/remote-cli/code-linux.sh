@@ -1,7 +1,5 @@
 #!/usr/bin/env sh
-#
 # Copyright (c) Dardcor Corporation. All rights reserved.
-#
 ROOT="$(dirname "$(dirname "$(dirname "$(readlink -f "$0")")")")"
 
 APP_NAME="@@APPNAME@@"

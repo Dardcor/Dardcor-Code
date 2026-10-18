@@ -175,7 +175,7 @@ class StandaloneTextModelService implements ITextModelService {
 
 	public registerTextModelContentProvider(scheme: string, provider: ITextModelContentProvider): IDisposable {
 		return {
-			dispose: function () { /* no op */ }
+			dispose: function () { }
 		};
 	}
 
@@ -262,7 +262,7 @@ class StandaloneDialogService implements IDialogService {
 
 		return {
 			confirmed,
-			checkboxChecked: false // unsupported
+			checkboxChecked: false
 		};
 	}
 
@@ -306,7 +306,7 @@ class StandaloneDialogService implements IDialogService {
 	}
 
 	input(): Promise<IInputResult> {
-		return Promise.resolve({ confirmed: false }); // unsupported
+		return Promise.resolve({ confirmed: false });
 	}
 
 	about(): Promise<void> {
@@ -434,7 +434,6 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 		const addContainer = (domNode: HTMLElement) => {
 			const disposables = new DisposableStore();
 
-			// for standard keybindings
 			disposables.add(dom.addDisposableListener(domNode, dom.EventType.KEY_DOWN, (e: KeyboardEvent) => {
 				const keyEvent = new StandardKeyboardEvent(e);
 				const shouldPreventDefault = this._dispatch(keyEvent, keyEvent.target);
@@ -444,7 +443,6 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 				}
 			}));
 
-			// for single modifier chord keybindings (e.g. shift shift)
 			disposables.add(dom.addDisposableListener(domNode, dom.EventType.KEY_UP, (e: KeyboardEvent) => {
 				const keyEvent = new StandardKeyboardEvent(e);
 				const shouldPreventDefault = this._singleModifierDispatch(keyEvent, keyEvent.target);
@@ -522,7 +520,6 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 		this.updateResolver();
 
 		return toDisposable(() => {
-			// Search the first entry and remove them all since they will be contiguous
 			for (let i = 0; i < this._dynamicKeybindings.length; i++) {
 				if (this._dynamicKeybindings[i] === entries[0]) {
 					this._dynamicKeybindings.splice(i, entries.length);
@@ -559,7 +556,6 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 			const keybinding = item.keybinding;
 
 			if (!keybinding) {
-				// This might be a removal keybinding item in user settings => accept it
 				result[resultLen++] = new ResolvedKeybindingItem(undefined, item.command, item.commandArgs, when, isDefault, null, false);
 			} else {
 				const resolvedKeybindings = USLayoutResolvedKeybinding.resolveKeybinding(keybinding, OS);
@@ -603,9 +599,6 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 		return Disposable.None;
 	}
 
-	/**
-	 * not yet supported
-	 */
 	public override enableKeybindingHoldMode(commandId: string): Promise<void> | undefined {
 		return undefined;
 	}
@@ -900,7 +893,6 @@ class StandaloneBulkEditService implements IBulkEditService {
 	constructor(
 		@IModelService private readonly _modelService: IModelService
 	) {
-		//
 	}
 
 	hasPreviewHandler(): false {
@@ -1035,25 +1027,21 @@ class StandaloneWorkspaceTrustManagementService implements IWorkspaceTrustManage
 		return false;
 	}
 	async setParentFolderTrust(trusted: boolean): Promise<void> {
-		// noop
 	}
 	canSetWorkspaceTrust(): boolean {
 		return false;
 	}
 	async setWorkspaceTrust(trusted: boolean): Promise<void> {
-		// noop
 	}
 	getUriTrustInfo(uri: URI): Promise<IWorkspaceTrustUriInfo> {
 		throw new Error('Method not supported.');
 	}
 	async setUrisTrust(uri: URI[], trusted: boolean): Promise<void> {
-		// noop
 	}
 	getTrustedUris(): URI[] {
 		return [];
 	}
 	async setTrustedUris(uris: URI[]): Promise<void> {
-		// noop
 	}
 	addWorkspaceTrustTransitionParticipant(participant: IWorkspaceTrustTransitionParticipant): IDisposable {
 		throw new Error('Method not supported.');
@@ -1082,7 +1070,7 @@ class StandaloneContextMenuService extends ContextMenuService {
 		@IContextKeyService contextKeyService: IContextKeyService,
 	) {
 		super(telemetryService, notificationService, contextViewService, keybindingService, menuService, contextKeyService);
-		this.configure({ blockMouse: false }); // we do not want that in the standalone editor
+		this.configure({ blockMouse: false });
 	}
 }
 
@@ -1139,7 +1127,6 @@ class StandaloneDefaultAccountService implements IDefaultAccountService {
 	}
 
 	setDefaultAccountProvider(): void {
-		// no-op
 	}
 
 	async refresh(): Promise<IDefaultAccount | null> {
@@ -1159,7 +1146,6 @@ class StandaloneDefaultAccountService implements IDefaultAccountService {
 	}
 
 	async signOut(): Promise<void> {
-		// no-op
 	}
 }
 
@@ -1209,10 +1195,6 @@ registerSingleton(IDefaultAccountService, StandaloneDefaultAccountService, Insta
 registerSingleton(IRenameSymbolTrackerService, NullRenameSymbolTrackerService, InstantiationType.Eager);
 registerSingleton(IUserInteractionService, UserInteractionService, InstantiationType.Eager);
 
-/**
- * We don't want to eagerly instantiate services because embedders get a one time chance
- * to override services when they create the first editor.
- */
 export namespace StandaloneServices {
 
 	const serviceCollection = new ServiceCollection();
@@ -1246,15 +1228,12 @@ export namespace StandaloneServices {
 		}
 		initialized = true;
 
-		// Add singletons that were registered after this module loaded
 		for (const [id, descriptor] of getSingletonServiceDescriptors()) {
 			if (!serviceCollection.get(id)) {
 				serviceCollection.set(id, descriptor);
 			}
 		}
 
-		// Initialize the service collection with the overrides, but only if the
-		// service was not instantiated in the meantime.
 		for (const serviceId in overrides) {
 			if (overrides.hasOwnProperty(serviceId)) {
 				const serviceIdentifier = createDecorator(serviceId);
@@ -1265,7 +1244,6 @@ export namespace StandaloneServices {
 			}
 		}
 
-		// Instantiate all editor features
 		const editorFeatures = getEditorFeatures();
 		for (const feature of editorFeatures) {
 			try {
@@ -1280,9 +1258,6 @@ export namespace StandaloneServices {
 		return instantiationService;
 	}
 
-	/**
-	 * Executes callback once services are initialized.
-	 */
 	export function withServices(callback: () => IDisposable): IDisposable {
 		if (initialized) {
 			return callback();

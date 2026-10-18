@@ -44,7 +44,6 @@ export default function DroidToolCard({
 
   const getConfigStatus = () => {
     if (!droidStatus?.installed) return null;
-    // Check for any Dardcor Code model entry (support multi-model: custom:Dardcor Code-0, custom:Dardcor Code-1, ...)
     const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Code"));
     if (!currentConfig) return "not_configured";
     return matchKnownEndpoint(currentConfig.baseUrl, { tunnelPublicUrl, tailscaleUrl, cloudUrl: cloudEnabled ? CLOUD_URL : null }) ? "configured" : "other";
@@ -79,7 +78,6 @@ export default function DroidToolCard({
     }
   };
 
-  // Pre-fill model list from existing config (supports multi-model)
   useEffect(() => {
     if (droidStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
@@ -90,7 +88,6 @@ export default function DroidToolCard({
       if (existingModels.length > 0) {
         setModelList(existingModels);
       } else {
-        // Legacy: single model stored as custom:Dardcor Code-0
         const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:Dardcor Code-0");
         if (legacy?.model) {
           setModelList([legacy.model]);
@@ -157,7 +154,6 @@ export default function DroidToolCard({
       });
       const data = await res.json();
       if (res.ok) {
-        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkDroidStatus();
@@ -292,7 +288,7 @@ export default function DroidToolCard({
           {!checkingDroid && droidStatus?.installed && (
             <>
               <div className="flex flex-col gap-2">
-                {/* Endpoint (selector) */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -308,7 +304,7 @@ export default function DroidToolCard({
                   />
                 </div>
 
-                {/* Current configured */}
+                {}
                 {droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Code"))?.baseUrl && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
@@ -319,21 +315,21 @@ export default function DroidToolCard({
                   </div>
                 )}
 
-                {/* API Key */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
-                {/* Models */}
+                {}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">
                     Models {modelList.length > 0 && <span className="text-primary">({modelList.length})</span>}
                   </span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <div className="flex-1 flex flex-col gap-1">
-                    {/* Model list */}
+                    {}
                     {modelList.length > 0 && (
                       <div className="flex flex-col gap-0.5 mb-1">
                         {modelList.map((id) => (
@@ -346,7 +342,7 @@ export default function DroidToolCard({
                         ))}
                       </div>
                     )}
-                    {/* Model input row */}
+                    {}
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"

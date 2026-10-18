@@ -20,12 +20,6 @@ import {
 	isClaudeFileEditTool,
 } from '../../node/claude/claudeToolDisplay.js';
 
-/**
- * Pure-data snapshot tests for [claudeToolDisplay.ts](../../node/claude/claudeToolDisplay.ts).
- * Phase 7 plan §4: every cell of the mapping table must be reachable
- * from one assertion. The snapshot lives here, not in a fixture file,
- * so future renames flow through compile-checks.
- */
 suite('claudeToolDisplay — §4 mapping table', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();

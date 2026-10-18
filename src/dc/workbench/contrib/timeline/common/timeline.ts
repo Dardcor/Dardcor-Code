@@ -22,15 +22,8 @@ export const TimelinePaneId = 'timeline';
 
 export interface TimelineItem {
 
-	/**
-	 * The handle of the item must be unique across all the
-	 * timeline items provided by this source.
-	 */
 	handle: string;
 
-	/**
-	 * The identifier of the timeline provider this timeline item is from.
-	 */
 	source: string;
 
 	id?: string;
@@ -57,20 +50,10 @@ export interface TimelineItem {
 
 export interface TimelineChangeEvent {
 
-	/**
-	 * The identifier of the timeline provider this event is from.
-	 */
 	id: string;
 
-	/**
-	 * The resource that has timeline entries changed or `undefined`
-	 * if not known.
-	 */
 	uri: URI | undefined;
 
-	/**
-	 * Whether to drop all timeline entries and refresh them again.
-	 */
 	reset: boolean;
 }
 
@@ -83,9 +66,6 @@ export interface TimelineOptions {
 
 export interface Timeline {
 
-	/**
-	 * The identifier of the timeline provider this timeline is from.
-	 */
 	source: string;
 
 	items: TimelineItem[];
@@ -108,19 +88,10 @@ export interface TimelineSource {
 
 export interface TimelineProviderDescriptor {
 
-	/**
-	 * An identifier of the source of the timeline items. This can be used to filter sources.
-	 */
 	id: string;
 
-	/**
-	 * A human-readable string describing the source of the timeline items. This can be used as the display label when filtering sources.
-	 */
 	label: string;
 
-	/**
-	 * The resource scheme(s) this timeline provider is providing entries for.
-	 */
 	scheme: string | string[];
 }
 

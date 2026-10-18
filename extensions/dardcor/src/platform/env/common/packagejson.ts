@@ -41,7 +41,7 @@ export interface PackageJSONShape {
 	};
 }
 
-declare const require: any; // TODO@bpasero we need package.json support in web via bundling
+declare const require: any;
 
 export const packageJson: PackageJSONShape = require('../../../../package.json');
 export const isProduction = (packageJson.buildType !== 'dev');

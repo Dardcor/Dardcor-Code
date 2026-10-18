@@ -23,7 +23,7 @@ abstract class FilteredEditorGroupModel extends Disposable implements IReadonlyE
 			const candidateOrIndex = e.editorIndex ?? e.editor;
 			if (candidateOrIndex !== undefined) {
 				if (!this.filter(candidateOrIndex)) {
-					return; // exclude events for excluded items
+					return;
 				}
 			}
 			this._onDidModelChange.fire(e);

@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -51,23 +50,11 @@ export function findFirstIdx<T>(array: readonly T[], predicate: (item: T, index:
 	return -1;
 }
 
-/**
- * Finds the last item where predicate is true using binary search.
- * `predicate` must be monotonous, i.e. `arr.map(predicate)` must be like `[true, ..., true, false, ..., false]`!
- *
- * @returns `undefined` if no item matches, otherwise the last item that matches the predicate.
- */
 export function findLastMonotonous<T>(array: readonly T[], predicate: (item: T) => boolean): T | undefined {
 	const idx = findLastIdxMonotonous(array, predicate);
 	return idx === -1 ? undefined : array[idx];
 }
 
-/**
- * Finds the last item where predicate is true using binary search.
- * `predicate` must be monotonous, i.e. `arr.map(predicate)` must be like `[true, ..., true, false, ..., false]`!
- *
- * @returns `startIdx - 1` if predicate is false for all items, otherwise the index of the last item that matches the predicate.
- */
 export function findLastIdxMonotonous<T>(array: readonly T[], predicate: (item: T) => boolean, startIdx = 0, endIdxEx = array.length): number {
 	let i = startIdx;
 	let j = endIdxEx;
@@ -82,23 +69,11 @@ export function findLastIdxMonotonous<T>(array: readonly T[], predicate: (item: 
 	return i - 1;
 }
 
-/**
- * Finds the first item where predicate is true using binary search.
- * `predicate` must be monotonous, i.e. `arr.map(predicate)` must be like `[false, ..., false, true, ..., true]`!
- *
- * @returns `undefined` if no item matches, otherwise the first item that matches the predicate.
- */
 export function findFirstMonotonous<T>(array: readonly T[], predicate: (item: T) => boolean): T | undefined {
 	const idx = findFirstIdxMonotonousOrArrLen(array, predicate);
 	return idx === array.length ? undefined : array[idx];
 }
 
-/**
- * Finds the first item where predicate is true using binary search.
- * `predicate` must be monotonous, i.e. `arr.map(predicate)` must be like `[false, ..., false, true, ..., true]`!
- *
- * @returns `endIdxEx` if predicate is false for all items, otherwise the index of the first item that matches the predicate.
- */
 export function findFirstIdxMonotonousOrArrLen<T>(array: readonly T[], predicate: (item: T) => boolean, startIdx = 0, endIdxEx = array.length): number {
 	let i = startIdx;
 	let j = endIdxEx;
@@ -118,12 +93,6 @@ export function findFirstIdxMonotonous<T>(array: readonly T[], predicate: (item:
 	return idx === array.length ? -1 : idx;
 }
 
-/**
- * Use this when
- * * You have a sorted array
- * * You query this array with a monotonous predicate to find the last item that has a certain property.
- * * You query this array multiple times with monotonous predicates that get weaker and weaker.
- */
 export class MonotonousArray<T> {
 	public static assertInvariants = false;
 
@@ -133,10 +102,6 @@ export class MonotonousArray<T> {
 	constructor(private readonly _array: readonly T[]) {
 	}
 
-	/**
-	 * The predicate must be monotonous, i.e. `arr.map(predicate)` must be like `[true, ..., true, false, ..., false]`!
-	 * For subsequent calls, current predicate must be weaker than (or equal to) the previous predicate, i.e. more entries must be `true`.
-	 */
 	findLastMonotonous(predicate: (item: T) => boolean): T | undefined {
 		if (MonotonousArray.assertInvariants) {
 			if (this._prevFindLastPredicate) {
@@ -155,9 +120,6 @@ export class MonotonousArray<T> {
 	}
 }
 
-/**
- * Returns the first item that is equal to or greater than every other item.
-*/
 export function findFirstMax<T>(array: readonly T[], comparator: Comparator<T>): T | undefined {
 	if (array.length === 0) {
 		return undefined;
@@ -173,9 +135,6 @@ export function findFirstMax<T>(array: readonly T[], comparator: Comparator<T>):
 	return max;
 }
 
-/**
- * Returns the last item that is equal to or greater than every other item.
-*/
 export function findLastMax<T>(array: readonly T[], comparator: Comparator<T>): T | undefined {
 	if (array.length === 0) {
 		return undefined;
@@ -191,9 +150,6 @@ export function findLastMax<T>(array: readonly T[], comparator: Comparator<T>): 
 	return max;
 }
 
-/**
- * Returns the first item that is equal to or less than every other item.
-*/
 export function findFirstMin<T>(array: readonly T[], comparator: Comparator<T>): T | undefined {
 	return findFirstMax(array, (a, b) => -comparator(a, b));
 }
@@ -213,9 +169,6 @@ export function findMaxIdx<T>(array: readonly T[], comparator: Comparator<T>): n
 	return maxIdx;
 }
 
-/**
- * Returns the first mapped value of the array which is not undefined.
- */
 export function mapFindFirst<T, R>(items: Iterable<T>, mapFn: (value: T) => R | undefined): R | undefined {
 	for (const value of items) {
 		const mapped = mapFn(value);

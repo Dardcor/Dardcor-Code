@@ -27,7 +27,6 @@ suite('AssignmentContextFilter', () => {
 		return disposables.add(new AssignmentContextFilter(storageService));
 	}
 
-	/** Creates a filter whose exclusion predicate can be swapped at runtime. */
 	function createFilter(id: string, initialExclude: (assignment: string) => boolean, store: DisposableStore): { filter: IAssignmentFilter; setExclude(fn: (assignment: string) => boolean): void } {
 		const onDidChange = store.add(new Emitter<void>());
 		let excludeFn = initialExclude;
@@ -57,7 +56,6 @@ suite('AssignmentContextFilter', () => {
 	});
 
 	test('honors cached ids across reload before the owning filter is registered', () => {
-		// Simulate a previous session that persisted a filtered-out id.
 		storageService.store(FILTERED_OUT_IDS_STORAGE_KEY, JSON.stringify({ onboarding: ['onb-test1'] }), StorageScope.APPLICATION, StorageTarget.MACHINE);
 
 		const contextFilter = createContextFilter();
@@ -70,13 +68,10 @@ suite('AssignmentContextFilter', () => {
 
 		const store = disposables.add(new DisposableStore());
 		const contextFilter = createContextFilter();
-		// The onboarding filter is registered but no longer excludes onb-test1.
 		contextFilter.addFilter(createFilter('onboarding', () => false, store).filter);
 
 		const result = contextFilter.filter('onb-test1;cmp-ext-a;keep');
 
-		// onb-test1 is no longer excluded (its filter took over), but cmp-ext-a stays excluded
-		// because the unification filter has not been registered yet.
 		assert.strictEqual(result, 'onb-test1;keep');
 		assert.deepStrictEqual(readCache(), { unification: ['cmp-ext-a'] });
 	});
@@ -90,7 +85,6 @@ suite('AssignmentContextFilter', () => {
 		contextFilter.filter('onb-test1;keep');
 		assert.deepStrictEqual(readCache(), { onboarding: ['onb-test1'] });
 
-		// The gate opens: the filter no longer excludes the id.
 		onboarding.setExclude(() => false);
 
 		assert.strictEqual(contextFilter.filter('onb-test1;keep'), 'onb-test1;keep');

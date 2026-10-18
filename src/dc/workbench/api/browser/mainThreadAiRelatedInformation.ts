@@ -24,7 +24,6 @@ export class MainThreadAiRelatedInformation extends Disposable implements MainTh
 	}
 
 	$getAiRelatedInformation(query: string, types: RelatedInformationType[]): Promise<RelatedInformationResult[]> {
-		// TODO: use a real cancellation token
 		return this._aiRelatedInformationService.getRelatedInformation(query, types, CancellationToken.None);
 	}
 

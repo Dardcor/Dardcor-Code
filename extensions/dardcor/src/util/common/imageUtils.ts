@@ -179,9 +179,7 @@ export function getMimeType(base64String: string): string | undefined {
 }
 
 export function extractImageAttributes(line: string, refineExisting?: boolean): string | undefined {
-	// Regex to match markdown image syntax ![alt text](<?image_path>?)
 	const markdownImageRegex = /!\[([^\]]*)\]\(<?([^)<>]+?)>?\)/;
-	// Updated regex to match HTML image syntax with alt and src in any order
 	const htmlImageRegex = /<img\s+(?:alt=["']([^"']*)["']\s*)?src=["']([^"']+)["'](?:\s*alt=["']([^"']*)["'])?/;
 
 	let match;
@@ -192,15 +190,13 @@ export function extractImageAttributes(line: string, refineExisting?: boolean): 
 		imagePath = match[2];
 		altText = match[1];
 	} else if ((match = htmlImageRegex.exec(line)) !== null) {
-		imagePath = match[2]; // src is always the second group
-		altText = match[1] || match[3] || ''; // alt is sometimes first or third
+		imagePath = match[2];
+		altText = match[1] || match[3] || '';
 	} else {
-		// Try Learn Markdown format - check if it's a Learn Markdown image
 		const learnMarkdownRegex = /:::image\s+.*?source=["']([^"']+)["'].*?:::/;
 		const sourceMatch = learnMarkdownRegex.exec(line);
 		if (sourceMatch) {
 			imagePath = sourceMatch[1];
-			// Check if there's an alt-text attribute
 			const altTextRegex = /alt-text=["']([^"']*?)["']/;
 			const altMatch = altTextRegex.exec(line);
 			altText = altMatch ? altMatch[1] : '';

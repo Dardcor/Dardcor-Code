@@ -53,7 +53,6 @@ export { truncateToFirstLine } from './aiCustomizationListWidgetUtils.js';
 
 const $ = DOM.$;
 
-//#region Telemetry
 
 type CustomizationEditorSearchEvent = {
 	section: string;
@@ -67,15 +66,11 @@ type CustomizationEditorSearchClassification = {
 	comment: 'Tracks search usage in the Agent Customizations editor.';
 };
 
-//#endregion
 
 const ITEM_HEIGHT = 44;
 const GROUP_HEADER_HEIGHT = 36;
 const GROUP_HEADER_HEIGHT_WITH_SEPARATOR = 40;
 
-/**
- * Represents a collapsible group header in the list.
- */
 interface IGroupHeaderEntry {
 	readonly type: 'group-header';
 	readonly id: string;
@@ -88,9 +83,6 @@ interface IGroupHeaderEntry {
 	collapsed: boolean;
 }
 
-/**
- * Represents an individual file item in the list.
- */
 interface IFileItemEntry {
 	readonly type: 'file-item';
 	readonly item: IAICustomizationListItem;
@@ -98,9 +90,6 @@ interface IFileItemEntry {
 
 type IListEntry = IGroupHeaderEntry | IFileItemEntry;
 
-/**
- * Delegate for the AI Customization list.
- */
 class AICustomizationListDelegate implements IListVirtualDelegate<IListEntry> {
 	getHeight(element: IListEntry): number {
 		if (element.type === 'group-header') {
@@ -125,7 +114,6 @@ interface IAICustomizationItemTemplateData {
 	readonly description: HighlightedLabel;
 	readonly disposables: DisposableStore;
 	readonly elementDisposables: DisposableStore;
-	/** Index of the row currently rendered into this template, or -1 when unbound. */
 	currentIndex: number;
 }
 
@@ -140,10 +128,6 @@ interface IGroupHeaderTemplateData {
 	readonly elementDisposables: DisposableStore;
 }
 
-/**
- * Renderer for collapsible group headers (Workspace, User, Extensions).
- * Note: Click handling is done via the list's onDidOpen event, not here.
- */
 class GroupHeaderRenderer implements IListRenderer<IGroupHeaderEntry, IGroupHeaderTemplateData> {
 	readonly templateId = 'groupHeader';
 
@@ -170,19 +154,15 @@ class GroupHeaderRenderer implements IListRenderer<IGroupHeaderEntry, IGroupHead
 	renderElement(element: IGroupHeaderEntry, _index: number, templateData: IGroupHeaderTemplateData): void {
 		templateData.elementDisposables.clear();
 
-		// Chevron
 		templateData.chevron.className = 'group-chevron';
 		templateData.chevron.classList.add(...ThemeIcon.asClassNameArray(element.collapsed ? Codicon.chevronRight : Codicon.chevronDown));
 
-		// Icon
 		templateData.icon.className = 'group-icon';
 		templateData.icon.classList.add(...ThemeIcon.asClassNameArray(element.icon));
 
-		// Label + count
 		templateData.label.textContent = element.label;
 		templateData.count.textContent = `${element.count}`;
 
-		// Info icon hover
 		templateData.elementDisposables.add(this.hoverService.setupDelayedHover(templateData.infoIcon, () => ({
 			content: element.description,
 			appearance: {
@@ -191,7 +171,6 @@ class GroupHeaderRenderer implements IListRenderer<IGroupHeaderEntry, IGroupHead
 			}
 		})));
 
-		// Collapsed state and separator for non-first groups
 		templateData.container.classList.toggle('collapsed', element.collapsed);
 		templateData.container.classList.toggle('has-previous-group', !element.isFirst);
 	}
@@ -202,9 +181,6 @@ class GroupHeaderRenderer implements IListRenderer<IGroupHeaderEntry, IGroupHead
 	}
 }
 
-/**
- * Returns the icon for a given prompt type.
- */
 function promptTypeToIcon(type: PromptsType): ThemeIcon {
 	switch (type) {
 		case PromptsType.agent: return agentIcon;
@@ -216,27 +192,13 @@ function promptTypeToIcon(type: PromptsType): ThemeIcon {
 	}
 }
 
-/**
- * Formats a name for display by stripping a trailing .md extension.
- * Names from frontmatter headers are shown as-is to stay consistent
- * with how they appear in agent dropdowns and error messages.
- */
 export function formatDisplayName(name: string): string {
 	return name.replace(/\.md$/i, '');
 }
 
-/**
- * Renderer for AI customization list items.
- */
 class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICustomizationItemTemplateData> {
 	readonly templateId = 'aiCustomizationItem';
 
-	/**
-	 * Live (non-disposed) templates. Used to keep only the focused row's
-	 * inline action bar in the document tab order so that Tab from a focused
-	 * row enters that row's actions exactly once instead of cycling through
-	 * every row's actions.
-	 */
 	private readonly templates = new Set<IAICustomizationItemTemplateData>();
 	private focusedIndex = -1;
 
@@ -249,17 +211,9 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 		@IAgentPluginService private readonly agentPluginService: IAgentPluginService,
 	) { }
 
-	/**
-	 * Tell the renderer which row index is currently focused in the list.
-	 * The action bar of that row (and only that row) is made tab-focusable.
-	 * Pass -1 to clear focus; in that case all action bars are made non-focusable.
-	 */
 	setFocusedIndex(index: number): void {
 		this.focusedIndex = index;
 		for (const template of this.templates) {
-			// Guard against the -1 === -1 case where unbound/recycled templates
-			// (whose currentIndex was reset by disposeElement) would otherwise be
-			// made tab-focusable when no row has focus.
 			template.actionBar.setFocusable(index !== -1 && template.currentIndex === index);
 		}
 	}
@@ -279,15 +233,10 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 		const statusIcon = DOM.append(nameRow, $('.item-status-icon'));
 		const description = disposables.add(new HighlightedLabel(DOM.append(textContainer, $('.item-description'))));
 
-		// Right section for actions (hover-visible)
 		const actionsContainer = DOM.append(container, $('.item-right'));
 		const actionBar = disposables.add(new ActionBar(actionsContainer, {
 			actionViewItemProvider: createActionViewItem.bind(undefined, this.instantiationService),
 		}));
-		// Keep the inline actions out of the document tab order by default. Only the
-		// focused row's action bar is made tab-focusable (see `setFocusedIndex`),
-		// so Tab from a focused row enters that row's actions exactly once instead
-		// of cycling through every row's actions.
 		actionBar.setFocusable(false);
 
 		const template: IAICustomizationItemTemplateData = {
@@ -313,11 +262,9 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 		templateData.actionBar.setFocusable(this.focusedIndex !== -1 && index === this.focusedIndex);
 		const element = entry.item;
 
-		// Type icon: use per-item override or fall back to prompt type
 		templateData.typeIcon.className = 'item-type-icon';
 		templateData.typeIcon.classList.add(...ThemeIcon.asClassNameArray(element.typeIcon ?? promptTypeToIcon(element.promptType)));
 
-		// Hover tooltip: name + source + badge context + plugin source
 		templateData.elementDisposables.add(this.hoverService.setupDelayedHover(templateData.container, () => {
 			let content: string;
 			if (element.isBuiltin) {
@@ -345,14 +292,11 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 			};
 		}));
 
-		// Apply disabled styling
 		templateData.container.classList.toggle('disabled', element.disabled);
 
-		// Name with highlights — nameMatches are pre-computed against the formatted display name
 		const displayName = element.displayName ?? formatDisplayName(element.name);
 		templateData.nameLabel.set(displayName, element.nameMatches);
 
-		// Optional inline badge (e.g. "always added", "*.ts")
 		if (element.badge) {
 			templateData.badge.textContent = element.badge;
 			templateData.badge.style.display = '';
@@ -368,7 +312,6 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 			templateData.badge.style.display = 'none';
 		}
 
-		// Status icon for external items with sync/loading status
 		if (element.status) {
 			templateData.statusIcon.style.display = '';
 			templateData.statusIcon.className = 'item-status-icon';
@@ -398,18 +341,14 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 			templateData.statusIcon.className = 'item-status-icon';
 		}
 
-		// Hooks show shell commands here, so keep the full text instead of truncating to the first sentence.
 		const secondaryText = getCustomizationSecondaryText(element.description, element.filename, element.promptType);
 		let secondaryTextMatches: IMatch[] | undefined;
 		if (secondaryText && element.description && element.descriptionMatches) {
 			if (secondaryText === element.description) {
-				// No truncation, matches can be used as-is.
 				secondaryTextMatches = element.descriptionMatches;
 			} else {
-				// Description was truncated for display; clamp matches to the visible range.
 				const maxLength = secondaryText.length;
 				const clampedMatches = element.descriptionMatches.map(match => {
-					// Discard matches that are entirely outside the visible portion.
 					if (match.start >= maxLength || match.end <= 0) {
 						return undefined;
 					}
@@ -423,14 +362,12 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 		if (secondaryText) {
 			templateData.description.set(secondaryText, secondaryTextMatches);
 			templateData.description.element.style.display = '';
-			// Style differently for filename vs description
 			templateData.description.element.classList.toggle('is-filename', !element.description);
 		} else {
 			templateData.description.set('', undefined);
 			templateData.description.element.style.display = 'none';
 		}
 
-		// Inline action bar from menu
 		const context: Record<string, unknown> = {
 			uri: element.uri.toString(),
 			name: element.name,
@@ -440,7 +377,6 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 			itemId: element.id,
 		};
 
-		// Create scoped context key service with item-specific keys for when-clause filtering
 		const overlayPairs: [string, string | boolean][] = [
 			[AI_CUSTOMIZATION_ITEM_TYPE_KEY, element.promptType],
 			[AI_CUSTOMIZATION_ITEM_URI_KEY, element.uri.toString()],
@@ -481,11 +417,6 @@ class AICustomizationItemRenderer implements IListRenderer<IFileItemEntry, IAICu
 	}
 }
 
-/**
- * Maps a UI section to the items-model section, or `undefined` if the
- * section isn't sourced from the customization harness pipeline (e.g.
- * MCP Servers, Plugins, Models — those have their own services).
- */
 function toItemsModelSection(section: AICustomizationManagementSection): ItemsModelSection | undefined {
 	switch (section) {
 		case AICustomizationManagementSection.Agents:
@@ -499,10 +430,6 @@ function toItemsModelSection(section: AICustomizationManagementSection): ItemsMo
 	}
 }
 
-/**
- * Returns the ARIA status announcement string for a given section, item
- * count, and whether a search filter is active. Exported for testing.
- */
 export function getCountAnnouncement(section: AICustomizationManagementSection, count: number, isFiltering: boolean): string {
 	switch (section) {
 		case AICustomizationManagementSection.Agents:
@@ -554,9 +481,6 @@ export function getCountAnnouncement(section: AICustomizationManagementSection, 
 	}
 }
 
-/**
- * An ordered create action for the add button.
- */
 interface ICreateAction {
 	readonly label: string;
 	readonly enabled: boolean;
@@ -564,9 +488,6 @@ interface ICreateAction {
 	run(): void;
 }
 
-/**
- * Widget that displays a searchable list of AI customization items.
- */
 export class AICustomizationListWidget extends Disposable {
 
 	readonly element: HTMLElement;
@@ -599,12 +520,10 @@ export class AICustomizationListWidget extends Disposable {
 	private lastHeaderHeight = 0;
 	private readonly dropdownActionDisposables = this._register(new DisposableStore());
 
-	/** Monotonically increasing counter; guards the post-load announcement against stale calls. */
 	private _sectionLoadId = 0;
 
 	private readonly delayedFilter = new Delayer<void>(200);
 
-	/** Subscription to the items model for the current section; refreshed on setSection. */
 	private readonly currentSectionSubscription = this._register(new MutableDisposable());
 
 	private readonly _onDidSelectItem = this._register(new Emitter<IAICustomizationListItem>());
@@ -642,9 +561,6 @@ export class AICustomizationListWidget extends Disposable {
 		this.element = $('.ai-customization-list-widget');
 		this.create();
 
-		// Re-render the add button when the active project root or harness changes.
-		// Item discovery itself is owned by the items model; we just rebind the
-		// per-section subscription so the UI follows whichever harness is active.
 		this._register(autorun(reader => {
 			this.workspaceService.activeProjectRoot.read(reader);
 			this.updateAddButton();
@@ -657,14 +573,11 @@ export class AICustomizationListWidget extends Disposable {
 	}
 
 	private create(): void {
-		// Section title header (title + description with inline learn more) at the top.
 		this.sectionTitleHeader = DOM.append(this.element, $('.section-title-header'));
 		const titleRow = DOM.append(this.sectionTitleHeader, $('.section-title-row'));
 		this.sectionTitle = DOM.append(titleRow, $('h2.section-title'));
 		this.sectionTitleDescription = DOM.append(this.sectionTitleHeader, $('p.section-title-description'));
 		this.sectionTitleDescriptionText = DOM.append(this.sectionTitleDescription, $('span.section-title-description-text'));
-		// Real whitespace text node between description and link so the gap collapses
-		// when the link wraps to a new line (a CSS margin-left would push it inward).
 		this.sectionTitleDescription.appendChild(document.createTextNode(' '));
 		this.sectionLink = DOM.append(this.sectionTitleDescription, $('a.section-title-link')) as HTMLAnchorElement;
 		this._register(DOM.addDisposableListener(this.sectionLink, 'click', (e) => {
@@ -675,11 +588,6 @@ export class AICustomizationListWidget extends Disposable {
 			}
 		}));
 
-		// Re-layout when the header height changes (e.g. description wraps,
-		// or CSS adjustments alter padding) so the list's allotted height stays
-		// in sync with the actual on-screen header size. Only relayout when the
-		// header height actually changed to avoid redundant work on DPR changes
-		// or width-only resizes.
 		const targetWindow = DOM.getWindow(this.element);
 		const headerObserver = this._register(new DOM.DisposableResizeObserver(
 			'AICustomizationListWidget.sectionTitleHeader',
@@ -697,10 +605,8 @@ export class AICustomizationListWidget extends Disposable {
 		));
 		this._register(headerObserver.observe(this.sectionTitleHeader));
 
-		// Search and button container
 		this.searchAndButtonContainer = DOM.append(this.element, $('.list-search-and-button-container'));
 
-		// Search container
 		this.searchContainer = DOM.append(this.searchAndButtonContainer, $('.list-search-container'));
 		this.searchInput = this._register(new InputBox(this.searchContainer, this.contextViewService, {
 			placeholder: localize('searchPlaceholder', "Type to search..."),
@@ -721,10 +627,8 @@ export class AICustomizationListWidget extends Disposable {
 			});
 		}));
 
-		// Add button container next to search
 		this.addButtonContainer = DOM.append(this.searchAndButtonContainer, $('.list-add-button-container'));
 
-		// Simple button (for single-action case, no dropdown)
 		this.addButtonSimple = this._register(new Button(this.addButtonContainer, {
 			...defaultButtonStyles,
 			supportIcons: true,
@@ -732,7 +636,6 @@ export class AICustomizationListWidget extends Disposable {
 		this.addButtonSimple.element.classList.add('list-add-button');
 		this._register(this.addButtonSimple.onDidClick(() => this.executePrimaryCreateAction()));
 
-		// Button with dropdown (for multi-action case)
 		this.addButton = this._register(new ButtonWithDropdown(this.addButtonContainer, {
 			...defaultButtonStyles,
 			supportIcons: true,
@@ -744,17 +647,14 @@ export class AICustomizationListWidget extends Disposable {
 		this._register(this.addButton.onDidClick(() => this.executePrimaryCreateAction()));
 		this.updateAddButton();
 
-		// List container
 		this.listContainer = DOM.append(this.element, $('.list-container'));
 
-		// Empty state container
 		this.emptyStateContainer = DOM.append(this.element, $('.list-empty-state'));
 		const emptyStateHeader = DOM.append(this.emptyStateContainer, $('.empty-state-header'));
 		this.emptyStateText = DOM.append(emptyStateHeader, $('.empty-state-text'));
 		this.emptyStateSubtext = DOM.append(this.emptyStateContainer, $('.empty-state-subtext'));
 		this.emptyStateContainer.style.display = 'none';
 
-		// Create list
 		const itemRenderer = this.instantiationService.createInstance(AICustomizationItemRenderer);
 		this.list = this._register(this.instantiationService.createInstance(
 			WorkbenchList<IListEntry>,
@@ -794,7 +694,6 @@ export class AICustomizationListWidget extends Disposable {
 			}
 		));
 
-		// Handle item selection (single click opens item, group header toggles)
 		this._register(this.list.onDidOpen(e => {
 			if (e.element) {
 				if (e.element.type === 'group-header') {
@@ -805,17 +704,10 @@ export class AICustomizationListWidget extends Disposable {
 			}
 		}));
 
-		// Keep only the focused row's inline action bar in the document tab order
-		// so Tab from a focused row enters that row's actions exactly once instead
-		// of cycling through the action bar of every rendered row.
 		this._register(this.list.onDidChangeFocus(e => {
 			itemRenderer.setFocusedIndex(e.indexes.length ? e.indexes[0] : -1);
 		}));
 
-		// When the list itself receives DOM focus (e.g. via Tab) and no row is
-		// focused yet, focus the first selectable item (skipping group headers)
-		// so the focus indicator is visible instead of requiring the user to
-		// press an arrow key first.
 		this._register(this.list.onDidFocus(() => {
 			if (this.list.getFocus().length === 0 && this.displayEntries.length > 0) {
 				const firstItemIndex = this.displayEntries.findIndex(e => e.type !== 'group-header');
@@ -825,10 +717,8 @@ export class AICustomizationListWidget extends Disposable {
 			}
 		}));
 
-		// Handle context menu
 		this._register(this.list.onContextMenu(e => this.onContextMenu(e)));
 
-		// Refresh on file deletions so the list updates after inline delete actions
 		this._register(this.fileService.onDidFilesChange(e => {
 			if (e.gotDeleted()) {
 				this.refresh();
@@ -838,9 +728,6 @@ export class AICustomizationListWidget extends Disposable {
 		this.updateSectionHeader();
 	}
 
-	/**
-	 * Handles context menu for list items.
-	 */
 	private onContextMenu(e: IListContextMenuEvent<IListEntry>): void {
 		if (!e.element || e.element.type !== 'file-item') {
 			return;
@@ -848,7 +735,6 @@ export class AICustomizationListWidget extends Disposable {
 
 		const item = e.element.item;
 
-		// Create context for the menu actions
 		const context: Record<string, unknown> = {
 			uri: item.uri.toString(),
 			name: item.name,
@@ -858,7 +744,6 @@ export class AICustomizationListWidget extends Disposable {
 			itemId: item.id,
 		};
 
-		// Create scoped context key service with item-specific keys for when-clause filtering
 		const overlayPairs: [string, string | boolean][] = [
 			[AI_CUSTOMIZATION_ITEM_TYPE_KEY, item.promptType],
 			[AI_CUSTOMIZATION_ITEM_URI_KEY, item.uri.toString()],
@@ -872,7 +757,6 @@ export class AICustomizationListWidget extends Disposable {
 		}
 		const overlay = this.contextKeyService.createOverlay(overlayPairs);
 
-		// Get menu actions, excluding inline actions to avoid duplicates
 		const actions = this.menuService.getMenuActions(AICustomizationManagementItemMenuId, overlay, {
 			arg: context,
 			shouldForwardArgs: true,
@@ -880,7 +764,6 @@ export class AICustomizationListWidget extends Disposable {
 
 		const { secondary } = getContextMenuActions(actions, 'inline');
 
-		// Add copy path actions (not shown for built-in items where the path is an implementation detail)
 		const copyActions = item.isBuiltin ? [] : [
 			new Separator(),
 			new Action('copyFullPath', localize('copyFullPath', "Copy Full Path"), undefined, true, async () => {
@@ -892,7 +775,6 @@ export class AICustomizationListWidget extends Disposable {
 					const relative = item.uri.fsPath.substring(basePath.fsPath.length + 1);
 					await this.clipboardService.writeText(relative);
 				} else {
-					// Fallback to workspace-relative via label service
 					const relativePath = this.labelService.getUriLabel(item.uri, { relative: true });
 					await this.clipboardService.writeText(relativePath);
 				}
@@ -905,12 +787,6 @@ export class AICustomizationListWidget extends Disposable {
 		});
 	}
 
-	/**
-	 * Sets the current section and binds the list to the model's per-section
-	 * observable. Returns once the initial fetch for the section has resolved
-	 * so that callers (e.g. tests/fixtures) can rely on rendered output
-	 * reflecting at least one fetch.
-	 */
 	async setSection(section: AICustomizationManagementSection): Promise<void> {
 		const loadId = ++this._sectionLoadId;
 		this.currentSection = section;
@@ -936,17 +812,11 @@ export class AICustomizationListWidget extends Disposable {
 		});
 		this.updateAddButton();
 		await this.itemsModel.whenSectionLoaded(modelSection);
-		// Only announce if this is still the most recent section change; a newer
-		// setSection() call may have already taken over and will make its own
-		// announcement once its own load resolves.
 		if (loadId === this._sectionLoadId) {
 			this.announceItemCount(this.applySearchFilter(this.allItems).length);
 		}
 	}
 
-	/**
-	 * Updates the section header based on the current section.
-	 */
 	private updateSectionHeader(): void {
 		let title: string;
 		let description: string;
@@ -956,32 +826,32 @@ export class AICustomizationListWidget extends Disposable {
 			case AICustomizationManagementSection.Agents:
 				title = localize('agents', "Agents");
 				description = localize('agentsDescription', "Configure the AI to adopt different personas tailored to specific development tasks. Each agent has its own instructions, tools, and behavior.");
-				docsUrl = 'https://code.visualstudio.com/docs/agent-customization/custom-agents?referrer=in-product';
+				docsUrl = 'https://www.dardcor-code.web.id/docs/agent-customization/custom-agents';
 				learnMoreLabel = localize('learnMoreAgents', "Learn more about custom agents");
 				break;
 			case AICustomizationManagementSection.Skills:
 				title = localize('skills', "Skills");
 				description = localize('skillsDescription', "Folders of instructions, scripts, and resources that Dardcor AI loads when relevant to perform specialized tasks.");
-				docsUrl = 'https://code.visualstudio.com/docs/agent-customization/agent-skills?referrer=in-product';
+				docsUrl = 'https://www.dardcor-code.web.id/docs/agent-customization/agent-skills';
 				learnMoreLabel = localize('learnMoreSkills', "Learn more about agent skills");
 				break;
 			case AICustomizationManagementSection.Instructions:
 				title = localize('instructions', "Instructions");
 				description = localize('instructionsDescription', "Define common guidelines and rules that automatically influence how AI generates code and handles development tasks.");
-				docsUrl = 'https://code.visualstudio.com/docs/agent-customization/custom-instructions?referrer=in-product';
+				docsUrl = 'https://www.dardcor-code.web.id/docs/agent-customization/custom-instructions';
 				learnMoreLabel = localize('learnMoreInstructions', "Learn more about custom instructions");
 				break;
 			case AICustomizationManagementSection.Hooks:
 				title = localize('hooks', "Hooks");
 				description = localize('hooksDescription', "Prompts executed at specific points during an agentic lifecycle.");
-				docsUrl = 'https://code.visualstudio.com/docs/agent-customization/hooks?referrer=in-product';
+				docsUrl = 'https://www.dardcor-code.web.id/docs/agent-customization/hooks';
 				learnMoreLabel = localize('learnMoreHooks', "Learn more about hooks");
 				break;
 			case AICustomizationManagementSection.Prompts:
 			default:
 				title = localize('prompts', "Prompts");
 				description = localize('promptsDescription', "Reusable prompts for common development tasks like generating code, performing reviews, or scaffolding components.");
-				docsUrl = 'https://code.visualstudio.com/docs/agent-customization/prompt-files?referrer=in-product';
+				docsUrl = 'https://www.dardcor-code.web.id/docs/agent-customization/prompt-files';
 				learnMoreLabel = localize('learnMorePrompts', "Learn more about prompt files");
 				break;
 		}
@@ -991,16 +861,11 @@ export class AICustomizationListWidget extends Disposable {
 		this.sectionLink.href = docsUrl;
 	}
 
-	/**
-	 * Updates the add button by building a unified action list.
-	 * The first action becomes the primary button; the rest go in the dropdown.
-	 */
 	private updateAddButton(): void {
 		const actions = this.buildCreateActions();
 		const [primary, ...dropdown] = actions;
 		const hasDropdown = dropdown.length > 0;
 
-		// Toggle which button is visible
 		this.addButton.element.style.display = hasDropdown ? '' : 'none';
 		this.addButtonSimple.element.style.display = hasDropdown ? 'none' : '';
 
@@ -1022,10 +887,6 @@ export class AICustomizationListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Builds an ordered list of create actions for the current section.
-	 * The first entry is the primary button; remaining entries are dropdown items.
-	 */
 	private buildCreateActions(): ICreateAction[] {
 		const typeLabel = this.getTypeLabel();
 		const promptType = sectionToPromptType(this.currentSection);
@@ -1033,7 +894,6 @@ export class AICustomizationListWidget extends Disposable {
 		const override = descriptor.sectionOverrides?.get(this.currentSection);
 		const hasWorkspace = this.hasActiveWorkspace();
 
-		// Full command override (e.g. Claude hooks) — single action, no dropdown
 		if (override?.commandId) {
 			return [{
 				label: `$(${Codicon.add.id}) ${override.label}`,
@@ -1042,12 +902,6 @@ export class AICustomizationListWidget extends Disposable {
 			}];
 		}
 
-		// Check for menu-contributed create actions from extensions.
-		// Extensions contribute to AICustomizationManagementCreateMenuId with
-		// when-clauses targeting chatCustomizationSessionType and
-		// chatCustomizationSection context keys.
-		// When a harness contributes create actions, they REPLACE the built-in ones
-		// for all section types, including hooks.
 		const menuActions = this.menuService.getMenuActions(
 			AICustomizationManagementCreateMenuId,
 			this.contextKeyService,
@@ -1075,8 +929,6 @@ export class AICustomizationListWidget extends Disposable {
 		const actions: ICreateAction[] = [];
 		const addedTargets = new Set<string>();
 
-		// Root-file primary button (e.g. "Add CLAUDE.md") — only when workspace is open.
-		// Without a workspace, user creation becomes primary and rootFile goes to dropdown.
 		if (override?.rootFile && hasWorkspace) {
 			actions.push({
 				label: `$(${Codicon.add.id}) ${override.label}`,
@@ -1086,10 +938,8 @@ export class AICustomizationListWidget extends Disposable {
 			addedTargets.add('workspace-root');
 		}
 
-		// Hooks have a simplified action set
 		if (promptType === PromptsType.hook) {
 			if (!descriptor.hideGenerateButton) {
-				// Core Local: Generate is primary, configure hooks in dropdown
 				actions.push({
 					label: `$(${Codicon.sparkle.id}) Generate ${typeLabel}`,
 					enabled: true,
@@ -1103,7 +953,6 @@ export class AICustomizationListWidget extends Disposable {
 					});
 				}
 			} else if (!override?.commandId) {
-				// Non-local: configure hooks (view + create)
 				actions.push({
 					label: `$(${Codicon.add.id}) ${localize('configureHooks', "Configure Hooks")}`,
 					enabled: hasWorkspace,
@@ -1114,19 +963,15 @@ export class AICustomizationListWidget extends Disposable {
 			return actions;
 		}
 
-		// Non-hook sections: build the full action list
 
 		if (!override?.rootFile) {
-			// Determine the primary action (first in list)
 			if (!descriptor.hideGenerateButton) {
-				// Core Local: Generate is primary
 				actions.push({
 					label: `$(${Codicon.sparkle.id}) Generate ${typeLabel}`,
 					enabled: true,
 					run: () => { this._onDidRequestCreate.fire(promptType); },
 				});
 			} else if (hasWorkspace) {
-				// Sessions or non-local harness with workspace: workspace is primary
 				actions.push({
 					label: `$(${Codicon.add.id}) New ${createTypeLabel} (Workspace)`,
 					enabled: true,
@@ -1134,7 +979,6 @@ export class AICustomizationListWidget extends Disposable {
 				});
 				addedTargets.add('workspace');
 			} else {
-				// No workspace: user is primary
 				actions.push({
 					label: `$(${Codicon.add.id}) New ${createTypeLabel} (User)`,
 					enabled: true,
@@ -1144,7 +988,6 @@ export class AICustomizationListWidget extends Disposable {
 			}
 		}
 
-		// Secondary actions (dropdown) — only add if not already present
 		if (hasWorkspace && !addedTargets.has('workspace')) {
 			actions.push({
 				label: `$(${Codicon.folder.id}) New ${createTypeLabel} (Workspace)`,
@@ -1161,7 +1004,6 @@ export class AICustomizationListWidget extends Disposable {
 			});
 		}
 
-		// Root-file shortcuts from the descriptor (e.g. "New AGENTS.md")
 		if (hasWorkspace && override?.rootFileShortcuts && !addedTargets.has('workspace-root')) {
 			for (const fileName of override.rootFileShortcuts) {
 				actions.push({
@@ -1175,29 +1017,18 @@ export class AICustomizationListWidget extends Disposable {
 		return actions;
 	}
 
-	/**
-	 * Gets the dropdown actions for the add button (consumed by ButtonWithDropdown).
-	 * Returns all actions except the primary (first) from buildCreateActions.
-	 */
 	private getDropdownActions(): Action[] {
 		this.dropdownActionDisposables.clear();
 		const allActions = this.buildCreateActions();
-		// Skip the first (primary) action
 		return allActions.slice(1).map((a, i) =>
 			this.dropdownActionDisposables.add(new Action(`create_${i}`, a.label, undefined, a.enabled, () => a.run()))
 		);
 	}
 
-	/**
-	 * Checks if there's an active project root (workspace folder or session repository).
-	 */
 	private hasActiveWorkspace(): boolean {
 		return !!this.workspaceService.getActiveProjectRoot();
 	}
 
-	/**
-	 * Executes the primary create action based on context.
-	 */
 	private executePrimaryCreateAction(): void {
 		const actions = this.buildCreateActions();
 		if (actions.length > 0 && actions[0].enabled) {
@@ -1205,9 +1036,6 @@ export class AICustomizationListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Gets the type label for the current section.
-	 */
 	private getTypeLabel(): string {
 		switch (this.currentSection) {
 			case AICustomizationManagementSection.Agents:
@@ -1224,25 +1052,11 @@ export class AICustomizationListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Announces the current number of items (after search filtering) to
-	 * screen readers via an aria status message. Called when the section
-	 * is loaded and after the search filter changes so assistive technology
-	 * users hear the count, including "no results".
-	 */
 	private announceItemCount(count: number): void {
 		const isFiltering = this.searchQuery.trim().length > 0;
 		aria.status(getCountAnnouncement(this.currentSection, count, isFiltering));
 	}
 
-	/**
-	 * Refreshes the current section's items.
-	 *
-	 * Item discovery is owned by `IAICustomizationItemsModel`. This method
-	 * pulls the current value from the model and re-renders. Callers do not
-	 * need to invoke this in response to data change events — the per-section
-	 * autorun bound in `setSection` already does that.
-	 */
 	refresh(): void {
 		if (this._store.isDisposed) {
 			return;
@@ -1258,23 +1072,11 @@ export class AICustomizationListWidget extends Disposable {
 		this._onDidChangeItemCount.fire(this.allItems.length);
 	}
 
-	/**
-	 * Computes the item count for a given section without updating the display.
-	 * Reads from the items model so the count is consistent with what the
-	 * editor and sidebar render. Returns 0 for sections not modeled here
-	 * (McpServers / Plugins / Models — those have their own services).
-	 */
 	computeItemCountForSection(section: AICustomizationManagementSection): number {
 		const modelSection = toItemsModelSection(section);
 		return modelSection ? this.itemsModel.getCount(modelSection).get() : 0;
 	}
 
-	/**
-	 * Filters items based on the current search query and builds grouped display entries.
-	 */
-	/**
-	 * Applies the search query to items, returning matched items with highlight info.
-	 */
 	private applySearchFilter(items: readonly IAICustomizationListItem[]): IAICustomizationListItem[] {
 		if (!this.searchQuery.trim()) {
 			return items.map(item => ({ ...item, nameMatches: undefined, descriptionMatches: undefined }));
@@ -1302,12 +1104,7 @@ export class AICustomizationListWidget extends Disposable {
 		return matched;
 	}
 
-	/**
-	 * Builds grouped display entries from items assigned to groups.
-	 * Empty groups are omitted. Collapsed groups show only their header.
-	 */
 	private buildGroupedEntries(groups: { groupKey: string; label: string; icon: ThemeIcon; description: string; items: IAICustomizationListItem[] }[]): void {
-		// Sort items within each group
 		for (const group of groups) {
 			group.items.sort((a, b) => a.name.localeCompare(b.name));
 		}
@@ -1342,23 +1139,12 @@ export class AICustomizationListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Commits the current displayEntries to the list and updates empty state.
-	 */
 	private commitDisplayEntries(): void {
 		this.list.splice(0, this.list.length, this.displayEntries);
 		this.updateEmptyState();
 	}
 
-	/**
-	 * Groups normalized list items for display.
-	 * Groups items by normalized storage/groupKey.
-	 */
 	private groupMatchedItems(matchedItems: IAICustomizationListItem[]): void {
-		// Standard provider layout: group by inferred storage/groupKey.
-		// Instructions use semantic categories (matching core path) so
-		// that provider-supplied groupKeys like 'context-instructions'
-		// are routed to the correct collapsible header.
 		const groups: { groupKey: string; label: string; icon: ThemeIcon; description: string; items: IAICustomizationListItem[] }[] =
 			this.currentSection === AICustomizationManagementSection.Instructions
 				? [
@@ -1382,7 +1168,6 @@ export class AICustomizationListWidget extends Disposable {
 			const key = item.groupKey ?? item.source ?? AICustomizationSources.local;
 			let group = groups.find(g => g.groupKey === key);
 			if (!group) {
-				// Dynamically create a group for unknown groupKeys from providers
 				let label: string;
 				switch (key) {
 					case 'remote-host':
@@ -1395,7 +1180,6 @@ export class AICustomizationListWidget extends Disposable {
 						label = formatDisplayName(key);
 				}
 				group = { groupKey: key, label, icon: Codicon.folder, description: '', items: [] };
-				// Insert dynamic groups before the built-in group so it always stays last.
 				const builtinIdx = groups.findIndex(g => g.groupKey === PromptsStorage.builtIn);
 				if (builtinIdx >= 0) {
 					groups.splice(builtinIdx, 0, group);
@@ -1411,9 +1195,6 @@ export class AICustomizationListWidget extends Disposable {
 		this.commitDisplayEntries();
 	}
 
-	/**
-	 * Filters items based on the current search query and builds grouped display entries.
-	 */
 	private filterItems(): number {
 		const matchedItems = this.applySearchFilter(this.allItems);
 		this.groupMatchedItems(matchedItems);
@@ -1421,9 +1202,6 @@ export class AICustomizationListWidget extends Disposable {
 		return matchedItems.length;
 	}
 
-	/**
-	 * Toggles the collapsed state of a group.
-	 */
 	private toggleGroup(entry: IGroupHeaderEntry): void {
 		if (this.collapsedGroups.has(entry.groupKey)) {
 			this.collapsedGroups.delete(entry.groupKey);
@@ -1440,11 +1218,9 @@ export class AICustomizationListWidget extends Disposable {
 			this.listContainer.style.display = 'none';
 
 			if (this.searchQuery.trim()) {
-				// Search with no results
 				this.emptyStateText.textContent = localize('noMatchingItems', "No items match '{0}'", this.searchQuery);
 				this.emptyStateSubtext.textContent = localize('tryDifferentSearch', "Try a different search term");
 			} else {
-				// No items at all - show empty state with create hint
 				const emptyInfo = this.getEmptyStateInfo();
 				this.emptyStateText.textContent = emptyInfo.title;
 				this.emptyStateSubtext.textContent = emptyInfo.description;
@@ -1486,30 +1262,18 @@ export class AICustomizationListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Sets the search query programmatically.
-	 */
 	setSearchQuery(query: string): void {
 		this.searchInput.value = query;
 	}
 
-	/**
-	 * Clears the search query.
-	 */
 	clearSearch(): void {
 		this.searchInput.value = '';
 	}
 
-	/**
-	 * Focuses the search input.
-	 */
 	focusSearch(): void {
 		this.searchInput.focus();
 	}
 
-	/**
-	 * Focuses the list.
-	 */
 	focusList(): void {
 		this.list.domFocus();
 		if (this.displayEntries.length > 0) {
@@ -1517,18 +1281,12 @@ export class AICustomizationListWidget extends Disposable {
 		}
 	}
 
-	/**
-	 * Scrolls the list so the last item is visible.
-	 */
 	revealLastItem(): void {
 		if (this.displayEntries.length > 0) {
 			this.list.reveal(this.displayEntries.length - 1);
 		}
 	}
 
-	/**
-	 * Reveals and selects the first list item whose URI matches one of the provided URIs.
-	 */
 	revealAndSelectFirstItemByUri(uris: readonly URI[]): boolean {
 		const entryIndex = this.displayEntries.findIndex(entry => {
 			return entry.type === 'file-item' && uris.some(uri => isEqual(entry.item.uri, uri));
@@ -1544,21 +1302,12 @@ export class AICustomizationListWidget extends Disposable {
 		return true;
 	}
 
-	/**
-	 * Layouts the widget.
-	 */
 	layout(height: number, width: number): void {
 		this.lastLayoutHeight = height;
 		this.lastLayoutWidth = width;
-		// Use the CSS-computed height within the padded parent.
 		this.element.style.height = '';
 		this.searchInput.layout();
 
-		// Measure sibling elements to calculate the remaining space for the list.
-		// When offsetHeight returns 0 the container may have just become visible
-		// after display:none and the browser hasn't reflowed yet — defer layout
-		// once so measurements are accurate. Only retry once to avoid an endless
-		// loop when the widget is created while permanently hidden.
 		const searchBarHeight = this.searchAndButtonContainer.offsetHeight;
 		if (searchBarHeight === 0 && !this._layoutDeferred) {
 			this._layoutDeferred = true;
@@ -1580,16 +1329,10 @@ export class AICustomizationListWidget extends Disposable {
 		this.list.layout(listHeight, width);
 	}
 
-	/**
-	 * Gets the total item count (before filtering).
-	 */
 	get itemCount(): number {
 		return this.allItems.length;
 	}
 
-	/**
-	 * Generates a debug report for the current section.
-	 */
 	async generateDebugReport(): Promise<string> {
 		if (this._store.isDisposed) {
 			return '';

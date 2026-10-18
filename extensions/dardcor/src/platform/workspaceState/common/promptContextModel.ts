@@ -7,10 +7,6 @@ import type * as vscode from 'vscode';
 import { RepoContext } from '../../git/common/gitService';
 
 
-/**
- * Contains a subset of information needed to construct `IDeserializedWorkspaceState`
- * This is what is saved to the state.json files
- */
 export interface ISerializedWorkspaceState {
 	readonly workspaceFoldersFilePaths: string[] | undefined;
 	readonly workspaceFolderFilePath: string | undefined;
@@ -72,8 +68,6 @@ export interface IWorkspaceStateTestFailure {
 }
 
 export interface IWorkspaceStateChangeFile {
-	/** Path relative to the workspace folder */
 	readonly path: string;
-	/** Contents with which to replace the file. */
 	readonly contents: string;
 }

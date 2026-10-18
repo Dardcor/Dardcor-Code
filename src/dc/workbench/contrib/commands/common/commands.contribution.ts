@@ -17,7 +17,6 @@ type CommandArgs = {
 	commands: RunnableCommand[];
 };
 
-/** Runs several commands passed to it as an argument */
 class RunCommands extends Action2 {
 
 	constructor() {
@@ -73,10 +72,6 @@ class RunCommands extends Action2 {
 		});
 	}
 
-	// dev decisions:
-	// - this command takes a single argument-object because
-	//	- keybinding definitions don't allow running commands with several arguments
-	//  - and we want to be able to take on different other arguments in future, e.g., `runMode : 'serial' | 'concurrent'`
 	async run(accessor: ServicesAccessor, args: unknown) {
 
 		const notificationService = accessor.get(INotificationService);

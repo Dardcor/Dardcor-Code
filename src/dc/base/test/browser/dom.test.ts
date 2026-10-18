@@ -430,7 +430,7 @@ suite('dom', () => {
 		test('works', () => {
 			const safeTriangle = new SafeTriangle(0, 0, fakeElement(10, 20, 10, 20));
 
-			assert.strictEqual(safeTriangle.contains(5, 5), true); // in triangle region
+			assert.strictEqual(safeTriangle.contains(5, 5), true);
 			assert.strictEqual(safeTriangle.contains(15, 5), false);
 			assert.strictEqual(safeTriangle.contains(25, 5), false);
 
@@ -456,7 +456,6 @@ suite('dom', () => {
 	});
 
 	suite('AnimationFrameScheduler', () => {
-		// Helper to wait for an animation frame
 		const waitForAnimationFrame = () => new Promise<void>(resolve => mainWindow.requestAnimationFrame(() => resolve()));
 
 		test('schedules and runs the callback', async () => {
@@ -470,7 +469,6 @@ suite('dom', () => {
 			scheduler.schedule();
 			assert.strictEqual(scheduler.isScheduled(), true);
 
-			// Wait for the animation frame
 			await waitForAnimationFrame();
 
 			assert.strictEqual(callCount, 1);
@@ -491,7 +489,6 @@ suite('dom', () => {
 
 			assert.strictEqual(scheduler.isScheduled(), true);
 
-			// Wait for the animation frame
 			await waitForAnimationFrame();
 
 			assert.strictEqual(callCount, 1);
@@ -510,7 +507,6 @@ suite('dom', () => {
 			scheduler.cancel();
 			assert.strictEqual(scheduler.isScheduled(), false);
 
-			// Wait for the animation frame
 			await waitForAnimationFrame();
 
 			assert.strictEqual(callCount, 0);
@@ -527,7 +523,6 @@ suite('dom', () => {
 			scheduler.schedule();
 			scheduler.dispose();
 
-			// Wait for the animation frame
 			await waitForAnimationFrame();
 
 			assert.strictEqual(callCount, 0);
@@ -555,8 +550,6 @@ suite('dom', () => {
 	suite('DisposableResizeObserver', () => {
 		teardown(() => new Promise<void>(resolve => mainWindow.requestAnimationFrame(() => resolve())));
 
-		// Captures the callback handed to a `ResizeObserver` so tests can fire
-		// deliveries synthetically. Returned via dependency injection — no
 		// global mutation, no `any` casts.
 		interface FakeResizeObserverHandle {
 			ctor: typeof ResizeObserver;
@@ -574,8 +567,8 @@ suite('dom', () => {
 				constructor(callback: ResizeObserverCallback) {
 					handle.fire = entries => callback(entries, this);
 				}
-				observe(_target: Element, _options?: ResizeObserverOptions): void { /* no-op */ }
-				unobserve(_target: Element): void { /* no-op */ }
+				observe(_target: Element, _options?: ResizeObserverOptions): void { }
+				unobserve(_target: Element): void { }
 				disconnect(): void { handle.disconnects++; }
 			}
 			handle.ctor = FakeResizeObserver;
@@ -621,7 +614,7 @@ suite('dom', () => {
 
 		test('dispose disconnects the underlying observer', () => {
 			const fake = createFakeResizeObserverCtor();
-			const observer = new DisposableResizeObserver('test.dispose', () => { /* noop */ }, mainWindow, { resizeObserverCtor: fake.ctor });
+			const observer = new DisposableResizeObserver('test.dispose', () => { }, mainWindow, { resizeObserverCtor: fake.ctor });
 			observer.dispose();
 			assert.strictEqual(fake.disconnects, 1);
 		});
@@ -629,13 +622,8 @@ suite('dom', () => {
 		test('exceptions in the user callback do not propagate', () => {
 			const fake = createFakeResizeObserverCtor();
 			const observer = new DisposableResizeObserver('test.throw', () => { throw new Error('boom'); }, mainWindow, { resizeObserverCtor: fake.ctor });
-			// Browser would not catch a throw out of the native callback; we
-			// must guard so a single bad consumer does not break delivery for
-			// every other observer in the realm. The wrapper routes the throw
-			// to onUnexpectedError, so swap the handler for the duration of
-			// this test so the test runner does not flag it as a failure.
 			const originalErrorHandler = errorHandler.getUnexpectedErrorHandler();
-			setUnexpectedErrorHandler(() => { /* swallow expected */ });
+			setUnexpectedErrorHandler(() => { });
 			try {
 				assert.doesNotThrow(() => fake.fire([fakeEntry()]));
 			} finally {
@@ -648,7 +636,7 @@ suite('dom', () => {
 			const fake = createFakeResizeObserverCtor();
 			const observer = new DisposableResizeObserver(
 				'my-observer',
-				() => { /* noop */ },
+				() => { },
 				mainWindow,
 				{ resizeObserverCtor: fake.ctor },
 			);
@@ -663,10 +651,10 @@ suite('dom', () => {
 
 		test('getRecentDisposableResizeObserverContextForLoopError returns sorted unique wrapped observers from the current frame', () => {
 			const fake = createFakeResizeObserverCtor();
-			const a = new DisposableResizeObserver('a', () => { /* noop */ }, mainWindow, { resizeObserverCtor: fake.ctor });
+			const a = new DisposableResizeObserver('a', () => { }, mainWindow, { resizeObserverCtor: fake.ctor });
 			fake.fire([fakeEntry()]);
 			const fakeB = createFakeResizeObserverCtor();
-			const b = new DisposableResizeObserver('b', () => { /* noop */ }, mainWindow, { resizeObserverCtor: fakeB.ctor });
+			const b = new DisposableResizeObserver('b', () => { }, mainWindow, { resizeObserverCtor: fakeB.ctor });
 			fakeB.fire([fakeEntry()]);
 			fake.fire([fakeEntry()]);
 			const context = getRecentDisposableResizeObserverContextForLoopError(
@@ -684,7 +672,7 @@ suite('dom', () => {
 			const observers: DisposableResizeObserver[] = [];
 			for (let i = 8; i >= 0; i--) {
 				const fake = createFakeResizeObserverCtor();
-				observers.push(new DisposableResizeObserver(`observer-${i}`, () => { /* noop */ }, mainWindow, { resizeObserverCtor: fake.ctor }));
+				observers.push(new DisposableResizeObserver(`observer-${i}`, () => { }, mainWindow, { resizeObserverCtor: fake.ctor }));
 				fake.fire([fakeEntry()]);
 			}
 			assert.strictEqual(
@@ -701,7 +689,7 @@ suite('dom', () => {
 			ensureCodeWindow(auxiliaryWindow, 999);
 
 			const fake = createFakeResizeObserverCtor();
-			const observer = new DisposableResizeObserver('auxiliary', () => { /* noop */ }, auxiliaryWindow, { resizeObserverCtor: fake.ctor });
+			const observer = new DisposableResizeObserver('auxiliary', () => { }, auxiliaryWindow, { resizeObserverCtor: fake.ctor });
 			fake.fire([fakeEntry()]);
 
 			assert.strictEqual(
@@ -720,11 +708,8 @@ suite('dom', () => {
 
 		test('getRecentDisposableResizeObserverContextForLoopError clears at the next animation frame', async () => {
 			const fake = createFakeResizeObserverCtor();
-			const observer = new DisposableResizeObserver('scoped', () => { /* noop */ }, mainWindow, { resizeObserverCtor: fake.ctor });
+			const observer = new DisposableResizeObserver('scoped', () => { }, mainWindow, { resizeObserverCtor: fake.ctor });
 			fake.fire([fakeEntry()]);
-			// Context is recorded synchronously and survives microtasks (so it is
-			// still set when Chromium dispatches the loop warning at the end
-			// of the resize-observation phase).
 			await Promise.resolve();
 			assert.ok(getRecentDisposableResizeObserverContextForLoopError('ResizeObserver loop completed with undelivered notifications.'));
 			await new Promise<void>(resolve => mainWindow.requestAnimationFrame(() => resolve()));

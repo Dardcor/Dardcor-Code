@@ -105,32 +105,24 @@ suite('Fuzzy Scorer', () => {
 		const target = 'HelLo-World';
 
 		const scores: FuzzyScore[] = [];
-		scores.push(_doScore(target, 'HelLo-World', true)); // direct case match
-		scores.push(_doScore(target, 'hello-world', true)); // direct mix-case match
-		scores.push(_doScore(target, 'HW', true)); // direct case prefix (multiple)
-		scores.push(_doScore(target, 'hw', true)); // direct mix-case prefix (multiple)
-		scores.push(_doScore(target, 'H', true)); // direct case prefix
-		scores.push(_doScore(target, 'h', true)); // direct mix-case prefix
-		scores.push(_doScore(target, 'W', true)); // direct case word prefix
-		scores.push(_doScore(target, 'Ld', true)); // in-string case match (multiple)
-		scores.push(_doScore(target, 'ld', true)); // in-string mix-case match (consecutive, avoids scattered hit)
-		scores.push(_doScore(target, 'w', true)); // direct mix-case word prefix
-		scores.push(_doScore(target, 'L', true)); // in-string case match
-		scores.push(_doScore(target, 'l', true)); // in-string mix-case match
-		scores.push(_doScore(target, '4', true)); // no match
+		scores.push(_doScore(target, 'HelLo-World', true));
+		scores.push(_doScore(target, 'hello-world', true));
+		scores.push(_doScore(target, 'HW', true));
+		scores.push(_doScore(target, 'hw', true));
+		scores.push(_doScore(target, 'H', true));
+		scores.push(_doScore(target, 'h', true));
+		scores.push(_doScore(target, 'W', true));
+		scores.push(_doScore(target, 'Ld', true));
+		scores.push(_doScore(target, 'ld', true));
+		scores.push(_doScore(target, 'w', true));
+		scores.push(_doScore(target, 'L', true));
+		scores.push(_doScore(target, 'l', true));
+		scores.push(_doScore(target, '4', true));
 
-		// Assert scoring order
 		const sortedScores = scores.concat().sort((a, b) => b[0] - a[0]);
 		assert.deepStrictEqual(scores, sortedScores);
 
-		// Assert scoring positions
-		// let positions = scores[0][1];
-		// assert.strictEqual(positions.length, 'HelLo-World'.length);
 
-		// positions = scores[2][1];
-		// assert.strictEqual(positions.length, 'HW'.length);
-		// assert.strictEqual(positions[0], 0);
-		// assert.strictEqual(positions[1], 6);
 	});
 
 	test('score (non fuzzy)', function () {
@@ -156,7 +148,6 @@ suite('Fuzzy Scorer', () => {
 		res = scoreItem(resource, 'something', true, NullAccessor);
 		assert.ok(!res.score);
 
-		// Path Identity
 		const identityRes = scoreItem(resource, ResourceAccessor.getItemPath(resource), true, ResourceAccessor);
 		assert.ok(identityRes.score);
 		assert.strictEqual(identityRes.descriptionMatch!.length, 1);
@@ -166,7 +157,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(identityRes.labelMatch![0].start, 0);
 		assert.strictEqual(identityRes.labelMatch![0].end, ResourceAccessor.getItemLabel(resource).length);
 
-		// Basename Prefix
 		const basenamePrefixRes = scoreItem(resource, 'som', true, ResourceAccessor);
 		assert.ok(basenamePrefixRes.score);
 		assert.ok(!basenamePrefixRes.descriptionMatch);
@@ -174,7 +164,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(basenamePrefixRes.labelMatch![0].start, 0);
 		assert.strictEqual(basenamePrefixRes.labelMatch![0].end, 'som'.length);
 
-		// Basename Camelcase
 		const basenameCamelcaseRes = scoreItem(resource, 'sF', true, ResourceAccessor);
 		assert.ok(basenameCamelcaseRes.score);
 		assert.ok(!basenameCamelcaseRes.descriptionMatch);
@@ -184,7 +173,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(basenameCamelcaseRes.labelMatch![1].start, 4);
 		assert.strictEqual(basenameCamelcaseRes.labelMatch![1].end, 5);
 
-		// Basename Match
 		const basenameRes = scoreItem(resource, 'of', true, ResourceAccessor);
 		assert.ok(basenameRes.score);
 		assert.ok(!basenameRes.descriptionMatch);
@@ -194,7 +182,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(basenameRes.labelMatch![1].start, 4);
 		assert.strictEqual(basenameRes.labelMatch![1].end, 5);
 
-		// Path Match
 		const pathRes = scoreItem(resource, 'xyz123', true, ResourceAccessor);
 		assert.ok(pathRes.score);
 		assert.ok(pathRes.descriptionMatch);
@@ -206,7 +193,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(pathRes.descriptionMatch[0].start, 1);
 		assert.strictEqual(pathRes.descriptionMatch[0].end, 4);
 
-		// Ellipsis Match
 		const ellipsisRes = scoreItem(resource, '…me/path/someFile123.txt', true, ResourceAccessor);
 		assert.ok(ellipsisRes.score);
 		assert.ok(pathRes.descriptionMatch);
@@ -218,20 +204,17 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(pathRes.descriptionMatch[0].start, 1);
 		assert.strictEqual(pathRes.descriptionMatch[0].end, 4);
 
-		// No Match
 		const noRes = scoreItem(resource, '987', true, ResourceAccessor);
 		assert.ok(!noRes.score);
 		assert.ok(!noRes.labelMatch);
 		assert.ok(!noRes.descriptionMatch);
 
-		// No Exact Match
 		const noExactRes = scoreItem(resource, '"sF"', true, ResourceAccessor);
 		assert.ok(!noExactRes.score);
 		assert.ok(!noExactRes.labelMatch);
 		assert.ok(!noExactRes.descriptionMatch);
 		assert.strictEqual(noRes.score, noExactRes.score);
 
-		// Verify Scores
 		assert.ok(identityRes.score > basenamePrefixRes.score);
 		assert.ok(basenamePrefixRes.score > basenameRes.score);
 		assert.ok(basenameRes.score > pathRes.score);
@@ -287,7 +270,6 @@ suite('Fuzzy Scorer', () => {
 		const res1 = scoreItem(resource, 'xyz sm', true, ResourceAccessor, cache);
 		assert.ok(res1.score);
 
-		// from the cache's perspective this should be a totally different query
 		const res2 = scoreItem(resource, 'xyz "sm"', true, ResourceAccessor, cache);
 		assert.ok(!res2.score);
 	});
@@ -304,9 +286,6 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - optimize for file paths', function () {
 		const resource = URI.file('/xyz/others/spath/some/xsp/file123.txt');
 
-		// xsp is more relevant to the end of the file path even though it matches
-		// fuzzy also in the beginning. we verify the more relevant match at the
-		// end gets returned.
 		const pathRes = scoreItem(resource, 'xspfile123', true, ResourceAccessor);
 		assert.ok(pathRes.score);
 		assert.ok(pathRes.descriptionMatch);
@@ -334,8 +313,6 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - prefers more compact matches', function () {
 		const resource = URI.file('/1a111d1/11a1d1/something.txt');
 
-		// expect "ad" to be matched towards the end of the file because the
-		// match is more compact
 		const res = scoreItem(resource, 'ad', true, ResourceAccessor);
 		assert.ok(res.score);
 		assert.ok(res.descriptionMatch);
@@ -428,7 +405,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileB.txt');
 		const resourceC = URI.file('/unrelated/some/path/other/fileC.txt');
 
-		// Full resource A path
 		let query = ResourceAccessor.getItemPath(resourceA);
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -441,7 +417,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(res[1], resourceB);
 		assert.strictEqual(res[2], resourceC);
 
-		// Full resource B path
 		query = ResourceAccessor.getItemPath(resourceB);
 
 		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -460,7 +435,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileB.txt');
 		const resourceC = URI.file('/unrelated/some/path/other/fileC.txt');
 
-		// Full resource A basename
 		let query = ResourceAccessor.getItemLabel(resourceA);
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -473,7 +447,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(res[1], resourceB);
 		assert.strictEqual(res[2], resourceC);
 
-		// Full resource B basename
 		query = ResourceAccessor.getItemLabel(resourceB);
 
 		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -492,7 +465,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileB.txt');
 		const resourceC = URI.file('/unrelated/some/path/other/fileC.txt');
 
-		// resource A camelcase
 		let query = 'fA';
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -505,7 +477,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(res[1], resourceB);
 		assert.strictEqual(res[2], resourceC);
 
-		// resource B camelcase
 		query = 'fB';
 
 		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -524,7 +495,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileB.txt');
 		const resourceC = URI.file('/unrelated/some/path/other/fileC.txt');
 
-		// Resource A part of basename
 		let query = 'fileA';
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -537,7 +507,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(res[1], resourceB);
 		assert.strictEqual(res[2], resourceC);
 
-		// Resource B part of basename
 		query = 'fileB';
 
 		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -556,7 +525,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileB.txt');
 		const resourceC = URI.file('/unrelated/some/path/other/fileC.txt');
 
-		// Resource A part of path
 		let query = 'pathfileA';
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -569,7 +537,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(res[1], resourceB);
 		assert.strictEqual(res[2], resourceC);
 
-		// Resource B part of path
 		query = 'pathfileB';
 
 		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -588,7 +555,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileBLonger.txt');
 		const resourceC = URI.file('/unrelated/the/path/other/fileC.txt');
 
-		// Resource A part of path
 		const query = 'somepath';
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -607,7 +573,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileBLonger.txt');
 		const resourceC = URI.file('/unrelated/the/path/other/fileC.txt');
 
-		// Resource A part of path
 		const query = 'file';
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -626,7 +591,6 @@ suite('Fuzzy Scorer', () => {
 		const resourceB = URI.file('/some/path/other/fileB.txt');
 		const resourceC = URI.file('/unrelated/some/path/other/fileC.txt');
 
-		// Resource A part of path
 		const query = 'somepath';
 
 		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
@@ -1148,14 +1112,13 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(prepareQuery('model Tester.ts').original, 'model Tester.ts');
 		assert.strictEqual(prepareQuery('model Tester.ts').originalLowercase, 'model Tester.ts'.toLowerCase());
 		assert.strictEqual(prepareQuery('model Tester.ts').normalized, 'modelTester.ts');
-		assert.strictEqual(prepareQuery('model Tester.ts').expectContiguousMatch, false); // doesn't have quotes in it
+		assert.strictEqual(prepareQuery('model Tester.ts').expectContiguousMatch, false);
 		assert.strictEqual(prepareQuery('Model Tester.ts').normalizedLowercase, 'modeltester.ts');
 		assert.strictEqual(prepareQuery('ModelTester.ts').containsPathSeparator, false);
 		assert.strictEqual(prepareQuery('Model' + sep + 'Tester.ts').containsPathSeparator, true);
 		assert.strictEqual(prepareQuery('"hello"').expectContiguousMatch, true);
 		assert.strictEqual(prepareQuery('"hello"').normalized, 'hello');
 
-		// with spaces
 		let query = prepareQuery('He*llo World');
 		assert.strictEqual(query.original, 'He*llo World');
 		assert.strictEqual(query.normalized, 'HelloWorld');
@@ -1173,7 +1136,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(restoredQuery.values?.length, query.values?.length);
 		assert.strictEqual(restoredQuery.containsPathSeparator, query.containsPathSeparator);
 
-		// with spaces that are empty
 		query = prepareQuery(' Hello   World  	');
 		assert.strictEqual(query.original, ' Hello   World  	');
 		assert.strictEqual(query.originalLowercase, ' Hello   World  	'.toLowerCase());
@@ -1189,7 +1151,6 @@ suite('Fuzzy Scorer', () => {
 		assert.strictEqual(query.values?.[1].normalized, 'World');
 		assert.strictEqual(query.values?.[1].normalizedLowercase, 'World'.toLowerCase());
 
-		// Path related
 		if (isWindows) {
 			assert.strictEqual(prepareQuery('C:\\some\\path').pathNormalized, 'C:\\some\\path');
 			assert.strictEqual(prepareQuery('C:\\some\\path').normalized, 'C:\\some\\path');
@@ -1283,7 +1244,6 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('Using quotes should expect contiguous matches match', function () {
-		// missing the "i" in the query
 		assert.strictEqual(_doScore('contiguous', '"contguous"')[0], 0);
 
 		const score = _doScore('contiguous', '"contiguous"');
@@ -1294,33 +1254,26 @@ suite('Fuzzy Scorer', () => {
 		const score = _doScore('2021-7-26.md', '"26"');
 		assert.strictEqual(score[0], 14);
 
-		// The indexes of the 2 and 6 of "26"
 		assert.strictEqual(score[1][0], 7);
 		assert.strictEqual(score[1][1], 8);
 	});
 
 	test('Workspace symbol search with special characters (#, *)', function () {
-		// Simulates the scenario from the issue where rust-analyzer uses # and * as query modifiers
-		// The original query (with special chars) should reach the language server
-		// but normalized query (without special chars) should be used for fuzzy matching
 
-		// Test #: User types "main#", language server returns "main" symbol
 		let query = prepareQuery('main#');
-		assert.strictEqual(query.original, 'main#'); // Sent to language server
-		assert.strictEqual(query.normalized, 'main'); // Used for fuzzy matching
+		assert.strictEqual(query.original, 'main#');
+		assert.strictEqual(query.normalized, 'main');
 		let [score, matches] = _doScore2('main', 'main#');
 		assert.ok(typeof score === 'number' && score > 0, 'Should match "main" symbol when query is "main#"');
 		assert.ok(matches.length > 0);
 
-		// Test *: User types "foo*", language server returns "foo" symbol
 		query = prepareQuery('foo*');
-		assert.strictEqual(query.original, 'foo*'); // Sent to language server
-		assert.strictEqual(query.normalized, 'foo'); // Used for fuzzy matching
+		assert.strictEqual(query.original, 'foo*');
+		assert.strictEqual(query.normalized, 'foo');
 		[score, matches] = _doScore2('foo', 'foo*');
 		assert.ok(typeof score === 'number' && score > 0, 'Should match "foo" symbol when query is "foo*"');
 		assert.ok(matches.length > 0);
 
-		// Test both: User types "MyClass#*", should match "MyClass"
 		query = prepareQuery('MyClass#*');
 		assert.strictEqual(query.original, 'MyClass#*');
 		assert.strictEqual(query.normalized, 'MyClass');
@@ -1328,7 +1281,6 @@ suite('Fuzzy Scorer', () => {
 		assert.ok(typeof score === 'number' && score > 0, 'Should match "MyClass" symbol when query is "MyClass#*"');
 		assert.ok(matches.length > 0);
 
-		// Test fuzzy matching still works: User types "MC#", should match "MyClass"
 		query = prepareQuery('MC#');
 		assert.strictEqual(query.original, 'MC#');
 		assert.strictEqual(query.normalized, 'MC');
@@ -1336,7 +1288,6 @@ suite('Fuzzy Scorer', () => {
 		assert.ok(typeof score === 'number' && score > 0, 'Should fuzzy match "MyClass" symbol when query is "MC#"');
 		assert.ok(matches.length > 0);
 
-		// Make sure leading # or # in the middle are not removed.
 		query = prepareQuery('#SpecialFunction');
 		assert.strictEqual(query.original, '#SpecialFunction');
 		assert.strictEqual(query.normalized, '#SpecialFunction');
@@ -1344,7 +1295,6 @@ suite('Fuzzy Scorer', () => {
 		assert.ok(typeof score === 'number' && score > 0, 'Should match "#SpecialFunction" symbol when query is "#SpecialFunction"');
 		assert.ok(matches.length > 0);
 
-		// Make sure standalone # is not removed
 		query = prepareQuery('#');
 		assert.strictEqual(query.original, '#');
 		assert.strictEqual(query.normalized, '#', 'Standalone # should not be removed');

@@ -6,9 +6,6 @@
 import type { ForkSessionOptions, ForkSessionResult, GetSubagentMessagesOptions, ListSubagentsOptions, Options, Query, SDKAssistantMessage, SDKResultMessage, SDKSessionInfo, SDKUserMessage, SessionMessage, Settings } from '@anthropic-ai/claude-agent-sdk';
 import type { IClaudeCodeSdkService } from '../claudeCodeSdkService';
 
-/**
- * Mock implementation of IClaudeCodeService for testing
- */
 export class MockClaudeCodeSdkService implements IClaudeCodeSdkService {
 	readonly _serviceBrand: undefined;
 	public queryCallCount = 0;
@@ -88,12 +85,11 @@ export class MockClaudeCodeSdkService implements IClaudeCodeSdkService {
 				this.applyFlagSettingsCallCount++;
 				this.lastAppliedFlagSettings = settings;
 			},
-			abort: () => { /* no-op for mock */ },
+			abort: () => { },
 		} as unknown as Query;
 	}
 
 	private async* createMockGenerator(prompt: AsyncIterable<SDKUserMessage>): AsyncGenerator<SDKAssistantMessage | SDKResultMessage, void, unknown> {
-		// For every user message yielded, emit an assistant text and then a result
 		for await (const msg of prompt) {
 			this.receivedMessages.push(msg);
 			yield {

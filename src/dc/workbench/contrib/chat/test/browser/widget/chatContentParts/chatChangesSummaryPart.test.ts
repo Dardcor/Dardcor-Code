@@ -123,7 +123,6 @@ suite('ChatCheckpointFileChangesSummaryContentPart', () => {
 	test('renders row actions before aligned change count columns', () => {
 		const instantiationService = workbenchInstantiationService(undefined, store);
 		const container = document.createElement('div');
-		// Different digit lengths expose per-row sizing regressions.
 		const diffs = observableValue<readonly IEditSessionEntryDiff[]>('testFileChanges', [
 			{ ...emptySessionEntryDiff(URI.file('/file.md'), URI.file('/file.md')), added: 5, removed: 2 },
 			{ ...emptySessionEntryDiff(URI.file('/other.md'), URI.file('/other.md')), added: 123, removed: 45 },

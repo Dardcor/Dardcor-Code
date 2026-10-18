@@ -120,7 +120,6 @@ export class MergeEditorInput extends AbstractTextResourceEditorInput implements
 			this._inputModel = inputModel;
 
 			this._register(autorun(reader => {
-				/** @description fire dirty event */
 				inputModel.isDirty.read(reader);
 				this._onDidChangeDirty.fire();
 			}));
@@ -177,7 +176,6 @@ export class MergeEditorInput extends AbstractTextResourceEditorInput implements
 		return this._inputModel?.revert(options);
 	}
 
-	// ---- FileEditorInput
 
 	override isDirty(): boolean {
 		return this._inputModel?.isDirty.get() ?? false;
@@ -187,9 +185,6 @@ export class MergeEditorInput extends AbstractTextResourceEditorInput implements
 		this._inputModel?.model.setLanguageId(languageId, source);
 	}
 
-	/**
-	 * Updates the focused editor and triggers a name change event
-	 */
 	public updateFocusedEditor(editor: MergeEditorType): void {
 		if (this._focusedEditor !== editor) {
 			this._focusedEditor = editor;
@@ -198,7 +193,6 @@ export class MergeEditorInput extends AbstractTextResourceEditorInput implements
 		}
 	}
 
-	// implement get/set encoding
 }
 
 function alertFocusedEditor(editor: MergeEditorType) {

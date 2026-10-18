@@ -26,9 +26,6 @@ export interface LinkifiedText {
 	readonly parts: readonly LinkifiedPart[];
 }
 
-/**
- * Coalesces adjacent string parts into a single string part.
- */
 export function coalesceParts(parts: readonly LinkifiedPart[]): LinkifiedPart[] {
 	const out: LinkifiedPart[] = [];
 

@@ -3,24 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * The changeset channel: how the host reports what a session changed on disk.
- *
- * A changeset is computed from git rather than from what a tool reported, so
- * it sees edits the agent made by any means — the scenarios here drive real
- * file changes through host-executed bang commands and never cross the model
- * boundary.
- *
- * The host publishes several changesets per session, each on its own
- * subscribable channel: `branch` (against the branch point), `uncommitted`
- * (working-tree state), and `session` (cumulative for the session). They are
- * separate channels because `changeset/*` actions are scoped to the changeset
- * URI, so a session-only subscription never receives them.
- *
- * This contract previously existed only in the frozen `../protocol/` suite,
- * which drives a mock agent with the magic prompt `terminal-edit:<path>` and
- * so cannot describe the contract for any other AHP implementation.
- */
 
 import assert from 'assert';
 import { execFileSync, execSync } from 'child_process';
@@ -49,7 +31,6 @@ import { createRealSession, dispatchTurn, driveChatTurnToCompletion, driveTurnTo
 import { getActionEnvelope, getAgentHostE2ETestTimeout, isActionNotification } from '../../serverIntegrationTestHelpers.js';
 import { conformanceTest, type IAgentHostE2ETestContext } from './e2eTestContext.js';
 
-/** The subset of `ChangesetFile` these tests assert on. */
 interface IObservedChangesetFile {
 	readonly id: string;
 	readonly reviewed?: boolean;
@@ -102,17 +83,11 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		}
 	}
 
-	/**
-	 * Client sequence numbers must strictly increase for the lifetime of a
-	 * client, and the suite shares one across tests, so they cannot be
-	 * hard-coded per scenario.
-	 */
 	let clientSeq = 1000;
 	function nextClientSeq(): number {
 		return clientSeq++;
 	}
 
-	/** A git repository with one committed file, so a branch point exists. */
 	function createGitWorkspace(prefix: string): string {
 		const workspace = mkdtempSync(join(tmpdir(), prefix));
 		tempDirs.push(workspace);
@@ -189,16 +164,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		return sessionUri;
 	}
 
-	/**
-	 * Writes `file` through a host-executed bang command, so the change reaches
-	 * disk the way an agent's shell edit would rather than from the test
-	 * process. Paths are relative so no Windows backslash has to survive into a
-	 * JavaScript string literal.
-	 *
-	 * The file name and contents are passed as `process.argv` entries rather
-	 * than interpolated into the script, so a value containing a quote or a
-	 * backslash cannot break out of the literal or change what runs.
-	 */
 	function writeFileCommand(file: string, contents: string): string {
 		return `!node -e "require('fs').writeFileSync(process.argv[1],process.argv[2])" ${file} ${contents}`;
 	}
@@ -232,12 +197,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		return URI.parse(fileUri(file)).path.endsWith(`/${basename}`);
 	}
 
-	/**
-	 * Waits for a `changeset/contentChanged` on `channel` that reports
-	 * `basename`. Matched by basename because git resolves symlinks when
-	 * reporting its top level (macOS `/var` versus `/private/var`), so the
-	 * reported URI need not share a prefix with the workspace path.
-	 */
 	async function waitForFileInChangeset(channel: string, basename: string, timeout = 60_000): Promise<IObservedChangesetFile> {
 		const notification = await context.client.waitForNotification(n => {
 			if (!isActionNotification(n, 'changeset/contentChanged') || getActionEnvelope(n).channel !== channel) {
@@ -284,7 +243,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		return state;
 	}
 
-	// Re-reading git state is slow on a contended CI agent.
 	const operationPollRetries = getAgentHostE2ETestTimeout(100, 300);
 
 	async function waitForOperation(channel: string, operationId: string): Promise<IObservedOperation> {
@@ -466,10 +424,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 
 		const subscribed = await context.client.call<SubscribeResult>('subscribe', { channel: branchUri });
 
-		// A changeset is computed asynchronously, so the snapshot a subscriber
-		// receives is a starting point and the terminal status arrives as an
-		// action. Asserting only the snapshot would pass without the host ever
-		// finishing the computation.
 		await context.client.waitForNotification(n =>
 			isActionNotification(n, 'changeset/statusChanged')
 			&& getActionEnvelope(n).channel === branchUri
@@ -499,9 +453,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		const file = await waitForFileInChangeset(branchUri, 'added.txt');
 		await waitForTurnComplete(sessionUri, turnId);
 
-		// A newly added file has no before-side, and its diff counts the added
-		// line. Both come from git rather than from anything the tool reported,
-		// which is the property that makes the changeset trustworthy.
 		assert.deepStrictEqual({
 			hasBeforeSide: file.edit.before !== undefined,
 			hasAfterSide: file.edit.after !== undefined,
@@ -528,8 +479,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		const file = await waitForFileInChangeset(branchUri, 'seed.txt');
 		await waitForTurnComplete(sessionUri, turnId);
 
-		// Unlike an added file, an edit to a committed file has a before-side —
-		// the committed revision — so the client can render a real diff.
 		assert.deepStrictEqual({
 			hasBeforeSide: file.edit.before !== undefined,
 			hasAfterSide: file.edit.after !== undefined,
@@ -751,9 +700,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		const file = await waitForFileInChangeset(branchUri, 'reviewme.txt');
 		await waitForTurnComplete(sessionUri, turnId);
 
-		// `changeset/filesReviewChanged` is the one client-dispatchable action
-		// on this channel: review state is the client's to own, and the server
-		// echoes it back so other connected clients converge.
 		context.client.dispatch({
 			channel: branchUri,
 			clientSeq: nextClientSeq(),
@@ -792,11 +738,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		const turnId = 'turn-changeset-ops';
 		dispatchTurn(context.client, sessionUri, turnId, writeFileCommand('operate.txt', 'OPERATE'), 1);
 
-		// Operations are what a client turns into affordances, and they are
-		// only offered once there is something to act on — a session with no
-		// uncommitted changes advertises none. Each carries the scope it
-		// applies to, so a client knows whether to offer it for the whole
-		// changeset or per file.
 		const notification = await context.client.waitForNotification(n => {
 			if (!isActionNotification(n, 'changeset/contentChanged') || getActionEnvelope(n).channel !== uncommittedUri) {
 				return false;
@@ -1038,7 +979,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		});
 	});
 
-	// The operation is advertised but currently fails for untracked paths; see KNOWN_ISSUES.md.
 	conformanceTest(context, 'discarding an untracked file removes it from disk', async function () {
 		const workspace = createGitWorkspace('ahp-changeset-discard-added-');
 		const sessionUri = await createSessionIn(workspace, 'changeset-discard-added');
@@ -1081,7 +1021,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		});
 	});
 
-	// The Windows changeset does not refresh after the resource-scoped discard completes.
 	conformanceTest(context, 'discarding one file preserves sibling changes', async function () {
 		const workspace = createGitWorkspace('ahp-changeset-discard-one-');
 		writeFileSync(join(workspace, 'first.txt'), 'original first\n');
@@ -1184,7 +1123,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		assert.strictEqual(state.files.find(candidate => candidate.id === file.id)?.reviewed, false);
 	});
 
-	// Repeated edits currently leave the first ready diff in place; see KNOWN_ISSUES.md.
 	conformanceTest(context, 'a second edit updates one changeset entry in place', async function () {
 		const workspace = createGitWorkspace('ahp-changeset-second-edit-');
 		const sessionUri = await createSessionIn(workspace, 'changeset-second-edit');
@@ -1247,7 +1185,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 		});
 	});
 
-	// Windows restores the file but leaves both changesets and the list summary stale.
 	conformanceTest(context, 'discarding the last tracked change clears changeset and list summaries', async function () {
 		const workspace = createGitWorkspace('ahp-changeset-discard-last-');
 		const sessionUri = await createSessionIn(workspace, 'changeset-discard-last');
@@ -1482,7 +1419,6 @@ export function defineChangesetTests(context: IAgentHostE2ETestContext): void {
 
 	if (context.tier === 'parity') {
 		const supportsProviderFileEdits = config.streamingFileCreateToolName !== undefined || config.fileOperationStrategy === 'shell';
-		// Skip unstable Codex packaged-Linux shell replay while retaining recording and unaffected platforms.
 		const providerFileEditsEnabled = config.fileOperationStrategy !== 'shell' || context.portableShellToolReplayEnabled;
 		(config.supportsMultipleChats && supportsProviderFileEdits && providerFileEditsEnabled ? test : test.skip)('session changeset aggregates provider edits from default and peer chats', async function () {
 			this.timeout(240_000);

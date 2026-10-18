@@ -17,10 +17,6 @@ export class Editors {
 
 	async selectTab(fileName: string): Promise<void> {
 
-		// Selecting a tab and making an editor have keyboard focus
-		// is critical to almost every test. As such, we try our
-		// best to retry this task in case some other component steals
-		// focus away from the editor while we attempt to get focus
 
 		let error: unknown | undefined = undefined;
 		let retries = 0;
@@ -28,7 +24,7 @@ export class Editors {
 			await this.code.waitAndClick(`.tabs-container div.tab[data-resource-name$="${fileName}"]`);
 
 			try {
-				await this.waitForEditorFocus(fileName, 5 /* 5 retries * 100ms delay = 0.5s */);
+				await this.waitForEditorFocus(fileName, 5 );
 				return;
 			} catch (e) {
 				error = e;
@@ -36,7 +32,6 @@ export class Editors {
 			}
 		}
 
-		// We failed after 10 retries
 		throw error;
 	}
 

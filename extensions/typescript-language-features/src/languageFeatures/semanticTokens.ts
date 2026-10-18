@@ -9,7 +9,6 @@ import * as Proto from '../tsServer/protocol/protocol';
 import { ClientCapability, ITypeScriptServiceClient } from '../typescriptService';
 import { conditionalRegistration, requireSomeCapability } from './util/dependentRegistration';
 
-// as we don't do deltas, for performance reasons, don't compute semantic tokens for documents above that limit
 const CONTENT_LENGTH_LIMIT = 100000;
 
 export function register(
@@ -71,14 +70,7 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 		const versionAfterRequest = document.version;
 
 		if (versionBeforeRequest !== versionAfterRequest) {
-			// cannot convert result's offsets to (line;col) values correctly
-			// a new request will come in soon...
-			//
-			// here we cannot return null, because returning null would remove all semantic tokens.
-			// we must throw to indicate that the semantic tokens should not be removed.
-			// using the string busy here because it is not logged to error telemetry if the error text contains busy.
 
-			// as the new request will come in right after our response, we first wait for the document activity to stop
 			await waitForDocumentChangesToEnd(document);
 
 			throw new vscode.CancellationError();
@@ -99,7 +91,6 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 
 			const tokenModifiers = getTokenModifierFromClassification(tsClassification);
 
-			// we can use the document's range conversion methods because the result is at the same version as the document
 			const startPos = document.positionAt(offset);
 			const endPos = document.positionAt(offset + length);
 
@@ -128,8 +119,6 @@ function waitForDocumentChangesToEnd(document: vscode.TextDocument) {
 }
 
 
-// typescript encodes type and modifiers in the classification:
-// TSClassification = (TokenType + 1) << 8 + TokenModifier
 
 const enum TokenType {
 	class = 0,

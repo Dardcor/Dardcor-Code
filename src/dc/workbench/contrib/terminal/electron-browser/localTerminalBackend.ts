@@ -64,11 +64,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 	private _directProxy: IPtyService | undefined;
 	private readonly _directProxyDisposables = this._register(new MutableDisposable());
 
-	/**
-	 * Communicate to the direct proxy (renderer<->ptyhost) if it's available, otherwise use the
-	 * indirect proxy (renderer<->main<->ptyhost). The latter may not need to actually launch the
-	 * pty host, for example when detecting profiles.
-	 */
 	private get _proxy(): IPtyService { return this._directProxy || this._localPtyService; }
 
 	private readonly _whenReady = new DeferredPromise<void>();
@@ -107,11 +102,7 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 		}));
 	}
 
-	/**
-	 * Request a direct connection to the pty host, this will launch the pty host process if necessary.
-	 */
 	private async _connectToDirectProxy(): Promise<void> {
-		// Check if connecting is in progress
 		if (this._directProxyClientEventually) {
 			await this._directProxyClientEventually.p;
 			return;
@@ -124,8 +115,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 		this._directProxy = directProxy;
 		this._directProxyDisposables.clear();
 
-		// The pty host should not get launched until at least the window restored phase
-		// if remote auth exists, don't await
 		if (!this._remoteAgentService.getConnection()?.remoteAuthority) {
 			await this._lifecycleService.when(LifecyclePhase.Restored);
 		}
@@ -139,15 +128,10 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 			const store = new DisposableStore();
 			this._directProxyDisposables.value = store;
 
-			// There are two connections to the pty host; one to the regular shared process
-			// _localPtyService, and one directly via message port _ptyHostDirectProxy. The former is
-			// used for pty host management messages, it would make sense in the future to use a
-			// separate interface/service for this one.
 			const client = store.add(new MessagePortClient(port, `window:${this._nativeHostService.windowId}`));
 			directProxyClientEventually.complete(client);
 			this._onPtyHostConnected.fire();
 
-			// Attach process listeners
 			store.add(directProxy.onProcessData(e => this._ptys.get(e.id)?.handleData(e.event)));
 			store.add(directProxy.onDidChangeProperty(e => this._ptys.get(e.id)?.handleDidChangeProperty(e.property)));
 			store.add(directProxy.onProcessExit(e => {
@@ -163,7 +147,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 			store.add(directProxy.onProcessOrphanQuestion(e => this._ptys.get(e.id)?.handleOrphanQuestion()));
 			store.add(directProxy.onDidRequestDetach(e => this._onDidRequestDetach.fire(e)));
 
-			// Eagerly fetch the backend's environment for memoization
 			this.getEnvironment();
 		});
 	}
@@ -301,7 +284,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 	async getShellEnvironment(): Promise<IProcessEnvironment> {
 		const env = { ... await this._shellEnvironmentService.getShellEnv() };
 
-		// If running in the context of an extension development host, include the environment derived from the launch configuration
 		if (this._environmentService.debugExtensionHost.env) {
 			terminalEnvironment.mergeEnvironments(env, this._environmentService.debugExtensionHost.env);
 		}
@@ -320,8 +302,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 			background: layoutInfo ? layoutInfo.background : null
 		};
 		await this._proxy.setTerminalLayoutInfo(args);
-		// Store in the storage service as well to be used when reviving processes as normally this
-		// is stored in memory on the pty host
 		this._storageService.store(TerminalStorageKeys.TerminalLayoutInfo, JSON.stringify(args), StorageScope.WORKSPACE, StorageTarget.MACHINE);
 	}
 
@@ -329,18 +309,14 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 		const workspaceId = this._getWorkspaceId();
 		const layoutArgs: IGetTerminalLayoutInfoArgs = { workspaceId };
 
-		// Revive processes if needed
 		const serializedState = this._storageService.get(TerminalStorageKeys.TerminalBufferState, StorageScope.WORKSPACE);
 		const reviveBufferState = this._deserializeTerminalState(serializedState);
 		if (reviveBufferState && reviveBufferState.length > 0) {
 			try {
-				// Create variable resolver
 				const activeWorkspaceRootUri = this._historyService.getLastActiveWorkspaceRoot();
 				const lastActiveWorkspace = activeWorkspaceRootUri ? this._workspaceContextService.getWorkspaceFolder(activeWorkspaceRootUri) ?? undefined : undefined;
 				const variableResolver = terminalEnvironment.createVariableResolver(lastActiveWorkspace, await this._terminalProfileResolverService.getEnvironment(this.remoteAuthority), this._configurationResolverService);
 
-				// Re-resolve the environments and replace it on the state so local terminals use a fresh
-				// environment
 				mark('code/terminal/willGetReviveEnvironments');
 				await Promise.all(reviveBufferState.map(state => new Promise<void>(r => {
 					this._resolveEnvironmentForRevive(variableResolver, state.shellLaunchConfig).then(freshEnv => {
@@ -354,8 +330,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 				await this._proxy.reviveTerminalProcesses(workspaceId, reviveBufferState, Intl.DateTimeFormat().resolvedOptions().locale);
 				mark('code/terminal/didReviveTerminalProcesses');
 				this._storageService.remove(TerminalStorageKeys.TerminalBufferState, StorageScope.WORKSPACE);
-				// If reviving processes, send the terminal layout info back to the pty host as it
-				// will not have been persisted on application exit
 				const layoutInfo = this._storageService.get(TerminalStorageKeys.TerminalLayoutInfo, StorageScope.WORKSPACE);
 				if (layoutInfo) {
 					mark('code/terminal/willSetTerminalLayoutInfo');
@@ -387,7 +361,6 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 		return this._labelService.getWorkspaceLabel(this._workspaceContextService.getWorkspace());
 	}
 
-	// #region Pty service contribution RPC calls
 
 	installAutoReply(match: string, reply: string): Promise<void> {
 		return this._proxy.installAutoReply(match, reply);
@@ -396,5 +369,4 @@ class LocalTerminalBackend extends BaseTerminalBackend implements ITerminalBacke
 		return this._proxy.uninstallAllAutoReplies();
 	}
 
-	// #endregion
 }

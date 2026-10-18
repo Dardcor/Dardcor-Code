@@ -36,27 +36,19 @@ async function checkPythonVersion(pythonBin: string): Promise<boolean> {
 			return major > MIN_PYTHON_VERSION[0] || (major === MIN_PYTHON_VERSION[0] && minor >= MIN_PYTHON_VERSION[1]);
 		}
 	} catch {
-		// not available
 	}
 	return false;
 }
 
-/**
- * Finds a Python binary that meets the minimum version requirement.
- * Tries well-known candidates first, and if none are suitable,
- * installs Python 3.12 via Homebrew.
- */
 async function findSuitablePython(): Promise<string> {
 	const candidates = [
 		'python3',
 		'python3.12',
 		'python3.11',
 		'python3.10',
-		// Homebrew paths (Apple Silicon)
 		'/opt/homebrew/opt/python@3.12/bin/python3',
 		'/opt/homebrew/opt/python@3.11/bin/python3',
 		'/opt/homebrew/opt/python@3.10/bin/python3',
-		// Homebrew paths (Intel)
 		'/usr/local/opt/python@3.12/bin/python3',
 		'/usr/local/opt/python@3.11/bin/python3',
 		'/usr/local/opt/python@3.10/bin/python3',
@@ -75,12 +67,10 @@ async function findSuitablePython(): Promise<string> {
 		env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1', HOMEBREW_NO_INSTALL_CLEANUP: '1' }
 	});
 
-	// Use `brew --prefix` to reliably locate the installation
 	const brewPrefix = (await spawn('brew', ['--prefix', 'python@3.12'])).trim();
 	const brewBinDir = path.join(brewPrefix, 'bin');
 	console.log(`Homebrew Python prefix: ${brewPrefix}`);
 
-	// Try both python3 and python3.12 (keg-only formulae may only have the versioned name)
 	for (const name of ['python3', 'python3.12']) {
 		const fullPath = path.join(brewBinDir, name);
 		if (await checkPythonVersion(fullPath)) {
@@ -178,7 +168,6 @@ async function main(buildDir?: string, outDir?: string): Promise<void> {
 		fs.unlinkSync(artifactPath);
 	}
 
-	// Copy and process the settings template for dmgbuild
 	const settingsTemplatePath = path.join(import.meta.dirname, 'dmg-settings.py.template');
 	const settingsFile = path.join(outDir, '.dmg-settings.py');
 	let settingsContent = fs.readFileSync(settingsTemplatePath, 'utf8');

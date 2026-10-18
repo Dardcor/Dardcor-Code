@@ -9,7 +9,6 @@ import { localize } from '../../../../nls.js';
 import { CHATGPT_SUBSCRIPTION_MODEL_SOURCE_ID } from '../../../../platform/agentHost/common/agentModelSource.js';
 import { ILanguageModelChatMetadataAndIdentifier } from './languageModels.js';
 
-/** Presentation for a trusted model source owned by one language-model vendor. */
 export interface ILanguageModelSourcePresentation {
 	readonly ownerVendor: string;
 	readonly sourceId: string;
@@ -50,10 +49,6 @@ class LanguageModelSourcePresentationRegistry implements ILanguageModelSourcePre
 
 export const languageModelSourcePresentationRegistry: ILanguageModelSourcePresentationRegistry = new LanguageModelSourcePresentationRegistry();
 
-/**
- * Adds the source label to models provided by a ChatGPT subscription. Other model names remain
- * unadorned.
- */
 export function getLanguageModelDisplayNameWithSubscriptionSource(
 	model: ILanguageModelChatMetadataAndIdentifier,
 	displayName = model.metadata.name,

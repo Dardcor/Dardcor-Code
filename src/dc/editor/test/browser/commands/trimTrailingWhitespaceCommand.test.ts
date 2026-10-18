@@ -18,9 +18,6 @@ import { NullState } from '../../../common/languages/nullTokenize.js';
 import { getEditOperation } from '../testCommand.js';
 import { createModelServices, instantiateTextModel, withEditorModel } from '../../common/testTextModel.js';
 
-/**
- * Create single edit operation
- */
 function createInsertDeleteSingleEditOp(text: string | null, positionLineNumber: number, positionColumn: number, selectionLineNumber: number = positionLineNumber, selectionColumn: number = positionColumn): ISingleEditOperation {
 	return {
 		range: new Range(selectionLineNumber, selectionColumn, positionLineNumber, positionColumn),
@@ -28,9 +25,6 @@ function createInsertDeleteSingleEditOp(text: string | null, positionLineNumber:
 	};
 }
 
-/**
- * Create single edit operation
- */
 function createSingleEditOp(text: string | null, positionLineNumber: number, positionColumn: number, selectionLineNumber: number = positionLineNumber, selectionColumn: number = positionColumn): ISingleEditOperation {
 	return {
 		range: new Range(selectionLineNumber, selectionColumn, positionLineNumber, positionColumn),

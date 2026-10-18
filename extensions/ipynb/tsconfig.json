@@ -16,6 +16,6 @@
 	},
 	"include": [
 		"src/**/*",
-		"../../src/vscode-dts/vscode.d.ts"
+		"../../src/dardcor-dts/dardcor.d.ts"
 	]
 }

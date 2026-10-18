@@ -35,10 +35,6 @@ interface IPreparedModel {
 	readonly canMove: boolean;
 }
 
-/**
- * Imports the official Foundry Local expansion pack (ZIP or extracted OCI
- * layout), or an already prepared model directory, into the model cache.
- */
 export async function importFoundryLocalModel(sourcePath: string, cacheDir: string): Promise<ILocalTranscriptionModelImportResult> {
 	const sourceStat = await fs.stat(sourcePath);
 	await fs.mkdir(cacheDir, { recursive: true });
@@ -168,7 +164,6 @@ function resolveOciBlob(ociRoot: string, digest: string): { readonly path: strin
 	return { path: join(ociRoot, 'blobs', 'sha256', hash), hash };
 }
 
-/** Read a (small) OCI blob into memory and verify it against its content digest. */
 async function readVerifiedOciBlob(ociRoot: string, digest: string): Promise<Buffer> {
 	const blob = resolveOciBlob(ociRoot, digest);
 	const contents = await fs.readFile(blob.path);
@@ -178,7 +173,6 @@ async function readVerifiedOciBlob(ociRoot: string, digest: string): Promise<Buf
 	return contents;
 }
 
-/** Verify a blob against its content digest by streaming it (no full buffering). */
 async function verifyOciBlob(blob: { readonly path: string; readonly hash: string }): Promise<void> {
 	const hash = createHash('sha256');
 	for await (const chunk of createReadStream(blob.path)) {
@@ -189,12 +183,6 @@ async function verifyOciBlob(blob: { readonly path: string; readonly hash: strin
 	}
 }
 
-/**
- * Interpret a Foundry Local `inference_model.json` `Name`. Returns the model
- * version when the name identifies the supported nemotron CPU model, throws when
- * it names a *different* model, and returns `undefined` when there is no name to
- * check (a truly unlabeled package we accept on trust).
- */
 function modelVersionFromName(name: string | undefined): number | undefined {
 	if (!name) {
 		return undefined;
@@ -206,12 +194,6 @@ function modelVersionFromName(name: string | undefined): number | undefined {
 	return Number(match.groups.version);
 }
 
-/**
- * Guard the OCI path against mislabeling: if the materialized payload already
- * carries an `inference_model.json`, it must identify the supported model at
- * this version before we (re)write our own scanner metadata over it. A payload
- * with no embedded identity is accepted on trust.
- */
 async function assertMaterializedIdentity(versionDirectory: string, version: number): Promise<void> {
 	let metadata: { Name?: string };
 	try {
@@ -285,10 +267,6 @@ async function installPreparedModel(model: IPreparedModel, cacheDir: string): Pr
 		await writeInferenceModel(stagedVersion, model.version);
 		await replaceDirectory(staged, target, backup);
 	} finally {
-		// Only the staging area is always safe to remove. The backup is owned by
-		// `replaceDirectory`: it is deleted there once the swap succeeds and is
-		// otherwise the sole surviving copy of a previously working model, so it
-		// must never be force-removed here (a failed rollback would lose it).
 		await fs.rm(staged, { recursive: true, force: true });
 	}
 }

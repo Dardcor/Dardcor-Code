@@ -3,27 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Cursor contexts used by snippet providers, e.g. similar files.
- *
- * A 'cursor context' is quite similar to a prompt, but it is meant as a more
- * basic, lightweight and ultimately myopic look at what the user is currently doing.
- */
 
 import { DocumentInfoWithOffset } from '../prompt';
 import { getTokenizer, TokenizerName } from '../tokenization';
 
-/**
- * Options for cursor context generation.
- */
 type CursorContextOptions = {
-	/** The maximum cursor context length in tokens */
 	maxTokenLength?: number;
 
-	/** The maximum number of lines in a cursor context */
 	maxLineCount?: number;
 
-	/** TokenizerName for the tokenization */
 	tokenizerName: TokenizerName;
 };
 
@@ -36,25 +24,12 @@ function cursorContextOptions(options?: Partial<CursorContextOptions>): CursorCo
 }
 
 export interface CursorContextInfo {
-	/** The compiled context as a string */
 	context: string;
-	/** The number of tokens in the context */
 	tokenLength: number;
-	/** The number of lines in the context */
 	lineCount: number;
-	/** TokenizerName for the tokenization */
 	tokenizerName: TokenizerName;
 }
 
-/**
- * Return a cursor context corresponding to this document info.
- * This is essentially a trimmed-down version of a prompt.
- *
- * If maxLineCount or maxTokenLength are 0, an empty context is returned
- * If exactly one of `maxLineCount` or `maxTokenLength` is defined, the limit is applied for that one only
- * If both are defined, we apply both conditions so end up using the shorter of the two constraints
- * If both are undefined, the entire document up to the cursor is returned
- */
 export function getCursorContext(
 	doc: DocumentInfoWithOffset,
 	options: Partial<CursorContextOptions> = {}
@@ -78,7 +53,7 @@ export function getCursorContext(
 		};
 	}
 
-	let context = doc.source.slice(0, doc.offset); // Trim to cursor location, offset is a character location
+	let context = doc.source.slice(0, doc.offset);
 	if (completeOptions.maxLineCount !== undefined) {
 		context = context.split('\n').slice(-completeOptions.maxLineCount).join('\n');
 	}

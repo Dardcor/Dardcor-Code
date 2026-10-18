@@ -150,7 +150,6 @@ export class ExtensionLinter {
 						const proposalName = child.type === 'string' ? getNodeValue(child) : undefined;
 						if (typeof proposalName === 'string' && proposalName.includes('@')) {
 							const atIndex = proposalName.indexOf('@');
-							// child.offset points at the opening quote; +1 for the quote, +atIndex to reach '@'
 							const start = document.positionAt(child.offset + 1 + atIndex);
 							const end = document.positionAt(child.offset + child.length - 1);
 							diagnostics.push(new Diagnostic(new Range(start, end), apiProposalVersionNotSupported, DiagnosticSeverity.Warning));
@@ -176,14 +175,12 @@ export class ExtensionLinter {
 					for (const activationEventNode of activationEventsNode.children) {
 						const activationEvent = getNodeValue(activationEventNode);
 						const isImplicitActivationSupported = info.engineVersion && (info.engineVersion.majorBase > 1 || (info.engineVersion.majorBase === 1 && info.engineVersion.minorBase >= 75));
-						// Redundant Implicit Activation
 						if (isImplicitActivationSupported && info.implicitActivationEvents?.has(activationEvent) && redundantImplicitActivationEventPrefixes.some((prefix) => activationEvent.startsWith(prefix))) {
 							const start = document.positionAt(activationEventNode.offset);
 							const end = document.positionAt(activationEventNode.offset + activationEventNode.length);
 							diagnostics.push(new Diagnostic(new Range(start, end), redundantImplicitActivationEvent, DiagnosticSeverity.Warning));
 						}
 
-						// Reserved Implicit Activation
 						for (const implicitActivationEventPrefix of reservedImplicitActivationEventPrefixes) {
 							if (isImplicitActivationSupported && activationEvent.startsWith(implicitActivationEventPrefix)) {
 								const start = document.positionAt(activationEventNode.offset);
@@ -192,14 +189,13 @@ export class ExtensionLinter {
 							}
 						}
 
-						// Star activation
 						if (activationEvent === '*') {
 							const start = document.positionAt(activationEventNode.offset);
 							const end = document.positionAt(activationEventNode.offset + activationEventNode.length);
 							const diagnostic = new Diagnostic(new Range(start, end), starActivation, DiagnosticSeverity.Information);
 							diagnostic.code = {
 								value: 'star-activation',
-								target: Uri.parse('https://code.visualstudio.com/api/references/activation-events#Start-up'),
+								target: Uri.parse('https://www.dardcor-code.web.id/api/references/activation-events#Start-up'),
 							};
 							diagnostics.push(diagnostic);
 						}
@@ -213,7 +209,6 @@ export class ExtensionLinter {
 		}
 	}
 
-	/** lints `when` and `enablement` clauses */
 	private async lintWhenClauses(contributesNode: JsonNode | undefined, document: TextDocument): Promise<Diagnostic[]> {
 		if (!contributesNode) {
 			return [];
@@ -230,7 +225,7 @@ export class ExtensionLinter {
 							const value = node.children[1];
 							switch (value.type) {
 								case 'string':
-									if (key.value === clauseName && typeof value.value === 'string' /* careful: `.value` MUST be a string 1) because a when/enablement clause is string; so also, type cast to string below is safe */) {
+									if (key.value === clauseName && typeof value.value === 'string' ) {
 										whenClauses.push(value);
 									}
 								case 'object':
@@ -257,7 +252,7 @@ export class ExtensionLinter {
 
 		findWhens(findNodeAtLocation(contributesNode, ['commands']), 'enablement');
 
-		const parseResults = await commands.executeCommand<{ errorMessage: string; offset: number; length: number }[][]>('_validateWhenClauses', whenClauses.map(w => w.value as string /* we make sure to capture only if `w.value` is string above */));
+		const parseResults = await commands.executeCommand<{ errorMessage: string; offset: number; length: number }[][]>('_validateWhenClauses', whenClauses.map(w => w.value as string ));
 
 		const diagnostics: Diagnostic[] = [];
 		for (let i = 0; i < parseResults.length; ++i) {
@@ -268,13 +263,13 @@ export class ExtensionLinter {
 			for (const error of parseResults[i]) {
 				const realOffset = jsonStringScanner.getOffsetInEncoded(error.offset);
 				const realOffsetEnd = jsonStringScanner.getOffsetInEncoded(error.offset + error.length);
-				const start = document.positionAt(realOffset /* +1 to account for the quote (I think) */);
+				const start = document.positionAt(realOffset );
 				const end = document.positionAt(realOffsetEnd);
 				const errMsg = `${parsingErrorHeader}\n\n${error.errorMessage}`;
 				const diagnostic = new Diagnostic(new Range(start, end), errMsg, DiagnosticSeverity.Error);
 				diagnostic.code = {
 					value: 'See docs',
-					target: Uri.parse('https://code.visualstudio.com/api/references/when-clause-contexts'),
+					target: Uri.parse('https://www.dardcor-code.web.id/api/references/when-clause-contexts'),
 				};
 				diagnostics.push(diagnostic);
 			}
@@ -421,19 +416,19 @@ export class ExtensionLinter {
 		const str = folder.toString();
 		const oldInfo = this.folderToPackageJsonInfo[str];
 		if (oldInfo && (oldInfo.isExtension !== info.isExtension || oldInfo.hasHttpsRepository !== info.hasHttpsRepository)) {
-			this.packageJsonChanged(folder); // clears this.folderToPackageJsonInfo[str]
+			this.packageJsonChanged(folder);
 		}
 		this.folderToPackageJsonInfo[str] = info;
 		return info;
 	}
 
 	private async loadPackageJson(folder: Uri) {
-		if (folder.scheme === 'git') { // #36236
+		if (folder.scheme === 'git') {
 			return undefined;
 		}
 		const file = folder.with({ path: path.posix.join(folder.path, 'package.json') });
 		try {
-			const fileContents = await workspace.fs.readFile(file); // #174888
+			const fileContents = await workspace.fs.readFile(file);
 			return parseTree(Buffer.from(fileContents).toString('utf-8'));
 		} catch (err) {
 			return undefined;
@@ -514,7 +509,6 @@ function parseUri(src: string, base?: string, retry: boolean = true): Uri | null
 function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 	const activationEvents = new Set<string>();
 
-	// commands
 	const commands = findNodeAtLocation(tree, ['contributes', 'commands']);
 	commands?.children?.forEach(child => {
 		const command = findNodeAtLocation(child, ['command']);
@@ -523,7 +517,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// authenticationProviders
 	const authenticationProviders = findNodeAtLocation(tree, ['contributes', 'authentication']);
 	authenticationProviders?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['id']);
@@ -532,7 +525,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// languages
 	const languageContributions = findNodeAtLocation(tree, ['contributes', 'languages']);
 	languageContributions?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['id']);
@@ -542,7 +534,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// customEditors
 	const customEditors = findNodeAtLocation(tree, ['contributes', 'customEditors']);
 	customEditors?.children?.forEach(child => {
 		const viewType = findNodeAtLocation(child, ['viewType']);
@@ -551,7 +542,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// views
 	const viewContributions = findNodeAtLocation(tree, ['contributes', 'views']);
 	viewContributions?.children?.forEach(viewContribution => {
 		const views = viewContribution.children?.find((node) => node.type === 'array');
@@ -563,7 +553,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		});
 	});
 
-	// walkthroughs
 	const walkthroughs = findNodeAtLocation(tree, ['contributes', 'walkthroughs']);
 	walkthroughs?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['id']);
@@ -572,7 +561,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// notebookRenderers
 	const notebookRenderers = findNodeAtLocation(tree, ['contributes', 'notebookRenderer']);
 	notebookRenderers?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['id']);
@@ -581,7 +569,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// terminalProfiles
 	const terminalProfiles = findNodeAtLocation(tree, ['contributes', 'terminal', 'profiles']);
 	terminalProfiles?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['id']);
@@ -590,7 +577,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// terminalQuickFixes
 	const terminalQuickFixes = findNodeAtLocation(tree, ['contributes', 'terminal', 'quickFixes']);
 	terminalQuickFixes?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['id']);
@@ -599,7 +585,6 @@ function parseImplicitActivationEvents(tree: JsonNode): Set<string> {
 		}
 	});
 
-	// tasks
 	const tasks = findNodeAtLocation(tree, ['contributes', 'taskDefinitions']);
 	tasks?.children?.forEach(child => {
 		const id = findNodeAtLocation(child, ['type']);

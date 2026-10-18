@@ -10,7 +10,6 @@ export interface ICarouselImage {
 	readonly id: string;
 	readonly name: string;
 	readonly mimeType: string;
-	/** In-memory image data. Omit when the image can be loaded lazily from `uri`. */
 	readonly data?: VSBuffer;
 	readonly uri?: URI;
 	readonly source?: string;

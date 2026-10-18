@@ -17,20 +17,17 @@ export async function assertLinkHelper(
 ) {
 	detector.xterm.reset();
 
-	// Write the text and wait for the parser to finish
 	await new Promise<void>(r => detector.xterm.write(text, r));
 	const textSplit = text.split('\r\n');
 	const lastLineIndex = textSplit.filter((e, i) => i !== textSplit.length - 1).reduce((p, c) => {
 		return p + Math.max(Math.ceil(c.length / 80), 1);
 	}, 0);
 
-	// Ensure all links are provided
 	const lines: IBufferLine[] = [];
 	for (let i = 0; i < detector.xterm.buffer.active.cursorY + 1; i++) {
 		lines.push(detector.xterm.buffer.active.getLine(i)!);
 	}
 
-	// Detect links always on the last line with content
 	const actualLinks = (await detector.detect(lines, lastLineIndex, detector.xterm.buffer.active.cursorY)).map(e => {
 		return {
 			link: e.uri?.toString() ?? e.text,

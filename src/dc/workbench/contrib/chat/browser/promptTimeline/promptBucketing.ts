@@ -3,27 +3,18 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/** A user prompt that can be represented on the prompt timeline. */
 export interface PromptItem {
-	/** Stable id of the user request (chat request view model id). */
 	readonly requestId: string;
-	/** Preview text of the prompt (already single-line/plain is fine). */
 	readonly text: string;
-	/** Creation time in ms since epoch. */
 	readonly timestamp: number;
 }
 
-/** A timeline tick representing one or more chronological prompts. */
 export interface PromptBucket {
-	/** Representative prompt (the FIRST prompt in the bucket) — the jump target. */
 	readonly prompt: PromptItem;
-	/** All prompts grouped into this bucket, in chronological order. */
 	readonly prompts: readonly PromptItem[];
-	/** How many prompts this tick represents (== prompts.length). */
 	readonly count: number;
 }
 
-/** Hard cap on the number of ticks produced. */
 export const MAX_TICKS = 24;
 
 const oneDayMs = 86400000;
@@ -141,11 +132,6 @@ function expandRecentBuckets(buckets: PromptBucket[], maxTicks: number): PromptB
 	return expanded;
 }
 
-/**
- * Compresses chronological prompts into a bounded set of recency-aware timeline ticks.
- * Pass `now` in tests to make time-based grouping deterministic. `maxTicks` caps the
- * result (defaults to {@link MAX_TICKS}); callers lower it to fit the available height.
- */
 export function budgetBucketPrompts(prompts: readonly PromptItem[], now = Date.now(), maxTicks = MAX_TICKS): PromptBucket[] {
 	const cap = Math.min(MAX_TICKS, Math.max(1, maxTicks));
 	const buckets = bucketPrompts(prompts, new Date(now));
@@ -160,7 +146,6 @@ export function budgetBucketPrompts(prompts: readonly PromptItem[], now = Date.n
 	return buckets;
 }
 
-/** Internal helpers exposed only for focused unit tests. */
 export const _testing = {
 	bucketKey,
 	bucketPrompts,

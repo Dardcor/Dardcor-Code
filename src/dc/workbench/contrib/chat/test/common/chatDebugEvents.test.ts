@@ -145,7 +145,6 @@ suite('chatDebugEvents', () => {
 
 		test('parses year-month before token', () => {
 			const result = parseTimeToken('before:2026-03', 'before');
-			// End of March 2026
 			assert.strictEqual(result, new Date(2026, 3, 0, 23, 59, 59, 999).getTime());
 		});
 
@@ -189,8 +188,6 @@ suite('chatDebugEvents', () => {
 	});
 
 	suite('filterDebugEventsByText', () => {
-		// parseTimeToken uses local-time Date constructors, so event timestamps
-		// must also be in local time to produce predictable comparisons.
 		const events: readonly IChatDebugEvent[] = [
 			makeGenericEvent({ name: 'discovery', category: 'instructions', created: new Date(2026, 2, 10, 10, 0, 0) }),
 			makeToolCallEvent({ toolName: 'readFile', created: new Date(2026, 2, 10, 11, 0, 0) }),
@@ -222,17 +219,17 @@ suite('chatDebugEvents', () => {
 
 		test('filters by before timestamp', () => {
 			const result = filterDebugEventsByText(events, 'before:2026-03-10t11');
-			assert.strictEqual(result.length, 2); // 10:00 and 11:00 (before rounds up to 11:59:59)
+			assert.strictEqual(result.length, 2);
 		});
 
 		test('filters by after timestamp', () => {
 			const result = filterDebugEventsByText(events, 'after:2026-03-10t12');
-			assert.strictEqual(result.length, 2); // 12:00 and 13:00
+			assert.strictEqual(result.length, 2);
 		});
 
 		test('combines timestamp and text filters', () => {
 			const result = filterDebugEventsByText(events, 'after:2026-03-10t11 toolcall');
-			assert.strictEqual(result.length, 2); // writeFile at 12:00 and readFile at 11:00
+			assert.strictEqual(result.length, 2);
 		});
 
 		test('returns all events with empty filter', () => {
@@ -318,7 +315,6 @@ suite('chatDebugEvents', () => {
 				makeToolCallEvent({ toolName: 'listDir', created: new Date('2026-03-10T12:00:00Z') }),
 				makeGenericEvent({ name: 'unrelated', created: new Date('2026-03-10T13:00:00Z') }),
 			];
-			// kind=toolCall, exclude readFile, limit=1 → should get the most recent non-readFile toolCall (listDir)
 			const result = filterDebugEvents(allToolCalls, { kind: 'toolCall', filter: '!readfile', limit: 1 });
 			assert.strictEqual(result.length, 1);
 			assert.strictEqual((result[0] as IChatDebugToolCallEvent).toolName, 'listDir');

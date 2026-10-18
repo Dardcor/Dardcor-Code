@@ -11,7 +11,6 @@ function Retry
 			& $cmd
 			return
 		} catch {
-			# noop
 		}
 	}
 

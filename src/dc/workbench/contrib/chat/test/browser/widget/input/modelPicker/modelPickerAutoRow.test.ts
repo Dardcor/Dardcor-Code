@@ -22,7 +22,7 @@ function createAutoModel(withTiers = false): ILanguageModelChatMetadataAndIdenti
 		metadata: {
 			id: 'auto',
 			name: 'Auto',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			version: '1.0',
 			family: 'auto',
 			maxInputTokens: 128000,
@@ -145,8 +145,6 @@ suite('ModelPickerAutoRow', () => {
 		assert.deepStrictEqual({ toggles, checked: toggle.getAttribute('aria-checked') }, { toggles: [true], checked: 'true' });
 	});
 
-	// The row sits in the popup's footer, which is dismissed when focus leaves it.
-	// Pressing inert parts of the row must not move focus, or the popup closes first.
 	test('pressing the strip and the description does not move focus', () => {
 		const { main, description } = createRow(false);
 		const defaultPrevented = (target: HTMLElement) => {

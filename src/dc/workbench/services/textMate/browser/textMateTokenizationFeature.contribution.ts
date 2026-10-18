@@ -14,9 +14,6 @@ import { TokenizationRegistry } from '../../../../editor/common/languages.js';
 import { ITextFileService } from '../../textfile/common/textfiles.js';
 import { StopWatch } from '../../../../base/common/stopwatch.js';
 
-/**
- * Makes sure the ITextMateTokenizationService is instantiated
- */
 class TextMateTokenizationInstantiator implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.textMateTokenizationInstantiator';

@@ -101,7 +101,6 @@ function agentMergeReadySnapshot(ref: PullRequestRef): PullRequestSnapshot {
 	};
 }
 
-/** Records subscription lifecycle so tests can assert nothing is leaked. */
 class TestPullRequestResources implements IPullRequestResources {
 
 	readonly subscribed: PullRequestRef[] = [];
@@ -143,7 +142,6 @@ class TestCredentials implements IGitHubCredentials {
 	private readonly _onDidInvalidate = new Emitter<GitHubCredentialInvalidation>();
 	readonly onDidInvalidate = this._onDidInvalidate.event;
 
-	/** Resolved by the test so a sync can be suspended mid-flight. */
 	pending: DeferredPromise<void> | undefined;
 
 	async getCredential(): Promise<GitHubCredential> {
@@ -244,8 +242,6 @@ suite('AgentHostPullRequestStatusService', () => {
 
 		const session = 'copilot:/pr-status';
 		stateManager.createSession(summary(session));
-		// A session whose branch carries a pull request, which is the only
-		// shape the watcher is eligible for.
 		stateManager.setSessionMeta(session, withSessionGitHubState(
 			withSessionGitState(undefined, { branchName: 'feature' }),
 			{ pullRequestUrls: [pullRequestUrl], pullRequestBranchName: 'feature' },
@@ -451,8 +447,6 @@ suite('AgentHostPullRequestStatusService', () => {
 	test('does not install a watch when the session stopped being eligible mid-sync', async () => {
 		const { service, subscriptions, credentials, resources, session } = createHarness();
 
-		// Suspend credential resolution so the session can lose its subscriber
-		// while the first sync is still in flight.
 		credentials.pending = new DeferredPromise<void>();
 		subscriptions.addSubscription(session, `${session}/changes`);
 		subscriptions.removeSubscription(session, `${session}/changes`);
@@ -479,8 +473,6 @@ suite('AgentHostPullRequestStatusService', () => {
 		await pump();
 
 		assert.deepStrictEqual({
-			// The dead subscription is dropped and a fresh one installed, so a
-			// disposed resource can never keep publishing stale operations.
 			subscribed: resources.subscribed.length,
 			disposed: resources.disposedCount,
 			live: resources.liveSubscriptions,
@@ -497,7 +489,6 @@ suite('AgentHostPullRequestStatusService', () => {
 		subscriptions.addSubscription(session, `${session}/changes`);
 		await waitForWatch(resources);
 
-		// The resource service keeps these entries and refreshes them in place.
 		credentials.invalidate('authentication');
 		await pump();
 
@@ -505,7 +496,6 @@ suite('AgentHostPullRequestStatusService', () => {
 	});
 });
 
-/** Lets queued microtasks (the serialized per-session sync) settle. */
 async function pump(): Promise<void> {
 	for (let i = 0; i < 10; i++) {
 		await Promise.resolve();

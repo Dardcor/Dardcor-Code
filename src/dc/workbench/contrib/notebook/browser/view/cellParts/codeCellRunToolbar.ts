@@ -48,7 +48,7 @@ export class RunToolbar extends CellContentPart {
 		this.createRunCellToolbar(runButtonContainer, cellContainer, contextKeyService);
 		const updateActions = () => {
 			const actions = this.getCellToolbarActions(this.primaryMenu);
-			const primary = actions.primary[0]; // Only allow one primary action
+			const primary = actions.primary[0];
 			this.toolbar.setActions(primary ? [primary] : []);
 		};
 		updateActions();
@@ -117,7 +117,6 @@ export class RunToolbar extends CellContentPart {
 }
 
 export function getCodeCellExecutionContextKeyService(contextKeyService: IContextKeyService): IScopedContextKeyService {
-	// Create a fake ContextKeyService, and look up the keybindings within this context.
 	const executionContextKeyService = contextKeyService.createScoped(document.createElement('div'));
 	InputFocusedContext.bindTo(executionContextKeyService).set(true);
 	EditorContextKeys.editorTextFocus.bindTo(executionContextKeyService).set(true);

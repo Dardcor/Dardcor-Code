@@ -31,9 +31,6 @@ export enum Selector {
 	Hide = '.hide'
 }
 
-/**
- * Terminal commands that accept a value in a quick input.
- */
 export enum TerminalCommandIdWithValue {
 	Rename = 'workbench.action.terminal.rename',
 	ChangeColor = 'workbench.action.terminal.changeColor',
@@ -44,9 +41,6 @@ export enum TerminalCommandIdWithValue {
 	WriteDataToTerminal = 'workbench.action.terminal.writeDataToTerminal'
 }
 
-/**
- * Terminal commands that do not present a quick input.
- */
 export enum TerminalCommandId {
 	Split = 'workbench.action.terminal.split',
 	KillAll = 'workbench.action.terminal.killAll',
@@ -96,10 +90,6 @@ export class Terminal {
 				await this._waitForTerminal(expectedLocation === 'editor' || commandId === TerminalCommandId.CreateNewEditor ? 'editor' : 'panel');
 				break;
 			case TerminalCommandId.KillAll:
-				// HACK: Attempt to kill all terminals to clean things up, this is known to be flaky
-				// but the reason why isn't known. This is typically called in the after each hook,
-				// Since it's not actually required that all terminals are killed just continue on
-				// after 2 seconds.
 				await Promise.race([
 					this.code.waitForElements(Selector.Xterm, true, e => e.length === 0),
 					this.code.wait(2000)
@@ -111,23 +101,16 @@ export class Terminal {
 	async runCommandWithValue(commandId: TerminalCommandIdWithValue, value?: string, altKey?: boolean): Promise<void> {
 		const keepOpen = !!value || commandId === TerminalCommandIdWithValue.NewWithProfile || commandId === TerminalCommandIdWithValue.Rename || (commandId === TerminalCommandIdWithValue.SelectDefaultProfile && value !== 'PowerShell');
 		await this.quickaccess.runCommand(commandId, { keepOpen });
-		// Running the command should hide the quick input in the following frame, this next wait
-		// ensures that the quick input is opened again before proceeding to avoid a race condition
-		// where the enter keybinding below would close the quick input if it's triggered before the
-		// new quick input shows.
 		await this.quickinput.waitForQuickInputOpened();
 		if (value) {
 			await this.quickinput.type(value);
 		} else if (commandId === TerminalCommandIdWithValue.Rename) {
-			// Reset
 			await this.code.dispatchKeybinding('Backspace', async () => {
-				// TODO https://github.com/microsoft/vscode/issues/242535
 				await wait(100);
 			});
 		}
 		await this.code.wait(100);
 		await this.code.dispatchKeybinding(altKey ? 'Alt+Enter' : 'enter', async () => {
-			// TODO https://github.com/microsoft/vscode/issues/242535
 			await wait(100);
 		});
 		await this.quickinput.waitForQuickInputClosed();
@@ -140,38 +123,24 @@ export class Terminal {
 		await this.code.writeInTerminal(Selector.Xterm, commandText);
 		if (!skipEnter) {
 			await this.code.dispatchKeybinding('enter', async () => {
-				// TODO https://github.com/microsoft/vscode/issues/242535
 				await wait(100);
 			});
 		}
 	}
 
-	/**
-	 * Creates a terminal using the new terminal command.
-	 * @param expectedLocation The location to check the terminal for, defaults to panel.
-	 */
 	async createTerminal(expectedLocation?: 'editor' | 'panel'): Promise<void> {
 		await this.runCommand(TerminalCommandId.CreateNew, expectedLocation);
 		await this._waitForTerminal(expectedLocation);
 	}
 
-	/**
-	 * Creates an empty terminal by opening a regular terminal and resetting its state such that it
-	 * essentially acts like an Pseudoterminal extension API-based terminal. This can then be paired
-	 * with `TerminalCommandIdWithValue.WriteDataToTerminal` to make more reliable tests.
-	 */
 	async createEmptyTerminal(expectedLocation?: 'editor' | 'panel'): Promise<void> {
 		await this.createTerminal(expectedLocation);
 
-		// Run a command to ensure the shell has started, this is used to ensure the shell's data
-		// does not leak into the "empty terminal"
 		await this.runCommandInTerminal('echo "initialized"');
 		await this.waitForTerminalText(buffer => buffer.some(line => line.startsWith('initialized')));
 
-		// Erase all content and reset cursor to top
 		await this.runCommandWithValue(TerminalCommandIdWithValue.WriteDataToTerminal, `${csi('2J')}${csi('H')}`);
 
-		// Force windows pty mode off; assume all sequences are rendered in correct position
 		if (process.platform === 'win32') {
 			await this.runCommandWithValue(TerminalCommandIdWithValue.WriteDataToTerminal, `${vsc('P;IsWindows=False')}`);
 		}
@@ -222,7 +191,6 @@ export class Terminal {
 				name: title.textContent.replace(/^[├┌└]\s*/, ''),
 				description: description?.textContent
 			};
-			// It's a new group if the tab does not start with ├ or └
 			if (title.textContent.match(/^[├└]/)) {
 				groups[groups.length - 1].push(label);
 			} else {
@@ -316,10 +284,6 @@ export class Terminal {
 		return (this.code.driver as any).page;
 	}
 
-	/**
-	 * Waits for the terminal to be focused and to contain content.
-	 * @param expectedLocation The location to check the terminal for, defaults to panel.
-	 */
 	private async _waitForTerminal(expectedLocation?: 'editor' | 'panel'): Promise<void> {
 		await this.code.waitForElement(Selector.XtermFocused);
 		await this.code.waitForTerminalBuffer(expectedLocation === 'editor' ? Selector.XtermEditor : Selector.Xterm, lines => lines.some(line => line.length > 0));

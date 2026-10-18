@@ -8,13 +8,9 @@ import { type IAgentHostChatContribution, type IAgentHostChatContributionContext
 import { IAgentHostSessionTitleController } from '../../agentHostSessionTitleController.js';
 import { AgentHostLocalCommands, IAgentHostLocalCommands } from '../../localCommands/localChatCommand.js';
 
-/**
- * Generic, agent-agnostic host commands (`/rename`, `!command`, …) are intercepted here and handled by the local-command dispatcher rather than forwarded to the agent SDK.
- */
 export class LocalCommandContribution extends Disposable implements IAgentHostChatContribution {
 
 	static readonly id = 'localCommand';
-	// Run before turn admission so local commands remain available in read-only and archived chats.
 	readonly order = 50;
 
 	constructor(

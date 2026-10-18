@@ -1,14 +1,6 @@
-// Name-based vision detection — last resort when neither the catalog file nor
-// the capability tables know a model. Vendors put the modality in the id
-// ("qwen3-vl-plus", "glm-4.6v", "deepseek-v4-flash-vision-exp"), so a custom or
-// freshly released model still gets image input instead of silently dropping it.
-//
-// Only ever turns vision ON. Never used to turn a declared capability off.
 
 const SEP = "[-_/:.]";
 
-// Image GENERATION, video generation, and non-chat models also carry these
-// words but take no image input — checked first so they can never match.
 const NOT_VISION = new RegExp(
   [
     `(^|${SEP})(image|img)(${SEP}|$)`,
@@ -20,9 +12,6 @@ const NOT_VISION = new RegExp(
   "i"
 );
 
-// Explicit modality words, plus the "<digit>v" suffix vendors use for vision
-// variants (glm-4.6v, glm-5v-turbo). The digit-v branch requires a dotted
-// version so the never-shipped `gpt-4v` cannot match.
 const VISION_NAME = new RegExp(
   [
     `(^|${SEP})(vision|vl|vlm|multimodal|omni|visual)(${SEP}|$)`,
@@ -33,7 +22,6 @@ const VISION_NAME = new RegExp(
   "i"
 );
 
-// Does this model id look like a vision model? Name signal only.
 export function looksLikeVisionModel(modelId) {
   if (!modelId) return false;
   const id = String(modelId).toLowerCase();

@@ -95,10 +95,8 @@ function collectInWorkspaces(workspaceUris: Set<string>): Set<string> {
 			for (const uriOrPath of uriOrPaths) {
 				if (typeof uriOrPath === 'string') {
 					if (!isURI(uriOrPath)) {
-						// path in the workspace
 						workspaceUris.add(Utils.resolvePath(rootFolder, uriOrPath).toString());
 					} else {
-						// external uri
 						workspaceUris.add(uriOrPath);
 					}
 				}
@@ -130,10 +128,8 @@ function collectInExtensions(localExtensionUris: Set<string>, externalUris: Set<
 		if (Array.isArray(customData)) {
 			for (const uriOrPath of customData) {
 				if (!isURI(uriOrPath)) {
-					// relative path in an extension
 					localExtensionUris.add(Uri.joinPath(extension.extensionUri, uriOrPath).toString());
 				} else {
-					// external uri
 					externalUris.add(uriOrPath);
 				}
 

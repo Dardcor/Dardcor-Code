@@ -23,7 +23,7 @@ export class LogsDataCleaner extends Disposable {
 
 		const scheduler = this._register(new RunOnceScheduler(() => {
 			this.cleanUpOldLogs();
-		}, 10 * 1000 /* after 10s */));
+		}, 10 * 1000 ));
 		scheduler.schedule();
 	}
 

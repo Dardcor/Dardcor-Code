@@ -61,29 +61,24 @@ export class NotificationsList extends Disposable {
 
 	show(): void {
 		if (this.isVisible) {
-			return; // already visible
+			return;
 		}
 
-		// Lazily create if showing for the first time
 		if (!this.list) {
 			this.createNotificationsList();
 		}
 
-		// Make visible
 		this.isVisible = true;
 	}
 
 	private createNotificationsList(): void {
 
-		// List Container
 		this.listContainer = $('.notifications-list-container');
 
 		const actionRunner = this._register(this.instantiationService.createInstance(NotificationActionRunner));
 
-		// Notification Renderer
 		const renderer = this.instantiationService.createInstance(NotificationRenderer, actionRunner);
 
-		// List
 		const listDelegate = this.listDelegate = new NotificationsListDelegate(this.listContainer);
 		const options = this.options;
 		const list = this.list = this._register(this.instantiationService.createInstance(
@@ -103,7 +98,6 @@ export class NotificationsList extends Disposable {
 			}
 		));
 
-		// Context menu to copy message
 		const copyAction = this._register(this.instantiationService.createInstance(CopyNotificationMessageAction, CopyNotificationMessageAction.ID, CopyNotificationMessageAction.LABEL));
 		this._register((list.onContextMenu(e => {
 			if (!e.element) {
@@ -118,12 +112,8 @@ export class NotificationsList extends Disposable {
 			});
 		})));
 
-		// Toggle on double click
 		this._register((list.onMouseDblClick(event => (event.element as INotificationViewItem).toggle())));
 
-		// Clear focus when DOM focus moves out
-		// Use document.hasFocus() to not clear the focus when the entire window lost focus
-		// This ensures that when the focus comes back, the notification is still focused
 		const listFocusTracker = this._register(trackFocus(list.getHTMLElement()));
 		this._register(listFocusTracker.onDidBlur(() => {
 			if (getWindow(this.listContainer).document.hasFocus()) {
@@ -131,12 +121,8 @@ export class NotificationsList extends Disposable {
 			}
 		}));
 
-		// Context key
 		NotificationFocusedContext.bindTo(list.contextKeyService);
 
-		// Only allow for focus in notifications, as the
-		// selection is too strong over the contents of
-		// the notification
 		this._register(list.onDidChangeSelection(e => {
 			if (e.indexes.length > 0) {
 				list.setSelection([]);
@@ -150,7 +136,6 @@ export class NotificationsList extends Disposable {
 		const [list, listContainer] = assertReturnsAllDefined(this.list, this.listContainer);
 		const listHasDOMFocus = isAncestorOfActiveElement(listContainer);
 
-		// Remember focus and relative top of that item
 		const focusedIndex = list.getFocus()[0];
 		const focusedItem = this.viewModel[focusedIndex];
 
@@ -159,25 +144,21 @@ export class NotificationsList extends Disposable {
 			focusRelativeTop = list.getRelativeTop(focusedIndex);
 		}
 
-		// Update view model
 		this.viewModel.splice(start, deleteCount, ...items);
 
-		// Update list
 		list.splice(start, deleteCount, items);
 		list.layout();
 
-		// Hide if no more notifications to show
 		if (this.viewModel.length === 0) {
 			this.hide();
 		}
 
-		// Otherwise restore focus if we had
 		else if (typeof focusedIndex === 'number') {
 			let indexToFocus = 0;
 			if (focusedItem) {
 				let indexToFocusCandidate = this.viewModel.indexOf(focusedItem);
 				if (indexToFocusCandidate === -1) {
-					indexToFocusCandidate = focusedIndex - 1; // item could have been removed
+					indexToFocusCandidate = focusedIndex - 1;
 				}
 
 				if (indexToFocusCandidate < this.viewModel.length && indexToFocusCandidate >= 0) {
@@ -192,7 +173,6 @@ export class NotificationsList extends Disposable {
 			list.setFocus([indexToFocus]);
 		}
 
-		// Restore DOM focus if we had focus before
 		if (this.isVisible && listHasDOMFocus) {
 			list.domFocus();
 		}
@@ -211,22 +191,19 @@ export class NotificationsList extends Disposable {
 
 	hide(): void {
 		if (!this.isVisible || !this.list) {
-			return; // already hidden
+			return;
 		}
 
-		// Hide
 		this.isVisible = false;
 
-		// Clear list
 		this.list.splice(0, this.viewModel.length);
 
-		// Clear view model
 		this.viewModel = [];
 	}
 
 	focusFirst(): void {
 		if (!this.list) {
-			return; // not created yet
+			return;
 		}
 
 		this.list.focusFirst();
@@ -235,7 +212,7 @@ export class NotificationsList extends Disposable {
 
 	hasFocus(): boolean {
 		if (!this.listContainer) {
-			return false; // not created yet
+			return false;
 		}
 
 		return isAncestorOfActiveElement(this.listContainer);
@@ -287,6 +264,6 @@ export class NotificationAccessibilityProvider implements IListAccessibilityProv
 	}
 
 	getRole(): AriaRole {
-		return 'dialog'; // https://github.com/microsoft/vscode/issues/82728
+		return 'dialog';
 	}
 }

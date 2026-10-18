@@ -21,7 +21,6 @@ export class DownloadService implements IDownloadService {
 
 	async download(resource: URI, target: URI, callSite: string, cancellationToken: CancellationToken = CancellationToken.None): Promise<void> {
 		if (resource.scheme === Schemas.file || resource.scheme === Schemas.vscodeRemote) {
-			// Intentionally only support this for file|remote<->file|remote scenarios
 			await this.fileService.copy(resource, target);
 			return;
 		}

@@ -50,12 +50,6 @@ export class TerminalSuggestTelemetry extends Disposable {
 		this._acceptedCompletions.push({ label: isString(completion.label) ? completion.label : completion.label.label, kind: this._kindMap.get(completion.kind!), sessionId, provider: completion.provider });
 	}
 
-	/**
-	 * Logs the latency (ms) from completion request to completions shown.
-	 * @param sessionId The terminal session ID
-	 * @param latency The measured latency in ms
-	 * @param firstShownFor Object indicating if completions have been shown for window/shell
-	 */
 	logCompletionLatency(sessionId: string, latency: number, firstShownFor: { window: boolean; shell: boolean }): void {
 		this._telemetryService.publicLog2<{
 			terminalSessionId: string;

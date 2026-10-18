@@ -16,7 +16,6 @@ import { InEditorZenModeContext, IsAuxiliaryWindowFocusedContext } from '../comm
 import { IWorkbenchLayoutService } from '../services/layout/browser/layoutService.js';
 import { ZenHideEditorTabsAction, ZenShowMultipleEditorTabsAction, ZenShowSingleEditorTabAction } from './actions/layoutActions.js';
 
-// --- Configuration
 
 (function registerZenModeConfiguration(): void {
 	const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
@@ -77,13 +76,11 @@ import { ZenHideEditorTabsAction, ZenShowMultipleEditorTabsAction, ZenShowSingle
 	});
 })();
 
-// --- Zen Mode Editor Tabs Actions
 
 registerAction2(ZenHideEditorTabsAction);
 registerAction2(ZenShowMultipleEditorTabsAction);
 registerAction2(ZenShowSingleEditorTabAction);
 
-// --- Tab Bar Submenu in View Appearance Menu (Zen Mode variant)
 
 MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	submenu: MenuId.EditorTabsBarShowTabsZenModeSubmenu,
@@ -93,7 +90,6 @@ MenuRegistry.appendMenuItem(MenuId.MenubarAppearanceMenu, {
 	when: InEditorZenModeContext
 });
 
-// --- Toggle Zen Mode
 
 registerAction2(class extends Action2 {
 
@@ -125,7 +121,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// --- Exit Zen Mode
 
 KeybindingsRegistry.registerCommandAndKeybindingRule({
 	id: 'workbench.action.exitZenMode',

@@ -103,11 +103,6 @@ class TestGitStateService implements IAgentHostGitStateService {
 	async attachSessionGitHubPullRequest(_sessionKey: string): Promise<void> { }
 }
 
-/**
- * Minimal typed {@link IAgentConfigurationService} whose only meaningful
- * behavior is returning a fixed effective working-directory set, so tests can
- * drive the multi-folder gate in {@link AgentHostChangesetOperationService}.
- */
 class TestConfigurationService implements IAgentConfigurationService {
 	declare readonly _serviceBrand: undefined;
 
@@ -158,7 +153,6 @@ class TestConfigurationService implements IAgentConfigurationService {
 	async whenIdle(): Promise<void> { }
 }
 
-/** Contribution that advertises a fixed set of operations for every changeset. */
 class OperationsContribution implements IChangesetOperationContribution {
 	constructor(private readonly operations: readonly ChangesetOperation[]) { }
 
@@ -298,8 +292,6 @@ suite('AgentHostChangesetOperationService', () => {
 
 		service.updateOperations(sessionKey, changesetUri, sampleGitState);
 
-		// Single-root advertises the contributed operations; combined with the
-		// multi-folder-empties tests above, this covers the enter/leave transition.
 		assert.deepStrictEqual(dispatched, [sampleOperations]);
 	});
 
@@ -318,9 +310,6 @@ suite('AgentHostChangesetOperationService', () => {
 			}
 		}));
 
-		// No gitState argument and no git meta on the session — the root-transition
-		// recompute path. Before Issue 16 the absent-git-state early return skipped
-		// the suppressed turn changeset, leaving its stale operations advertised.
 		service.updateOperations(sessionKey, changesetUri);
 
 		assert.deepStrictEqual(dispatched, [[]]);
@@ -341,8 +330,6 @@ suite('AgentHostChangesetOperationService', () => {
 			}
 		}));
 
-		// A non-suppressed changeset with no resolvable git state must still defer
-		// (early return) — clearing is scoped to the suppressed turn/compare kinds.
 		service.updateOperations(sessionKey, changesetUri);
 
 		assert.deepStrictEqual(dispatched, []);
@@ -363,10 +350,6 @@ suite('AgentHostChangesetOperationService', () => {
 			}
 		}));
 
-		// Multi-root, but the changeset is uncommitted (not turn/compare) so it is
-		// NOT suppressed. With no resolvable git state it must defer like any other
-		// non-suppressed changeset — the []-clear is scoped to suppressed kinds only,
-		// even in a multi-root session.
 		service.updateOperations(sessionKey, changesetUri);
 
 		assert.deepStrictEqual(dispatched, []);
@@ -388,12 +371,9 @@ suite('AgentHostChangesetOperationService', () => {
 			}
 		}));
 
-		// Single-root: advertises the contributed operations.
 		service.updateOperations(sessionKey, changesetUri, sampleGitState);
-		// A root is added at runtime -> multi-root: re-dispatches an empty list.
 		configurationService.setWorkingDirectories(['file:///a', 'file:///b']);
 		service.updateOperations(sessionKey, changesetUri, sampleGitState);
-		// The extra root is removed -> single-root again: restores the operations.
 		configurationService.setWorkingDirectories(['file:///a']);
 		service.updateOperations(sessionKey, changesetUri, sampleGitState);
 
@@ -554,13 +534,10 @@ suite('AgentHostChangesetOperationService', () => {
 		};
 		stateManager.createSession(summary);
 		stateManager.registerChangeset(changesetUri);
-		// Advertise the operation as Idle (e.g. a previous operation finished and
-		// a ChangesetOperationStatusChanged reset the status) ...
 		stateManager.dispatchServerAction(changesetUri, {
 			type: ActionType.ChangesetOperationsChanged,
 			operations: [{ id: testOperationId, label: 'Commit', scopes: [ChangesetOperationScope.Changeset], status: ChangesetOperationStatus.Idle }],
 		});
-		// ... while a chat turn is still streaming on the session.
 		stateManager.dispatchServerAction(buildDefaultChatUri(sessionKey), {
 			type: ActionType.ChatTurnStarted,
 			turnId: 'turn-1',
@@ -584,14 +561,11 @@ suite('AgentHostChangesetOperationService', () => {
 		const sessionKey = 'agent:/session';
 		const changesetUri = buildTurnChangesetUri(sessionKey, 'turn-1');
 		stateManager.registerChangeset(changesetUri);
-		// A stale operation advertised while the session was single-root.
 		stateManager.dispatchServerAction(changesetUri, {
 			type: ActionType.ChangesetOperationsChanged,
 			operations: [{ id: testOperationId, label: 'Sync', scopes: [ChangesetOperationScope.Changeset], status: ChangesetOperationStatus.Idle }],
 		});
 
-		// The session is now multi-root, so the invocation must be re-suppressed
-		// regardless of the stale advertised operation.
 		const service = createService(stateManager, new TestConfigurationService(['file:///a', 'file:///b']));
 		const handler = new TestHandler();
 		disposables.add(service.registerContribution(new TestContribution(handler)));
@@ -634,8 +608,6 @@ suite('AgentHostChangesetOperationService', () => {
 			operations: [{ id: testOperationId, label: 'Commit', scopes: [ChangesetOperationScope.Changeset], status: ChangesetOperationStatus.Idle }],
 		});
 
-		// Multi-root: the invoke-time suppression targets only turn/compare, so an
-		// uncommitted (or branch/session) operation must still be invocable.
 		const service = createService(stateManager, new TestConfigurationService(['file:///a', 'file:///b']));
 		const handler = new TestHandler();
 		disposables.add(service.registerContribution(new TestContribution(handler)));

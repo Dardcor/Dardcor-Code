@@ -297,9 +297,6 @@ class MarkerWidget extends Disposable {
 			actionViewItemProvider: (action: IAction, options) => action.id === QuickFixAction.ID ? _instantiationService.createInstance(QuickFixActionViewItem, <QuickFixAction>action, options) : undefined
 		}));
 
-		// wrap the icon in a container that get the icon color as foreground color. That way, if the
-		// list view does not have a specific color for the icon (=the color variable is invalid) it
-		// falls back to the foreground color of container (inherit)
 		this.iconContainer = dom.append(parent, dom.$(''));
 		this.icon = dom.append(this.iconContainer, dom.$(''));
 		this.messageAndDetailsContainer = dom.append(parent, dom.$('.marker-message-details-container'));
@@ -474,18 +471,14 @@ export class Filter implements ITreeFilter<MarkerElement, FilterData> {
 			return false;
 		}
 
-		// Filter resource by pattern first (globs)
-		// Excludes pattern
 		if (this.options.excludesMatcher.matches(resourceMarkers.resource)) {
 			return false;
 		}
 
-		// Includes pattern
 		if (this.options.includesMatcher.matches(resourceMarkers.resource)) {
 			return true;
 		}
 
-		// Fiter by text. Do not apply negated filters on resources instead use exclude patterns
 		if (this.options.textFilter.text && !this.options.textFilter.negate) {
 			const uriMatches = FilterOptions._filter(this.options.textFilter.text, basename(resourceMarkers.resource));
 			if (uriMatches) {
@@ -506,7 +499,6 @@ export class Filter implements ITreeFilter<MarkerElement, FilterData> {
 			return false;
 		}
 
-		// Check source filters if present
 		if (!this.options.matchesSourceFilters(marker.marker.source)) {
 			return false;
 		}
@@ -525,17 +517,14 @@ export class Filter implements ITreeFilter<MarkerElement, FilterData> {
 		const codeMatches = marker.marker.code ? FilterOptions._filter(this.options.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) : undefined;
 		const matched = sourceMatches || codeMatches || lineMatches.some(lineMatch => lineMatch.length > 0);
 
-		// Matched and not negated
 		if (matched && !this.options.textFilter.negate) {
 			return { visibility: true, data: { type: FilterDataType.Marker, lineMatches, sourceMatches: sourceMatches || [], codeMatches: codeMatches || [] } };
 		}
 
-		// Matched and negated - exclude it only if parent visibility is not set
 		if (matched && this.options.textFilter.negate && parentVisibility === TreeVisibility.Recurse) {
 			return false;
 		}
 
-		// Not matched and negated - include it only if parent visibility is not set
 		if (!matched && this.options.textFilter.negate && parentVisibility === TreeVisibility.Recurse) {
 			return true;
 		}
@@ -552,17 +541,14 @@ export class Filter implements ITreeFilter<MarkerElement, FilterData> {
 		const messageMatches = FilterOptions._messageFilter(this.options.textFilter.text, paths.basename(relatedInformation.raw.message));
 		const matched = uriMatches || messageMatches;
 
-		// Matched and not negated
 		if (matched && !this.options.textFilter.negate) {
 			return { visibility: true, data: { type: FilterDataType.RelatedInformation, uriMatches: uriMatches || [], messageMatches: messageMatches || [] } };
 		}
 
-		// Matched and negated - exclude it only if parent visibility is not set
 		if (matched && this.options.textFilter.negate && parentVisibility === TreeVisibility.Recurse) {
 			return false;
 		}
 
-		// Not matched and negated - include it only if parent visibility is not set
 		if (!matched && this.options.textFilter.negate && parentVisibility === TreeVisibility.Recurse) {
 			return true;
 		}

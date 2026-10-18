@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRequestDetails } from "@/lib/usageDb";
 
-/**
- * GET /api/usage/request-details
- * Query parameters: page, pageSize (1-100), provider, model, connectionId, status, startDate, endDate
- */
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -48,11 +44,6 @@ export async function GET(request) {
     
     const result = await getRequestDetails(filter);
 
-    // Redact conversation payloads: the stored details include full request
-    // bodies (user prompts, tool calls) and provider responses. Returning them
-    // wholesale lets any dashboard-authenticated user (or, if requireLogin is
-    // disabled, anyone) read every user's conversation history. Keep the
-    // metadata (model, tokens, latency, status) but drop message content.
     const redactedDetails = (result.details || []).map((d) => {
       const redacted = { ...d };
       for (const key of ["request", "providerRequest", "providerResponse", "response"]) {

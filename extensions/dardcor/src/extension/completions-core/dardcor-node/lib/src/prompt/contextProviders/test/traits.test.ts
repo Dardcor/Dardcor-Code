@@ -21,8 +21,6 @@ suite('traitsContextProvider', function () {
 			resolution: 'full',
 			resolutionTimeMs: 10,
 			data: [
-				// This trait should be the last in the list, since higher importance
-				// is closer to the end of the prompt.
 				{
 					name: 'trait_from_context_provider1_1',
 					value: 'value_1',
@@ -72,7 +70,6 @@ suite('traitsContextProvider', function () {
 		const statistics = accessor
 			.get(ICompletionsContextProviderService)
 			.getStatisticsForCompletion('COMPLETION_ID') as TestContextProviderStatistics;
-		// Prompt components expectations
 		assert.deepStrictEqual(statistics.expectations.size, 2);
 		const traitExpectations = statistics.expectations.get('testTraitsProvider');
 		assert.ok(traitExpectations);

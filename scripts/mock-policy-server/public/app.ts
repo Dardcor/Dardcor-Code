@@ -63,26 +63,21 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 	const wiredStatusEl = $('wired-status');
 
 	let endpoints: EndpointDef[] = [];
-	/** Currently selected endpoint id. */
 	let activeId = '';
-	/** Working copy of each endpoint body as edited in the GUI (string). */
 	const drafts: Record<string, string> = {};
 
-	/** Restore drafts from localStorage. */
 	function loadDrafts(): void {
 		try {
 			const saved = localStorage.getItem('mock-policy-drafts');
 			if (saved) {
 				Object.assign(drafts, JSON.parse(saved));
 			}
-		} catch { /* ignore */ }
+		} catch { }
 	}
 
-	/** Persist drafts to localStorage. */
 	function saveDrafts(): void {
-		try { localStorage.setItem('mock-policy-drafts', JSON.stringify(drafts)); } catch { /* quota */ }
+		try { localStorage.setItem('mock-policy-drafts', JSON.stringify(drafts)); } catch { }
 	}
-	/** Loaded managed-settings schema (or null if unavailable). */
 	let schema: JsonSchema | null = null;
 
 	function activeEndpoint(): EndpointDef | undefined {
@@ -94,7 +89,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 		editorStatus.dataset.kind = kind || '';
 	}
 
-	/** Validate the editor content as JSON. Returns parsed value or undefined. */
 	function parseEditor(): unknown | undefined {
 		const raw = editor.value.trim();
 		if (raw === '') {
@@ -114,7 +108,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 		} else {
 			setStatus('Valid JSON.', 'ok');
 		}
-		// Update the validation table live if schema is loaded and we're on managed settings.
 		if (activeId === 'managedSettings' && schema && typeof parsed === 'object' && parsed && !Array.isArray(parsed)) {
 			renderValidationResults(parsed as Record<string, unknown>);
 		} else {
@@ -123,12 +116,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 		return parsed;
 	}
 
-	/**
-	 * Best-effort check of a managed-settings body against the loaded JSON schema:
-	 * warn about top-level keys not declared in `schema.properties`. Mirrors the
-	 * way `projectManagedSettings` drops undeclared keys. Returns a warning string
-	 * or '' when nothing to report.
-	 */
 	function validateAgainstSchema(parsed: unknown): string {
 		if (activeId !== 'managedSettings' || !schema || typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
 			return '';
@@ -141,10 +128,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 		return unknown.length ? `Keys not in schema (will be dropped): ${unknown.join(', ')}.` : '';
 	}
 
-	/**
-	 * Walk a JSON schema and produce a representative example object.
-	 * Handles object/string/boolean/number/array/enum and nested properties.
-	 */
 	function hydrateFromSchema(s: JsonSchema | undefined): unknown {
 		if (!s || typeof s !== 'object') {
 			return null;
@@ -207,7 +190,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 	}
 
 	function selectEndpoint(id: string): void {
-		// Stash the current draft before switching.
 		if (activeId) {
 			drafts[activeId] = editor.value;
 		}
@@ -217,7 +199,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 			return;
 		}
 
-		// Build two-line description: route + product key on line 1, description on line 2
 		const routeSpan = document.createElement('span');
 		routeSpan.className = 'meta-route';
 		const codePath = document.createElement('code');
@@ -235,7 +216,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 		editor.value = drafts[id] ?? JSON.stringify(endpoint.body ?? {}, null, '\t');
 		renderTabs();
 		renderPresets();
-		// Show schema section only on the Managed Settings tab.
 		$('schema-section').hidden = (id !== 'managedSettings');
 		$('validation-results').hidden = true;
 		parseEditor();
@@ -264,7 +244,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 		}
 	}
 
-	/** Latest overrides snippet for copy-to-clipboard. */
 	let overridesSnippet = '';
 	let overridesPath = '';
 
@@ -294,7 +273,7 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 			renderWired(state);
 			drafts[activeId] = editor.value;
 			saveDrafts();
-		} catch { /* auto-save failures are silent */ }
+		} catch { }
 	}
 
 	let saveTimer: ReturnType<typeof setTimeout> | 0 = 0;
@@ -308,7 +287,7 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 			const state = await api<ServerState>(wireIt ? '/api/wire' : '/api/unwire', { method: 'POST' });
 			endpoints = state.endpoints;
 			renderWired(state);
-		} catch { /* status is shown via the wired-status element */ }
+		} catch { }
 	}
 
 	function formatJson(): void {
@@ -338,7 +317,7 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 				badgeEl.dataset.tooltip = result.resolved || 'Schema loaded';
 				viewEl.textContent = JSON.stringify(result.schema, null, '\t');
 				if (customSource) {
-					try { localStorage.setItem('mock-policy-schema-source', customSource); } catch { /* quota */ }
+					try { localStorage.setItem('mock-policy-schema-source', customSource); } catch { }
 				}
 			} else {
 				schema = null;
@@ -406,7 +385,6 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 	}
 
 	async function init(): Promise<void> {
-		// Restore saved schema source and drafts from localStorage.
 		const savedSource = localStorage.getItem('mock-policy-schema-source');
 		if (savedSource) {
 			($('schema-source') as HTMLInputElement).value = savedSource;
@@ -436,7 +414,7 @@ declare const MOCK_POLICY_ENDPOINTS: import('../endpoints').EndpointDef[];
 				const orig = btn.textContent;
 				btn.textContent = 'Copied \u2713';
 				setTimeout(() => { btn.textContent = orig; }, 1500);
-			} catch { /* clipboard error */ }
+			} catch { }
 		});
 		$('toggle-schema').addEventListener('click', toggleSchemaView);
 		$('refresh-schema').addEventListener('click', loadSchema);

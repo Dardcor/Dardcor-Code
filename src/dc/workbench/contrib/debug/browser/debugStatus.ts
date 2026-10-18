@@ -23,7 +23,7 @@ export class DebugStatusContribution implements IWorkbenchContribution {
 	) {
 
 		const addStatusBarEntry = () => {
-			this.entryAccessor = this.statusBarService.addEntry(this.entry, 'status.debug', StatusbarAlignment.LEFT, 30 /* Low Priority */);
+			this.entryAccessor = this.statusBarService.addEntry(this.entry, 'status.debug', StatusbarAlignment.LEFT, 30 );
 		};
 
 		const setShowInStatusBar = () => {

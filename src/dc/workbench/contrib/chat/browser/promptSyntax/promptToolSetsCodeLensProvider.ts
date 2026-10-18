@@ -22,15 +22,8 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { ILanguageModelToolsService } from '../../common/tools/languageModelToolsService.js';
 import { showToolsPicker } from '../actions/chatToolPicker.js';
 
-/**
- * Provides a "Configure Tools..." code lens above the `tools` array of every
- * tool set defined in a `.toolsets.jsonc` file. Clicking the lens opens the
- * shared tools picker seeded with the currently referenced tools and writes the
- * new selection back into the array using qualified reference names.
- */
 class ToolSetsCodeLensProvider extends Disposable implements CodeLensProvider {
 
-	// `_`-prefix marks this as private command
 	private readonly cmdId = `_configureToolSetTools/${generateUuid()}`;
 
 	constructor(

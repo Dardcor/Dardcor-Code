@@ -37,7 +37,6 @@ export class TextModelDiffs extends Disposable {
 		const recomputeSignal = observableSignal('recompute');
 
 		this._register(autorun(reader => {
-			/** @description Update diff state */
 			recomputeSignal.read(reader);
 			this._recompute(reader);
 		}));
@@ -65,9 +64,6 @@ export class TextModelDiffs extends Disposable {
 		return this._state;
 	}
 
-	/**
-	 * Diffs from base to input.
-	*/
 	public get diffs(): IObservableWithChange<DetailedLineRangeMapping[], TextModelDiffChangeReason> {
 		return this._diffs;
 	}
@@ -83,7 +79,6 @@ export class TextModelDiffs extends Disposable {
 		}
 
 		transaction(tx => {
-			/** @description Starting Diff Computation. */
 			this._state.set(
 				this._isInitializing ? TextModelDiffState.initializing : TextModelDiffState.updating,
 				tx,
@@ -99,12 +94,10 @@ export class TextModelDiffs extends Disposable {
 			}
 
 			if (currentRecomputeIdx !== this._recomputeCount) {
-				// There is a newer recompute call
 				return;
 			}
 
 			transaction(tx => {
-				/** @description Completed Diff Computation */
 				if (result.diffs) {
 					this._state.set(TextModelDiffState.upToDate, tx, TextModelDiffChangeReason.textChange);
 					this._diffs.set(result.diffs, tx, TextModelDiffChangeReason.textChange);
@@ -126,14 +119,13 @@ export class TextModelDiffs extends Disposable {
 		this.ensureUpToDate();
 
 		diffToRemoves.sort(compareBy((d) => d.inputRange.startLineNumber, numberComparator));
-		diffToRemoves.reverse(); // process from bottom of document upward
+		diffToRemoves.reverse();
 
 		const diffs = this._diffs.get();
 
-		// Validate all diffs-to-remove exist using Set for O(1) lookup
 		const toRemoveSet = new Set(diffToRemoves);
 		if (toRemoveSet.size !== diffToRemoves.length) {
-			throw new BugIndicatingError(); // duplicate entries
+			throw new BugIndicatingError();
 		}
 		const diffsSet = new Set(diffs);
 		for (const d of diffToRemoves) {
@@ -142,7 +134,6 @@ export class TextModelDiffs extends Disposable {
 			}
 		}
 
-		// Apply text model edits in reverse document order (bottom-up, safe for line shifting)
 		for (const diffToRemove of diffToRemoves) {
 			this._barrier.runExclusivelyOrThrow(() => {
 				const edits = diffToRemove.getReverseLineEdit().toEdits(this.textModel.getLineCount());
@@ -150,7 +141,6 @@ export class TextModelDiffs extends Disposable {
 			});
 		}
 
-		// Single forward pass: accumulate delta from removed diffs above, apply to remaining diffs below
 		let cumulativeDelta = 0;
 		const newDiffs: DetailedLineRangeMapping[] = [];
 
@@ -165,9 +155,6 @@ export class TextModelDiffs extends Disposable {
 		this._diffs.set(newDiffs, transaction, TextModelDiffChangeReason.other);
 	}
 
-	/**
-	 * Edit must be conflict free.
-	 */
 	public applyEditRelativeToOriginal(edit: LineRangeEdit, transaction: ITransaction | undefined, group?: UndoRedoGroup): void {
 		this.ensureUpToDate();
 

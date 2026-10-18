@@ -27,52 +27,19 @@ export interface ITerminalService {
 	readonly onDidCloseTerminal: vscode.Event<vscode.Terminal>;
 	readonly onDidWriteTerminalData: vscode.Event<vscode.TerminalDataWriteEvent>;
 
-	/**
-	 * See {@link vscode.window.createTerminal}.
-	 */
 	createTerminal(name?: string, shellPath?: string, shellArgs?: readonly string[] | string): vscode.Terminal;
 	createTerminal(options: vscode.TerminalOptions): vscode.Terminal;
 	createTerminal(options: vscode.ExtensionTerminalOptions): vscode.Terminal;
 
-	/**
-	 * Gets the buffer for a terminal.
-	 * @param maxChars The maximum number of chars to return from the buffer, defaults to 16k
-	 */
 	getBufferForTerminal(terminal: vscode.Terminal, maxChars?: number): string;
 
-	/**
-	 * Gets the buffer for a terminal with the given pid.
-	 * @param maxChars The maximum number of chars to return from the buffer, defaults to 16k
-	 */
 	getBufferWithPid(pid: number, maxChars?: number): Promise<string>;
 
-	/**
-	 * Gets the last command executed in a terminal.
-	 * @param terminal The terminal to get the last command for
-	 */
 	getLastCommandForTerminal(terminal: vscode.Terminal): vscode.TerminalExecutedCommand | undefined;
 
-	/**
-	 * Contributes a path to the terminal PATH environment variable.
-	 * @param contributor Unique identifier for the contributor
-	 * @param pathLocation The path to add to PATH
-	 * @param description Optional description for the PATH contribution
-	 * @param prepend Whether to prepend (true) or append (false) the path. Defaults to false (append).
-	*/
 	contributePath(contributor: string, pathLocation: string, description?: string, prepend?: boolean): void;
-	/**
-	 * Contributes a path to the terminal PATH environment variable.
-	 * @param contributor Unique identifier for the contributor
-	 * @param pathLocation The path to add to PATH
-	 * @param description Optional command thats contributed in the Terminal.
-	 * @param prepend Whether to prepend (true) or append (false) the path. Defaults to false (append).
-	*/
 	contributePath(contributor: string, pathLocation: string, description?: { command: string }, prepend?: boolean): void;
 
-	/**
-	 * Removes a path contribution from the terminal PATH environment variable.
-	 * @param contributor Unique identifier for the contributor
-	 */
 	removePathContribution(contributor: string): void;
 
 	readonly terminals: readonly vscode.Terminal[];
@@ -161,12 +128,10 @@ export class NullTerminalService extends Disposable implements ITerminalService 
 	contributePath(contributor: string, pathLocation: string, description?: string, prepend?: boolean): void;
 	contributePath(contributor: string, pathLocation: string, description?: { command: string }, prepend?: boolean): void;
 	contributePath(contributor: unknown, pathLocation: unknown, description?: unknown, prepend?: unknown): void {
-		// No-op for null service
 	}
 
 
 	removePathContribution(contributor: string): void {
-		// No-op for null service
 	}
 }
 export function isTerminalService(thing: any): thing is ITerminalService {

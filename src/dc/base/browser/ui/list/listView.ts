@@ -59,11 +59,10 @@ export interface IListViewDragAndDrop<T> extends IListDragAndDrop<T> {
 }
 
 export const enum ListViewTargetSector {
-	// drop position relative to the top of the item
-	TOP = 0, 				// [0%-25%)
-	CENTER_TOP = 1, 		// [25%-50%)
-	CENTER_BOTTOM = 2, 		// [50%-75%)
-	BOTTOM = 3				// [75%-100%)
+	TOP = 0,
+	CENTER_TOP = 1,
+	CENTER_BOTTOM = 2,
+	BOTTOM = 3
 }
 
 export type CheckBoxAccessibleState = boolean | 'mixed';
@@ -285,16 +284,6 @@ export interface IListView<T> extends ISpliceable<T>, IDisposable {
 	layout(height?: number, width?: number): void;
 }
 
-/**
- * The {@link ListView} is a virtual scrolling engine.
- *
- * Given that it only renders elements within its viewport, it can hold large
- * collections of elements and stay very performant. The performance bottleneck
- * usually lies within the user's rendering code for each element.
- *
- * @remarks It is a low-level widget, not meant to be used directly. Refer to the
- * List widget instead.
- */
 export class ListView<T> implements IListView<T> {
 
 	private static InstanceCount = 0;
@@ -306,7 +295,7 @@ export class ListView<T> implements IListView<T> {
 	private itemId: number;
 	protected rangeMap: IRangeMap;
 	private cache: RowCache<T>;
-	private renderers = new Map<string, IListRenderer<any /* TODO@joao */, any>>();
+	private renderers = new Map<string, IListRenderer<any , any>>();
 	protected lastRenderTop: number;
 	protected lastRenderHeight: number;
 	private renderWidth = 0;
@@ -383,7 +372,7 @@ export class ListView<T> implements IListView<T> {
 	constructor(
 		container: HTMLElement,
 		private virtualDelegate: IListVirtualDelegate<T>,
-		renderers: IListRenderer<any /* TODO@joao */, any>[],
+		renderers: IListRenderer<any , any>[],
 		options: IListViewOptions<T> = DefaultOptions
 	) {
 		if (options.horizontalScrolling && options.supportDynamicHeights) {
@@ -452,7 +441,6 @@ export class ListView<T> implements IListView<T> {
 		this.disposables.add(addDisposableListener(this.rowsContainer, TouchEventType.Change, e => this.onTouchChange(e as GestureEvent)));
 
 		this.disposables.add(addDisposableListener(this.scrollableElement.getDomNode(), 'scroll', e => {
-			// Make sure the active element is scrolled into view
 			const element = (e.target as HTMLElement);
 			const scrollValue = element.scrollTop;
 			element.scrollTop = 0;
@@ -494,15 +482,12 @@ export class ListView<T> implements IListView<T> {
 	}
 
 	private _scrollToActiveElement(element: HTMLElement, container: HTMLElement) {
-		// The scroll event on the list only fires when scrolling down.
-		// If the active element is above the viewport, we need to scroll up.
 		const containerRect = container.getBoundingClientRect();
 		const elementRect = element.getBoundingClientRect();
 
 		const topOffset = elementRect.top - containerRect.top;
 
 		if (topOffset < 0) {
-			// Scroll up
 			this.setScrollTop(this.scrollTop + topOffset);
 		}
 	}
@@ -540,7 +525,6 @@ export class ListView<T> implements IListView<T> {
 		}
 
 		if (options.paddingTop !== undefined && options.paddingTop !== this.rangeMap.paddingTop) {
-			// trigger a rerender
 			const lastRenderRange = this.getRenderRange(this.lastRenderTop, this.lastRenderHeight);
 			const offset = options.paddingTop - this.rangeMap.paddingTop;
 			this.rangeMap.paddingTop = options.paddingTop;
@@ -590,12 +574,9 @@ export class ListView<T> implements IListView<T> {
 		let heightDiff = 0;
 
 		if (index < lastRenderRange.start) {
-			// do not scroll the viewport if resized element is out of viewport
 			heightDiff = size - originalSize;
 		} else {
 			if (anchorIndex !== null && anchorIndex > index && anchorIndex < lastRenderRange.end) {
-				// anchor in viewport
-				// resized element in viewport and above the anchor
 				heightDiff = size - originalSize;
 			} else {
 				heightDiff = 0;
@@ -613,7 +594,7 @@ export class ListView<T> implements IListView<T> {
 		if (this.supportDynamicHeights) {
 			this._rerender(this.lastRenderTop, this.lastRenderHeight);
 		} else {
-			this._onDidChangeContentHeight.fire(this.contentHeight); // otherwise fired in _rerender()
+			this._onDidChangeContentHeight.fire(this.contentHeight);
 		}
 	}
 
@@ -641,7 +622,6 @@ export class ListView<T> implements IListView<T> {
 		const deleteRange = { start, end: start + deleteCount };
 		const removeRange = Range.intersect(previousRenderRange, deleteRange);
 
-		// try to reuse rows, avoid removing them from DOM
 		const rowsToDispose = new Map<string, IRow[]>();
 		for (let i = removeRange.end - 1; i >= removeRange.start; i--) {
 			const item = this.items[i];
@@ -691,7 +671,6 @@ export class ListView<T> implements IListView<T> {
 
 		let deleted: IItem<T>[];
 
-		// TODO@joao: improve this optimization to catch even more cases
 		if (start === 0 && deleteCount >= this.items.length) {
 			this.rangeMap = this.createRangeMap(this.rangeMap.paddingTop);
 			this.rangeMap.splice(0, 0, inserted);
@@ -918,7 +897,6 @@ export class ListView<T> implements IListView<T> {
 		}
 	}
 
-	// Render
 
 	protected render(previousRenderRange: IRange, renderTop: number, renderHeight: number, renderLeft: number | undefined, scrollWidth: number | undefined, updateItemsInDOM: boolean = false, onScroll: boolean = false): void {
 		const renderRange = this.getRenderRange(renderTop, renderHeight);
@@ -972,7 +950,6 @@ export class ListView<T> implements IListView<T> {
 		this.lastRenderHeight = renderHeight;
 	}
 
-	// DOM operations
 
 	private insertItemInDOM(index: number, row?: IRow, alreadyRendered = false): void {
 		const item = this.items[index];
@@ -1148,7 +1125,6 @@ export class ListView<T> implements IListView<T> {
 		return this._scrollHeight + (this.horizontalScrolling ? 10 : 0) + this.paddingBottom;
 	}
 
-	// Events
 
 	@memoize get onMouseClick(): Event<IListMouseEvent<T>> { return Event.map(this.disposables.add(new DomEmitter(this.domNode, 'click')).event, e => this.toMouseEvent(e), this.disposables); }
 	@memoize get onMouseDblClick(): Event<IListMouseEvent<T>> { return Event.map(this.disposables.add(new DomEmitter(this.domNode, 'dblclick')).event, e => this.toMouseEvent(e), this.disposables); }
@@ -1212,7 +1188,6 @@ export class ListView<T> implements IListView<T> {
 		this.scrollTop -= event.translationY;
 	}
 
-	// DND
 
 	private onDragStart(element: T, uri: string, event: DragEvent): void {
 		if (!event.dataTransfer) {
@@ -1232,7 +1207,7 @@ export class ListView<T> implements IListView<T> {
 			label = String(elements.length);
 		}
 
-		applyDragImage(event, this.domNode, label, [this.domId /* add domId to get list specific styling */]);
+		applyDragImage(event, this.domNode, label, [this.domId ]);
 
 		this.domNode.classList.add('dragging');
 		this.currentDragData = new ElementsDragAndDropData(elements);
@@ -1252,16 +1227,10 @@ export class ListView<T> implements IListView<T> {
 
 		this.currentSelectionDisposable.clear();
 
-		// Set up both the 'movement store' for watching the mouse, and the
-		// 'selection store' which lasts as long as there's a selection, even
-		// after the usr has stopped modifying it.
 		const selectionStore = new DisposableStore();
 		this.currentSelectionDisposable.value = selectionStore;
 		this.currentSelectionMovementDisposable.value = this.createSelectionMovementStore(doc);
 
-		// The selection events we get from the DOM are fairly limited and we lack a 'selection end' event.
-		// Selection events also don't tell us where the input doing the selection is. So, make a poor
-		// assumption that a user is using the mouse, and base our events on that.
 		selectionStore.add(toDisposable(() => {
 			this.currentSelectionMovementDisposable.clear();
 			const previousRenderRange = this.getRenderRange(this.lastRenderTop, this.lastRenderHeight);
@@ -1270,7 +1239,6 @@ export class ListView<T> implements IListView<T> {
 		}));
 		selectionStore.add(addDisposableListener(doc, 'selectionchange', () => {
 			const selection = doc.getSelection();
-			// if the selection changed _after_ mouseup, it's from clearing the list or similar, so teardown
 			if (!selection || selection.isCollapsed) {
 				if (!this.currentSelectionMovementDisposable.value) {
 					this.currentSelectionDisposable.clear();
@@ -1327,7 +1295,7 @@ export class ListView<T> implements IListView<T> {
 	}
 
 	private onDragOver(event: IListDragEvent<T>): boolean {
-		event.browserEvent.preventDefault(); // needed so that the drop event fires (https://stackoverflow.com/questions/21339924/drop-event-not-firing-in-chrome)
+		event.browserEvent.preventDefault();
 
 		this.onDragLeaveTimeout.dispose();
 
@@ -1341,14 +1309,11 @@ export class ListView<T> implements IListView<T> {
 			return false;
 		}
 
-		// Drag over from outside
 		if (!this.currentDragData) {
 			if (StaticDND.CurrentDragAndDropData) {
-				// Drag over from another list
 				this.currentDragData = StaticDND.CurrentDragAndDropData;
 
 			} else {
-				// Drag over from the desktop
 				if (!event.browserEvent.dataTransfer.types) {
 					return false;
 				}
@@ -1380,7 +1345,6 @@ export class ListView<T> implements IListView<T> {
 			}
 		}
 
-		// sanitize feedback list
 		feedback = distinct(feedback).filter(i => i >= -1 && i < this.length).sort((a, b) => a - b);
 		feedback = feedback[0] === -1 ? [-1] : feedback;
 
@@ -1394,7 +1358,7 @@ export class ListView<T> implements IListView<T> {
 		this.currentDragFeedbackPosition = dragOverEffectPosition;
 		this.currentDragFeedbackDisposable.dispose();
 
-		if (feedback[0] === -1) { // entire list feedback
+		if (feedback[0] === -1) {
 			this.domNode.classList.add(dragOverEffectPosition);
 			this.rowsContainer.classList.add(dragOverEffectPosition);
 			this.currentDragFeedbackDisposable = toDisposable(() => {
@@ -1407,8 +1371,6 @@ export class ListView<T> implements IListView<T> {
 				throw new Error('Can\'t use multiple feedbacks with position different than \'over\'');
 			}
 
-			// Make sure there is no flicker when moving between two items
-			// Always use the before feedback if possible
 			if (dragOverEffectPosition === ListDragOverEffectPosition.After) {
 				if (feedback[0] < this.length - 1) {
 					feedback[0] += 1;
@@ -1483,7 +1445,6 @@ export class ListView<T> implements IListView<T> {
 		this.currentDragFeedbackDisposable = Disposable.None;
 	}
 
-	// DND scroll top animation
 
 	private setupDragAndDropScrollTopAnimation(event: DragEvent | MouseEvent): void {
 		if (!this.dragOverAnimationDisposable) {
@@ -1526,7 +1487,6 @@ export class ListView<T> implements IListView<T> {
 		}
 	}
 
-	// Util
 
 	private getTargetSector(browserEvent: DragEvent, targetIndex: number | undefined): ListViewTargetSector | undefined {
 		if (targetIndex === undefined) {
@@ -1563,7 +1523,6 @@ export class ListView<T> implements IListView<T> {
 		const start = this.rangeMap.indexAt(renderTop);
 		return {
 			start,
-			// Clamp so a collapsed viewport (renderHeight <= 0) cannot produce an inverted range.
 			end: Math.max(start, this.rangeMap.indexAfter(renderTop + renderHeight - 1))
 		};
 	}
@@ -1579,16 +1538,10 @@ export class ListView<T> implements IListView<T> {
 		return range;
 	}
 
-	/**
-	 * Given a stable rendered state, checks every rendered element whether it needs
-	 * to be probed for dynamic height. Adjusts scroll height and top if necessary.
-	 */
 	protected _rerender(renderTop: number, renderHeight: number, inSmoothScrolling?: boolean): void {
 		let previousRenderRange = this.getRenderRange(renderTop, renderHeight);
 		const retainedMeasurements = new Map<number, IDynamicHeightMeasurement<T>>();
 
-		// Let's remember the second element's position, this helps in scrolling up
-		// and preserving a linear upwards scroll movement
 		let anchorElementIndex: number | undefined;
 		let anchorElementTopDelta: number | undefined;
 
@@ -1690,11 +1643,6 @@ export class ListView<T> implements IListView<T> {
 					}
 
 					if (typeof anchorElementIndex === 'number') {
-						// To compute a destination scroll top, we need to take into account the current smooth scrolling
-						// animation, and then reuse it with a new target (to avoid prolonging the scroll)
-						// See https://github.com/microsoft/vscode/issues/104144
-						// See https://github.com/microsoft/vscode/pull/104284
-						// See https://github.com/microsoft/vscode/issues/107704
 						const deltaScrollTop = this.scrollable.getFutureScrollPosition().scrollTop - renderTop;
 						const newScrollTop = this.elementTop(anchorElementIndex) - anchorElementTopDelta! + deltaScrollTop;
 						this.setScrollTop(newScrollTop, inSmoothScrolling);
@@ -1869,7 +1817,6 @@ export class ListView<T> implements IListView<T> {
 		return `${this.domId}_${index}`;
 	}
 
-	// Dispose
 
 	dispose() {
 		this.currentSelectionDisposable.clear();

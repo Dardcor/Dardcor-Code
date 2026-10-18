@@ -12,7 +12,6 @@ import { EndOfLineSequence, IModelDeltaDecoration, TrackedRangeStickiness } from
 import { TextModel } from '../../../common/model/textModel.js';
 import { createTextModel } from '../testTextModel.js';
 
-// --------- utils
 
 interface ILightWeightDecoration2 {
 	range: Range;
@@ -84,7 +83,6 @@ suite('Editor Model - Model Decorations', () => {
 	const LINE4 = '';
 	const LINE5 = '1';
 
-	// --------- Model Decorations
 
 	let thisModel: TextModel;
 
@@ -157,7 +155,6 @@ suite('Editor Model - Model Decorations', () => {
 		lineHasNoDecorations(thisModel, 5);
 	});
 
-	// --------- removing, changing decorations
 
 	test('decoration gets removed', () => {
 		const decId = addDecoration(thisModel, 1, 2, 3, 2, 'myType');
@@ -205,7 +202,6 @@ suite('Editor Model - Model Decorations', () => {
 		modelHasDecoration(thisModel, 1, 1, 1, 2, 'myType');
 	});
 
-	// --------- eventing
 
 	test('decorations emit event on add', () => {
 		let listenerCalled = 0;
@@ -272,7 +268,6 @@ suite('Editor Model - Model Decorations', () => {
 		disposable.dispose();
 	});
 
-	// --------- editing text & effects on decorations
 
 	test('decorations are updated when inserting one line text before it', () => {
 		addDecoration(thisModel, 1, 2, 3, 2, 'myType');
@@ -1165,7 +1160,6 @@ suite('deltaDecorations', () => {
 
 		const model = createTextModel(text.join('\n'));
 
-		// Add initial decorations & assert they are added
 		const initialIds = model.deltaDecorations([], decorations.map(toModelDeltaDecoration));
 		const actualDecorations = readModelDecorations(model, initialIds);
 

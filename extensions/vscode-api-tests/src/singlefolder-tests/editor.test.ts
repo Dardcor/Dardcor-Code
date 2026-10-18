@@ -59,7 +59,6 @@ suite('vscode API - editors', () => {
 		const actualValue = await env.clipboard.readText();
 
 		if (actualValue !== newValue) {
-			// clipboard not working?!?
 			this.skip();
 			return;
 		}
@@ -94,19 +93,6 @@ suite('vscode API - editors', () => {
 		});
 	});
 
-	/**
-	 * Given :
-	 * This is line 1
-	 *   |
-	 *
-	 * Expect :
-	 * This is line 1
-	 *   This is line 2
-	 *   This is line 3
-	 *
-	 * The 3rd line should not be auto-indented, as the edit already
-	 * contains the necessary adjustment.
-	 */
 	test('insert snippet with replacement, avoid adjusting indentation', () => {
 		const snippetString = new SnippetString()
 			.appendText('This is line 2\n  This is line 3');
@@ -198,7 +184,6 @@ suite('vscode API - editors', () => {
 	test('issue #20757: Overlapping ranges are not allowed!', () => {
 		return withRandomFileEditor('Hello world!\n\tHello world!', (editor, _doc) => {
 			return editor.edit((builder) => {
-				// create two edits that overlap (i.e. are illegal)
 				builder.replace(new Range(0, 0, 0, 2), 'He');
 				builder.replace(new Range(0, 1, 0, 3), 'el');
 			}).then(

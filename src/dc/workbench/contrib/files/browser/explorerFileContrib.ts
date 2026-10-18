@@ -13,14 +13,7 @@ export const enum ExplorerExtensions {
 	FileContributionRegistry = 'workbench.registry.explorer.fileContributions'
 }
 
-/**
- * Contributes to the rendering of a file in the explorer.
- */
 export interface IExplorerFileContribution extends IDisposable {
-	/**
-	 * Called to render a file in the container. The implementation should
-	 * remove any rendered elements if `resource` is undefined.
-	 */
 	setResource(resource: URI | undefined): void;
 }
 
@@ -29,10 +22,6 @@ export interface IExplorerFileContributionDescriptor {
 }
 
 export interface IExplorerFileContributionRegistry {
-	/**
-	 * Registers a new contribution. A new instance of the contribution will be
-	 * instantiated for each template in the explorer.
-	 */
 	register(descriptor: IExplorerFileContributionDescriptor): void;
 }
 
@@ -42,15 +31,11 @@ class ExplorerFileContributionRegistry extends Disposable implements IExplorerFi
 
 	private readonly descriptors: IExplorerFileContributionDescriptor[] = [];
 
-	/** @inheritdoc */
 	public register(descriptor: IExplorerFileContributionDescriptor): void {
 		this.descriptors.push(descriptor);
 		this._onDidRegisterDescriptor.fire(descriptor);
 	}
 
-	/**
-	 * Creates a new instance of all registered contributions.
-	 */
 	public create(insta: IInstantiationService, container: HTMLElement, store: DisposableStore): IExplorerFileContribution[] {
 		return this.descriptors.map(d => {
 			const i = d.create(insta, container);

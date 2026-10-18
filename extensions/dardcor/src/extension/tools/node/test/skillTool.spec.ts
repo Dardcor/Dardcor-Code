@@ -7,7 +7,6 @@ import { expect, suite, test } from 'vitest';
 import { toolCategories, ToolCategory, ToolName } from '../../common/toolNames';
 import { ToolRegistry } from '../../common/toolsRegistry';
 
-// Ensure side-effect registration
 import '../skillTool';
 
 suite('SkillTool', () => {

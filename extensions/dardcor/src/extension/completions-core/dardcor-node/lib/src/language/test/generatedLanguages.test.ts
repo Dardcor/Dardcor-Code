@@ -8,9 +8,6 @@ import { languageMarkers } from '../../../../prompt/src/languageMarker';
 import * as assert from 'assert';
 
 suite('generated languages', function () {
-	// tex exists as latex and tex in language markers
-	// jsx exists as jsx and javascriptreact in language markers. However jsx is never detected according to telemetry data
-	// vue-html will be detected as html
 	const ignoredMappings = ['jsx', 'tex', 'vue-html'];
 
 	for (const marker in languageMarkers) {

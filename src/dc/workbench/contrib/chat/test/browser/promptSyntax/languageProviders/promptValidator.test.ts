@@ -113,7 +113,6 @@ suite('PromptValidator', () => {
 		disposables.add(toolService.registerToolData(conflictTool2));
 		disposables.add(conflictToolSet2.addTool(conflictTool2));
 
-		// Tool in the vscode toolset with a legacy name — for testing namespaced deprecated name resolution
 		const toolInVscodeSet = { id: 'browserTool', toolReferenceName: 'openIntegratedBrowser', legacyToolReferenceFullNames: ['openSimpleBrowser'], displayName: 'Open Integrated Browser', canBeReferencedInPrompt: true, modelDescription: 'Open browser', source: ToolDataSource.Internal, inputSchema: {} } satisfies IToolData;
 		disposables.add(toolService.registerToolData(toolInVscodeSet));
 		disposables.add(toolService.vscodeToolSet.addTool(toolInVscodeSet));
@@ -122,8 +121,8 @@ suite('PromptValidator', () => {
 
 		const testModels: ILanguageModelChatMetadata[] = [
 			{ id: 'mae-4', name: 'MAE 4', vendor: 'olama', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
-			{ id: 'mae-4.1', name: 'MAE 4.1', vendor: 'copilot', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
-			{ id: 'mae-3.5-turbo', name: 'MAE 3.5 Turbo', vendor: 'copilot', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata
+			{ id: 'mae-4.1', name: 'MAE 4.1', vendor: 'dardcor', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
+			{ id: 'mae-3.5-turbo', name: 'MAE 3.5 Turbo', vendor: 'dardcor', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata
 		];
 
 		instaService.stub(ILanguageModelsService, {
@@ -188,13 +187,13 @@ suite('PromptValidator', () => {
 
 		test('correct agent', async () => {
 			const content = [
-			/* 01 */'---',
-			/* 02 */`description: "Agent mode test"`,
-			/* 03 */'model: MAE 4.1',
-			/* 04 */`tools: ['tool1', 'tool2']`,
-			/* 05 */'---',
-			/* 06 */'This is a chat agent test.',
-			/* 07 */'Here is a #tool1 variable and a #file:./reference1.md as well as a [reference](./reference2.md).',
+			'---',
+			`description: "Agent mode test"`,
+			'model: MAE 4.1',
+			`tools: ['tool1', 'tool2']`,
+			'---',
+			'This is a chat agent test.',
+			'Here is a #tool1 variable and a #file:./reference1.md as well as a [reference](./reference2.md).',
 			].join('\n');
 			const markers = await validate(content, PromptsType.agent);
 			assert.deepStrictEqual(markers, []);
@@ -202,12 +201,12 @@ suite('PromptValidator', () => {
 
 		test('agent with errors (empty description, unknown tool & model)', async () => {
 			const content = [
-			/* 01 */'---',
-			/* 02 */`description: ""`, // empty description -> error
-			/* 03 */'model: MAE 4.2', // unknown model -> warning
-			/* 04 */`tools: ['tool1', 'tool2', 'tool4', 'my.extension/tool3']`, // tool4 unknown -> error
-			/* 05 */'---',
-			/* 06 */'Body',
+			'---',
+			`description: ""`,
+			'model: MAE 4.2',
+			`tools: ['tool1', 'tool2', 'tool4', 'my.extension/tool3']`,
+			'---',
+			'Body',
 			].join('\n');
 			const markers = await validate(content, PromptsType.agent);
 			assert.deepStrictEqual(
@@ -354,7 +353,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('legacy tool reference names', async () => {
-			// Test using legacy tool reference name
 			{
 				const content = [
 					'---',
@@ -371,7 +369,6 @@ suite('PromptValidator', () => {
 				);
 			}
 
-			// Test using another legacy tool reference name
 			{
 				const content = [
 					'---',
@@ -390,7 +387,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('legacy toolset names', async () => {
-			// Test using legacy toolset name
 			{
 				const content = [
 					'---',
@@ -407,7 +403,6 @@ suite('PromptValidator', () => {
 				);
 			}
 
-			// Test using another legacy toolset name
 			{
 				const content = [
 					'---',
@@ -426,7 +421,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('multiple legacy names in same tools list', async () => {
-			// Test multiple legacy names together
 			const content = [
 				'---',
 				'description: "Test"',
@@ -445,8 +439,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('deprecated tool name mapping to multiple new names', async () => {
-			// The toolsets are registered in setup with a shared legacy name 'sharedLegacyName'
-			// This simulates the case where one deprecated name maps to multiple current names
 			const content = [
 				'---',
 				'description: "Test"',
@@ -456,14 +448,11 @@ suite('PromptValidator', () => {
 			const markers = await validate(content, PromptsType.agent);
 			assert.strictEqual(markers.length, 1);
 			assert.strictEqual(markers[0].severity, MarkerSeverity.Info);
-			// When multiple toolsets share the same legacy name, the message should indicate multiple options
-			// The message will say "use the following tools instead:" for multiple mappings
 			const expectedMessage = `Tool or toolset 'sharedLegacyName' has been renamed, use the following tools instead: conflictSet1Ref, conflictSet2Ref`;
 			assert.strictEqual(markers[0].message, expectedMessage);
 		});
 
 		test('deprecated tool name in body variable reference - single mapping', async () => {
-			// Test deprecated tool name used as variable reference in body
 			const content = [
 				'---',
 				'description: "Test"',
@@ -477,7 +466,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('deprecated tool name in body variable reference - multiple mappings', async () => {
-			// Register tools with the same legacy name to create multiple mappings
 			const multiMapToolSet1 = disposables.add(instaService.get(ILanguageModelToolsService).createToolSet(
 				ToolDataSource.External,
 				'multiMapSet1',
@@ -507,15 +495,11 @@ suite('PromptValidator', () => {
 			const markers = await validate(content, PromptsType.agent);
 			assert.strictEqual(markers.length, 1);
 			assert.strictEqual(markers[0].severity, MarkerSeverity.Info);
-			// When multiple toolsets share the same legacy name, the message should indicate multiple options
-			// The message will say "use the following tools instead:" for multiple mappings in body references
 			const expectedMessage = `Tool or toolset 'multiMapLegacy' has been renamed, use the following tools instead: multiMapSet1Ref, multiMapSet2Ref`;
 			assert.strictEqual(markers[0].message, expectedMessage);
 		});
 
 		test('namespaced deprecated tool name in tools header shows rename hint', async () => {
-			// When a tool is in a toolset (e.g. vscode/openIntegratedBrowser) and has a legacy name,
-			// using the namespaced old name (vscode/openSimpleBrowser) should show the rename hint
 			const content = [
 				'---',
 				'description: "Test"',
@@ -532,7 +516,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('bare deprecated tool name in tools header also shows rename hint', async () => {
-			// The bare (non-namespaced) legacy name should also resolve
 			const content = [
 				'---',
 				'description: "Test"',
@@ -563,7 +546,7 @@ suite('PromptValidator', () => {
 			const content = [
 				'---',
 				'description: "Test"',
-				`applyTo: '*.ts'`, // not allowed in agent file
+				`applyTo: '*.ts'`,
 				'---',
 			].join('\n');
 			const markers = await validate(content, PromptsType.agent);
@@ -752,7 +735,6 @@ suite('PromptValidator', () => {
 				'Body with #unknownTool reference',
 			].join('\n');
 			const markers = await validate(content, PromptsType.agent);
-			// Variable references should not be validated for github-copilot target
 			assert.deepStrictEqual(markers, [], 'Variable references are not validated for github-copilot target');
 		});
 
@@ -1002,12 +984,10 @@ suite('PromptValidator', () => {
 				'Body',
 			].join('\n');
 			const markers = await validate(content, PromptsType.agent);
-			// Should validate normally as if target was vscode
 			assert.deepStrictEqual(markers, [], 'Agent without target should validate as vscode');
 		});
 
 		test('name attribute validation', async () => {
-			// Valid name
 			{
 				const content = [
 					'---',
@@ -1021,7 +1001,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid name should not produce errors');
 			}
 
-			// Empty name
 			{
 				const content = [
 					'---',
@@ -1037,7 +1016,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].message, `The 'name' attribute must not be empty.`);
 			}
 
-			// Non-string name
 			{
 				const content = [
 					'---',
@@ -1053,7 +1031,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].message, `The 'name' attribute must be a string.`);
 			}
 
-			// Valid name with allowed characters
 			{
 				const content = [
 					'---',
@@ -1069,7 +1046,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('github-copilot target requires name attribute', async () => {
-			// Missing name with github-copilot target
 			{
 				const content = [
 					'---',
@@ -1083,7 +1059,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers.length, 0);
 			}
 
-			// Valid name with github-copilot target
 			{
 				const content = [
 					'---',
@@ -1098,7 +1073,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid github-copilot agent with name should not produce errors');
 			}
 
-			// Missing name with vscode target (should be optional)
 			{
 				const content = [
 					'---',
@@ -1116,7 +1090,6 @@ suite('PromptValidator', () => {
 		test('infer attribute validation', async () => {
 			const deprecationMessage = `The 'infer' attribute is deprecated in favour of 'user-invocable' and 'disable-model-invocation'.`;
 
-			// Valid infer: true (maps to 'all') - shows deprecation warning
 			{
 				const content = [
 					'---',
@@ -1132,7 +1105,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].severity, MarkerSeverity.Error);
 			}
 
-			// Valid infer: false (maps to 'user') - shows deprecation warning
 			{
 				const content = [
 					'---',
@@ -1148,7 +1120,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].severity, MarkerSeverity.Error);
 			}
 
-			// Invalid infer: unknown string value - shows deprecation warning (validation removed for deprecated attribute)
 			{
 				const content = [
 					'---',
@@ -1164,7 +1135,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].severity, MarkerSeverity.Error);
 			}
 
-			// Missing infer attribute (should be optional)
 			{
 				const content = [
 					'---',
@@ -1276,7 +1246,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('user-invocable attribute validation', async () => {
-			// Valid user-invocable: true
 			{
 				const content = [
 					'---',
@@ -1290,7 +1259,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid user-invocable: true should not produce errors');
 			}
 
-			// Valid user-invocable: false
 			{
 				const content = [
 					'---',
@@ -1304,7 +1272,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid user-invocable: false should not produce errors');
 			}
 
-			// Invalid user-invocable: string value
 			{
 				const content = [
 					'---',
@@ -1320,7 +1287,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].message, `The 'user-invocable' attribute must be 'true' or 'false'.`);
 			}
 
-			// Invalid user-invocable: number value
 			{
 				const content = [
 					'---',
@@ -1355,7 +1321,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('disable-model-invocation attribute validation', async () => {
-			// Valid disable-model-invocation: true
 			{
 				const content = [
 					'---',
@@ -1369,7 +1334,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid disable-model-invocation: true should not produce errors');
 			}
 
-			// Valid disable-model-invocation: false
 			{
 				const content = [
 					'---',
@@ -1383,7 +1347,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid disable-model-invocation: false should not produce errors');
 			}
 
-			// Invalid disable-model-invocation: string value
 			{
 				const content = [
 					'---',
@@ -1399,7 +1362,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].message, `The 'disable-model-invocation' attribute must be 'true' or 'false'.`);
 			}
 
-			// Invalid disable-model-invocation: number value
 			{
 				const content = [
 					'---',
@@ -1798,13 +1760,12 @@ suite('PromptValidator', () => {
 			const content = [
 				'---',
 				'description: "Instr"',
-				`applyTo: ''`, // empty -> invalid glob
-				'model: mae-4', // model not allowed in instructions
+				`applyTo: ''`,
+				'model: mae-4',
 				'---',
 			].join('\n');
 			const markers = await validate(content, PromptsType.instructions);
 			assert.strictEqual(markers.length, 2);
-			// Order: unknown attribute hints first (attribute iteration) then applyTo validation
 			assert.strictEqual(markers[0].severity, MarkerSeverity.Hint);
 			assert.deepStrictEqual(markers[0].tags, [MarkerTag.Unnecessary]);
 			assert.ok(markers[0].message.startsWith(`Attribute 'model' is not supported in instructions files.`));
@@ -1824,7 +1785,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('name attribute validation in instructions', async () => {
-			// Valid name
 			{
 				const content = [
 					'---',
@@ -1838,7 +1798,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid name should not produce errors');
 			}
 
-			// Empty name
 			{
 				const content = [
 					'---',
@@ -1859,7 +1818,6 @@ suite('PromptValidator', () => {
 	suite('prompts', () => {
 
 		test('prompt valid with agent mode (default) and tools and a BYO model', async () => {
-			// mode omitted -> defaults to Agent; tools+model should validate; model MAE 4 is agent capable
 			const content = [
 				'---',
 				'description: "Prompt with tools"',
@@ -1873,7 +1831,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('prompt model not suited for agent mode', async () => {
-			// MAE 3.5 Turbo lacks agentMode capability -> warning when used in agent (default)
 			const content = [
 				'---',
 				'description: "Prompt with unsuitable model"',
@@ -1888,7 +1845,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('prompt with custom agent BeastMode and tools', async () => {
-			// Explicit custom agent should be recognized; BeastMode kind comes from setup; ensure tools accepted
 			const content = [
 				'---',
 				'description: "Prompt custom mode"',
@@ -1902,7 +1858,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('prompt with custom mode BeastMode and tools', async () => {
-			// Explicit custom mode should be recognized; BeastMode kind comes from setup; ensure tools accepted
 			const content = [
 				'---',
 				'description: "Prompt custom mode"',
@@ -1918,7 +1873,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('prompt with custom mode an agent', async () => {
-			// Explicit custom mode should be recognized; BeastMode kind comes from setup; ensure tools accepted
 			const content = [
 				'---',
 				'description: "Prompt custom mode"',
@@ -1964,7 +1918,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('name attribute validation in prompts', async () => {
-			// Valid name
 			{
 				const content = [
 					'---',
@@ -1977,7 +1930,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Valid name should not produce errors');
 			}
 
-			// Empty name
 			{
 				const content = [
 					'---',
@@ -2230,7 +2182,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('skill name validation with different folder depths', async () => {
-			// Test with deeper path structure
 			{
 				const content = [
 					'---',
@@ -2243,7 +2194,6 @@ suite('PromptValidator', () => {
 				assert.deepStrictEqual(markers, [], 'Expected no issues for deeper path when name matches');
 			}
 
-			// Test with mismatch in deeper path
 			{
 				const content = [
 					'---',
@@ -2279,13 +2229,11 @@ suite('PromptValidator', () => {
 				'This is a skill.'
 			].join('\n');
 			const markers = await validate(content, PromptsType.skill, URI.parse('file:///.github/skills/my-skill/SKILL.md'));
-			// Should get error for non-string name type, but no folder mismatch warning
 			assert.ok(markers.some(m => m.message.includes('must be a string')), 'Expected error for non-string name');
 			assert.ok(!markers.some(m => m.message.includes('should match the folder name')), 'Should not warn about folder mismatch for non-string name');
 		});
 
 		test('skill folder name validation only for skill type', async () => {
-			// Verify that folder name validation doesn't run for non-skill prompt types
 			const content = [
 				'---',
 				'name: different-name',
@@ -2294,7 +2242,6 @@ suite('PromptValidator', () => {
 				'This is an agent.'
 			].join('\n');
 			const markers = await validate(content, PromptsType.agent, URI.parse('file:///.github/agents/my-agent/AGENT.md'));
-			// Should not get folder name mismatch warning for agents
 			assert.ok(!markers.some(m => m.message.includes('should match the folder name')), 'Should not validate folder names for agents');
 		});
 
@@ -2344,7 +2291,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('skill with invalid user-invocable value shows error', async () => {
-			// String value instead of boolean
 			{
 				const content = [
 					'---',
@@ -2360,7 +2306,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].message, `The 'user-invocable' attribute must be 'true' or 'false'.`);
 			}
 
-			// Number value instead of boolean
 			{
 				const content = [
 					'---',
@@ -2404,7 +2349,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('skill with invalid disable-model-invocation value shows error', async () => {
-			// String value instead of boolean
 			{
 				const content = [
 					'---',
@@ -2420,7 +2364,6 @@ suite('PromptValidator', () => {
 				assert.strictEqual(markers[0].message, `The 'disable-model-invocation' attribute must be 'true' or 'false'.`);
 			}
 
-			// Number value instead of boolean
 			{
 				const content = [
 					'---',
@@ -2499,7 +2442,6 @@ suite('PromptValidator', () => {
 
 	suite('claude rules', () => {
 
-		// Helper URI for Claude rules — file must be under .claude/rules/ for target detection
 		const claudeRulesUri = URI.parse('myFs://test/.claude/rules/my-rule.md');
 
 		test('valid claude rules with paths attribute', async () => {
@@ -2585,7 +2527,6 @@ suite('PromptValidator', () => {
 
 	suite('claude agents', () => {
 
-		// Helper URI for Claude agents — file must be under .claude/agents/ for target detection
 		const claudeAgentUri = URI.parse('myFs://test/.claude/agents/test.agent.md');
 
 		test('valid Claude agent with all common attributes', async () => {
@@ -2616,7 +2557,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('Claude agent with valid model values', async () => {
-			// Each known Claude model should be valid
 			for (const modelName of ['sonnet', 'opus', 'haiku', 'inherit']) {
 				const content = [
 					'---',
@@ -2744,7 +2684,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('Claude agent with unknown attributes does not warn', async () => {
-			// Claude target ignores unknown attributes since we don't have a full list
 			const content = [
 				'---',
 				'name: test-agent',
@@ -2758,8 +2697,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('Claude agent tools are not validated against VS Code tool registry', async () => {
-			// Claude tool names (Edit, Grep, etc.) don't exist in VS Code's tool registry
-			// but should not produce warnings for Claude target
 			const content = [
 				'---',
 				'name: test-agent',
@@ -2784,7 +2721,6 @@ suite('PromptValidator', () => {
 		});
 
 		test('Claude agent does not validate handoffs or agents attributes', async () => {
-			// handoffs and agents are VS Code-specific; they shouldn't be validated for Claude
 			const content = [
 				'---',
 				'name: test-agent',

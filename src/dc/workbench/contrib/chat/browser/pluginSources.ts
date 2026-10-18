@@ -25,9 +25,6 @@ import { IGitHubPluginSource, IGitUrlPluginSource, IMarketplacePlugin, INpmPlugi
 import { IPluginSource } from '../common/plugins/pluginSource.js';
 import { IPluginGitService } from '../common/plugins/pluginGitService.js';
 
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
 
 function sanitizeCacheSegment(name: string): string {
 	return name.replace(/[\\/:*?"<>|]/g, '_');
@@ -55,9 +52,6 @@ function formatShellCommand(args: readonly string[]): string {
 	return [command, ...rest.map(arg => shellEscapeArg(arg))].join(' ');
 }
 
-// ---------------------------------------------------------------------------
-// Base for git-based sources (GitHub shorthand & arbitrary Git URL)
-// ---------------------------------------------------------------------------
 
 abstract class AbstractGitPluginSource implements IPluginSource {
 	abstract readonly kind: PluginSourceKind;
@@ -79,11 +73,6 @@ abstract class AbstractGitPluginSource implements IPluginSource {
 		return this._getRepoDir(cacheRoot, descriptor);
 	}
 
-	/**
-	 * Returns the on-disk directory of the cloned repository. Subclasses that
-	 * support a sub-path within a repository should override this to return the
-	 * repository root, while {@link getInstallUri} returns root + sub-path.
-	 */
 	protected _getRepoDir(cacheRoot: URI, descriptor: IPluginSourceDescriptor): URI {
 		return this.getInstallUri(cacheRoot, descriptor);
 	}
@@ -167,7 +156,6 @@ abstract class AbstractGitPluginSource implements IPluginSource {
 		}
 	}
 
-	// -- internal helpers ---
 
 	private async _cloneRepository(repoDir: URI, cloneUrl: string, progressTitle: string, failureLabel: string, ref?: string): Promise<void> {
 		const cts = new CancellationTokenSource();
@@ -207,7 +195,6 @@ abstract class AbstractGitPluginSource implements IPluginSource {
 				await this._pluginGit.checkoutCommit(repoDir, git.sha, token);
 				return;
 			}
-			// git.ref is guaranteed non-nullish by the guard above
 			await this._pluginGit.checkout(repoDir, git.ref!, undefined, token);
 		} catch (err) {
 			this._logService.error(`[${this.kind}] Failed to checkout revision for '${failureLabel}':`, err);
@@ -220,9 +207,6 @@ abstract class AbstractGitPluginSource implements IPluginSource {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// RelativePath — plugin lives inside a shared marketplace repository
-// ---------------------------------------------------------------------------
 
 export class RelativePathPluginSource implements IPluginSource {
 	readonly kind = PluginSourceKind.RelativePath;
@@ -248,14 +232,10 @@ export class RelativePathPluginSource implements IPluginSource {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// GitHub — `{ source: "github", repo: "owner/repo" }`
-// ---------------------------------------------------------------------------
 
 export class GitHubPluginSource extends AbstractGitPluginSource {
 	readonly kind = PluginSourceKind.GitHub;
 
-	/** Returns the URI where the plugin content lives (repo root + optional sub-path). */
 	getInstallUri(cacheRoot: URI, descriptor: IPluginSourceDescriptor): URI {
 		const repoDir = this._getRepoDir(cacheRoot, descriptor);
 		const gh = descriptor as IGitHubPluginSource;
@@ -271,7 +251,6 @@ export class GitHubPluginSource extends AbstractGitPluginSource {
 		return repoDir;
 	}
 
-	/** Returns the cloned repository root (without sub-path). */
 	protected override _getRepoDir(cacheRoot: URI, descriptor: IPluginSourceDescriptor): URI {
 		const gh = descriptor as IGitHubPluginSource;
 		const [owner, repo] = gh.repo.split('/');
@@ -292,14 +271,10 @@ export class GitHubPluginSource extends AbstractGitPluginSource {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// GitUrl — `{ source: "url", url: "https://…/repo.git" }`
-// ---------------------------------------------------------------------------
 
 export class GitUrlPluginSource extends AbstractGitPluginSource {
 	readonly kind = PluginSourceKind.GitUrl;
 
-	/** Returns the URI where the plugin content lives (repo root + optional sub-path). */
 	getInstallUri(cacheRoot: URI, descriptor: IPluginSourceDescriptor): URI {
 		const repoDir = this._getRepoDir(cacheRoot, descriptor);
 		const git = descriptor as IGitUrlPluginSource;
@@ -315,7 +290,6 @@ export class GitUrlPluginSource extends AbstractGitPluginSource {
 		return repoDir;
 	}
 
-	/** Returns the cloned repository root (without sub-path). */
 	protected override _getRepoDir(cacheRoot: URI, descriptor: IPluginSourceDescriptor): URI {
 		const git = descriptor as IGitUrlPluginSource;
 		const segments = this._gitUrlCacheSegments(git.url, git.ref, git.sha);
@@ -348,9 +322,6 @@ export class GitUrlPluginSource extends AbstractGitPluginSource {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Base for package-manager-based sources (npm, pip)
-// ---------------------------------------------------------------------------
 
 export abstract class AbstractPackagePluginSource implements IPluginSource {
 	abstract readonly kind: PluginSourceKind;
@@ -370,16 +341,10 @@ export abstract class AbstractPackagePluginSource implements IPluginSource {
 		return this._getCacheDir(cacheRoot, descriptor);
 	}
 
-	/**
-	 * Return the parent directory (prefix / target) where the package
-	 * manager installs into. This is above the actual plugin content dir.
-	 */
 	protected abstract _getCacheDir(cacheRoot: URI, descriptor: IPluginSourceDescriptor): URI;
 
-	/** Build the terminal command args for install. */
 	protected abstract _buildInstallArgs(installDir: URI, plugin: IMarketplacePlugin): string[];
 
-	/** Human-readable package manager name for messages. */
 	protected abstract get _managerName(): string;
 
 	async ensure(cacheRoot: URI, plugin: IMarketplacePlugin, _options?: IEnsureRepositoryOptions): Promise<URI> {
@@ -389,7 +354,6 @@ export abstract class AbstractPackagePluginSource implements IPluginSource {
 	}
 
 	async update(cacheRoot: URI, plugin: IMarketplacePlugin, _options?: IPullRepositoryOptions): Promise<boolean> {
-		// For package-manager sources, "update" re-runs install.
 		const installDir = this._getCacheDir(cacheRoot, plugin.sourceDescriptor);
 		const pluginDir = this.getInstallUri(cacheRoot, plugin.sourceDescriptor);
 		await this.runInstall(installDir, pluginDir, plugin, { silent: _options?.silent });
@@ -423,7 +387,6 @@ export abstract class AbstractPackagePluginSource implements IPluginSource {
 		return { pluginDir };
 	}
 
-	// -- terminal helpers (moved from PluginInstallService) ---
 
 	private async _confirmTerminalCommand(pluginName: string, command: string, silent?: boolean): Promise<boolean> {
 		if (silent) {
@@ -531,9 +494,6 @@ export abstract class AbstractPackagePluginSource implements IPluginSource {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// npm — `{ source: "npm", package: "@org/plugin" }`
-// ---------------------------------------------------------------------------
 
 export class NpmPluginSource extends AbstractPackagePluginSource {
 	readonly kind = PluginSourceKind.Npm;
@@ -565,9 +525,6 @@ export class NpmPluginSource extends AbstractPackagePluginSource {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// pip — `{ source: "pip", package: "my-plugin" }`
-// ---------------------------------------------------------------------------
 
 export class PipPluginSource extends AbstractPackagePluginSource {
 	readonly kind = PluginSourceKind.Pip;

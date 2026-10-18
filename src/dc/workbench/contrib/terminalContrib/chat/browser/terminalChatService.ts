@@ -28,9 +28,6 @@ const enum StorageKeys {
 }
 
 
-/**
- * Used to manage chat tool invocations and the underlying terminal instances they create/use.
- */
 export class TerminalChatService extends Disposable implements ITerminalChatService {
 	declare _serviceBrand: undefined;
 
@@ -55,33 +52,15 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 	private _focusedProgressPart: IChatTerminalToolProgressPart | undefined;
 	private _mostRecentProgressPart: IChatTerminalToolProgressPart | undefined;
 
-	/**
-	 * Pending mappings restored from storage that have not yet been matched to a live terminal
-	 * instance (we match by persistentProcessId when it becomes available after reconnection).
-	 * toolSessionId -> persistentProcessId
-	 */
 	private readonly _pendingRestoredMappings = new Map<string, number>();
 
 	private readonly _hasToolTerminalContext: IContextKey<boolean>;
 	private readonly _hasHiddenToolTerminalContext: IContextKey<boolean>;
 
-	/**
-	 * Tracks chat session resources that have auto approval enabled for all commands. This is a temporary
-	 * approval that lasts only for the duration of the session.
-	 */
 	private readonly _sessionAutoApprovalEnabled = new ResourceMap<boolean>();
 
-	/**
-	 * Tracks session-scoped auto-approve rules per chat session. These are temporary rules that
-	 * last only for the duration of the chat session (not persisted to disk).
-	 */
 	private readonly _sessionAutoApproveRules = new ResourceMap<Record<string, boolean | { approve: boolean; matchCommandLine?: boolean }>>();
 
-	/**
-	 * Lazily created analysis helpers backing {@link getAutoApproveActions}. These are only
-	 * needed for confirmations that arrive without pre-computed actions (eg. agent host
-	 * sessions), so avoid paying for tree-sitter until first use.
-	 */
 	private _autoApproveCommandParser: TreeSitterCommandParser | undefined;
 	private _autoApproveEvaluator: CommandLineAutoApprover | undefined;
 
@@ -100,7 +79,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 
 		this._restoreFromStorage();
 
-		// Clear session auto-approve rules when chat sessions end
 		this._register(this._chatService.onDidDisposeSession(e => {
 			for (const resource of e.sessionResources) {
 				this._sessionAutoApproveRules.delete(resource);
@@ -108,7 +86,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 			}
 		}));
 
-		// Update context keys when terminal instances change (registered once, not per-registration)
 		this._register(this._terminalService.onDidChangeInstances(() => this._updateHasToolTerminalContextKeys()));
 	}
 
@@ -117,15 +94,10 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 			this._logService.warn('Attempted to register a terminal instance with an undefined tool session ID');
 			return;
 		}
-		// If the instance is already registered with the same tool session id, skip to avoid
-		// accumulating duplicate `onDidDisposeSession`/`onDisposed` listeners (see #309906).
 		const existingToolSessionId = this._toolSessionIdByTerminalInstance.get(instance);
 		if (existingToolSessionId === terminalToolSessionId) {
 			return;
 		}
-		// The instance was previously registered under a different tool session id. Clean up the
-		// stale listener + mapping before installing the new ones so we keep at most one set of
-		// listeners per instance, regardless of how often it is re-registered.
 		if (existingToolSessionId !== undefined) {
 			this._terminalInstanceListenersByToolSessionId.deleteAndDispose(existingToolSessionId);
 			this._terminalInstancesByToolSessionId.delete(existingToolSessionId);
@@ -147,7 +119,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 					this._terminalInstancesByToolSessionId.delete(terminalToolSessionId);
 					this._toolSessionIdByTerminalInstance.delete(instance);
 					this._terminalInstanceListenersByToolSessionId.deleteAndDispose(terminalToolSessionId);
-					// Clean up session auto approval state
 					this._sessionAutoApprovalEnabled.delete(resource);
 					this._persistToStorage();
 					this._updateHasToolTerminalContextKeys();
@@ -170,8 +141,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 		}
 		const pendingAhp = this._ahpCommandSources.get(terminalToolSessionId);
 		if (pendingAhp) {
-			// If there's an AHP terminal being created, this is async to the tool
-			// result, so wait for it to settle before continuing.
 			try {
 				return await pendingAhp.promisedTerminal;
 			} catch (error) {
@@ -196,7 +165,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 			const uniqueInstances = new Set(this._terminalInstancesByToolSessionId.values());
 			return Array.from(uniqueInstances).filter(i => !foregroundInstances.has(i.instanceId));
 		}
-		// Ensure unique instances in case multiple tool sessions map to the same terminal
 		return Array.from(new Set(this._terminalInstancesByToolSessionId.values()));
 	}
 
@@ -205,15 +173,10 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 	}
 
 	registerTerminalInstanceWithExecutionId(terminalExecutionId: string, instance: ITerminalInstance): IDisposable {
-		// If this id is already registered (re-registration), dispose the previous listener
-		// store first so we don't leak listeners. The new registration replaces the mapping
-		// and installs its own onDisposed listener below.
 		this._terminalInstanceListenersByExecutionId.deleteAndDispose(terminalExecutionId);
 		this._terminalInstancesByExecutionId.set(terminalExecutionId, instance);
 		const instanceStore = new DisposableStore();
 		const unregister = () => {
-			// Only tear down the mapping/listener if it still points at this instance.
-			// If a newer registration has replaced us, leave its state alone.
 			if (this._terminalInstancesByExecutionId.get(terminalExecutionId) !== instance) {
 				return;
 			}
@@ -230,17 +193,14 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 	}
 
 	registerTerminalInstanceWithChatSession(chatSessionResource: URI, instance: ITerminalInstance): void {
-		// If already registered with the same session, skip to avoid duplicate listeners
 		const existingResource = this._chatSessionResourceByTerminalInstance.get(instance);
 		if (existingResource && existingResource.toString() === chatSessionResource.toString()) {
 			return;
 		}
 
-		// Clean up previous listener if the instance was registered with a different session
 		this._chatSessionListenersByTerminalInstance.deleteAndDispose(instance);
 
 		this._chatSessionResourceByTerminalInstance.set(instance, chatSessionResource);
-		// Clean up when the instance is disposed
 		const disposable = instance.onDisposed(() => {
 			this._chatSessionResourceByTerminalInstance.delete(instance);
 			this._chatSessionListenersByTerminalInstance.deleteAndDispose(instance);
@@ -379,8 +339,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 		try {
 			const entries: [string, number][] = [];
 			for (const [toolSessionId, instance] of this._terminalInstancesByToolSessionId.entries()) {
-				// Use the live persistent process id when available, otherwise fall back to the id
-				// from the attached process so mappings survive early in the terminal lifecycle.
 				const persistentId = isNumber(instance.persistentProcessId)
 					? instance.persistentProcessId
 					: instance.shellLaunchConfig.attachPersistentProcess?.id;
@@ -454,12 +412,6 @@ export class TerminalChatService extends Disposable implements ITerminalChatServ
 		}
 		const shell = language === 'powershell' ? 'pwsh' : 'bash';
 		const evaluator = this._autoApproveEvaluator ??= this._register(this._instantiationService.createInstance(CommandLineAutoApprover));
-		// Evaluate against persisted configuration rules only — deliberately no
-		// chat session resource, so workbench session rules (which the agent
-		// host does not consume) neither suppress suggestions nor get offered
-		// (`skipSessionScoped`). Session rules are not forwarded to the agent
-		// host yet, so anything session-scoped would appear to work while
-		// later commands still prompt.
 		const subCommandResults = await Promise.all(subCommands.map(e => evaluator.isCommandAutoApproved(e, shell, OS, undefined)));
 		const commandLineResult = evaluator.isCommandLineAutoApproved(trimmedCommandLine);
 		return generateAutoApproveActions(trimmedCommandLine, subCommands, { subCommandResults, commandLineResult }, { skipSessionScoped: true });

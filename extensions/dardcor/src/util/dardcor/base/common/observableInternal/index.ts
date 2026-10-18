@@ -1,11 +1,9 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// This is a facade for the observable implementation. Only import from here!
 
 export { observableValueOpts } from './observables/observableValueOpts';
 export { autorun, autorunDelta, autorunHandleChanges, autorunOpts, autorunWithStore, autorunWithStoreHandleChanges, autorunIterableDelta, autorunPerKeyedItem, autorunSelfDisposable, registerAutorunSelfDisposable } from './reactions/autorun';
@@ -49,9 +47,7 @@ import { debugGetObservableGraph } from './logging/debugGetDependencyGraph';
 _setDebugGetObservableGraph(debugGetObservableGraph);
 setLogObservableFn(logObservableToConsole);
 
-// Remove "//" in the next line to enable logging
 const enableLogging = false
-	// || Boolean("true") // done "weirdly" so that a lint warning prevents you from pushing this
 	;
 
 if (enableLogging) {
@@ -59,6 +55,5 @@ if (enableLogging) {
 }
 
 if (env && env['VSCODE_DEV_DEBUG_OBSERVABLES']) {
-	// To debug observables you also need the extension "ms-vscode.debug-value-editor"
 	addLogger(DevToolsLogger.getInstance());
 }

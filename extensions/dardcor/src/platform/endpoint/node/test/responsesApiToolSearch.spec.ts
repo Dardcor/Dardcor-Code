@@ -133,16 +133,13 @@ describe('createResponsesRequestBody tools', () => {
 		const tools = body.tools as any[];
 		expect(tools).toBeDefined();
 
-		// Should have client-executed tool_search
 		const toolSearchTool = tools.find(t => t.type === 'tool_search');
 		expect(toolSearchTool).toBeDefined();
 		expect(toolSearchTool.execution).toBe('client');
 
-		// Non-deferred tools should be present without defer_loading
 		expect(tools.find(t => t.name === 'read_file')?.defer_loading).toBeUndefined();
 		expect(tools.find(t => t.name === 'grep_search')?.defer_loading).toBeUndefined();
 
-		// Deferred tools should NOT be in the request (client-executed mode excludes them entirely)
 		expect(tools.find(t => t.name === 'some_mcp_tool')).toBeUndefined();
 		expect(tools.find(t => t.name === 'another_deferred_tool')).toBeUndefined();
 	});
@@ -173,10 +170,6 @@ describe('createResponsesRequestBody tools', () => {
 	});
 
 	it('does not defer tools when tool_search is not in the request tool list', () => {
-		// Repro for https://github.com/microsoft/vscode/issues/311946: a custom agent with
-		// `tools: ['my-mcp-server/*']` filters out tool_search. Without this gate, every
-		// MCP tool would be marked deferred and stripped from the request, leaving the
-		// agent with nothing to call.
 		const endpoint = createMockEndpoint('gpt-5.4');
 
 		const options = createMockOptions({
@@ -192,9 +185,7 @@ describe('createResponsesRequestBody tools', () => {
 		);
 
 		const tools = body.tools as any[];
-		// No client tool_search should be added.
 		expect(tools.find(t => t.type === 'tool_search')).toBeUndefined();
-		// All user-listed tools should be sent to the model, not stripped.
 		expect(tools.find(t => t.name === 'some_mcp_tool')).toBeDefined();
 		expect(tools.find(t => t.name === 'another_mcp_tool')).toBeDefined();
 	});
@@ -242,23 +233,19 @@ describe('createResponsesRequestBody tools', () => {
 		);
 
 		const input = body.input as any[];
-		// tool_search tool call should be converted to tool_search_call, not function_call
 		const toolSearchCall = input.find(i => i.type === 'tool_search_call');
 		expect(toolSearchCall).toBeDefined();
 		expect(toolSearchCall.execution).toBe('client');
 		expect(toolSearchCall.call_id).toBe('call_ts1');
 
-		// tool_search result should be converted to tool_search_output, not function_call_output
 		const toolSearchOutput = input.find(i => i.type === 'tool_search_output');
 		expect(toolSearchOutput).toBeDefined();
 		expect(toolSearchOutput.execution).toBe('client');
 		expect(toolSearchOutput.call_id).toBe('call_ts1');
 
-		// No tools are currently deferred, so historical tool_search_output should not redeclare them.
 		const loadedToolNames = (toolSearchOutput.tools as any[]).map((t: any) => t.name);
 		expect(loadedToolNames).toEqual([]);
 
-		// Should not have any function_call with name tool_search
 		const badFunctionCall = input.find(i => i.type === 'function_call' && i.name === 'tool_search');
 		expect(badFunctionCall).toBeUndefined();
 	});
@@ -364,20 +351,12 @@ describe('createResponsesRequestBody tools', () => {
 	});
 
 	it('still emits tool_search_output and namespaces deferred-tool calls when the stateful marker drops the tool_search_call from the post-marker slice (issue #313899)', () => {
-		// Repro for https://github.com/microsoft/vscode/issues/313899: when the Responses API
-		// resumes from a previous_response_id, the assistant message carrying the marker (and
-		// the tool_search_call it emitted) is sliced out of the input. Without scanning the
-		// full history first, the tool_search bookkeeping would be empty and the subsequent
-		// tool result would be incorrectly serialized as `function_call_output` instead of
-		// `tool_search_output`, leaving the deferred MCP tool definitions unloaded on the
-		// server and the model unable to invoke the tool it just discovered.
 		const modelId = 'gpt-5.4';
 		const statefulMarker = 'marker-abc';
 		const messages: Raw.ChatMessage[] = [
 			{ role: Raw.ChatRole.User, content: [{ type: Raw.ChatCompletionContentPartKind.Text, text: 'Use the MCP tool' }] },
 			{
 				role: Raw.ChatRole.Assistant,
-				// Marker lives on the same assistant turn that emitted the tool_search call.
 				content: [{
 					type: Raw.ChatCompletionContentPartKind.Opaque,
 					value: { type: 'stateful_marker', value: { modelId, marker: statefulMarker } },
@@ -402,12 +381,8 @@ describe('createResponsesRequestBody tools', () => {
 
 		expect({
 			previous_response_id: body.previous_response_id,
-			// The tool result must round-trip as a tool_search_output (not function_call_output)
 			toolSearchOutput: input.find(i => i.type === 'tool_search_output'),
-			// Any function_call_output for the tool_search call_id would be the bug
 			badFunctionCallOutput: input.find((i: any) => i.type === 'function_call_output' && i.call_id === 'call_ts_resume'),
-			// The follow-up MCP tool call must carry the namespace so the server can match
-			// it against the deferred tool loaded via tool_search_output.
 			mcpToolNamespace: input.find(i => i.type === 'function_call' && i.name === 'some_mcp_tool')?.namespace,
 		}).toEqual({
 			previous_response_id: statefulMarker,
@@ -424,13 +399,6 @@ describe('createResponsesRequestBody tools', () => {
 	});
 
 	it('preserves rich JSON Schema keywords and emits strict: false on both the inline and deferred paths (issue #315526)', () => {
-		// Extension-contributed tools (e.g. agent-helper-kit's `run_in_shell`) use JSON Schema
-		// keywords outside OpenAI's strict-mode subset — `allOf`, `not`, `anyOf`, `if`/`then`,
-		// numeric bounds — to express mutually-exclusive arguments. The Responses API defaults
-		// `strict` to `true` when omitted, which silently strips those keywords. Both the
-		// inline (non-deferred) and the tool_search_output (deferred) paths must explicitly
-		// emit `strict: false` and round-trip the schema verbatim, otherwise the model invokes
-		// the tool with all the mutually-exclusive fields populated at once.
 		const richSchema = {
 			type: 'object',
 			required: ['command'],
@@ -448,7 +416,6 @@ describe('createResponsesRequestBody tools', () => {
 		};
 		const endpoint = createMockEndpoint('gpt-5.4');
 
-		// Inline path: non-deferred tools are sent in the initial request body.
 		const inlineBody = accessor.get(IInstantiationService).invokeFunction(
 			createResponsesRequestBody,
 			createMockOptions({
@@ -463,7 +430,6 @@ describe('createResponsesRequestBody tools', () => {
 			endpoint,
 		);
 
-		// Deferred path: the same schema must come back via tool_search_output unchanged.
 		const deferredBody = accessor.get(IInstantiationService).invokeFunction(
 			createResponsesRequestBody,
 			createMockOptions({
@@ -560,12 +526,10 @@ describe('OpenAIResponsesProcessor tool search events', () => {
 			}
 		]);
 
-		// First delta: beginToolCalls for tool_search
 		expect(deltas[0].beginToolCalls).toBeDefined();
 		expect(deltas[0].beginToolCalls![0].name).toBe('tool_search');
 		expect(deltas[0].beginToolCalls![0].id).toBe('call_abc');
 
-		// Second delta: completed dardcorToolCall
 		expect(deltas[1].dardcorToolCalls).toBeDefined();
 		expect(deltas[1].dardcorToolCalls![0]).toMatchObject({
 			id: 'call_abc',

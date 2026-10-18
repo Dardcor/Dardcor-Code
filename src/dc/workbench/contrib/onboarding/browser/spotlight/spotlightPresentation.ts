@@ -17,24 +17,16 @@ import { findOnboardingTarget, openOnboardingTarget } from './onboardingTarget.j
 import { ISpotlightContent, SpotlightOverlay } from './spotlightOverlay.js';
 import { ISpotlightPayload, ISpotlightStep, SpotlightMissingTargetBehavior, SPOTLIGHT_PRESENTATION_KIND } from './spotlightTypes.js';
 
-/** How long to wait for a step's target element to appear before skipping it. */
 const TARGET_RESOLVE_TIMEOUT = 2000;
 const TARGET_POLL_INTERVAL = 50;
 const TARGET_ANIMATION_SETTLE_TIMEOUT = 600;
 
-/** The terminal action of a single step, carrying the data needed for telemetry. */
 type StepEnd =
 	| { readonly action: 'next'; readonly via: 'button' | 'target' | 'condition' }
 	| { readonly action: 'back' }
 	| { readonly action: 'skip'; readonly reason: OnboardingDismissReason.SkipButton | OnboardingDismissReason.EscapeKey }
 	| { readonly action: 'abort' };
 
-/**
- * Renders {@link ISpotlightPayload} scenarios: it dims the window (including the
- * native window controls), walks the steps, and shows an anchored callout for
- * each. Implements the engine's {@link IOnboardingPresentation} contract so the
- * scenario engine can drive it without knowing anything about spotlights.
- */
 export class SpotlightPresentation extends Disposable implements IOnboardingPresentation, IOnboardingSequenceStepPresentation {
 
 	readonly kind = SPOTLIGHT_PRESENTATION_KIND;
@@ -123,11 +115,7 @@ export class SpotlightPresentation extends Disposable implements IOnboardingPres
 			return { outcome: OnboardingOutcome.Completed, shown: false, dismissReason: OnboardingDismissReason.Completed, lastStepIndex: 0, stepCount: 0 };
 		}
 
-		// Furthest step the user actually saw (0-based). Stays at the last shown
-		// step regardless of how the run ends, for telemetry.
 		let lastStepIndex = 0;
-		// Whether at least one step was actually rendered. Stays `false` if every step is
-		// skipped (missing target / unsatisfied `when`) so nothing was ever displayed.
 		let shown = false;
 		const skippedStepIndexes = new Set<number>();
 
@@ -136,7 +124,6 @@ export class SpotlightPresentation extends Disposable implements IOnboardingPres
 			const container = this.layoutService.getContainer(context.targetWindow);
 			const overlay = store.add(new SpotlightOverlay(container));
 
-			// Dim the native window controls overlay in sync with the dim layer.
 			this.hostService.setWindowDimmed(context.targetWindow, true);
 			store.add(toDisposable(() => this.hostService.setWindowDimmed(context.targetWindow, false)));
 
@@ -147,9 +134,6 @@ export class SpotlightPresentation extends Disposable implements IOnboardingPres
 				targetResolutionCancellation.cancel();
 			}));
 
-			// Keep the callout glued to the target as the workbench re-layouts.
-			// Schedule the measurement so it runs after the layout event's DOM work
-			// has settled, including position-only shifts that ResizeObserver misses.
 			store.add(this.layoutService.onDidLayoutContainer(() => overlay.scheduleLayout()));
 
 			let index = 0;
@@ -200,7 +184,6 @@ export class SpotlightPresentation extends Disposable implements IOnboardingPres
 				switch (end.action) {
 					case 'next':
 						if (index === stepCount - 1) {
-							// Advancing past the final step completes the tour.
 							const dismissReason = end.via === 'target' ? OnboardingDismissReason.TargetClick : OnboardingDismissReason.Completed;
 							return { outcome: OnboardingOutcome.Completed, shown, dismissReason, lastStepIndex, stepCount };
 						}

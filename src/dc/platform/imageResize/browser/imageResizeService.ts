@@ -16,12 +16,6 @@ export class ImageResizeService implements IImageResizeService {
 
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * Resizes an image provided as a UInt8Array string. Resizing is based on Open AI's algorithm for tokenzing images.
-	 * https://platform.openai.com/docs/guides/vision#calculating-costs
-	 * @param data - The UInt8Array string of the image to resize.
-	 * @returns A promise that resolves to the UInt8Array string of the resized image.
-	 */
 
 	async resizeImage(data: Uint8Array | string, mimeType?: string): Promise<Uint8Array> {
 		const isGif = mimeType === 'image/gif';
@@ -45,7 +39,6 @@ export class ImageResizeService implements IImageResizeService {
 					return;
 				}
 
-				// Calculate the new dimensions while maintaining the aspect ratio
 				if (width > 2048 || height > 2048) {
 					const scaleFactor = 2048 / Math.max(width, height);
 					width = Math.round(width * scaleFactor);
@@ -97,7 +90,6 @@ export class ImageResizeService implements IImageResizeService {
 		return new TextEncoder().encode(data);
 	}
 
-	// Only used for URLs
 	convertUint8ArrayToString(data: Uint8Array): string {
 		try {
 			const decoder = new TextDecoder();
@@ -139,7 +131,7 @@ export class ImageResizeService implements IImageResizeService {
 			return;
 		}
 
-		const duration = 7 * 24 * 60 * 60 * 1000; // 7 days
+		const duration = 7 * 24 * 60 * 60 * 1000;
 		const files = await fileService.resolve(imagesFolder);
 		if (!files.children) {
 			return;

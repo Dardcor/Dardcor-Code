@@ -29,18 +29,15 @@ export class MainThreadConsole implements MainThreadConsoleShape {
 	}
 
 	dispose(): void {
-		//
 	}
 
 	$logExtensionHostMessage(entry: IRemoteConsoleLog): void {
 		if (this._logAllExtensionHostConsole) {
-			// In development scenarios, log all extension host console output to the log service.
 			logRemoteEntry(this._logService, entry);
 			if (this._logExtensionHostConsoleToLocalConsole) {
 				log(entry, 'Extension Host');
 			}
 		} else {
-			// Log to the log service only errors and log everything to local console
 			logRemoteEntryIfError(this._logService, entry, 'Extension Host');
 			log(entry, 'Extension Host');
 		}

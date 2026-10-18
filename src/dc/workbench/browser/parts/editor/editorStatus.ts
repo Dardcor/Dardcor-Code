@@ -63,7 +63,7 @@ class SideBySideEditorEncodingSupport implements IEncodingSupport {
 	constructor(private primary: IEncodingSupport, private secondary: IEncodingSupport) { }
 
 	getEncoding(): string | undefined {
-		return this.primary.getEncoding(); // always report from modified (right hand) side
+		return this.primary.getEncoding();
 	}
 
 	async setEncoding(encoding: string, mode: EncodingMode): Promise<void> {
@@ -82,12 +82,10 @@ class SideBySideEditorLanguageSupport implements ILanguageSupport {
 
 function toEditorWithEncodingSupport(input: EditorInput): IEncodingSupport | null {
 
-	// Untitled Text Editor
 	if (input instanceof UntitledTextEditorInput) {
 		return input;
 	}
 
-	// Side by Side (diff) Editor
 	if (input instanceof SideBySideEditorInput) {
 		const primaryEncodingSupport = toEditorWithEncodingSupport(input.primary);
 		const secondaryEncodingSupport = toEditorWithEncodingSupport(input.secondary);
@@ -99,24 +97,20 @@ function toEditorWithEncodingSupport(input: EditorInput): IEncodingSupport | nul
 		return primaryEncodingSupport;
 	}
 
-	// File or Resource Editor
 	const encodingSupport = input as IFileEditorInput;
 	if (areFunctions(encodingSupport.setEncoding, encodingSupport.getEncoding)) {
 		return encodingSupport;
 	}
 
-	// Unsupported for any other editor
 	return null;
 }
 
 function toEditorWithLanguageSupport(input: EditorInput): ILanguageSupport | null {
 
-	// Untitled Text Editor
 	if (input instanceof UntitledTextEditorInput) {
 		return input;
 	}
 
-	// Side by Side (diff) Editor
 	if (input instanceof SideBySideEditorInput) {
 		const primaryLanguageSupport = toEditorWithLanguageSupport(input.primary);
 		const secondaryLanguageSupport = toEditorWithLanguageSupport(input.secondary);
@@ -128,13 +122,11 @@ function toEditorWithLanguageSupport(input: EditorInput): ILanguageSupport | nul
 		return primaryLanguageSupport;
 	}
 
-	// File or Resource Editor
 	const languageSupport = input as IFileEditorInput;
 	if (typeof languageSupport.setLanguageId === 'function') {
 		return languageSupport;
 	}
 
-	// Unsupported for any other editor
 	return null;
 }
 
@@ -618,7 +610,7 @@ class EditorStatus extends Disposable {
 	private updateState(update: StateDelta): void {
 		const changed = this.state.update(update);
 		if (!changed.hasChanges()) {
-			return; // Nothing really changed
+			return;
 		}
 
 		if (!this.toRender) {
@@ -679,7 +671,6 @@ class EditorStatus extends Disposable {
 		const activeEditorPane = this.editorService.activeEditorPane;
 		const activeCodeEditor = activeEditorPane ? getCodeEditor(activeEditorPane.getControl()) ?? undefined : undefined;
 
-		// Update all states
 		this.onColumnSelectionModeChange(activeCodeEditor);
 		this.onSelectionChange(activeCodeEditor);
 		this.onLanguageChange(activeCodeEditor, activeInput);
@@ -689,41 +680,31 @@ class EditorStatus extends Disposable {
 		this.onMetadataChange(activeEditorPane);
 		this.currentMarkerStatus.update(activeCodeEditor);
 
-		// Dispose old active editor listeners
 		this.activeEditorListeners.clear();
 
-		// Attach new listeners to active editor
 		if (activeEditorPane) {
 			this.activeEditorListeners.add(activeEditorPane.onDidChangeControl(() => {
-				// Since our editor status is mainly observing the
-				// active editor control, do a full update whenever
-				// the control changes.
 				this.updateStatusBar();
 			}));
 		}
 
-		// Attach new listeners to active code editor
 		if (activeCodeEditor) {
 
-			// Hook Listener for Configuration changes
 			this.activeEditorListeners.add(activeCodeEditor.onDidChangeConfiguration((event: ConfigurationChangedEvent) => {
 				if (event.hasChanged(EditorOption.columnSelection)) {
 					this.onColumnSelectionModeChange(activeCodeEditor);
 				}
 			}));
 
-			// Hook Listener for Selection changes
 			this.activeEditorListeners.add(Event.defer(activeCodeEditor.onDidChangeCursorPosition)(() => {
 				this.onSelectionChange(activeCodeEditor);
 				this.currentMarkerStatus.update(activeCodeEditor);
 			}));
 
-			// Hook Listener for language changes
 			this.activeEditorListeners.add(activeCodeEditor.onDidChangeModelLanguage(() => {
 				this.onLanguageChange(activeCodeEditor, activeInput);
 			}));
 
-			// Hook Listener for content changes
 			this.activeEditorListeners.add(Event.accumulate(activeCodeEditor.onDidChangeModelContent)(e => {
 				this.onEOLChange(activeCodeEditor);
 				this.currentMarkerStatus.update(activeCodeEditor);
@@ -741,13 +722,11 @@ class EditorStatus extends Disposable {
 				}
 			}));
 
-			// Hook Listener for content options changes
 			this.activeEditorListeners.add(activeCodeEditor.onDidChangeModelOptions(() => {
 				this.onIndentationChange(activeCodeEditor);
 			}));
 		}
 
-		// Handle binary editors
 		else if (activeEditorPane instanceof BaseBinaryResourceEditor || activeEditorPane instanceof BinaryResourceDiffEditor) {
 			const binaryEditors: BaseBinaryResourceEditor[] = [];
 			if (activeEditorPane instanceof BinaryResourceDiffEditor) {
@@ -779,7 +758,6 @@ class EditorStatus extends Disposable {
 	private onLanguageChange(editorWidget: ICodeEditor | undefined, editorInput: EditorInput | undefined): void {
 		const info: StateDelta = { type: 'languageId', languageId: undefined };
 
-		// We only support text based editors
 		if (editorWidget && editorInput && toEditorWithLanguageSupport(editorInput)) {
 			const textModel = editorWidget.getModel();
 			if (textModel) {
@@ -834,13 +812,10 @@ class EditorStatus extends Disposable {
 	private onSelectionChange(editorWidget: ICodeEditor | undefined): void {
 		const info: IEditorSelectionStatus = Object.create(null);
 
-		// We only support text based editors
 		if (editorWidget) {
 
-			// Compute selection(s)
 			info.selections = editorWidget.getSelections() || [];
 
-			// Compute selection length
 			info.charactersSelected = 0;
 			const textModel = editorWidget.getModel();
 			if (textModel) {
@@ -853,7 +828,6 @@ class EditorStatus extends Disposable {
 				}
 			}
 
-			// Compute the visible column for one selection. This will properly handle tabs and their configured widths
 			if (info.selections.length === 1) {
 				const editorPosition = editorWidget.getPosition();
 
@@ -891,18 +865,15 @@ class EditorStatus extends Disposable {
 
 		const info: StateDelta = { type: 'encoding', encoding: undefined };
 
-		// We only support text based editors that have a model associated
-		// This ensures we do not show the encoding picker while an editor
-		// is still loading.
 		if (editor && editorWidget?.hasModel()) {
 			const encodingSupport: IEncodingSupport | null = editor.input ? toEditorWithEncodingSupport(editor.input) : null;
 			if (encodingSupport) {
 				const rawEncoding = encodingSupport.getEncoding();
 				const encodingInfo = typeof rawEncoding === 'string' ? SUPPORTED_ENCODINGS[rawEncoding] : undefined;
 				if (encodingInfo) {
-					info.encoding = encodingInfo.labelShort; // if we have a label, take it from there
+					info.encoding = encodingInfo.labelShort;
 				} else {
-					info.encoding = rawEncoding; // otherwise use it raw
+					info.encoding = rawEncoding;
 				}
 			}
 		}
@@ -917,7 +888,7 @@ class EditorStatus extends Disposable {
 			if (activeResource && isEqual(activeResource, resource)) {
 				const activeCodeEditor = getCodeEditor(activeEditorPane.getControl()) ?? undefined;
 
-				return this.onEncodingChange(activeEditorPane, activeCodeEditor); // only update if the encoding changed for the active resource
+				return this.onEncodingChange(activeEditorPane, activeCodeEditor);
 			}
 		}
 	}
@@ -1154,7 +1125,6 @@ export class ChangeLanguageAction extends Action2 {
 		const textModel = activeTextEditorControl.getModel();
 		const resource = EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 
-		// Compute language
 		let currentLanguageName: string | undefined;
 		let currentLanguageId: string | undefined;
 		if (textModel) {
@@ -1164,10 +1134,9 @@ export class ChangeLanguageAction extends Action2 {
 
 		let hasLanguageSupport = !!resource;
 		if (resource?.scheme === Schemas.untitled && !textFileService.untitled.get(resource)?.hasAssociatedFilePath) {
-			hasLanguageSupport = false; // no configuration for untitled resources (e.g. "Untitled-1")
+			hasLanguageSupport = false;
 		}
 
-		// All languages are valid picks
 		const languages = languageService.getSortedRegisteredLanguageNames();
 		const picks: QuickPickInput[] = languages
 			.map(({ languageName, languageId }) => {
@@ -1190,7 +1159,6 @@ export class ChangeLanguageAction extends Action2 {
 
 		picks.unshift({ type: 'separator', label: localize('languagesPicks', "languages (identifier)") });
 
-		// Offer action to configure via settings
 		let configureLanguageAssociations: IQuickPickItem | undefined;
 		let configureLanguageSettings: IQuickPickItem | undefined;
 		let galleryAction: IAction | undefined;
@@ -1212,7 +1180,6 @@ export class ChangeLanguageAction extends Action2 {
 			picks.unshift(configureLanguageAssociations);
 		}
 
-		// Offer to "Auto Detect", but only if the document is not empty.
 		const autoDetectLanguage: IQuickPickItem = { label: localize('autoDetect', "Auto Detect") };
 		if (textModel && textModel.getValueLength() > 0) {
 			picks.unshift(autoDetectLanguage);
@@ -1228,7 +1195,6 @@ export class ChangeLanguageAction extends Action2 {
 			return;
 		}
 
-		// User decided to permanently configure associations, return right after
 		if (pick === configureLanguageAssociations) {
 			if (resource) {
 				this.configureFileAssociation(resource, languageService, quickInputService, configurationService);
@@ -1236,26 +1202,22 @@ export class ChangeLanguageAction extends Action2 {
 			return;
 		}
 
-		// User decided to configure settings for current language
 		if (pick === configureLanguageSettings) {
 			preferencesService.openUserSettings({ jsonEditor: true, revealSetting: { key: `[${currentLanguageId ?? null}]`, edit: true } });
 			return;
 		}
 
-		// Change language for active editor
 		const activeEditor = editorService.activeEditor;
 		if (activeEditor) {
 			const languageSupport = toEditorWithLanguageSupport(activeEditor);
 			if (languageSupport) {
 
-				// Find language
 				let languageSelection: ILanguageSelection | undefined;
 				let detectedLanguage: string | undefined;
 				if (pick === autoDetectLanguage) {
 					if (textModel) {
 						const resource = EditorResourceAccessor.getOriginalUri(activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
 						if (resource) {
-							// Detect languages since we are in an untitled file
 							let languageId: string | undefined = languageService.guessLanguageIdByFilepathOrFirstLine(resource, textModel.getLineContent(1)) ?? undefined;
 							if (!languageId || languageId === 'unknown') {
 								detectedLanguage = await languageDetectionService.detectLanguage(resource);
@@ -1270,13 +1232,9 @@ export class ChangeLanguageAction extends Action2 {
 					languageSelection = languageService.createById(pick.id);
 
 					if (resource) {
-						// fire and forget to not slow things down
 						languageDetectionService.detectLanguage(resource).then(detectedLanguageId => {
 							const chosenLanguageId = languageService.getLanguageIdByLanguageName(pick.label) || 'unknown';
 							if (detectedLanguageId === currentLanguageId && currentLanguageId !== chosenLanguageId) {
-								// If they didn't choose the detected language (which should also be the active language if automatic detection is enabled)
-								// then the automatic language detection was likely wrong and the user is correcting it. In this case, we want telemetry.
-								// Keep track of what model was preferred and length of input to help track down potential differences between the result quality across models and content size.
 								const modelPreference = configurationService.getValue<boolean>('workbench.editor.preferHistoryBasedLanguageDetection') ? 'history' : 'classic';
 								telemetryService.publicLog2<IAutomaticLanguageDetectionLikelyWrongData, AutomaticLanguageDetectionLikelyWrongClassification>(AutomaticLanguageDetectionLikelyWrongId, {
 									currentLanguageId: currentLanguageName ?? 'unknown',
@@ -1289,7 +1247,6 @@ export class ChangeLanguageAction extends Action2 {
 					}
 				}
 
-				// Change language
 				if (typeof languageSelection !== 'undefined') {
 					languageSupport.setLanguageId(languageSelection.languageId, ChangeLanguageAction.ID);
 
@@ -1353,24 +1310,22 @@ export class ChangeLanguageAction extends Action2 {
 
 				let associationKey: string;
 				if (extension && base[0] !== '.') {
-					associationKey = `*${extension}`; // only use "*.ext" if the file path is in the form of <name>.<ext>
+					associationKey = `*${extension}`;
 				} else {
-					associationKey = base; // otherwise use the basename (e.g. .gitignore, Dockerfile)
+					associationKey = base;
 				}
 
-				// If the association is already being made in the workspace, make sure to target workspace settings
 				let target = ConfigurationTarget.USER;
 				if (fileAssociationsConfig.workspaceValue?.[associationKey as keyof typeof fileAssociationsConfig.workspaceValue]) {
 					target = ConfigurationTarget.WORKSPACE;
 				}
 
-				// Make sure to write into the value of the target and not the merged value from USER and WORKSPACE config
 				const currentAssociations = deepClone((target === ConfigurationTarget.WORKSPACE) ? fileAssociationsConfig.workspaceValue : fileAssociationsConfig.userValue) || Object.create(null);
 				currentAssociations[associationKey] = language.id;
 
 				configurationService.updateValue(FILES_ASSOCIATIONS_CONFIG, currentAssociations, target);
 			}
-		}, 50 /* quick input is sensitive to being opened so soon after another */);
+		}, 50 );
 	}
 }
 
@@ -1491,11 +1446,11 @@ export class ChangeEncodingAction extends Action2 {
 			return;
 		}
 
-		await timeout(50); // quick input is sensitive to being opened so soon after another
+		await timeout(50);
 
 		const resource = EditorResourceAccessor.getOriginalUri(activeEditorPane.input, { supportSideBySide: SideBySideEditor.PRIMARY });
 		if (!resource || (!fileService.hasProvider(resource) && resource.scheme !== Schemas.untitled)) {
-			return; // encoding detection only possible for resources the file service can handle or that are untitled
+			return;
 		}
 
 		let guessedEncoding: string | undefined = undefined;
@@ -1514,7 +1469,6 @@ export class ChangeEncodingAction extends Action2 {
 		let directMatchIndex: number | undefined;
 		let aliasMatchIndex: number | undefined;
 
-		// All encodings are valid picks
 		const picks: QuickPickInput[] = Object.keys(SUPPORTED_ENCODINGS)
 			.sort((k1, k2) => {
 				if (k1 === configuredEncoding) {
@@ -1527,10 +1481,10 @@ export class ChangeEncodingAction extends Action2 {
 			})
 			.filter(k => {
 				if (k === guessedEncoding && guessedEncoding !== configuredEncoding) {
-					return false; // do not show encoding if it is the guessed encoding that does not match the configured
+					return false;
 				}
 
-				return !isReopenWithEncoding || !SUPPORTED_ENCODINGS[k].encodeOnly; // hide those that can only be used for encoding if we are about to decode
+				return !isReopenWithEncoding || !SUPPORTED_ENCODINGS[k].encodeOnly;
 			})
 			.map((key, index) => {
 				if (key === encodingSupport.getEncoding()) {
@@ -1544,7 +1498,6 @@ export class ChangeEncodingAction extends Action2 {
 
 		const items = picks.slice() as IQuickPickItem[];
 
-		// If we have a guessed encoding, show it first unless it matches the configured encoding
 		if (guessedEncoding && configuredEncoding !== guessedEncoding && SUPPORTED_ENCODINGS[guessedEncoding]) {
 			picks.unshift({ type: 'separator' });
 			picks.unshift({ id: guessedEncoding, label: SUPPORTED_ENCODINGS[guessedEncoding].labelLong, description: localize('guessedEncoding', "Guessed from content") });
@@ -1566,7 +1519,6 @@ export class ChangeEncodingAction extends Action2 {
 		const activeEncodingSupport = toEditorWithEncodingSupport(editorService.activeEditorPane.input);
 		if (typeof encoding.id !== 'undefined' && activeEncodingSupport) {
 
-			// Re-open with encoding does not work on dirty editors, ask to revert
 			if (isReopenWithEncoding && editorService.activeEditorPane.input.isDirty()) {
 				const { confirmed } = await dialogService.confirm({
 					message: localize('reopenWithEncodingWarning', "Do you want to revert the active text editor and reopen with a different encoding?"),
@@ -1581,7 +1533,6 @@ export class ChangeEncodingAction extends Action2 {
 				await editorService.activeEditorPane.input.revert(editorService.activeEditorPane.group.id);
 			}
 
-			// Set new encoding
 			await activeEncodingSupport.setEncoding(encoding.id, isReopenWithEncoding ? EncodingMode.Decode : EncodingMode.Encode);
 		}
 

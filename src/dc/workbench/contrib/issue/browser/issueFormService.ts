@@ -93,7 +93,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 	protected release: string = '';
 	protected type: string = '';
 
-	/** Bounded cache of already-uploaded attachments to avoid re-uploading on retry within a session. Uses a content hash so large data URLs aren't retained as keys. */
 	private readonly uploadCache = new LRUCache<string, import('./githubUploadService.js').IGitHubUploadResult>(32);
 
 	constructor(
@@ -118,12 +117,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 			return;
 		}
 
-		// Web only ever opens the legacy reporter. The wizard editor pane is
-		// registered only by the native contribution, and its dependencies
-		// (screenshot, recording, GitHub upload, native diagnostics) aren't
-		// implemented for the browser yet. NativeIssueFormService overrides
-		// this method to route to the wizard when `issueReporter.wizard.enabled`
-		// is set.
 		return this.openAuxIssueReporterLegacy(data);
 	}
 
@@ -152,22 +145,15 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 		let mediaMarkdown = '';
 		const hasAttachments = screenshots.length > 0 || recordings.length > 0;
 
-		// Only attempt the Mobile Upload API when the issue target actually resolves to a
-		// GitHub repo. Otherwise we'd upload attachments to an unrelated repository (and
-		// potentially leak them) just because a GitHub token is present.
 		if (hasAttachments && data.githubAccessToken && gitHubDetails) {
 			host.setUploading(true);
 
 			try {
-				// Collect files, keyed for cache lookup. We hash the data URL / file path so the
-				// (potentially very large) screenshot/recording payloads aren't retained as Map keys.
 				const filesToProcess: IssueUploadFile[] = [];
 				for (let i = 0; i < screenshots.length; i++) {
 					const dataUrl = screenshots[i].annotatedDataUrl ?? screenshots[i].dataUrl;
 					const bytes = this.dataUrlToBytes(dataUrl);
 					if (bytes) {
-						// Screenshots are either annotated (always PNG via canvas.toDataURL)
-						// or raw native captures (always JPEG); fall back to PNG.
 						const isJpeg = dataUrl.startsWith('data:image/jpeg');
 						const extension = isJpeg ? 'jpg' : 'png';
 						const contentType = isJpeg ? 'image/jpeg' : 'image/png';
@@ -256,16 +242,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 			url = this.createIssuePreviewUrl(baseUrl, localize('pasteData', "We have written the needed data into your clipboard because it was too large to send. Please paste."), gitHubDetails, data.issueSource);
 		}
 
-		// Skip the trusted-domains prompt for github.com URLs the issue reporter
-		// itself generates. The auto-populated body can produce extremely long
-		// URLs that overflow the native confirmation dialog on macOS, and the
-		// destination is one we constructed ourselves so the trust check would
-		// always be a yes anyway.
-		//
-		// Pass the URL as a string (not as a URI). When `IOpenerService.open` is
-		// handed a URI, it rebuilds the href via `encodeURI(uri.toString(true))`,
-		// which double-encodes our already-percent-encoded query (`%23` becomes
-		// `%2523`, so GitHub renders `### Description` as literal `%23%23%23 Description`).
 		const uri = URI.parse(url);
 		const skipValidation = uri.scheme === 'https' && uri.authority === 'github.com';
 		return this.openerService.open(url, { openExternal: true, skipValidation });
@@ -401,12 +377,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 	}
 
 	private getIssueUrlWithTitle(issueTitle: string, issueUrl: string): string {
-		// Point any GitHub target at the new-issue form, not just extensions. The
-		// VS Code / Marketplace targets can be a bare repo URL (e.g. a `data.uri`
-		// override or a `reportIssueUrl` without the `/issues/new` suffix), which
-		// would otherwise open the repo landing page instead of the pre-filled
-		// issue form. The `isGitHubUrl` guard leaves non-GitHub issue trackers
-		// (which open directly as external links) untouched.
 		if (this.isGitHubUrl(issueUrl) && !/\/issues\/new(?:[?#].*)?$/i.test(issueUrl)) {
 			issueUrl = `${normalizeGitHubUrl(issueUrl)}/issues/new`;
 		}
@@ -440,7 +410,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 		}
 	}
 
-	/** Opens the classic non-wizard reporter in an auxiliary window. */
 	async openAuxIssueReporterLegacy(data: IssueReporterData): Promise<void> {
 		await this.openAuxIssueReporter(data);
 
@@ -454,9 +423,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 
 		let issueReporterBounds: Partial<IRectangle> = { width: 700, height: 800 };
 
-		// Center Issue Reporter Window based on bounds from native host service.
-		// Use typeof checks so an active window at x:0 / y:0 (very common on the primary
-		// display) still gets centered — a truthy check would miss that case.
 		if (bounds && typeof bounds.x === 'number' && typeof bounds.y === 'number') {
 			const centerX = bounds.x + bounds.width / 2;
 			const centerY = bounds.y + bounds.height / 2;
@@ -465,7 +431,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 
 		const disposables = new DisposableStore();
 
-		// Auxiliary Window
 		const auxiliaryWindow = disposables.add(await this.auxiliaryWindowService.open({ mode: AuxiliaryWindowMode.Normal, bounds: issueReporterBounds, nativeTitlebar: true, disableFullscreen: true }));
 
 		const platformClass = isWindows ? 'windows' : isLinux ? 'linux' : 'mac';
@@ -475,23 +440,17 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 			auxiliaryWindow.window.document.title = 'Issue Reporter';
 			auxiliaryWindow.window.document.body.classList.add('issue-reporter-body', 'monaco-workbench', platformClass);
 
-			// removes preset monaco-workbench container
 			auxiliaryWindow.container.remove();
 
-			// The Menu class uses a static globalStyleSheet that's created lazily on first menu creation.
-			// Since auxiliary windows clone stylesheets from main window, but Menu.globalStyleSheet
-			// may not exist yet in main window, we need to ensure menu styles are available here.
 			if (!Menu.globalStyleSheet) {
 				const menuStyleSheet = createStyleSheet(auxiliaryWindow.window.document.head);
 				menuStyleSheet.textContent = getMenuWidgetCSS(unthemedMenuStyles, false);
 			}
 
-			// custom issue reporter wrapper that preserves critical auxiliary window container styles
 			const div = document.createElement('div');
 			div.classList.add('monaco-workbench');
 			auxiliaryWindow.window.document.body.appendChild(div);
 			safeSetInnerHtml(div, BaseHtml(), {
-				// Also allow input elements
 				allowedTags: {
 					augment: [
 						'input',
@@ -516,7 +475,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 			disposables.dispose();
 		}
 
-		// handle closing issue reporter
 		this.issueReporterWindow?.addEventListener('beforeunload', () => {
 			auxiliaryWindow.window.close();
 			disposables.dispose();
@@ -527,7 +485,6 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 	async sendReporterMenu(extensionId: string): Promise<IssueReporterData | undefined> {
 		const menu = this.menuService.createMenu(MenuId.IssueReporter, this.contextKeyService);
 
-		// render menu and dispose
 		const actions = menu.getActions({ renderShortTitle: true }).flatMap(entry => entry[1]);
 		for (const action of actions) {
 			try {
@@ -541,23 +498,19 @@ export class IssueFormService extends Disposable implements IIssueFormService {
 		}
 
 		if (!this.extensionIdentifierSet.has(extensionId)) {
-			// send undefined to indicate no action was taken
 			return undefined;
 		}
 
-		// we found the extension, now we clean up the menu and remove it from the set. This is to ensure that we do duplicate extension identifiers
 		this.extensionIdentifierSet.delete(new ExtensionIdentifier(extensionId));
 		menu.dispose();
 
 		const result = this.currentData;
 
-		// reset current data.
 		this.currentData = undefined;
 
 		return result ?? undefined;
 	}
 
-	//#region used by issue reporter
 
 	async closeReporter(): Promise<void> {
 		this.issueReporterWindow?.close();

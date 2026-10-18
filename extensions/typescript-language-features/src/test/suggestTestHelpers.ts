@@ -18,7 +18,7 @@ export async function acceptFirstSuggestion(uri: vscode.Uri, _disposables: vscod
 export async function typeCommitCharacter(uri: vscode.Uri, character: string, _disposables: vscode.Disposable[]) {
 	const didChangeDocument = onChangedDocument(uri, _disposables);
 	await vscode.commands.executeCommand('editor.action.triggerSuggest');
-	await wait(3000); // Give time for suggestions to show
+	await wait(3000);
 	await vscode.commands.executeCommand('type', { text: character });
 	return await didChangeDocument;
 }

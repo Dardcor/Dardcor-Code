@@ -29,7 +29,6 @@ registerAction2(class OpenVariablesViewAction extends NotebookAction {
 					group: 'navigation',
 					when: ContextKeyExpr.and(
 						KERNEL_HAS_VARIABLE_PROVIDER,
-						// jupyter extension currently contributes their own goto variables button
 						ContextKeyExpr.notEquals('jupyter.kernel.isjupyter', true),
 						NOTEBOOK_VARIABLE_VIEW_ENABLED
 					)
@@ -40,7 +39,6 @@ registerAction2(class OpenVariablesViewAction extends NotebookAction {
 					group: 'navigation',
 					when: ContextKeyExpr.and(
 						KERNEL_HAS_VARIABLE_PROVIDER,
-						// jupyter extension currently contributes their own goto variables button
 						ContextKeyExpr.notEquals('jupyter.kernel.isjupyter', true),
 						ContextKeyExpr.notEquals('config.notebook.globalToolbar', true),
 						NOTEBOOK_VARIABLE_VIEW_ENABLED
@@ -52,7 +50,6 @@ registerAction2(class OpenVariablesViewAction extends NotebookAction {
 					group: 'navigation',
 					when: ContextKeyExpr.and(
 						KERNEL_HAS_VARIABLE_PROVIDER,
-						// jupyter extension currently contributes their own goto variables button
 						ContextKeyExpr.notEquals('jupyter.kernel.isjupyter', true),
 						ContextKeyExpr.equals('config.notebook.globalToolbar', true),
 						NOTEBOOK_VARIABLE_VIEW_ENABLED

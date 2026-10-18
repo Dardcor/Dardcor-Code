@@ -37,11 +37,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 
 	private readonly _proxy: ExtHostTerminalServiceShape;
 
-	/**
-	 * Stores a map from a temporary terminal id (a UUID generated on the extension host side)
-	 * to a numeric terminal id (an id generated on the renderer side)
-	 * This comes in play only when dealing with terminals created on the extension host side
-	 */
 	private readonly _extHostTerminals = new Map<string, Promise<ITerminalInstance>>();
 	private readonly _terminalProcessProxies = this._register(new DisposableMap<number, TerminalProcessProxyEntry>());
 	private readonly _profileProviders = this._register(new DisposableMap<string, IDisposable>());
@@ -50,12 +45,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 	private readonly _dataEventTracker = this._register(new MutableDisposable<TerminalDataEventTracker>());
 	private readonly _sendCommandEventListener = this._register(new MutableDisposable());
 
-	/**
-	 * A single shared terminal link provider for the exthost. When an ext registers a link
-	 * provider, this is registered with the terminal on the renderer side and all links are
-	 * provided through this, even from multiple ext link providers. Xterm should remove lower
-	 * priority intersecting links itself.
-	 */
 	private readonly _linkProvider = this._register(new MutableDisposable());
 
 	private _os: OperatingSystem = OS;
@@ -79,7 +68,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 		super();
 		this._proxy = _extHostContext.getProxy(ExtHostContext.ExtHostTerminalService);
 
-		// ITerminalService listeners
 		this._register(_terminalService.onDidCreateInstance((instance) => {
 			this._onTerminalOpened(instance);
 			this._onInstanceDimensionsChanged(instance);
@@ -96,7 +84,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 		this._register(_terminalService.onAnyInstanceSelectionChange(instance => this._proxy.$acceptTerminalSelection(instance.instanceId, instance.selection)));
 		this._register(_terminalService.onAnyInstanceShellTypeChanged(instance => this._onShellTypeChanged(instance.instanceId)));
 
-		// Set initial ext host state
 		for (const instance of this._terminalService.instances) {
 			this._onTerminalOpened(instance);
 			instance.processReady.then(() => this._onTerminalProcessIdReady(instance));
@@ -224,7 +211,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 			this._dataEventTracker.value = this._instantiationService.createInstance(TerminalDataEventTracker, (id, data) => {
 				this._onTerminalData(id, data);
 			});
-			// Send initial events if they exist
 			for (const instance of this._terminalService.instances) {
 				for (const data of instance.initialDataEvents || []) {
 					this._onTerminalData(instance.instanceId, data);
@@ -246,7 +232,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 		const sub = multiplexer.event(e => {
 			this._onDidExecuteCommand(e.instance.instanceId, {
 				commandLine: e.data.command,
-				// TODO: Convert to URI if possible
 				cwd: e.data.cwd,
 				exitCode: e.data.exitCode,
 				output: e.data.getOutput()
@@ -306,7 +291,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 	}
 
 	public $registerProfileProvider(id: string, extensionIdentifier: string): void {
-		// Proxy profile provider requests through the extension host
 		this._profileProviders.set(id, this._terminalProfileService.registerTerminalProfileProvider(extensionIdentifier, id, {
 			createContributedTerminalProfile: async (options) => {
 				return this._proxy.$createContributedProfileTerminal(id, options);
@@ -423,8 +407,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 		store.add(proxy);
 		this._terminalProcessProxies.set(proxy.instanceId, { proxy, dispose: () => store.dispose() });
 
-		// Note that onResize is not being listened to here as it needs to fire when max dimensions
-		// change, excluding the dimension override
 		const initialDimensions: ITerminalDimensionsDto | undefined = request.cols && request.rows ? {
 			columns: request.cols,
 			rows: request.rows
@@ -471,10 +453,6 @@ export class MainThreadTerminalService extends Disposable implements MainThreadT
 	}
 }
 
-/**
- * Encapsulates temporary tracking of data events from terminal instances, once disposed all
- * listeners are removed.
- */
 class TerminalDataEventTracker extends Disposable {
 	private readonly _bufferer: TerminalDataBufferer;
 	private readonly _instanceListeners = this._register(new DisposableMap<number>());
@@ -498,7 +476,6 @@ class TerminalDataEventTracker extends Disposable {
 	}
 
 	private _registerInstance(instance: ITerminalInstance): void {
-		// Buffer data events to reduce the amount of messages going to the extension host
 		this._instanceListeners.set(instance.instanceId, this._bufferer.startBuffering(instance.instanceId, instance.onData));
 	}
 }

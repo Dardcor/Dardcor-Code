@@ -39,11 +39,10 @@ const mermaidMarkdownBuildOptions: Partial<esbuild.BuildOptions> = {
 		'.ttf': 'dataurl',
 	},
 	plugins: [cssTextPlugin],
-	minify: false,
+	minify: true,
 };
 
 await Promise.all([
-	// Chat
 	run({
 		entryPoints: {
 			'index': path.join(chatSrcDir, 'index.ts'),
@@ -56,9 +55,9 @@ await Promise.all([
 			loader: {
 				'.ttf': 'dataurl',
 			},
+			minify: true,
 		}
 	}, process.argv),
-	// Markdown preview
 	run({
 		entryPoints: {
 			'index': path.join(previewSrcDir, 'markdown', 'index.ts'),
@@ -67,7 +66,6 @@ await Promise.all([
 		outdir: path.join(rootDir, 'markdown-preview-out'),
 		additionalOptions: mermaidMarkdownBuildOptions,
 	}, process.argv),
-	// Notebook
 	run({
 		entryPoints: {
 			'index': path.join(previewSrcDir, 'notebook', 'index.ts'),

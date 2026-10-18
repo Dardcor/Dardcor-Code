@@ -47,7 +47,6 @@ function createHistoryEntry(docId: DocumentId, baseContent: string, replacements
 describe('getEditDiffHistory', () => {
 
 	function computeTokens(s: string): number {
-		// for testing purposes, we'll say each character is a token
 		return Math.ceil(s.length / 4);
 	}
 

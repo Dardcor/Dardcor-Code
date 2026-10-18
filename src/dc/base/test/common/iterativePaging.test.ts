@@ -40,42 +40,37 @@ suite('IterativePagedModel', () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Initially first page is loaded, so length should be 10 + 1 sentinel
 		assert.strictEqual(model.length, 11);
 		assert.strictEqual(model.isResolved(0), true);
 		assert.strictEqual(model.isResolved(9), true);
-		assert.strictEqual(model.isResolved(10), false); // sentinel
+		assert.strictEqual(model.isResolved(10), false);
 	});
 
 	test('load first page via sentinel access', async () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Access an item in the first page (already loaded)
 		const item = await model.resolve(0, CancellationToken.None);
 
 		assert.strictEqual(item, 0);
-		assert.strictEqual(model.length, 11); // 10 items + 1 sentinel
+		assert.strictEqual(model.length, 11);
 		assert.strictEqual(model.isResolved(0), true);
 		assert.strictEqual(model.isResolved(9), true);
-		assert.strictEqual(model.isResolved(10), false); // sentinel
+		assert.strictEqual(model.isResolved(10), false);
 	});
 
 	test('load multiple pages', async () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// First page already loaded
 		assert.strictEqual(model.length, 11);
 
-		// Load second page by accessing its sentinel
 		await model.resolve(10, CancellationToken.None);
-		assert.strictEqual(model.length, 21); // 20 items + 1 sentinel
-		assert.strictEqual(model.get(10), 10); // First item of second page
+		assert.strictEqual(model.length, 21);
+		assert.strictEqual(model.get(10), 10);
 
-		// Load third (final) page
 		await model.resolve(20, CancellationToken.None);
-		assert.strictEqual(model.length, 30); // 30 items, no sentinel (no more pages)
+		assert.strictEqual(model.length, 30);
 	});
 
 	test('onDidIncrementLength event fires correctly', async () => {
@@ -85,17 +80,15 @@ suite('IterativePagedModel', () => {
 
 		store.add(model.onDidIncrementLength((length: number) => lengths.push(length)));
 
-		// Load second page
 		await model.resolve(10, CancellationToken.None);
 
 		assert.strictEqual(lengths.length, 1);
-		assert.strictEqual(lengths[0], 21); // 20 items + 1 sentinel
+		assert.strictEqual(lengths[0], 21);
 
-		// Load third page
 		await model.resolve(20, CancellationToken.None);
 
 		assert.strictEqual(lengths.length, 2);
-		assert.strictEqual(lengths[1], 30); // 30 items, no sentinel
+		assert.strictEqual(lengths[1], 30);
 	});
 
 	test('accessing regular items does not trigger loading', async () => {
@@ -104,11 +97,9 @@ suite('IterativePagedModel', () => {
 
 		const initialLength = model.length;
 
-		// Access items within the loaded range
 		assert.strictEqual(model.get(5), 5);
 		assert.strictEqual(model.isResolved(5), true);
 
-		// Length should not change
 		assert.strictEqual(model.length, initialLength);
 	});
 
@@ -116,14 +107,11 @@ suite('IterativePagedModel', () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Load all pages
-		await model.resolve(10, CancellationToken.None);  // Page 2
-		await model.resolve(20, CancellationToken.None);  // Page 3 (final)
+		await model.resolve(10, CancellationToken.None);
+		await model.resolve(20, CancellationToken.None);
 
-		// After loading all data, there should be no more pages
-		assert.strictEqual(model.length, 30); // Exactly 30 items, no sentinel
+		assert.strictEqual(model.length, 30);
 
-		// Accessing resolved items should work
 		assert.strictEqual(model.isResolved(29), true);
 		assert.strictEqual(model.isResolved(30), false);
 	});
@@ -132,18 +120,16 @@ suite('IterativePagedModel', () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Access sentinel concurrently
 		const [item1, item2, item3] = await Promise.all([
 			model.resolve(10, CancellationToken.None),
 			model.resolve(10, CancellationToken.None),
 			model.resolve(10, CancellationToken.None)
 		]);
 
-		// All should get the same item
 		assert.strictEqual(item1, 10);
 		assert.strictEqual(item2, 10);
 		assert.strictEqual(item3, 10);
-		assert.strictEqual(model.length, 21); // 20 items + 1 sentinel
+		assert.strictEqual(model.length, 21);
 	});
 
 	test('empty pager with no items', () => {
@@ -164,7 +150,7 @@ suite('IterativePagedModel', () => {
 		};
 		const model = store.add(new IterativePagedModel(singlePagePager));
 
-		assert.strictEqual(model.length, 3); // No sentinel
+		assert.strictEqual(model.length, 3);
 		assert.strictEqual(model.isResolved(0), true);
 		assert.strictEqual(model.isResolved(2), true);
 		assert.strictEqual(model.isResolved(3), false);
@@ -176,7 +162,6 @@ suite('IterativePagedModel', () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Try to access item beyond current length
 		assert.throws(() => model.get(15), /Item not resolved yet/);
 	});
 
@@ -184,11 +169,9 @@ suite('IterativePagedModel', () => {
 		const pager = createTestPager(10, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Load all pages
 		await model.resolve(10, CancellationToken.None);
 		await model.resolve(20, CancellationToken.None);
 
-		// Try to resolve beyond the last item
 		await assert.rejects(
 			async () => model.resolve(30, CancellationToken.None),
 			/Index out of bounds/
@@ -215,34 +198,28 @@ suite('IterativePagedModel', () => {
 
 		store.add(model.onDidIncrementLength((length: number) => lengths.push(length)));
 
-		// Initially has first page (5 items + 1 sentinel = 6)
 		assert.strictEqual(model.length, 6);
 
-		// Load page 2
 		await model.resolve(5, CancellationToken.None);
-		assert.deepStrictEqual(lengths, [11]); // 10 items + 1 sentinel
+		assert.deepStrictEqual(lengths, [11]);
 
-		// Load page 3
 		await model.resolve(10, CancellationToken.None);
-		assert.deepStrictEqual(lengths, [11, 16]); // 15 items + 1 sentinel
+		assert.deepStrictEqual(lengths, [11, 16]);
 
-		// Load page 4 (final)
 		await model.resolve(15, CancellationToken.None);
-		assert.deepStrictEqual(lengths, [11, 16, 20]); // 20 items, no sentinel
+		assert.deepStrictEqual(lengths, [11, 16, 20]);
 	});
 
 	test('sequential page loads work correctly', async () => {
 		const pager = createTestPager(5, 3);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Load pages sequentially
 		for (let page = 1; page < 3; page++) {
 			const sentinelIndex = page * 5;
 			await model.resolve(sentinelIndex, CancellationToken.None);
 		}
 
-		// Verify all items are accessible
-		assert.strictEqual(model.length, 15); // 3 pages * 5 items, no sentinel
+		assert.strictEqual(model.length, 15);
 		for (let i = 0; i < 15; i++) {
 			assert.strictEqual(model.get(i), i);
 			assert.strictEqual(model.isResolved(i), true);
@@ -253,15 +230,12 @@ suite('IterativePagedModel', () => {
 		const pager = createTestPager(10, 2);
 		const model = store.add(new IterativePagedModel(pager));
 
-		// Load second page
 		await model.resolve(10, CancellationToken.None);
 
-		// No sentinel after loading all pages
 		assert.strictEqual(model.length, 20);
 		assert.strictEqual(model.isResolved(19), true);
 		assert.strictEqual(model.isResolved(20), false);
 
-		// All items should be accessible
 		for (let i = 0; i < 20; i++) {
 			assert.strictEqual(model.get(i), i);
 		}
@@ -284,16 +258,14 @@ suite('IterativePagedModel', () => {
 
 		const model = store.add(new IterativePagedModel(varyingPager));
 
-		assert.strictEqual(model.length, 4); // 3 items + 1 sentinel
+		assert.strictEqual(model.length, 4);
 
-		// Load second page (2 items)
 		await model.resolve(3, CancellationToken.None);
-		assert.strictEqual(model.length, 6); // 5 items + 1 sentinel
+		assert.strictEqual(model.length, 6);
 		assert.strictEqual(model.get(3), 'd');
 
-		// Load third page (4 items)
 		await model.resolve(5, CancellationToken.None);
-		assert.strictEqual(model.length, 9); // 9 items, no sentinel
+		assert.strictEqual(model.length, 9);
 		assert.strictEqual(model.get(5), 'f');
 		assert.strictEqual(model.get(8), 'i');
 	});

@@ -88,8 +88,6 @@ export class InlineEditsDeletionView extends Disposable implements IInlineEditsV
 		}
 		this._editorObs.versionId.read(reader);
 
-		// Take the max value that we observed.
-		// Reset when either the edit changes or the editor text version.
 		return derivedObservableWithCache<number>(this, (reader, lastValue) => {
 			const maxWidth = maxContentWidthInRange(this._editorObs, originalDisplayRange, reader);
 			return Math.max(maxWidth, lastValue ?? 0);
@@ -144,8 +142,6 @@ export class InlineEditsDeletionView extends Disposable implements IInlineEditsV
 		const layoutInfoObs = mapOutFalsy(this._editorLayoutInfo).read(reader);
 		if (!layoutInfoObs) { return undefined; }
 
-		// Create an overlay which hides the left hand side of the original overlay when it overflows to the left
-		// such that there is a smooth transition at the edge of content left
 		const overlayhider = layoutInfoObs.map(layoutInfo => Rect.fromLeftTopRightBottom(
 			layoutInfo.contentLeft - BORDER_RADIUS - BORDER_WIDTH,
 			layoutInfo.codeRect.top,

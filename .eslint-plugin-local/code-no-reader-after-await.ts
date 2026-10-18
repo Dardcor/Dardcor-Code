@@ -65,7 +65,6 @@ function checkFunctionForAwaitBeforeReader(
 			}
 		}
 
-		// Safely traverse known node types only
 		switch (node.type) {
 			case 'BlockStatement':
 				node.body.forEach(stmt => collectPositions(stmt));
@@ -128,17 +127,14 @@ function getMethodName(callExpression: TSESTree.CallExpression): string {
 
 function isReaderMethodCall(node: TSESTree.CallExpression, readerName: string): boolean {
 	if (node.callee.type === 'MemberExpression') {
-		// Pattern 1: reader.read() or reader.readObservable()
 		if (node.callee.object.type === 'Identifier' &&
 			node.callee.object.name === readerName &&
 			node.callee.property.type === 'Identifier') {
 			return ['read', 'readObservable'].includes(node.callee.property.name);
 		}
 
-		// Pattern 2: observable.read(reader) or observable.readObservable(reader)
 		if (node.callee.property.type === 'Identifier' &&
 			['read', 'readObservable'].includes(node.callee.property.name)) {
-			// Check if the reader is passed as the first argument
 			return node.arguments.length > 0 &&
 				node.arguments[0].type === 'Identifier' &&
 				node.arguments[0].name === readerName;

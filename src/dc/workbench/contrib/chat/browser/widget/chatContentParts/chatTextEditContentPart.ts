@@ -56,7 +56,6 @@ export class ChatTextEditContentPart extends Disposable implements IChatContentP
 
 		assertType(isResponseVM(element));
 
-		// TODO@jrieken move this into the CompareCodeBlock and properly say what kind of changes happen
 		if (rendererOptions.renderTextEditsAsSummary?.(chatTextEdit.uri)) {
 			if (element.response.value.every(item => item.kind === 'textEditGroup')) {
 				this.domNode = $('.interactive-edits-summary', undefined, !element.isComplete
@@ -68,8 +67,6 @@ export class ChatTextEditContentPart extends Disposable implements IChatContentP
 				this.domNode = $('div');
 			}
 
-			// TODO@roblourens this case is now handled outside this Part in ChatListRenderer, but can it be cleaned up?
-			// return;
 		} else {
 
 
@@ -115,7 +112,6 @@ export class ChatTextEditContentPart extends Disposable implements IChatContentP
 	}
 
 	hasSameContent(other: IChatProgressRenderableResponseContent): boolean {
-		// No other change allowed for this content type
 		return other.kind === 'textEditGroup';
 	}
 
@@ -150,7 +146,6 @@ class CodeCompareModelService implements ICodeCompareModelService {
 			modified.dispose();
 		}));
 
-		// compute the sha1 of the original model
 		let originalSha1: string = '';
 		if (chatTextEdit.state) {
 			originalSha1 = chatTextEdit.state.sha1;
@@ -162,7 +157,6 @@ class CodeCompareModelService implements ICodeCompareModelService {
 			}
 		}
 
-		// apply edits to the "modified" model
 		const chatModel = this.chatService.getSession(element.sessionResource)!;
 		const editGroups: ISingleEditOperation[][] = [];
 		for (const request of chatModel.getRequests()) {
@@ -186,10 +180,6 @@ class CodeCompareModelService implements ICodeCompareModelService {
 			modified.object.textEditorModel.pushEditOperations(null, edits, () => null);
 		}
 
-		// self-acquire a reference to diff models for a short while
-		// because streaming usually means we will be using the original-model
-		// repeatedly and thereby also should reuse the modified-model and just
-		// update it with more edits
 		d.acquire();
 		setTimeout(() => d.release(), 5000);
 

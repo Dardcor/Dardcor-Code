@@ -64,7 +64,6 @@ export class NodeRemoteTunnel extends Disposable implements RemoteTunnel {
 		this._connectionListener = (socket) => this._onConnection(socket);
 		this._server.on('connection', this._connectionListener);
 
-		// If there is no error listener and there is an error it will crash the whole window
 		this._errorListener = () => { };
 		this._server.on('error', this._errorListener);
 
@@ -87,16 +86,13 @@ export class NodeRemoteTunnel extends Disposable implements RemoteTunnel {
 	public async waitForReady(): Promise<this> {
 		const startPort = this.suggestedLocalPort ?? this.tunnelRemotePort;
 		const hostname = isAllInterfaces(this.defaultTunnelHost) ? '0.0.0.0' : '127.0.0.1';
-		// try to get the same port number as the remote port number...
 		let localPort = await findFreePortFaster(startPort, 2, 1000, hostname);
 
-		// if that fails, the method above returns 0, which works out fine below...
 		let address: string | net.AddressInfo | null = null;
 		this._server.listen(localPort, this.defaultTunnelHost);
 		await this._barrier.wait();
 		address = <net.AddressInfo>this._server.address();
 
-		// It is possible for findFreePortFaster to return a port that there is already a server listening on. This causes the previous listen call to error out.
 		if (!address) {
 			localPort = 0;
 			this._server.listen(localPort, this.defaultTunnelHost);
@@ -110,7 +106,6 @@ export class NodeRemoteTunnel extends Disposable implements RemoteTunnel {
 	}
 
 	private async _onConnection(localSocket: net.Socket): Promise<void> {
-		// pause reading on the socket until we have a chance to forward its data
 		localSocket.pause();
 
 		const tunnelRemoteHost = (isLocalhost(this.tunnelRemoteHost) || isAllInterfaces(this.tunnelRemoteHost)) ? 'localhost' : this.tunnelRemoteHost;
@@ -149,7 +144,6 @@ export class NodeRemoteTunnel extends Disposable implements RemoteTunnel {
 
 		if (localSocket.localAddress) {
 			this._socketsDispose.set(localSocket.localAddress, () => {
-				// Need to end instead of unpipe, otherwise whatever is connected locally could end up "stuck" with whatever state it had until manually exited.
 				localSocket.end();
 				remoteSocket.end();
 			});

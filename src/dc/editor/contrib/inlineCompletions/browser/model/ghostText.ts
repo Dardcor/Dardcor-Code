@@ -27,9 +27,6 @@ export class GhostText {
 			this.parts.every((part, index) => part.equals(other.parts[index]));
 	}
 
-	/**
-	 * Only used for testing/debugging.
-	*/
 	render(documentText: string, debug: boolean = false): string {
 		return new TextEdit([
 			...this.parts.map(p => new TextReplacement(
@@ -78,9 +75,6 @@ export class GhostTextPart {
 	constructor(
 		readonly column: number,
 		readonly text: string,
-		/**
-		 * Indicates if this part is a preview of an inline suggestion when a suggestion is previewed.
-		*/
 		readonly preview: boolean,
 		private _inlineDecorations: InlineDecoration[] = [],
 	) {

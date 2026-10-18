@@ -21,7 +21,6 @@ interface IVSCodeCmdToolToolInput {
 	skipCheck?: boolean;
 }
 
-/** Commands that are read-only / have no side effects and can run without user confirmation. */
 const noConfirmationCommandsWithoutArgs = new Set([
 	'github.dardcor.debug.collectDiagnostics',
 	'breadcrumbs.toggle',
@@ -123,11 +122,10 @@ class VSCodeCmdTool implements vscode.LanguageModelTool<IVSCodeCmdToolToolInput>
 		const args = options.input.args ?? [];
 
 		if (!options.input.skipCheck) {
-			const allCommands = (await this._workbenchService.getAllCommands(/* filterByPreCondition */true));
+			const allCommands = (await this._workbenchService.getAllCommands(true));
 			const commandItem = allCommands.find(commandItem => commandItem.command === command);
 			if (!commandItem) {
-				// Try again but without filtering by preconditions to see if the command exists at all
-				const allCommandsNoFilter = (await this._workbenchService.getAllCommands(/* filterByPreCondition */false));
+				const allCommandsNoFilter = (await this._workbenchService.getAllCommands(false));
 				const commandItemNoFilter = allCommandsNoFilter.find(commandItem => commandItem.command === command);
 				if (commandItemNoFilter) {
 					return new LanguageModelToolResult([new LanguageModelTextPart(`Command \`${options.input.name}\` exists, but its preconditions are not currently met. Ask the user to try running it manually via the command palette.`)]);
@@ -177,8 +175,6 @@ class VSCodeCmdTool implements vscode.LanguageModelTool<IVSCodeCmdToolToolInput>
 		}
 
 		const quickOpenCommand = 'workbench.action.quickOpen';
-		// Populate the Quick Open box with command ID rather than command name to avoid issues where Copilot didn't use the precise name,
-		// or when the Copilot response language (Spanish, French, etc.) might be different here than the UI one.
 		const commandStr = commandUri(quickOpenCommand, ['>' + commandId]);
 		const hasArguments = !!options.input.args?.length;
 		const markdownString = new MarkdownString();

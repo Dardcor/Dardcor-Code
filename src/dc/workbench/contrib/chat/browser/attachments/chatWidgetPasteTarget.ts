@@ -11,14 +11,11 @@ import { IChatPasteTarget, IChatWidget } from '../chat.js';
 import { ChatDynamicVariableModel } from './chatDynamicVariables.js';
 import { getDynamicVariablesForWidget } from './chatVariables.js';
 
-/** Exposes a {@link IChatWidget} to the shared chat paste pipeline. */
 export class ChatWidgetPasteTarget implements IChatPasteTarget {
 
 	constructor(private readonly widget: IChatWidget) { }
 
 	get sessionResource(): URI {
-		// Falls back to the input itself for a widget with no loaded session, so
-		// associated resources still have a stable cleanup key.
 		return this.widget.viewModel?.sessionResource ?? this.widget.input.inputUri;
 	}
 

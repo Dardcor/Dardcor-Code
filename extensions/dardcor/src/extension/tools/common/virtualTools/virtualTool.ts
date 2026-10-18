@@ -44,10 +44,6 @@ export class VirtualTool {
 		this.lastUsedOnTurn = other.lastUsedOnTurn;
 	}
 
-	/**
-	 * Looks up a tool. Update the {@link lastUsedOnTurn} of all virtual tools
-	 * it touches.
-	 */
 	public find(name: string): undefined | {
 		tool: VirtualTool | LanguageModelToolInformation;
 		path: VirtualTool[];
@@ -73,9 +69,6 @@ export class VirtualTool {
 		return undefined;
 	}
 
-	/**
-	 * Gets the tool with the lowest {@link lastUsedOnTurn} that is expanded.
-	 */
 	public getLowestExpandedTool(): VirtualTool | undefined {
 		let lowest: VirtualTool | undefined;
 

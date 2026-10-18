@@ -11,7 +11,6 @@ import { ChatLocation, ChatResponse } from '../../../platform/chat/common/common
 import { ISessionTranscriptService } from '../../../platform/chat/common/sessionTranscriptService';
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
-import { ProxyAgenticEndpoint } from '../../../platform/endpoint/node/proxyAgenticEndpoint';
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { IGitService } from '../../../platform/git/common/gitService';
 import { ILogService } from '../../../platform/log/common/logService';
@@ -36,26 +35,17 @@ export interface IExecutionSubagentToolCallingLoopOptions extends IToolCallingLo
 	request: ChatRequest;
 	location: ChatLocation;
 	promptText: string;
-	/** Optional pre-generated subagent invocation ID. If not provided, a new UUID will be generated. */
 	subAgentInvocationId?: string;
-	/** The tool_call_id from the parent agent's LLM response that triggered this subagent invocation. */
 	parentToolCallId?: string;
-	/** The headerRequestId from the parent agent's fetch response that triggered this subagent invocation. */
 	parentHeaderRequestId?: string;
-	/** The modelCallId from the parent agent's model call that triggered this subagent invocation. */
 	parentModelCallId?: string;
-	/** The top-level turn ID for aggregating credits across subagent calls. */
 	topLevelTurnId?: string;
 }
 
-/** A terminal command that is no longer being awaited by the subagent — either
- * it timed out and was moved to the background, or the model invoked it in
- * async/background mode from the start. */
 export interface IBackgroundCommand {
 	readonly command: string;
 	readonly termId: string;
 	readonly reason: 'timeout' | 'async' | 'inputNeeded';
-	/** Only set when `reason === 'timeout'`. */
 	readonly timeoutMs?: number;
 }
 
@@ -63,9 +53,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 
 	public static readonly ID = 'executionSubagentTool';
 
-	/** Terminal calls from previous rounds that the subagent is no longer
-	 * awaiting (timeout-moved-to-background or async-from-start), deduped by
-	 * toolCallId. */
 	private readonly _backgroundCommands: IBackgroundCommand[] = [];
 	private readonly _seenBackgroundCallIds = new Set<string>();
 	private _endpoint: Promise<IChatEndpoint> | undefined;
@@ -109,55 +96,50 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 		return context;
 	}
 
-	private static readonly DEFAULT_AGENTIC_PROXY_MODEL = 'exec-subagent-router-a';
-
-	/**
-	 * Get the endpoint to use for the execution subagent
-	 */
 	private getEndpoint(): Promise<IChatEndpoint> {
 		return this._endpoint ??= this.resolveEndpoint();
 	}
 
-	/** Returns the display name of the endpoint used for this execution. */
 	public async getModelName(): Promise<string> {
 		return (await this.getEndpoint()).name;
 	}
 
 	private async resolveEndpoint(): Promise<IChatEndpoint> {
 		const modelName = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.ExecutionSubagentModel, this._experimentationService);
-		const useAgenticProxy = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.ExecutionSubagentUseAgenticProxy, this._experimentationService);
+		const useDedicatedSubagentModel = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.ExecutionSubagentUseAgenticProxy, this._experimentationService);
 		const shellType = this.terminalService.terminalShellType;
 
-		if (useAgenticProxy) {
-			// Our custom models are not trained for PowerShell yet. Fall back to main agent endpoint.
+		if (useDedicatedSubagentModel) {
 			if (shellType === 'powershell' || shellType === 'pwsh') {
 				return await this.endpointProvider.getChatEndpoint(this.options.request);
 			}
-			// Use agentic proxy with ExecutionSubagentModel or default to DEFAULT_AGENTIC_PROXY_MODEL
-			const agenticProxyModel = modelName || ExecutionSubagentToolCallingLoop.DEFAULT_AGENTIC_PROXY_MODEL;
-			return this.instantiationService.createInstance(ProxyAgenticEndpoint, agenticProxyModel);
+			try {
+				const dedicatedEndpoint = modelName
+					? await this.endpointProvider.getChatEndpoint(modelName)
+					: await this.endpointProvider.getChatEndpoint('dardcor-utility-small');
+				if (dedicatedEndpoint.supportsToolCalls) {
+					return dedicatedEndpoint;
+				}
+				this._logService.warn(`[ExecutionSubagentToolCallingLoop] Dedicated Router model '${dedicatedEndpoint.model}' does not support tool calls; using the main agent model.`);
+			} catch (error) {
+				this._logService.warn(`[ExecutionSubagentToolCallingLoop] Could not resolve the configured dedicated Router model; using the main agent model: ${error instanceof Error ? error.message : String(error)}`);
+			}
+			return await this.endpointProvider.getChatEndpoint(this.options.request);
 		}
 
 		if (modelName) {
 			try {
-				// The setting is model-name based, so prefer an exact model-id match.
-				// IChatEndpoint exposes the model id, so we can resolve it directly
-				// from the known endpoints. Fall back to family resolution (the prior
-				// behavior) when no id matches, e.g. when the setting is a CAPI family.
 				const allEndpoints = await this.endpointProvider.getAllChatEndpoints();
 				const endpoint = allEndpoints.find(e => e.model === modelName)
 					?? await this.endpointProvider.getChatEndpoint(modelName);
 				if (endpoint.supportsToolCalls) {
 					return endpoint;
 				}
-				// Model does not support tool calls, fallback to main agent endpoint
 				return await this.endpointProvider.getChatEndpoint(this.options.request);
 			} catch (error) {
-				// Model not available, fallback to main agent endpoint
 				return await this.endpointProvider.getChatEndpoint(this.options.request);
 			}
 		} else {
-			// No model name specified, use main agent endpoint
 			return await this.endpointProvider.getChatEndpoint(this.options.request);
 		}
 	}
@@ -177,27 +159,13 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 			}
 		).render(progress, token);
 
-		// If a previous render observed any background terminal commands, tell the
-		// prompt to nudge the model to stop issuing tool calls and produce its
-		// <final_answer>. Even with `getAvailableTools` returning [], the model
-		// may still attempt a (failed) tool call and trigger another iteration,
-		// so the nudge needs to persist across iterations.
 		const hadBackgroundBefore = this._backgroundCommands.length > 0;
 		let result = await render(hadBackgroundBefore);
 
-		// After rendering, scan the rendered tool results for background commands.
-		// Every tool call rendered into the prompt (including those executed just
-		// now during this render) emits a ToolResultMetadata entry on
-		// `result.metadata`.
 		this.collectBackgroundCommands(buildpromptContext, result);
 
-		// If a background command was first detected during this render, the nudge
-		// wasn't in the prompt we just built. Re-render with the nudge so the LLM
-		// in this same iteration sees the instruction to produce <final_answer>.
 		if (!hadBackgroundBefore && this._backgroundCommands.length > 0) {
 			const cache = buildpromptContext.toolCallResults;
-			// Write to the tool result cache so that the second render doesn't
-			// re-run all tool calls that happened during the first render
 			if (cache) {
 				for (const meta of result.metadata.getAll(ToolResultMetadata)) {
 					cache[meta.toolCallId] = meta.result;
@@ -215,12 +183,8 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 			return;
 		}
 
-		// Index only this round's terminal calls. Calls from earlier rounds were
-		// already evaluated on prior iterations.
 		interface ITerminalCall {
 			readonly command: string;
-			/** True if the model called the tool with mode="async" or
-			 *  isBackground=true, regardless of how it actually ran. */
 			readonly invokedAsAsync: boolean;
 		}
 		const terminalCallsById = new Map<string, ITerminalCall>();
@@ -237,7 +201,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 				}
 				invokedAsAsync = args?.mode === 'async' || args?.isBackground === true;
 			} catch {
-				// arguments may not be valid JSON on partial rounds; skip extraction
 			}
 			terminalCallsById.set(tc.id, { command, invokedAsAsync });
 		}
@@ -252,8 +215,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 			}
 			const termId = this.getTerminalId(meta.result);
 			if (!termId) {
-				// No termId means the call didn't produce a terminal (e.g., errored
-				// before execution). Nothing to track or note about.
 				continue;
 			}
 			const timeoutMs = this.getTimeoutMsIfTimedOut(meta.result);
@@ -283,12 +244,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 		}
 	}
 
-	/**
-	 * Reads the `id` (terminal ID) field from a `run_in_terminal` tool result's
-	 * `toolMetadata`, if present. `toolMetadata` is exposed on tool results via
-	 * the chatParticipantPrivate proposed API and is not on the public
-	 * LanguageModelToolResult2 type, so we narrow with an `in` check.
-	 */
 	private getTerminalId(toolResult: LanguageModelToolResult2): string | undefined {
 		if (!('toolMetadata' in toolResult)) {
 			return undefined;
@@ -301,12 +256,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 		return typeof m.id === 'string' ? m.id : undefined;
 	}
 
-	/**
-	 * Returns the configured timeout (ms) if the result indicates a sync
-	 * `run_in_terminal` call timed out and was moved to the background; returns
-	 * `undefined` otherwise. See vscode core: runInTerminalTool.ts which sets
-	 * `timedOut: true` and `timeoutMs` on `toolMetadata` for that case.
-	 */
 	private getTimeoutMsIfTimedOut(toolResult: LanguageModelToolResult2): number | undefined {
 		if (!('toolMetadata' in toolResult)) {
 			return undefined;
@@ -322,12 +271,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 		return typeof m.timeoutMs === 'number' ? m.timeoutMs : undefined;
 	}
 
-	/**
-	 * Returns `true` if the result indicates the terminal command is waiting
-	 * for user input. The subagent cannot handle this (it lacks
-	 * `send_to_terminal`), so the command should be handed back to the main
-	 * agent.
-	 */
 	private getInputNeeded(toolResult: LanguageModelToolResult2): boolean {
 		if (!('toolMetadata' in toolResult)) {
 			return false;
@@ -341,9 +284,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 	}
 
 	protected async getAvailableTools(): Promise<LanguageModelToolInformation[]> {
-		// If any previous terminal call has moved to the background (timeout or
-		// async), expose no tools so the model cannot make further calls and is
-		// forced to produce its <final_answer>.
 		if (this._backgroundCommands.length > 0) {
 			return [];
 		}
@@ -370,7 +310,6 @@ export class ExecutionSubagentToolCallingLoop extends ToolCallingLoop<IExecution
 				...(requestOptions ?? {}),
 				temperature: 0
 			},
-			// This loop is inside a tool called from another request, so never user initiated
 			userInitiatedRequest: false,
 			interactionTypeOverride: 'conversation-subagent',
 			turnId: this.options.request.id,

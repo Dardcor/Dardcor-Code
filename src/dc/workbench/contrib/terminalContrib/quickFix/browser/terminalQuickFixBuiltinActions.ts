@@ -14,8 +14,6 @@ export const GitTwoDashesRegex = /error: did you mean `--(.+)` \(with two dashes
 export const GitSimilarOutputRegex = /(?:(most similar commands? (is|are)))/;
 export const FreePortOutputRegex = /(?:address already in use (?:0\.0\.0\.0|127\.0\.0\.1|localhost|::):|Unable to bind [^ ]*:|can't listen on port |listen EADDRINUSE [^ ]*:)(?<portNumber>\d{4,5})/;
 export const GitPushOutputRegex = /git push --set-upstream origin (?<branchName>[^\s]+)/;
-// The previous line starts with "Create a pull request for \'([^\s]+)\' on GitHub by visiting:\s*"
-// it's safe to assume it's a github pull request if the URL includes `/pull/`
 export const GitCreatePrOutputRegex = /remote:\s*(?<link>https:\/\/github\.com\/.+\/.+\/pull\/new\/.+)/;
 export const PwshGeneralErrorOutputRegex = /Suggestion \[General\]:/;
 export const PwshUnixCommandNotFoundErrorOutputRegex = /Suggestion \[cmd-not-found\]:/;
@@ -149,26 +147,6 @@ export function gitPushSetUpstream(): ITerminalQuickFixInternalOptions {
 		id: 'Git Push Set Upstream',
 		type: 'internal',
 		commandLineMatcher: GitPushCommandLineRegex,
-		/**
-			Example output on Windows:
-			8: PS C:\Users\merogge\repos\xterm.js> git push
-			7: fatal: The current branch sdjfskdjfdslkjf has no upstream branch.
-			6: To push the current branch and set the remote as upstream, use
-			5:
-			4:	git push --set-upstream origin sdjfskdjfdslkjf
-			3:
-			2: To have this happen automatically for branches without a tracking
-			1: upstream, see 'push.autoSetupRemote' in 'git help config'.
-			0:
-
-			Example output on macOS:
-			5: meganrogge@Megans-MacBook-Pro xterm.js % git push
-			4: fatal: The current branch merogge/asjdkfsjdkfsdjf has no upstream branch.
-			3: To push the current branch and set the remote as upstream, use
-			2:
-			1:	git push --set-upstream origin merogge/asjdkfsjdkfsdjf
-			0:
-		 */
 		outputMatcher: {
 			lineMatcher: GitPushOutputRegex,
 			anchor: 'bottom',
@@ -215,25 +193,10 @@ export function gitCreatePr(): ITerminalQuickFixInternalOptions {
 		id: 'Git Create Pr',
 		type: 'internal',
 		commandLineMatcher: GitPushCommandLineRegex,
-		// Example output:
-		// ...
-		// 10: remote:
-		// 9:  remote: Create a pull request for 'my_branch' on GitHub by visiting:
-		// 8:  remote:      https://github.com/microsoft/vscode/pull/new/my_branch
-		// 7:  remote:
-		// 6:  remote: GitHub found x vulnerabilities on microsoft/vscode's default branch (...). To find out more, visit:
-		// 5:  remote:      https://github.com/microsoft/vscode/security/dependabot
-		// 4:  remote:
-		// 3:  To https://github.com/microsoft/vscode
-		// 2:  * [new branch]              my_branch -> my_branch
-		// 1:  Branch 'my_branch' set up to track remote branch 'my_branch' from 'origin'.
-		// 0:
 		outputMatcher: {
 			lineMatcher: GitCreatePrOutputRegex,
 			anchor: 'bottom',
 			offset: 4,
-			// ~6 should only be needed here for security alerts, but the git provider can customize
-			// the text, so use 12 to be safe.
 			length: 12
 		},
 		commandExitResult: 'success',
@@ -273,7 +236,6 @@ export function pwshGeneralError(): ITerminalQuickFixInternalOptions {
 				return;
 			}
 
-			// Find the start
 			let i = 0;
 			let inFeedbackProvider = false;
 			for (; i < lines.length; i++) {
@@ -322,7 +284,6 @@ export function pwshUnixCommandNotFoundError(): ITerminalQuickFixInternalOptions
 				return;
 			}
 
-			// Find the start
 			let i = 0;
 			let inFeedbackProvider = false;
 			for (; i < lines.length; i++) {
@@ -335,7 +296,6 @@ export function pwshUnixCommandNotFoundError(): ITerminalQuickFixInternalOptions
 				return;
 			}
 
-			// Always remove the first element as it's the "Suggestion [cmd-not-found]"" line
 			const result: ITerminalQuickFixTerminalCommandAction[] = [];
 			let inSuggestions = false;
 			for (; i < lines.length; i++) {

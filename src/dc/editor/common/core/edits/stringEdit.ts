@@ -27,12 +27,7 @@ export abstract class BaseStringEdit<T extends BaseStringReplacement<T> = BaseSt
 		return result;
 	}
 
-	/**
-	 * r := trySwap(e1, e2);
-	 * e1.compose(e2) === r.e1.compose(r.e2)
-	*/
 	public static trySwap(e1: BaseStringEdit, e2: BaseStringEdit): { e1: StringEdit; e2: StringEdit } | undefined {
-		// TODO make this more efficient
 		const e1Inv = e1.inverseOnSlice((start, endEx) => ' '.repeat(endEx - start));
 
 		const e1_ = e2.tryRebase(e1Inv);
@@ -60,9 +55,6 @@ export abstract class BaseStringEdit<T extends BaseStringReplacement<T> = BaseSt
 	}
 
 
-	/**
-	 * Creates an edit that reverts this edit.
-	 */
 	public inverseOnSlice(getOriginalSlice: (start: number, endEx: number) => string): StringEdit {
 		const edits: StringReplacement[] = [];
 		let offset = 0;
@@ -76,9 +68,6 @@ export abstract class BaseStringEdit<T extends BaseStringReplacement<T> = BaseSt
 		return new StringEdit(edits);
 	}
 
-	/**
-	 * Creates an edit that reverts this edit.
-	 */
 	public inverse(original: string): StringEdit {
 		return this.inverseOnSlice((start, endEx) => original.substring(start, endEx));
 	}
@@ -99,15 +88,12 @@ export abstract class BaseStringEdit<T extends BaseStringReplacement<T> = BaseSt
 		let offset = 0;
 
 		while (ourIdx < this.replacements.length || baseIdx < base.replacements.length) {
-			// take the edit that starts first
 			const baseEdit = base.replacements.at(baseIdx);
 			const ourEdit = this.replacements.at(ourIdx);
 
 			if (!ourEdit) {
-				// We processed all our edits
 				break;
 			} else if (!baseEdit) {
-				// no more edits from base
 				const transformedRange = ourEdit.replaceRange.delta(offset);
 				newEdits.push(new StringReplacement(transformedRange, ourEdit.newText));
 				ourIdx++;
@@ -117,15 +103,13 @@ export abstract class BaseStringEdit<T extends BaseStringReplacement<T> = BaseSt
 				isInsertStrictlyInsideRange(ourEdit.replaceRange, baseEdit.replaceRange) ||
 				isInsertStrictlyInsideRange(baseEdit.replaceRange, ourEdit.replaceRange)
 			) {
-				ourIdx++; // Don't take our edit, as it is conflicting -> skip
+				ourIdx++;
 				if (noOverlap) {
 					return undefined;
 				}
 			} else if (ourEdit.replaceRange.start < baseEdit.replaceRange.start ||
 				(ourEdit.replaceRange.isEmpty && ourEdit.replaceRange.start === baseEdit.replaceRange.start)) {
-				// Our edit starts first, or is an insert at the start of base's range
 				const transformedRange = ourEdit.replaceRange.delta(offset);
-				// Check if the transformed edit would violate the sorted/disjoint invariant
 				newEdits.push(new StringReplacement(transformedRange, ourEdit.newText));
 				ourIdx++;
 			} else {
@@ -160,9 +144,6 @@ export abstract class BaseStringEdit<T extends BaseStringReplacement<T> = BaseSt
 		return new StringEdit(this.replacements.map(edit => edit.normalizeEOL(eol)));
 	}
 
-	/**
-	 * If `e1.apply(source) === e2.apply(source)`, then `e1.normalizeOnSource(source).equals(e2.normalizeOnSource(source))`.
-	*/
 	public normalizeOnSource(source: string): StringEdit {
 		const result = this.apply(source);
 
@@ -212,9 +193,6 @@ export abstract class BaseStringReplacement<T extends BaseStringReplacement<T> =
 		return str.substring(0, this.replaceRange.start) + this.newText + str.substring(this.replaceRange.endExclusive);
 	}
 
-	/**
-	 * Checks if the edit would produce no changes when applied to the given text.
-	 */
 	isNeutralOn(text: string): boolean {
 		return this.newText === text.substring(this.replaceRange.start, this.replaceRange.endExclusive);
 	}
@@ -282,15 +260,7 @@ export abstract class BaseStringReplacement<T extends BaseStringReplacement<T> =
 }
 
 
-/**
- * Represents a set of replacements to a string.
- * All these replacements are applied at once.
-*/
 export class StringEdit extends BaseStringEdit<StringReplacement, StringEdit> {
-	/**
-	 * Parses an edit from its string representation.
-	 * E.g. [[2, 12) -> "fgh", [14, 20) -> "qrst", [22, 22) -> "de\n"]
-	*/
 	public static parse(toStringValue: string): StringEdit {
 		const replacements: StringReplacement[] = [];
 		const regex = /\[(\d+),\s*(\d+)\)\s*->\s*"([^"]*)"/g;
@@ -343,21 +313,15 @@ export class StringEdit extends BaseStringEdit<StringReplacement, StringEdit> {
 		return result;
 	}
 
-	/**
-	 * The replacements are applied in order!
-	 * Equals `StringEdit.compose(replacements.map(r => r.toEdit()))`, but is much more performant.
-	*/
 	public static composeSequentialReplacements(replacements: readonly StringReplacement[]): StringEdit {
 		let edit = StringEdit.empty;
-		let curEditReplacements: StringReplacement[] = []; // These are reverse sorted
+		let curEditReplacements: StringReplacement[] = [];
 
 		for (const r of replacements) {
 			const last = curEditReplacements.at(-1);
 			if (!last || r.replaceRange.isBefore(last.replaceRange)) {
-				// Detect subsequences of reverse sorted replacements
 				curEditReplacements.push(r);
 			} else {
-				// Once the subsequence is broken, compose the current replacements and look for a new subsequence.
 				edit = edit.compose(StringEdit.create(curEditReplacements.reverse()));
 				curEditReplacements = [r];
 			}
@@ -376,14 +340,8 @@ export class StringEdit extends BaseStringEdit<StringReplacement, StringEdit> {
 	}
 }
 
-/**
- * Warning: Be careful when changing this type, as it is used for serialization!
-*/
 export type ISerializedStringEdit = ISerializedStringReplacement[];
 
-/**
- * Warning: Be careful when changing this type, as it is used for serialization!
-*/
 export interface ISerializedStringReplacement {
 	txt: string;
 	pos: number;
@@ -423,14 +381,12 @@ export class StringReplacement extends BaseStringReplacement<StringReplacement> 
 export function applyEditsToRanges(sortedRanges: OffsetRange[], edit: StringEdit): OffsetRange[] {
 	sortedRanges = sortedRanges.slice();
 
-	// treat edits as deletion of the replace range and then as insertion that extends the first range
 	const result: OffsetRange[] = [];
 
 	let offset = 0;
 
 	for (const e of edit.replacements) {
 		while (true) {
-			// ranges before the current edit
 			const r = sortedRanges[0];
 			if (!r || r.endExclusive >= e.replaceRange.start) {
 				break;
@@ -464,9 +420,6 @@ export function applyEditsToRanges(sortedRanges: OffsetRange[], edit: StringEdit
 				r = r.delta(e.newText.length);
 			}
 
-			// We already took our offset into account.
-			// Because we add r back to the queue (which then adds offset again),
-			// we have to remove it here.
 			r = r.delta(-(e.newText.length - e.replaceRange.length));
 
 			sortedRanges.unshift(r);
@@ -487,9 +440,6 @@ export function applyEditsToRanges(sortedRanges: OffsetRange[], edit: StringEdit
 	return result;
 }
 
-/**
- * Represents data associated to a single edit, which survives certain edit operations.
-*/
 export interface IEditData<T> {
 	join(other: T): T | undefined;
 }
@@ -500,10 +450,6 @@ export class VoidEditData implements IEditData<VoidEditData> {
 	}
 }
 
-/**
- * Represents a set of replacements to a string.
- * All these replacements are applied at once.
-*/
 export class AnnotatedStringEdit<T extends IEditData<T>> extends BaseStringEdit<AnnotatedStringReplacement<T>, AnnotatedStringEdit<T>> {
 	public static readonly empty = new AnnotatedStringEdit<never>([]);
 
@@ -595,19 +541,10 @@ export class AnnotatedStringReplacement<T extends IEditData<T>> extends BaseStri
 	}
 }
 
-/**
- * Returns true if both ranges are empty (inserts) at the exact same position.
- * In this case, although they don't "intersect" in the traditional sense,
- * they conflict because the order of insertion matters.
- */
 function areConcurrentInserts(r1: OffsetRange, r2: OffsetRange): boolean {
 	return r1.isEmpty && r2.isEmpty && r1.start === r2.start;
 }
 
-/**
- * Returns true if `insert` is an empty range (insert) strictly inside `range`.
- * For example, insert at position 5 is inside [3, 7) but not inside [5, 7) or [3, 5).
- */
 function isInsertStrictlyInsideRange(insert: OffsetRange, range: OffsetRange): boolean {
 	return insert.isEmpty && range.start < insert.start && insert.start < range.endExclusive;
 }

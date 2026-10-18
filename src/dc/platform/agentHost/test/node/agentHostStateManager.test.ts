@@ -63,13 +63,9 @@ suite('AgentHostStateManager', () => {
 		const fired: string[] = [];
 		disposables.add(manager.onDidChangeSessionWorkingDirectories(({ session }) => fired.push(session)));
 
-		// Adding a root changes the set -> fires.
 		manager.dispatchServerAction(sessionUri, { type: ActionType.SessionWorkingDirectorySet, directory: 'file:///a' });
-		// Re-adding the same root is a reducer no-op -> does not fire.
 		manager.dispatchServerAction(sessionUri, { type: ActionType.SessionWorkingDirectorySet, directory: 'file:///a' });
-		// Adding a second root changes the set -> fires.
 		manager.dispatchServerAction(sessionUri, { type: ActionType.SessionWorkingDirectorySet, directory: 'file:///b' });
-		// Removing a root changes the set -> fires.
 		manager.dispatchServerAction(sessionUri, { type: ActionType.SessionWorkingDirectoryRemoved, directory: 'file:///b' });
 
 		assert.deepStrictEqual(fired, [sessionUri, sessionUri, sessionUri]);
@@ -88,7 +84,6 @@ suite('AgentHostStateManager', () => {
 		const root = snapshot.state as { agents: unknown[]; activeSessions: number; config?: { values?: Record<string, unknown> } };
 		assert.deepStrictEqual(root.agents, []);
 		assert.strictEqual(root.activeSessions, 0);
-		// Host config is seeded with the platform root schema and defaults.
 		assert.ok(root.config, 'root state should include a seeded config');
 	});
 
@@ -176,7 +171,6 @@ suite('AgentHostStateManager', () => {
 		const envelopes: ActionEnvelope[] = [];
 		disposables.add(manager.onDidEmitEnvelope(e => envelopes.push(e)));
 
-		// First dispatch: introduces a new value, should emit.
 		manager.dispatchServerAction(ROOT_STATE_URI, {
 			type: ActionType.RootConfigChanged,
 			config: { 'my.setting': 'value-a' },
@@ -184,7 +178,6 @@ suite('AgentHostStateManager', () => {
 		assert.strictEqual(envelopes.length, 1);
 		assert.strictEqual(manager.serverSeq, 1);
 
-		// Second dispatch with the same value: should be deduped and not emit.
 		manager.dispatchServerAction(ROOT_STATE_URI, {
 			type: ActionType.RootConfigChanged,
 			config: { 'my.setting': 'value-a' },
@@ -192,8 +185,6 @@ suite('AgentHostStateManager', () => {
 		assert.strictEqual(envelopes.length, 1);
 		assert.strictEqual(manager.serverSeq, 1, 'serverSeq must not advance on a no-op');
 
-		// Third dispatch with a deeply-equal but newly allocated object value:
-		// should also be deduped.
 		manager.dispatchServerAction(ROOT_STATE_URI, {
 			type: ActionType.RootConfigChanged,
 			config: { 'my.nested': { allow: ['x'], deny: [] } },
@@ -207,7 +198,6 @@ suite('AgentHostStateManager', () => {
 		assert.strictEqual(envelopes.length, 2);
 		assert.strictEqual(manager.serverSeq, 2, 'serverSeq must not advance on a no-op');
 
-		// Real change still emits.
 		manager.dispatchServerAction(ROOT_STATE_URI, {
 			type: ActionType.RootConfigChanged,
 			config: { 'my.setting': 'value-b' },
@@ -309,12 +299,6 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('default chat inherits the session working directory resolved at materialization', () => {
-		// A deferred (provisional) session is created with a pre-materialization
-		// working directory; materialization later resolves it to a different
-		// one (e.g. a git worktree) via markSessionPersisted. The default chat
-		// has no per-chat working-directory override, so getSessionState must
-		// project the RESOLVED session working directory, never the stale
-		// create-time value that was seeded onto the default chat.
 		manager.createSession({ ...makeSessionSummary(), workingDirectories: ['file:///provisional'] }, { emitNotification: false });
 		manager.markSessionPersisted(sessionUri, { ...makeSessionSummary(), workingDirectories: ['file:///resolved-worktree'] });
 
@@ -484,9 +468,6 @@ suite('AgentHostStateManager', () => {
 		const envelopes: ActionEnvelope[] = [];
 		disposables.add(manager.onDidEmitEnvelope(e => envelopes.push(e)));
 
-		// Evict the session while a turn is still active. The active-sessions
-		// count must drop to zero so that the server lifetime tracker (driving
-		// `--enable-remote-auto-shutdown`) releases its hold.
 		manager.removeSession(sessionUri);
 
 		assert.strictEqual(manager.rootState.activeSessions, 0);
@@ -509,10 +490,6 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('stale ChatTurnComplete (wrong turnId) does not decrement active sessions', () => {
-		// The reducer's `endTurn` no-ops when the action's turnId doesn't match
-		// `state.activeTurn.id`. The active-session count must follow suit so
-		// the lifetime tracker doesn't release its hold while a turn is still
-		// genuinely running.
 		manager.createSession(makeSessionSummary());
 		manager.dispatchServerAction(sessionUri, { type: ActionType.SessionReady, });
 		manager.dispatchServerAction(sessionChatUri, {
@@ -534,9 +511,6 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('concurrent ChatTurnStarted on same session keeps active count at one', () => {
-		// The reducer unconditionally overwrites `activeTurn`, so two starts
-		// without an intervening complete still represent a single active turn
-		// from state's point of view. The count must mirror that.
 		manager.createSession(makeSessionSummary());
 		manager.dispatchServerAction(sessionUri, { type: ActionType.SessionReady, });
 		manager.dispatchServerAction(sessionChatUri, {
@@ -697,9 +671,6 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('restoreSession emits sessionSummaryChanged clearing the adoptable marker for a previously surfaced session', () => {
-		// A surfaced adoptable-legacy session is announced with the marker; adopting
-		// it via restoreSession must notify clients the marker was cleared so they
-		// update the entry in place instead of dropping the just-opened session.
 		manager.announceSurfacedSession({ ...makeSessionSummary(), _meta: withSessionEhcliAdoptable(undefined) });
 
 		const notifications: INotification[] = [];
@@ -715,9 +686,6 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('publishing a restored session announces it to clients that never saw it', () => {
-		// A legacy chat adopted after startup was never surfaced by discovery, so
-		// restore records it silently and clients have no entry. Publishing is what
-		// makes an adopted session appear instead of existing only on the host.
 		manager.restoreSession(makeSessionSummary(), []);
 		const notifications: INotification[] = [];
 		disposables.add(manager.onDidEmitNotification(n => notifications.push(n)));
@@ -753,7 +721,6 @@ suite('AgentHostStateManager', () => {
 		});
 
 		test('a restored session that was first created is no longer a draft', () => {
-			// `restoreSession` short-circuits when the session is already in state.
 			manager.createSession(makeSessionSummary());
 			manager.restoreSession(makeSessionSummary(), []);
 
@@ -775,7 +742,6 @@ suite('AgentHostStateManager', () => {
 			manager.dispatchServerAction(sessionChatUri, { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 1 });
 			observed.push(manager.isUnusedDraft(sessionUri));
 
-			// Truncate-to-zero empties the chat but must not resurrect the draft.
 			manager.dispatchServerAction(sessionChatUri, { type: ActionType.ChatTruncated });
 			observed.push(manager.isUnusedDraft(sessionUri));
 
@@ -812,10 +778,8 @@ suite('AgentHostStateManager', () => {
 
 			manager.dispatchServerAction(sessionUri, { type: ActionType.SessionTitleChanged, title: 'New Title' });
 
-			// Should not fire synchronously (debounced)
 			assert.strictEqual(notifications.filter(n => n.type === NotificationType.SessionSummaryChanged).length, 0);
 
-			// Advance past debounce
 			await new Promise(r => setTimeout(r, 150));
 
 			const changed = notifications.filter(n => n.type === NotificationType.SessionSummaryChanged);
@@ -854,7 +818,6 @@ suite('AgentHostStateManager', () => {
 			const notifications: INotification[] = [];
 			disposables.add(manager.onDidEmitNotification(n => notifications.push(n)));
 
-			// SessionReady changes lifecycle, not summary — so no summary notification
 			await new Promise(r => setTimeout(r, 150));
 
 			const changed = notifications.filter(n => n.type === NotificationType.SessionSummaryChanged);
@@ -881,20 +844,10 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('removeSession flushes pending status=Idle notification before eviction', () => {
-		// Regression: when residency eviction calls removeSession within the
-		// 100 ms scheduler window after a turn completes, the client must still
-		// receive a SessionSummaryChanged with status=Idle so the spinner clears.
-		//
-		// The key precondition is that _lastNotifiedSummaries already has
-		// status=InProgress (the scheduler must have fired after TurnStarted so
-		// the client knows the session is busy). Then TurnComplete flips the
-		// summary back to Idle and schedules another flush. If removeSession
-		// races with that 100 ms window the flush must happen synchronously.
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
 			manager.createSession(makeSessionSummary());
 			manager.dispatchServerAction(sessionUri, { type: ActionType.SessionReady, });
 
-			// Start a turn → status becomes InProgress.
 			manager.dispatchServerAction(sessionChatUri, {
 				type: ActionType.ChatTurnStarted,
 				turnId: 'turn-1',
@@ -902,21 +855,17 @@ suite('AgentHostStateManager', () => {
 				message: { text: 'hello', origin: { kind: MessageKind.User } },
 			});
 
-			// Let the scheduler fire so _lastNotifiedSummaries now has status=InProgress.
 			await new Promise(r => setTimeout(r, 150));
 
 			const notifications: INotification[] = [];
 			disposables.add(manager.onDidEmitNotification(n => notifications.push(n)));
 
-			// Turn completes — status flips back to Idle. This schedules a summary
-			// flush 100 ms later but we will call removeSession before it fires.
 			manager.dispatchServerAction(sessionChatUri, {
 				type: ActionType.ChatTurnComplete,
 				turnId: 'turn-1',
 				duration: 1000,
 			});
 
-			// Simulate eviction within the 100 ms debounce window.
 			manager.removeSession(sessionUri);
 
 			const changed = notifications.filter(n => n.type === NotificationType.SessionSummaryChanged) as SessionSummaryChangedParams[];
@@ -961,14 +910,6 @@ suite('AgentHostStateManager', () => {
 	});
 
 	test('removeSession does NOT dispose per-session changesets (LRU eviction must not clear list-view chip)', () => {
-		// Regression: residency eviction calls removeSession to drop an
-		// idle session from the in-memory cache. The Agents Window list view
-		// keeps a per-row changeset subscription open to render the diff
-		// chip, so cascading disposeSessionChangesets here would emit a
-		// ChangesetCleared envelope that empties the chip while the row is
-		// still on screen. The chip then visibly vanishes and only reappears
-		// when the user clicks back into the session and the list re-seeds
-		// the changeset.
 		manager.createSession(makeSessionSummary());
 		const changeset = manager.registerChangeset(buildSessionChangesetUri(sessionUri));
 		manager.dispatchServerAction(changeset, {
@@ -1043,9 +984,6 @@ suite('AgentHostStateManager', () => {
 			},
 		);
 
-		// Sanity: registering the same URI and re-dispatching produces an
-		// envelope and advances the seq, proving the early return doesn't
-		// break valid changesets.
 		const registered = manager.registerChangeset(buildChangesetUri(sessionUri, 'missing'));
 		assert.strictEqual(registered, changesetUri);
 		manager.dispatchServerAction(changesetUri, {
@@ -1133,12 +1071,9 @@ suite('AgentHostStateManager', () => {
 			manager.createSession(makeSessionSummary());
 			const defaultChat = buildDefaultChatUri(sessionUri);
 
-			// Becoming multi-chat snapshots the session title onto the default chat
-			// so it stops inheriting the session title.
 			manager.addChat(sessionUri, peerChat);
 			const afterAdd = manager.getSessionState(sessionUri)?.chats.find(c => c.resource === defaultChat)?.title;
 
-			// Rename each independently.
 			manager.updateChatTitle(sessionUri, defaultChat, 'Chat A');
 			manager.dispatchServerAction(sessionUri, { type: ActionType.SessionTitleChanged, title: 'Session B' });
 
@@ -1243,9 +1178,7 @@ suite('AgentHostStateManager', () => {
 			const peerChat2 = buildChatUri(sessionUri, 'peer-2');
 
 			manager.addChat(sessionUri, peerChat);
-			// Rename the default chat away from the snapshotted session title.
 			manager.updateChatTitle(sessionUri, defaultChat, 'Renamed Default');
-			// Adding a second peer must not re-snapshot / clobber the default title.
 			manager.addChat(sessionUri, peerChat2);
 
 			const state = manager.getSessionState(sessionUri);
@@ -1355,9 +1288,6 @@ suite('AgentHostStateManager', () => {
 		});
 
 		test('active-turn event observers see the updated active-turn state', () => {
-			// Operations are recomputed synchronously from the active-turn event,
-			// so hasActiveTurn must already reflect the lifecycle change when that
-			// event fires — otherwise operations would stay disabled at turn end.
 			manager.createSession(makeSessionSummary());
 
 			const observed: { active: boolean; hasActiveTurn: boolean }[] = [];
@@ -1390,7 +1320,6 @@ suite('AgentHostStateManager', () => {
 
 			const idle = manager.hasActiveTurn(sessionUri);
 
-			// Start a turn on the default chat, then a concurrent turn on the peer.
 			manager.dispatchServerAction(defaultChat, {
 				type: ActionType.ChatTurnStarted,
 				turnId: 'turn-default',
@@ -1407,7 +1336,6 @@ suite('AgentHostStateManager', () => {
 			});
 			const afterBothStart = manager.hasActiveTurn(sessionUri);
 
-			// Completing the default chat must NOT clear while the peer streams.
 			manager.dispatchServerAction(defaultChat, {
 				type: ActionType.ChatTurnComplete,
 				turnId: 'turn-default',
@@ -1415,7 +1343,6 @@ suite('AgentHostStateManager', () => {
 			});
 			const afterDefaultComplete = manager.hasActiveTurn(sessionUri);
 
-			// Only once the peer finishes too does the session go idle.
 			manager.dispatchServerAction(peerChat, {
 				type: ActionType.ChatTurnComplete,
 				turnId: 'turn-peer',
@@ -1436,7 +1363,6 @@ suite('AgentHostStateManager', () => {
 
 			const idle = manager.getSessionState(sessionUri)?.status;
 
-			// Only the peer (sub) chat starts streaming; the default chat stays idle.
 			manager.dispatchServerAction(peerChat, {
 				type: ActionType.ChatTurnStarted,
 				turnId: 'turn-peer',
@@ -1445,7 +1371,6 @@ suite('AgentHostStateManager', () => {
 			});
 			const whilePeerRuns = manager.getSessionState(sessionUri)?.status;
 
-			// Once the peer finishes the session falls back to idle.
 			manager.dispatchServerAction(peerChat, {
 				type: ActionType.ChatTurnComplete,
 				turnId: 'turn-peer',
@@ -1556,7 +1481,6 @@ suite('AgentHostStateManager', () => {
 					activeAfterBothComplete: manager.rootState.activeSessions,
 				},
 				{
-					// Exactly one true (first chat starts) and one false (last chat ends).
 					turnEvents: [true, false],
 					activeWhileBothRun: 1,
 					activeAfterFirstCompletes: 1,
@@ -1611,7 +1535,6 @@ suite('AgentHostStateManager', () => {
 			const turnEvents: boolean[] = [];
 			disposables.add(manager.onDidChangeSessionActiveTurn(e => turnEvents.push(e.active)));
 
-			// Both the default chat and the peer chat start a concurrent turn.
 			manager.dispatchServerAction(defaultChat, {
 				type: ActionType.ChatTurnStarted,
 				turnId: 'turn-default',
@@ -1626,12 +1549,9 @@ suite('AgentHostStateManager', () => {
 			});
 			const activeWhileBothRun = manager.hasActiveTurn(sessionUri);
 
-			// Removing the peer mid-turn must not strand it in the active set:
-			// the session stays active because the default chat still streams.
 			manager.removeChat(sessionUri, peerChat);
 			const activeAfterPeerRemoved = manager.hasActiveTurn(sessionUri);
 
-			// Completing the default chat is now enough to flip the session idle.
 			manager.dispatchServerAction(defaultChat, {
 				type: ActionType.ChatTurnComplete,
 				turnId: 'turn-default',
@@ -1663,7 +1583,6 @@ suite('AgentHostStateManager', () => {
 			const turnEvents: boolean[] = [];
 			disposables.add(manager.onDidChangeSessionActiveTurn(e => turnEvents.push(e.active)));
 
-			// Only the peer chat has an active turn.
 			manager.dispatchServerAction(peerChat, {
 				type: ActionType.ChatTurnStarted,
 				turnId: 'turn-peer',
@@ -1672,8 +1591,6 @@ suite('AgentHostStateManager', () => {
 			});
 			const activeWhilePeerRuns = manager.hasActiveTurn(sessionUri);
 
-			// Removing that peer is the last active chat, so the session must
-			// flip back to idle instead of staying permanently active.
 			manager.removeChat(sessionUri, peerChat);
 
 			assert.deepStrictEqual(
@@ -1693,11 +1610,6 @@ suite('AgentHostStateManager', () => {
 		});
 	});
 
-	// Characterization tests (task A3): pin down the *current* catalog behavior
-	// — the default-chat pointer set up by `_ensureDefaultChat`, restored peer
-	// resolution, and the rolled-up session summary produced by the
-	// SessionSummaryNotifier — so the upcoming `providerData` change cannot
-	// silently regress them.
 	suite('catalog characterization (A3)', () => {
 		const peerChat = buildChatUri(sessionUri, 'peer-1');
 
@@ -1710,7 +1622,6 @@ suite('AgentHostStateManager', () => {
 					defaultChat: state?.defaultChat,
 					defaultChatIsDeterministic: state?.defaultChat === buildDefaultChatUri(sessionUri),
 					chatResources: state?.chats.map(c => c.resource.toString()),
-					// Empty title => the default chat inherits the session title for display.
 					defaultChatTitle: state?.chats[0]?.title,
 					defaultChatStatePresent: manager.getDefaultChatState(sessionUri) !== undefined,
 				},
@@ -1957,7 +1868,6 @@ suite('AgentHostStateManager', () => {
 				const summaryHasInProgress = () => ((manager.getSessionSummary(sessionUri)?.status ?? 0) & SessionStatus.InProgress) === SessionStatus.InProgress;
 				const idleRollup = summaryHasInProgress();
 
-				// Only the peer chat streams; the default chat stays idle.
 				manager.dispatchServerAction(peerChat, {
 					type: ActionType.ChatTurnStarted,
 					turnId: 'turn-peer',
@@ -2018,9 +1928,6 @@ suite('AgentHostStateManager', () => {
 		});
 	});
 
-	// Exercises the opaque, agent-owned `providerData` blob supplied to restored
-	// peer resolvers. The StateManager must pass through the authoritative value
-	// without parsing it, including after updates and retries.
 	suite('providerData (G-B1)', () => {
 		const peerChat = buildChatUri(sessionUri, 'peer-1');
 		const peerChat2 = buildChatUri(sessionUri, 'peer-2');

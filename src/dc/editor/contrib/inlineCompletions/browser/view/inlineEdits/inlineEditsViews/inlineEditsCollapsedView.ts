@@ -76,7 +76,6 @@ export class InlineEditsCollapsedView extends Disposable implements IInlineEdits
 			return new Animation(null, null).finished;
 		}
 
-		// PULSE ANIMATION:
 		const animation = this._iconRef.element.animate([
 			{ offset: 0.00, transform: 'translateY(-3px)', },
 			{ offset: 0.20, transform: 'translateY(1px)', },

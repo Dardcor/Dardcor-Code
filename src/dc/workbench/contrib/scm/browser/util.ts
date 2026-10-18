@@ -145,8 +145,6 @@ class StatusBarActionViewItem extends ActionViewItem {
 
 	protected override updateLabel(): void {
 		if (this.options.label && this.label) {
-			// Convert text nodes to span elements to enable
-			// text overflow on the left hand side of the label
 			const elements = renderLabelWithIcons(this._commandTitle ?? this.action.label)
 				.map(element => {
 					if (typeof element === 'string') {
@@ -206,8 +204,6 @@ export function getSCMRepositoryIcon(
 export function getStatusBarCommandGenericName(command: Command): string | undefined {
 	let genericName: string | undefined = undefined;
 
-	// Get a generic name for the status bar action, derive this from the first
-	// command argument which is in the form of "<extension>.<command>/<number>"
 	if (typeof command.arguments?.[0] === 'string') {
 		const lastIndex = command.arguments[0].lastIndexOf('/');
 
@@ -223,7 +219,6 @@ export function getStatusBarCommandGenericName(command: Command): string | undef
 			return undefined;
 		}
 
-		// Capitalize first letter
 		genericName = genericName[0].toLocaleUpperCase() + genericName.slice(1);
 	}
 

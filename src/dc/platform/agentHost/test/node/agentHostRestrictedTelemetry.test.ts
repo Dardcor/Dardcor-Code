@@ -9,7 +9,6 @@ import { NullLogService } from '../../../log/common/log.js';
 import { ICommonProperties } from '../../../telemetry/common/telemetry.js';
 import { AgentHostRestrictedTelemetrySender, type IAgentHostInternalTelemetryContext, type IAgentHostInternalTelemetrySink, type TelemetryMeasurements, type TelemetryProps } from '../../node/agentHostRestrictedTelemetry.js';
 
-/** The enhanced/restricted iKey (`copilot_v0_restricted_copilot_event`). */
 const GH_ENHANCED_IKEY = '3fdd7f28-937a-48c8-9a21-ba337db23bd1';
 
 interface ICapturedPost {
@@ -68,11 +67,9 @@ suite('AgentHostRestrictedTelemetrySender', () => {
 	test('enhanced GH telemetry is dropped until the token opts in (rt=1), then routes to the enhanced iKey', () => {
 		const { sender, posts } = createSender();
 
-		// Public user (rt not opted in): the restricted sink must not emit, even with content.
 		sender.sendEnhancedGHTelemetryEvent('request.options.tools', { messagesJson: 'x' });
 		assert.deepStrictEqual(posts, [], 'enhanced telemetry must not be sent without rt opt-in');
 
-		// Opt in, then flip back off: emits only while enabled, and to the enhanced iKey.
 		sender.setRestrictedTelemetryEnabled(true);
 		sender.setRestrictedTelemetryEndpoint('https://ghe.example');
 		sender.sendEnhancedGHTelemetryEvent('request.options.tools', { messagesJson: 'x' });

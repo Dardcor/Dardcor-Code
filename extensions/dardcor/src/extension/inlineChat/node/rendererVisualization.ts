@@ -14,10 +14,6 @@ export class RendererVisualizations {
 		return undefined;
 	}
 
-	/**
-	 * Exposes the rendering to the visualization extension.
-	 * Also overrides the render method so that we can show the tree once rendering is done.
-	*/
 	public decorateAndRegister<T extends PromptRenderer<any, any>>(renderer: T, label: string): T {
 		let first = false;
 		renderer.render = async function (this: unknown, ...args: any[]) {
@@ -34,10 +30,6 @@ export class RendererVisualizations {
 	}
 }
 
-/**
- * Describes the visualization of a prompt renderer.
- * Only used for debugging.
-*/
 class RendererVisualization {
 	constructor(
 		private readonly _renderer: PromptRenderer<any, any>,
@@ -79,8 +71,8 @@ class RendererVisualization {
 		const data = this._renderer;
 		let promptResult = '';
 
-		function walk(item: /*PromptTreeElement |*/ any): RenderedNode {
-			if (item.kind === 0 /* Piece */) {
+		function walk(item: any): RenderedNode {
+			if (item.kind === 0 ) {
 				const messageClasses = [
 					'SystemMessage',
 					'UserMessage',
@@ -96,11 +88,11 @@ class RendererVisualization {
 
 				return new RenderedNode(ctorName, children, undefined);
 
-			} else if (item.kind === 1 /* Text */) {
+			} else if (item.kind === 1 ) {
 				const start = promptResult.length;
 				promptResult = promptResult + item.text;
 				return new RenderedNode('Text', [], [start, promptResult.length]);
-			} else if (item.kind === 2 /* LineBreak */) {
+			} else if (item.kind === 2 ) {
 				const start = promptResult.length;
 				promptResult = promptResult + '\n';
 				return new RenderedNode('LineBreak', [], [start, promptResult.length]);

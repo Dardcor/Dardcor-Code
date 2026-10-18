@@ -83,7 +83,6 @@ export class UserDataProfileManagementService extends Disposable implements IUse
 				return profileForWorkspace;
 			}
 		} else {
-			// If no workspace is open, use the current profile
 			const currentProfile = this.userDataProfilesService.profiles.find(profile => profile.id === this.userDataProfileService.currentProfile.id);
 			if (currentProfile) {
 				return currentProfile;
@@ -182,7 +181,6 @@ export class UserDataProfileManagementService extends Disposable implements IUse
 		if (shouldRestartExtensionHosts) {
 			if (!isRemoteWindow) {
 				if (!(await this.extensionService.stopExtensionHosts(localize('switch profile', "Switching to a profile")))) {
-					// If extension host did not stop, do not switch profile
 					if (this.userDataProfilesService.profiles.some(p => p.id === this.userDataProfileService.currentProfile.id)) {
 						await this.userDataProfilesService.setProfileForWorkspace(toWorkspaceIdentifier(this.workspaceContextService.getWorkspace()), this.userDataProfileService.currentProfile);
 					}
@@ -191,7 +189,6 @@ export class UserDataProfileManagementService extends Disposable implements IUse
 			}
 		}
 
-		// In a remote window update current profile before reloading so that data is preserved from current profile if asked to preserve
 		await this.userDataProfileService.updateCurrentProfile(profile);
 
 		if (shouldRestartExtensionHosts) {
@@ -210,4 +207,4 @@ export class UserDataProfileManagementService extends Disposable implements IUse
 	}
 }
 
-registerSingleton(IUserDataProfileManagementService, UserDataProfileManagementService, InstantiationType.Eager /* Eager because it updates the current window profile by listening to profiles changes */);
+registerSingleton(IUserDataProfileManagementService, UserDataProfileManagementService, InstantiationType.Eager );

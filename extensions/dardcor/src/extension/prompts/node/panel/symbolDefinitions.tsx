@@ -24,23 +24,15 @@ import { Tag } from '../base/tag';
 import { CodeBlock } from './safeElements';
 
 type Props = PromptElementProps<EmbeddedInsideUserMessage & {
-	// We want this upfront if possible because these could change during async prompt rendering
 	document?: TextDocumentSnapshot;
-	/**
-	 * Range of interest for which definitions are to be found.
-	 * @remark if not provided, will use active selection in currently active editor
-	 */
 	range?: vscode.Range;
-	/**
-	 * Timeout for finding implementations in milliseconds. Defaults to 200ms.
-	 */
 	timeoutMs?: number;
 }>;
 
 interface State {
 	activeDocument: TextDocumentSnapshot | undefined;
 	isIgnored: boolean;
-	implementations: [/* header/description */ string, TreeSitterExpressionLocationInfo[]][];
+	implementations: [ string, TreeSitterExpressionLocationInfo[]][];
 }
 
 export class SymbolDefinitions extends PromptElement<Props, State> {
@@ -79,7 +71,7 @@ export class SymbolDefinitions extends PromptElement<Props, State> {
 			return emptyState;
 		}
 
-		if (await this.ignoreService.isCopilotIgnored(activeDocument.uri)) {
+		if (await this.ignoreService.isIgnored(activeDocument.uri)) {
 			return { ...emptyState, isIgnored: true };
 		}
 

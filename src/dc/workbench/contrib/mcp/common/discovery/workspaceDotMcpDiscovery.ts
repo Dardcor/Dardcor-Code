@@ -17,10 +17,6 @@ import { McpCollectionProvenance, McpCollectionSortOrder, McpServerDefinition, M
 import { IMcpDiscovery } from './mcpDiscovery.js';
 import { claudeConfigToServerDefinition } from './nativeMcpDiscoveryAdapters.js';
 
-/**
- * Discovers MCP servers defined in `.mcp.json` files at workspace folder roots.
- * Uses the Claude-style format: `{ "mcpServers": { ... } }`.
- */
 export class WorkspaceDotMcpDiscovery extends Disposable implements IMcpDiscovery {
 	readonly fromGallery = false;
 
@@ -85,7 +81,6 @@ export class WorkspaceDotMcpDiscovery extends Disposable implements IMcpDiscover
 					definitions = defs;
 				}
 			} catch {
-				// file doesn't exist or is malformed
 			}
 
 			if (!definitions.length) {

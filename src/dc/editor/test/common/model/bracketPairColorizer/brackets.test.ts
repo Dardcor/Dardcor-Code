@@ -31,9 +31,9 @@ suite('Bracket Pair Colorizer - Brackets', () => {
 		disposableStore.add(languageConfigService.register(languageId, {
 			brackets: [
 				['{', '}'], ['[', ']'], ['(', ')'],
-				['begin', 'end'], ['case', 'endcase'], ['casez', 'endcase'],					// Verilog
-				['\\left(', '\\right)'], ['\\left(', '\\right.'], ['\\left.', '\\right)'],		// LaTeX Parentheses
-				['\\left[', '\\right]'], ['\\left[', '\\right.'], ['\\left.', '\\right]']		// LaTeX Brackets
+				['begin', 'end'], ['case', 'endcase'], ['casez', 'endcase'],
+				['\\left(', '\\right)'], ['\\left(', '\\right.'], ['\\left.', '\\right)'],
+				['\\left[', '\\right]'], ['\\left[', '\\right.'], ['\\left.', '\\right]']
 			]
 		}));
 

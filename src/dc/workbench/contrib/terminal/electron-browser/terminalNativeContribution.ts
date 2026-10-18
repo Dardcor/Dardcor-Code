@@ -46,20 +46,15 @@ export class TerminalNativeContribution extends Disposable implements IWorkbench
 	}
 
 	private async _onOpenFileRequest(request: INativeOpenFileRequest): Promise<void> {
-		// if the request to open files is coming in from the integrated terminal (identified though
-		// the termProgram variable) and we are instructed to wait for editors close, wait for the
-		// marker file to get deleted and then focus back to the integrated terminal.
 		if (request.termProgram === 'vscode' && request.filesToWait) {
 			const waitMarkerFileUri = URI.revive(request.filesToWait.waitMarkerFileUri);
 			await this._whenFileDeleted(waitMarkerFileUri);
 
-			// Focus active terminal
 			this._terminalService.activeInstance?.focus();
 		}
 	}
 
 	private _whenFileDeleted(path: URI): Promise<void> {
-		// Complete when wait marker file is deleted
 		return new Promise<void>(resolve => {
 			let running = false;
 			const interval = disposableWindowInterval(getActiveWindow(), async () => {

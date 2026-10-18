@@ -32,7 +32,6 @@ suite('selfSignedCert', () => {
 	test('fingerprint is in Electron sha256/<base64> format', () => {
 		assert.ok(cert.fingerprint.startsWith('sha256/'));
 		const b64 = cert.fingerprint.substring('sha256/'.length);
-		// SHA-256 digest is 32 bytes → 44 base64 chars (with padding)
 		assert.strictEqual(Buffer.from(b64, 'base64').length, 32);
 	});
 
@@ -67,8 +66,6 @@ suite('selfSignedCert', () => {
 	});
 
 	test('key and certificate form a valid TLS pair', async () => {
-		// Start a TLS server with the generated cert, connect to it,
-		// and verify the handshake completes successfully.
 		const server = tls.createServer({ key: cert.key, cert: cert.cert });
 		server.listen(0, '127.0.0.1');
 		await new Promise<void>(resolve => server.once('listening', resolve));
@@ -79,10 +76,8 @@ suite('selfSignedCert', () => {
 				const client = tls.connect({
 					host: '127.0.0.1',
 					port: address.port,
-					// Accept our self-signed cert for this test
 					rejectUnauthorized: false,
 				}, () => {
-					// Handshake succeeded
 					const peerCert = client.getPeerCertificate();
 					assert.ok(peerCert, 'Should have a peer certificate');
 					assert.strictEqual(peerCert.subject?.CN, 'TunnelProxy');
@@ -98,24 +93,13 @@ suite('selfSignedCert', () => {
 
 	test('each invocation produces a unique certificate', async () => {
 		const cert2 = await generateSelfSignedCert();
-		// Different key pair → different fingerprint
 		assert.notStrictEqual(cert.fingerprint, cert2.fingerprint);
 		assert.notStrictEqual(cert.key, cert2.key);
 	});
 
 	test('produces canonical DER INTEGER serials across many runs', async () => {
-		// Regression: a random 8-byte serial with `serial[0] &= 0x7f`
-		// occasionally yields a leading 0x00 byte where the next byte's
-		// high bit is unset — that's non-canonical DER and OpenSSL
-		// rejects it with ASN.1 INVALID_INTEGER when the cert is loaded.
-		// Run enough iterations that the probability of hitting the bad
-		// path is overwhelming: P(failure per cert) ≈ 1/256, so 200 runs
-		// gives P(no failure) ≈ (255/256)^200 ≈ 46% — comfortably high
-		// enough that a buggy encoder fails most invocations.
 		for (let i = 0; i < 200; i++) {
 			const c = await generateSelfSignedCert();
-			// Constructing a TLS secure context is what triggers the
-			// OpenSSL INVALID_INTEGER error path.
 			tls.createSecureContext({ key: c.key, cert: c.cert });
 		}
 	});

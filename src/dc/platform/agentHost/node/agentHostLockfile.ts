@@ -12,25 +12,12 @@ import { dialAgentHostHost, validateShellToken } from './sshRemoteAgentHostHelpe
 
 const LOG_PREFIX = '[AgentHostLockfile]';
 
-/**
- * Local-filesystem variant of {@link getAgentHostLockfile}. Returns an
- * absolute path resolved against the current user's home directory rather
- * than the shell-style `~/<...>` path used over SSH. Anchored on
- * `serverDataFolderName` so it stays in sync with the Rust CLI (see
- * `cli/src/state.rs::agent_host_root`). Both inputs are validated for
- * safe characters as defense-in-depth.
- */
 export function getLocalAgentHostLockfilePath(serverDataFolderName: string, quality: string): string {
 	const d = validateShellToken(serverDataFolderName, 'server data folder name');
 	const q = validateShellToken(quality, 'quality');
 	return join(os.homedir(), d, 'cli', `agent-host-${q}.lock`);
 }
 
-/**
- * Read and parse the canonical agent-host lockfile from a local path.
- * Returns `undefined` if the file does not exist, cannot be read, or
- * does not contain a valid {@link IRemoteAgentHostState}.
- */
 export async function readLocalAgentHostLockfile(lockfilePath: string, logService?: ILogService): Promise<IRemoteAgentHostState | undefined> {
 	let raw: string;
 	try {
@@ -59,26 +46,11 @@ export async function readLocalAgentHostLockfile(lockfilePath: string, logServic
 	return state;
 }
 
-/**
- * Mirrors the SSH-side {@link FindRunningAgentHostResult}, applied to a local
- * lockfile path. PID liveness is tested via `process.kill(pid, 0)`, which
- * sends no signal but reports whether the OS has a process with that PID.
- */
 export type LocalAgentHostLookupResult =
 	| { readonly kind: 'notFound' }
 	| { readonly kind: 'stale'; readonly pid: number }
 	| { readonly kind: 'compatible'; readonly pid: number; readonly host: string; readonly port: number; readonly connectionToken: string | undefined };
 
-/**
- * Read the lockfile and verify the recorded PID is still alive. Returns
- * `notFound` on missing/corrupt files, `stale` on dead PIDs, and
- * `compatible` for any live process.
- *
- * The recorded protocol version is intentionally NOT checked here: the
- * agent host server is downloaded on demand and may speak a newer
- * protocol than the consumer was built with. The renderer↔AH handshake
- * surfaces any genuine incompatibility.
- */
 export async function readActiveAgentHostFromLockfile(lockfilePath: string, logService: ILogService): Promise<LocalAgentHostLookupResult> {
 	const state = await readLocalAgentHostLockfile(lockfilePath, logService);
 	if (!state) {
@@ -100,12 +72,6 @@ export async function readActiveAgentHostFromLockfile(lockfilePath: string, logS
 	};
 }
 
-/**
- * Returns `true` if a process with the given PID exists. Uses signal 0
- * which never delivers a signal but performs the existence/permission
- * check. EPERM means the process exists but we cannot signal it (still
- * counts as alive).
- */
 export function isPidAlive(pid: number): boolean {
 	if (!Number.isSafeInteger(pid) || pid <= 0) {
 		return false;
@@ -115,9 +81,6 @@ export function isPidAlive(pid: number): boolean {
 		return true;
 	} catch (err: unknown) {
 		const code = (err as NodeJS.ErrnoException | undefined)?.code;
-		// EPERM: process exists but we lack permission to signal it (still alive).
-		// ESRCH: no such process.
-		// On Windows, `process.kill` with signal 0 throws ESRCH for missing PIDs.
 		return code === 'EPERM';
 	}
 }

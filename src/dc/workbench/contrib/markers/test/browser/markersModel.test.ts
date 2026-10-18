@@ -51,8 +51,6 @@ suite('MarkersModel Test', () => {
 	});
 
 	test('duplicate markers from different owners are deduplicated', function () {
-		// Simulate a task problem matcher and language extension both reporting
-		// the same diagnostic for the same file (#244424).
 		const taskMarker = aMarker('some resource', MarkerSeverity.Error, 10, 5, 11, 10, 'some message', 'eslint');
 		taskMarker.owner = 'taskOwner';
 		const extensionMarker = aMarker('some resource', MarkerSeverity.Error, 10, 5, 11, 10, 'some message', 'eslint');
@@ -167,7 +165,6 @@ suite('MarkersModel Test', () => {
 		marker = aMarker('a/res2', MarkerSeverity.Warning, 1, 2, 1, 8, 'Warning message', '', [{ startLineNumber: 2, startColumn: 5, endLineNumber: 2, endColumn: 10, message: 'some info', resource: URI.file('a/res3') }]);
 		const testObject = new Marker('5', marker, null!);
 
-		// hack
 		// eslint-disable-next-line local/code-no-any-casts
 		(testObject as any).relatedInformation = marker.relatedInformation!.map(r => new RelatedInformation('6', marker, r));
 		assert.strictEqual(JSON.stringify({ ...marker, resource: marker.resource.path, relatedInformation: marker.relatedInformation!.map(r => ({ ...r, resource: r.resource.path })) }, null, '\t'), testObject.toString());

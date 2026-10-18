@@ -61,14 +61,8 @@ namespace ServerState {
 		constructor(
 			public readonly server: ITypeScriptServer,
 
-			/**
-			 * API version obtained from the version picker after checking the corresponding path exists.
-			 */
 			public readonly apiVersion: API,
 
-			/**
-			 * Version reported by currently-running tsserver.
-			 */
 			public tsserverVersion: string | undefined,
 			public languageServiceEnabled: boolean,
 		) { }
@@ -325,7 +319,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 		}
 
 		if (fromUserAction) {
-			// Reset crash trackers
 			this.hasServerFatallyCrashedTooManyTimes = false;
 			this.numberRestarts = 0;
 			this.lastStart = Date.now();
@@ -417,28 +410,11 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 		this.lastStart = Date.now();
 
 
-		/* __GDPR__FRAGMENT__
-			"TypeScriptServerEnvCommonProperties" : {
-				"hasGlobalPlugins": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"globalPluginNameHashes": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-			}
-		*/
 		const typeScriptServerEnvCommonProperties = {
 			hasGlobalPlugins: this.pluginManager.plugins.length > 0,
 			globalPluginNameHashes: JSON.stringify(this.pluginManager.plugins.map(plugin => hash(plugin.name))),
 		};
 
-		/* __GDPR__
-			"tsserver.spawned" : {
-				"owner": "mjbvz",
-				"${include}": [
-					"${TypeScriptCommonProperties}",
-					"${TypeScriptServerEnvCommonProperties}"
-				],
-				"localTypeScriptVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"typeScriptVersionSource": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-			}
-		*/
 		this.telemetryReporter.logTelemetry('tsserver.spawned', {
 			...typeScriptServerEnvCommonProperties,
 			localTypeScriptVersion: this.versionProvider.localVersion ? this.versionProvider.localVersion.displayName : '',
@@ -447,7 +423,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 
 		handle.onError((err: unknown) => {
 			if (this.token !== mytoken) {
-				// this is coming from an old process
 				return;
 			}
 
@@ -466,15 +441,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 				this.logger.error(`TSServer log file: ${handle.tsServerLog.uri.fsPath}`);
 			}
 
-			/* __GDPR__
-				"tsserver.error" : {
-					"owner": "mjbvz",
-					"${include}": [
-						"${TypeScriptCommonProperties}",
-						"${TypeScriptServerEnvCommonProperties}"
-					]
-				}
-			*/
 			this.telemetryReporter.logTelemetry('tsserver.error', {
 				...typeScriptServerEnvCommonProperties
 			});
@@ -485,19 +451,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			const { code, signal } = data;
 			this.logger.error(`TSServer exited. Code: ${code}. Signal: ${signal}`);
 
-			// In practice, the exit code is an integer with no ties to any identity,
-			// so it can be classified as SystemMetaData, rather than CallstackOrException.
-			/* __GDPR__
-				"tsserver.exitWithCode" : {
-					"owner": "mjbvz",
-					"${include}": [
-						"${TypeScriptCommonProperties}",
-						"${TypeScriptServerEnvCommonProperties}"
-					],
-					"code" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" },
-					"signal" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth" }
-				}
-			*/
 			this.telemetryReporter.logTelemetry('tsserver.exitWithCode', {
 				...typeScriptServerEnvCommonProperties,
 				code: code ?? undefined,
@@ -505,7 +458,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			});
 
 			if (this.token !== mytoken) {
-				// this is coming from an old process
 				return;
 			}
 
@@ -569,7 +521,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 					await vscode.window.showTextDocument(doc);
 					return true;
 				} catch {
-					// noop
 				}
 
 				try {
@@ -608,7 +559,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			this.bufferSyncSupport.requestAllDiagnostics();
 		}
 
-		// Reconfigure any plugins
 		for (const [pluginName, config] of this.pluginManager.configurations()) {
 			this.configurePlugin(pluginName, config);
 		}
@@ -656,7 +606,7 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 
 			if (this.numberRestarts > 5) {
 				this.numberRestarts = 0;
-				if (diff < 10 * 1000 /* 10 seconds */) {
+				if (diff < 10 * 1000 ) {
 					this.lastStart = Date.now();
 					startService = false;
 					this.hasServerFatallyCrashedTooManyTimes = true;
@@ -669,16 +619,8 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 							reportIssueItem);
 					}
 
-					/* __GDPR__
-						"serviceExited" : {
-							"owner": "mjbvz",
-							"${include}": [
-								"${TypeScriptCommonProperties}"
-							]
-						}
-					*/
 					this.telemetryReporter.logTelemetry('serviceExited');
-				} else if (diff < 60 * 1000 * 5 /* 5 Minutes */) {
+				} else if (diff < 60 * 1000 * 5 ) {
 					this.lastStart = Date.now();
 					if (!this._isPromptingAfterCrash) {
 						if (pluginsForCrashPrompt.length) {
@@ -692,7 +634,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 					}
 				}
 			} else if (['vscode-insiders', 'code-oss'].includes(vscode.env.uriScheme)) {
-				// Prompt after a single restart
 				this.numberRestarts = 0;
 				if (!this._isPromptingAfterCrash) {
 					if (pluginsForCrashPrompt.length) {
@@ -717,7 +658,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 
 					const minModernTsVersion = this.versionProvider.bundledVersion.apiVersion;
 
-					// Don't allow reporting issues using the PnP patched version of TS Server
 					if (tsVersion.isYarnPnp()) {
 						const reportIssue: vscode.MessageItem = {
 							title: vscode.l10n.t("Report issue against Yarn PnP"),
@@ -734,7 +674,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 							vscode.env.openExternal(vscode.Uri.parse('https://github.com/yarnpkg/berry/issues'));
 						}
 					}
-					// Don't allow reporting issues with old TS versions
 					else if (
 						minModernTsVersion &&
 						tsVersion.lt(minModernTsVersion)
@@ -806,9 +745,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 
 	public toResource(filepath: string): vscode.Uri {
 		if (isWeb()) {
-			// On web, the stdlib paths that TS return look like: '/lib.es2015.collection.d.ts'
-			// TODO: Find out what extensionUri is when testing (should be http://localhost:8080/static/sources/extensions/typescript-language-features/)
-			// TODO:  make sure that this code path is getting hit
 			if (filepath.startsWith('/lib.') && filepath.endsWith('.d.ts')) {
 				return vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'browser', 'typescript', filepath.slice(1));
 			}
@@ -835,7 +771,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			return undefined;
 		}
 
-		// For notebook cells, we need to use the notebook document to look up the workspace
 		if (resource.scheme === Schemes.notebookCell) {
 			for (const notebook of vscode.workspace.notebookDocuments) {
 				for (const cell of notebook.getCells()) {
@@ -847,7 +782,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			}
 		}
 
-		// Find the highest level workspace folder that contains the file
 		for (const root of roots.sort((a, b) => a.uri.path.length - b.uri.path.length)) {
 			if (root.uri.scheme === resource.scheme && root.uri.authority === resource.authority) {
 				if (resource.path.startsWith(root.uri.path + '/')) {
@@ -901,7 +835,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 		}
 
 		if (command === 'updateOpen') {
-			// If update open has completed, consider that the project has loaded
 			const updateOpenTask = Promise.all(executions).then(() => {
 				this.loadingIndicator.reset();
 			});
@@ -946,16 +879,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 	}
 
 	private fatalError(command: string, error: unknown): void {
-		/* __GDPR__
-			"fatalError" : {
-				"owner": "mjbvz",
-				"${include}": [
-					"${TypeScriptCommonProperties}",
-					"${TypeScriptRequestErrorProperties}"
-				],
-				"command" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-			}
-		*/
 		this.telemetryReporter.logTelemetry('fatalError', { ...(error instanceof TypeScriptServerError ? error.telemetry : { command }) });
 		console.error(`A non-recoverable error occurred while executing tsserver command: ${command}`);
 		if (error instanceof TypeScriptServerError && error.serverErrorText) {
@@ -978,7 +901,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			case EventName.semanticDiag:
 			case EventName.suggestionDiag:
 			case EventName.regionSemanticDiag: {
-				// This event also roughly signals that projects have been loaded successfully (since the TS server is synchronous)
 				this.loadingIndicator.reset();
 
 				const diagnosticEvent = event as Proto.DiagnosticEvent;
@@ -1106,7 +1028,7 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 				}));
 				this.watchEvents.clear();
 				this.executeWithoutWaitingForResponse('watchChange', allEvents);
-			}, 100); /* aggregate events over 100ms to reduce client<->server IPC overhead */
+			}, 100);
 		}
 	}
 
@@ -1203,7 +1125,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 								properties[key] = typeof payload[key] === 'string' ? payload[key] : JSON.stringify(payload[key]);
 							}
 						} catch (e) {
-							// noop
 						}
 					});
 				}
@@ -1211,25 +1132,12 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			}
 		}
 
-		// Add plugin data here
 		if (telemetryData.telemetryEventName === 'projectInfo') {
 			if (this.serverState.type === ServerState.Type.Running) {
 				this.serverState.updateTsserverVersion(properties['version']);
 			}
 		}
 
-		/* __GDPR__
-			"typingsInstalled" : {
-				"owner": "mjbvz",
-				"installedPackages": { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-				"installSuccess": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"typingsInstallerVersion": { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"${include}": [
-					"${TypeScriptCommonProperties}"
-				]
-			}
-		*/
-		// __GDPR__COMMENT__: Other events are defined by TypeScript.
 		this.telemetryReporter.logTelemetry(telemetryData.telemetryEventName, properties);
 	}
 
@@ -1265,12 +1173,7 @@ class ServerInitializingIndicator extends Disposable {
 		}
 	}
 
-	/**
-	 * Signal that a project has started loading.
-	 */
 	public startedLoadingProject(projectName: string): void {
-		// TS projects are loaded sequentially. Cancel existing task because it should always be resolved before
-		// the incoming project loading task is.
 		this.reset();
 
 		const projectDisplayName = this.getProjectDisplayName(projectName);

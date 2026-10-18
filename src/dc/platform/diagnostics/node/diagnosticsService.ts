@@ -30,12 +30,9 @@ interface ConfigFilePatterns {
 
 const workspaceStatsCache = new Map<string, Promise<WorkspaceStats>>();
 
-/** Sentinel key in {@link WorkspaceStats.fileTypes} for files with no extension. */
 const NO_EXT_KEY = '\0no-extension';
 
 export async function collectWorkspaceStats(folder: string, filter: string[], options?: { skipCache?: boolean; unbounded?: boolean }): Promise<WorkspaceStats> {
-	// Include `unbounded` in the cache key so a bounded (20k-cap) result is never
-	// returned for an unbounded request (which would silently truncate counts).
 	const cacheKey = `${folder}::${filter.join(':')}::${options?.unbounded ? 'unbounded' : 'bounded'}`;
 	if (!options?.skipCache) {
 		const cached = workspaceStatsCache.get(cacheKey);
@@ -43,7 +40,6 @@ export async function collectWorkspaceStats(folder: string, filter: string[], op
 			return cached;
 		}
 	} else {
-		// Drop any in-flight or stale entry so callers can be sure they get fresh data.
 		workspaceStatsCache.delete(cacheKey);
 	}
 
@@ -96,9 +92,6 @@ export async function collectWorkspaceStats(folder: string, filter: string[], op
 		const relativePath = dir.substring(root.length + 1);
 
 		return Promises.withAsyncBody(async resolve => {
-			// Bail before touching the filesystem when the cap has already been hit so
-			// sibling-directory recursion doesn't pay readdir IO after the scan is
-			// effectively done.
 			if (token.count >= MAX_FILES) {
 				token.maxReached = true;
 				resolve();
@@ -111,7 +104,6 @@ export async function collectWorkspaceStats(folder: string, filter: string[], op
 			try {
 				files = await pfs.readdir(dir, { withFileTypes: true });
 			} catch (error) {
-				// Ignore folders that can't be read
 				resolve();
 				return;
 			}
@@ -151,11 +143,6 @@ export async function collectWorkspaceStats(folder: string, filter: string[], op
 					if (index >= 0) {
 						fileType = file.name.substring(index + 1) || undefined;
 					}
-					// Track files with no usable extension under a sentinel key so they
-					// can be folded into the "other" bucket at render time. Without this,
-					// extension-less files (Makefile, LICENSE, scripts in bin/, etc.) would
-					// be silently dropped from the file-type counts and the totals would
-					// not reconcile with the overall file count.
 					fileTypes.set(fileType ?? NO_EXT_KEY, (fileTypes.get(fileType ?? NO_EXT_KEY) ?? 0) + 1);
 
 					for (const configFile of configFilePatterns) {
@@ -276,7 +263,7 @@ export class DiagnosticsService implements IDiagnosticsService {
 		}
 		output.push(`Memory (System):  ${(osLib.totalmem() / ByteSize.GB).toFixed(2)}GB (${(osLib.freemem() / ByteSize.GB).toFixed(2)}GB free)`);
 		if (!isWindows) {
-			output.push(`Load (avg):       ${osLib.loadavg().map(l => Math.round(l)).join(', ')}`); // only provided on Linux/macOS
+			output.push(`Load (avg):       ${osLib.loadavg().map(l => Math.round(l)).join(', ')}`);
 		}
 		output.push(`VM:               ${Math.round((virtualMachineHint.value() * 100))}%`);
 		output.push(`Screen Reader:    ${info.screenReader ? 'yes' : 'no'}`);
@@ -364,15 +351,12 @@ export class DiagnosticsService implements IDiagnosticsService {
 		const output: string[] = [];
 		return listProcesses(info.mainPID).then(async rootProcess => {
 
-			// Environment Info
 			output.push('');
 			output.push(this.formatEnvironment(info));
 
-			// Process List
 			output.push('');
 			output.push(this.formatProcessList(info, rootProcess));
 
-			// Workspace Stats
 			if (info.windows.some(window => window.folderURIs && window.folderURIs.length > 0 && !window.remoteAuthority)) {
 				output.push('');
 				output.push('Workspace Stats: ');
@@ -433,9 +417,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 			line += item;
 		};
 
-		// File Types
-		// Skip the no-extension sentinel from the named list and fold its count into
-		// the "other" bucket so totals reconcile with fileCount.
 		let line = '|      File types:';
 		const maxShown = 10;
 		const namedTypes = workspaceStats.fileTypes.filter(t => t.name !== NO_EXT_KEY);
@@ -456,7 +437,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 		}
 		output.push(line);
 
-		// Conf Files
 		if (workspaceStats.configFiles.length >= 0) {
 			line = '|      Conf files:';
 			col = 0;
@@ -479,7 +459,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 
 	private expandGPUFeatures(gpuFeatures: Record<string, string>): string {
 		const longestFeatureName = Math.max(...Object.keys(gpuFeatures).map(feature => feature.length));
-		// Make columns aligned by adding spaces after feature name
 		return Object.keys(gpuFeatures).map(feature => `${feature}:  ${' '.repeat(longestFeatureName - feature.length)}  ${gpuFeatures[feature]}`).join('\n                  ');
 	}
 
@@ -539,7 +518,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 	private formatProcessItem(mainPid: number, mapProcessToName: Map<number, string>, output: string[], item: ProcessItem, indent: number): void {
 		const isRoot = (indent === 0);
 
-		// Format name with indent
 		let name: string;
 		if (isRoot) {
 			name = item.pid === mainPid ? this.productService.applicationName : 'remote-server';
@@ -554,7 +532,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 		const memory = process.platform === 'win32' ? item.mem : (osLib.totalmem() * (item.mem / 100));
 		output.push(`${item.load.toFixed(0).padStart(5, ' ')}\t${(memory / ByteSize.MB).toFixed(0).padStart(6, ' ')}\t${item.pid.toFixed(0).padStart(6, ' ')}\t${name}`);
 
-		// Recurse into children if any
 		if (Array.isArray(item.children)) {
 			item.children.forEach(child => this.formatProcessItem(mainPid, mapProcessToName, output, child, indent + 1));
 		}
@@ -641,7 +618,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 					});
 				});
 
-				// Workspace stats metadata
 				type WorkspaceStatsMetadataClassification = {
 					owner: 'jrieken';
 					comment: 'Metadata about workspace metadata collection';
@@ -658,7 +634,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 				};
 				this.telemetryService.publicLog2<WorkspaceStatsMetadata, WorkspaceStatsMetadataClassification>('workspace.stats.metadata', { duration: stats.totalScanTime, reachedLimit: stats.maxFilesReached, fileCount: stats.fileCount, readdirCount: stats.totalReaddirCount });
 			} catch {
-				// Report nothing if collecting metadata fails.
 			}
 		}
 	}

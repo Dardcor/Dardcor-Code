@@ -14,10 +14,6 @@ import { CapturingToken } from '../../common/capturingToken';
 import { ILoggedRequestInfo, LoggedInfo, LoggedInfoKind, LoggedRequest, LoggedRequestKind, resolveMarkdownContent } from '../../common/requestLogger';
 import { AbstractRequestLogger } from '../../node/requestLogger';
 
-/**
- * A test implementation of IRequestLogger that stores logged requests for verification in tests.
- * Unlike NullRequestLogger, this actually stores entries so they can be validated.
- */
 export class TestRequestLogger extends AbstractRequestLogger {
 	private readonly _entries: LoggedInfo[] = [];
 	private readonly _onDidChangeRequests = new Emitter<void>();
@@ -59,9 +55,6 @@ export class TestRequestLogger extends AbstractRequestLogger {
 		this._onDidChangeRequests.fire();
 	}
 
-	/**
-	 * Clear all logged entries (useful between tests).
-	 */
 	public clear(): void {
 		this._entries.length = 0;
 		this._onDidChangeRequests.fire();
@@ -116,8 +109,6 @@ class TestLoggedRequestInfo implements ILoggedRequestInfo {
 			};
 		}
 
-		// Handle ChatML request types (Success, Failure, Cancellation)
-		// These all have startTime/endTime as Date objects
 		if (this.entry.type === LoggedRequestKind.ChatMLSuccess ||
 			this.entry.type === LoggedRequestKind.ChatMLFailure ||
 			this.entry.type === LoggedRequestKind.ChatMLCancelation) {
@@ -131,7 +122,6 @@ class TestLoggedRequestInfo implements ILoggedRequestInfo {
 				maxResponseTokens: this.entry.chatParams?.body?.max_tokens ?? this.entry.chatParams?.body?.max_output_tokens,
 			};
 
-			// Build response data matching the real LoggedRequestInfo.toJSON() format
 			let responseData;
 			let errorInfo;
 
@@ -164,7 +154,6 @@ class TestLoggedRequestInfo implements ILoggedRequestInfo {
 			};
 		}
 
-		// Fallback for any unknown types
 		return baseInfo;
 	}
 }
@@ -182,7 +171,6 @@ class TestLoggedToolCall {
 		public readonly time: number,
 		public readonly thinking?: ThinkingData,
 	) {
-		// Extract toolMetadata from response if it exists
 		this.toolMetadata = 'toolMetadata' in response ? (response as { toolMetadata?: unknown }).toolMetadata : undefined;
 	}
 

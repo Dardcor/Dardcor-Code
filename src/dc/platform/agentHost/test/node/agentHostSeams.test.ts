@@ -74,7 +74,6 @@ suite('Agent Host provider seams', () => {
 	teardown(() => disposables.clear());
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// ---- Exhaustive origin + customizations on every context ---------------
 
 	suite('createAgentChatContext', () => {
 
@@ -89,7 +88,6 @@ suite('Agent Host provider seams', () => {
 				customizations: context.customizations,
 			}, {
 				configurationResource: sessionKey,
-				// The default chat's provider-owned storage scope is its session.
 				resource: sessionKey,
 				origin: { kind: ChatOriginKind.User },
 				parent: undefined,
@@ -127,9 +125,7 @@ suite('Agent Host provider seams', () => {
 			});
 
 			assert.deepStrictEqual({
-				// Restored chats have no ChatState until they are resolved…
 				state: manager.getChatState(peerChat.toString()),
-				// …but their origin is authoritative from the moment they are registered.
 				origin: createAgentChatContext(manager, session, peerChat).origin,
 			}, {
 				state: undefined,
@@ -138,7 +134,6 @@ suite('Agent Host provider seams', () => {
 		});
 	});
 
-	// ---- Context readers ----------------------------------------------------
 
 	suite('context readers', () => {
 
@@ -146,8 +141,6 @@ suite('Agent Host provider seams', () => {
 			assert.deepStrictEqual({
 				origin: resolveAgentChatOrigin(session),
 				parent: resolveSubagentChatParent(session),
-				// No snapshot at all — deliberately not an empty list, which
-				// would assert "this session has no customizations".
 				customizations: resolveAgentHostCustomizations(session),
 				noContext: resolveAgentHostCustomizations(undefined),
 			}, {
@@ -182,7 +175,6 @@ suite('Agent Host provider seams', () => {
 		});
 	});
 
-	// ---- Host-owned active-client fan-out -----------------------------------
 
 	suite('getSessionChatsForFanOut', () => {
 
@@ -195,17 +187,13 @@ suite('Agent Host provider seams', () => {
 			const withPeers = getSessionChatsForFanOut(manager, session)?.map(c => c.toString());
 
 			assert.deepStrictEqual({ unknown, created, withPeers }, {
-				// No host state means no authoritative membership to fan out —
-				// the default chat is NOT fabricated on the session's behalf.
 				unknown: undefined,
 				created: [defaultChat.toString()],
-				// Default chat first, then the catalog, de-duplicated.
 				withPeers: [defaultChat.toString(), peerChat.toString(), subagentChat.toString()],
 			});
 		});
 	});
 
-	// ---- Exhaustive catalog origin ------------------------------------------
 
 	suite('catalog origin', () => {
 
@@ -234,7 +222,6 @@ suite('Agent Host provider seams', () => {
 		});
 	});
 
-	// ---- Narrow prompt-cache metadata seam ----------------------------------
 
 	suite('AgentHostPromptCache', () => {
 
@@ -246,7 +233,6 @@ suite('Agent Host provider seams', () => {
 			const initial = promptCache.read(session);
 			const written = promptCache.write(session, { modelId: 'model-a', cacheExpiresAt: '2030-01-01T00:00:00.000Z' });
 			const readBack = promptCache.read(session);
-			// A repeat write of the same value is a no-op that reports the persisted state.
 			const repeat = promptCache.write(session, { modelId: 'model-a', cacheExpiresAt: '2030-01-01T00:00:00.000Z' });
 			const cleared = promptCache.write(session, undefined);
 
@@ -284,7 +270,6 @@ suite('Agent Host provider seams', () => {
 		});
 	});
 
-	// ---- Narrow session-title signal ----------------------------------------
 
 	suite('AgentHostSessionTitleSignal', () => {
 

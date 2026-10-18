@@ -11,14 +11,8 @@ import { isObject, isUndefined, isUndefinedOrNull } from '../../../common/types.
 
 export enum StorageHint {
 
-	// A hint to the storage that the storage
-	// does not exist on disk yet. This allows
-	// the storage library to improve startup
-	// time by not checking the storage for data.
 	STORAGE_DOES_NOT_EXIST,
 
-	// A hint to the storage that the storage
-	// is backed by an in-memory storage.
 	STORAGE_IN_MEMORY
 }
 
@@ -56,19 +50,8 @@ export interface IStorageDatabase {
 
 export interface IStorageChangeEvent {
 
-	/**
-	 * The `key` of the storage entry that was changed
-	 * or was removed.
-	 */
 	readonly key: string;
 
-	/**
-	 * A hint how the storage change event was triggered. If
-	 * `true`, the storage change was triggered by an external
-	 * source, such as:
-	 * - another process (for example another window)
-	 * - operations such as settings sync or profiles change
-	 */
 	readonly external?: boolean;
 }
 
@@ -149,9 +132,6 @@ export class Storage extends Disposable implements IStorage {
 		this._onDidChangeStorage.pause();
 
 		try {
-			// items that change external require us to update our
-			// caches with the values. we just accept the value and
-			// emit an event if there is a change.
 
 			e.changed?.forEach((value, key) => this.acceptExternal(key, value));
 			e.deleted?.forEach(key => this.acceptExternal(key, undefined));
@@ -163,17 +143,15 @@ export class Storage extends Disposable implements IStorage {
 
 	private acceptExternal(key: string, value: string | undefined): void {
 		if (this.state === StorageState.Closed) {
-			return; // Return early if we are already closed
+			return;
 		}
 
 		let changed = false;
 
-		// Item got removed, check for deletion
 		if (isUndefinedOrNull(value)) {
 			changed = this.cache.delete(key);
 		}
 
-		// Item got updated, check for change
 		else {
 			const currentValue = this.cache.get(key);
 			if (currentValue !== value) {
@@ -182,7 +160,6 @@ export class Storage extends Disposable implements IStorage {
 			}
 		}
 
-		// Signal to outside listeners
 		if (changed) {
 			this._onDidChangeStorage.fire({ key, external: true });
 		}
@@ -198,15 +175,12 @@ export class Storage extends Disposable implements IStorage {
 
 	async init(): Promise<void> {
 		if (this.state !== StorageState.None) {
-			return; // either closed or already initialized
+			return;
 		}
 
 		this.state = StorageState.Initialized;
 
 		if (this.options.hint === StorageHint.STORAGE_DOES_NOT_EXIST) {
-			// return early if we know the storage file does not exist. this is a performance
-			// optimization to not load all items of the underlying storage if we know that
-			// there can be no items because the storage does not exist.
 			return;
 		}
 
@@ -263,44 +237,37 @@ export class Storage extends Disposable implements IStorage {
 
 	async set(key: string, value: string | boolean | number | null | undefined | object, external = false): Promise<void> {
 		if (this.state === StorageState.Closed) {
-			return; // Return early if we are already closed
+			return;
 		}
 
-		// We remove the key for undefined/null values
 		if (isUndefinedOrNull(value)) {
 			return this.delete(key, external);
 		}
 
-		// Otherwise, convert to String and store
 		const valueStr = isObject(value) || Array.isArray(value) ? stringify(value) : String(value);
 
-		// Return early if value already set
 		const currentValue = this.cache.get(key);
 		if (currentValue === valueStr) {
 			return;
 		}
 
-		// Update in cache and pending
 		this.cache.set(key, valueStr);
 		this.pendingInserts.set(key, valueStr);
 		this.pendingDeletes.delete(key);
 
-		// Event
 		this._onDidChangeStorage.fire({ key, external });
 
-		// Accumulate work by scheduling after timeout
 		return this.doFlush();
 	}
 
 	async delete(key: string, external = false): Promise<void> {
 		if (this.state === StorageState.Closed) {
-			return; // Return early if we are already closed
+			return;
 		}
 
-		// Remove from cache and add to pending
 		const wasDeleted = this.cache.delete(key);
 		if (!wasDeleted) {
-			return; // Return early if value already deleted
+			return;
 		}
 
 		if (!this.pendingDeletes.has(key)) {
@@ -309,20 +276,16 @@ export class Storage extends Disposable implements IStorage {
 
 		this.pendingInserts.delete(key);
 
-		// Event
 		this._onDidChangeStorage.fire({ key, external });
 
-		// Accumulate work by scheduling after timeout
 		return this.doFlush();
 	}
 
 	async optimize(): Promise<void> {
 		if (this.state === StorageState.Closed) {
-			return; // Return early if we are already closed
+			return;
 		}
 
-		// Await pending data to be flushed to the DB
-		// before attempting to optimize the DB
 		await this.flush(0);
 
 		return this.database.optimize();
@@ -338,19 +301,11 @@ export class Storage extends Disposable implements IStorage {
 
 	private async doClose(): Promise<void> {
 
-		// Update state
 		this.state = StorageState.Closed;
 
-		// Trigger new flush to ensure data is persisted and then close
-		// even if there is an error flushing. We must always ensure
-		// the DB is closed to avoid corruption.
-		//
-		// Recovery: we pass our cache over as recovery option in case
-		// the DB is not healthy.
 		try {
-			await this.doFlush(0 /* as soon as possible */);
+			await this.doFlush(0 );
 		} catch {
-			// Ignore
 		}
 
 		await this.database.close(() => this.cache);
@@ -362,18 +317,14 @@ export class Storage extends Disposable implements IStorage {
 
 	private async flushPending(): Promise<void> {
 		if (!this.hasPending) {
-			return; // return early if nothing to do
+			return;
 		}
 
-		// Get pending data
 		const updateRequest: IUpdateRequest = { insert: this.pendingInserts, delete: this.pendingDeletes };
 
-		// Reset pending data for next run
 		this.pendingDeletes = new Set<string>();
 		this.pendingInserts = new Map<string, string>();
 
-		// Update in storage and release any
-		// waiters we have once done
 		return this.database.updateItems(updateRequest).finally(() => {
 			if (!this.hasPending) {
 				while (this.whenFlushedCallbacks.length) {
@@ -385,8 +336,8 @@ export class Storage extends Disposable implements IStorage {
 
 	async flush(delay?: number): Promise<void> {
 		if (
-			this.state === StorageState.Closed || 	// Return early if we are already closed
-			this.pendingClose 						// return early if nothing to do
+			this.state === StorageState.Closed ||
+			this.pendingClose
 		) {
 			return;
 		}
@@ -396,7 +347,7 @@ export class Storage extends Disposable implements IStorage {
 
 	private async doFlush(delay?: number): Promise<void> {
 		if (this.options.hint === StorageHint.STORAGE_IN_MEMORY) {
-			return this.flushPending(); // return early if in-memory
+			return this.flushPending();
 		}
 
 		return this.flushDelayer.trigger(() => this.flushPending(), delay);
@@ -404,7 +355,7 @@ export class Storage extends Disposable implements IStorage {
 
 	async whenFlushed(): Promise<void> {
 		if (!this.hasPending) {
-			return; // return early if nothing to do
+			return;
 		}
 
 		return new Promise(resolve => this.whenFlushedCallbacks.push(resolve));
@@ -447,7 +398,6 @@ export class MigratingStorage extends Storage {
 	override async init(): Promise<void> {
 		await super.init();
 
-		// Load the set of keys already migrated from fallback
 		this.migratedKeys = this.loadMigratedKeys();
 	}
 
@@ -462,11 +412,6 @@ export class MigratingStorage extends Storage {
 	override get(key: string, fallbackValue?: string): string | undefined;
 	override get(key: string, fallbackValue?: string): string | undefined {
 		if (!key.startsWith(MigratingStorage.INTERNAL_KEY_PREFIX) && !this.migratedKeys.has(key) && isUndefined(super.get(key))) {
-			// Check fallback storage and auto-migrate on hit.
-			// Mark the key as migrated immediately to prevent
-			// re-checking the fallback, and to ensure a key
-			// that was intentionally removed after migration
-			// is not resurrected from the fallback.
 			this.migratedKeys.add(key);
 			const value = this.fallbackStorage?.items.get(key);
 			if (!isUndefined(value)) {
@@ -486,7 +431,6 @@ export class MigratingStorage extends Storage {
 			try {
 				return new Set(JSON.parse(raw));
 			} catch {
-				// Fail gracefully
 			}
 		}
 		return new Set();

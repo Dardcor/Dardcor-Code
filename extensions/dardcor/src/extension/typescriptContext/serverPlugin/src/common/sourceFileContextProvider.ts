@@ -44,7 +44,6 @@ export class GlobalsRunnable extends AbstractContextRunnable {
 		const inScope = this.getSymbolsInScope(symbols.getTypeChecker(), sourceFile);
 		token.throwIfCancellationRequested();
 
-		// Add functions in scope
 		for (const symbol of inScope) {
 			token.throwIfCancellationRequested();
 			if (!this.handleSymbol(symbol, undefined, true)) {

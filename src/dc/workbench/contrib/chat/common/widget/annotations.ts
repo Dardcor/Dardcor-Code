@@ -10,7 +10,7 @@ import { isLocation } from '../../../../../editor/common/languages.js';
 import { IChatProgressRenderableResponseContent, IChatProgressResponseContent, appendMarkdownString, canMergeMarkdownStrings } from '../model/chatModel.js';
 import { IChatAgentVulnerabilityDetails } from '../chatService/chatService.js';
 
-export const contentRefUrl = 'http://_vscodecontentref_'; // must be lowercase for URI
+export const contentRefUrl = 'http://_vscodecontentref_';
 
 export interface IAnnotatedChatContent {
 	readonly content: IChatProgressRenderableResponseContent;
@@ -39,10 +39,6 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 				}
 			}
 
-			// When the preceding markdown ends inside a code context (inline code span
-			// or fenced code block), markdown links won't be parsed, they render as
-			// literal text like [file](http://_vscodecontentref_/1). In that case, emit
-			// just the plain label so the output stays readable.
 			const previousText = previousItem?.kind === 'markdownContent' ? previousItem.content.value : '';
 			if (isInsideCodeContext(previousText)) {
 				if (previousItem?.kind === 'markdownContent') {
@@ -85,10 +81,6 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 					sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
 				};
 			} else if (previousItem.inlineReferences && isContentRefOnly(previousItem.content.value)) {
-				// The previous item is a standalone inline reference whose MarkdownString
-				// was synthesized with default properties that don't match the incoming
-				// markdown (e.g., different isTrusted). Prepend the reference text and
-				// adopt the incoming item's properties so they render together in one block.
 				result[previousItemIndex] = {
 					content: {
 						...previousItem,
@@ -106,7 +98,6 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 			const vulnText = encodeURIComponent(JSON.stringify(item.vulnerabilities));
 			const markdownText = `<vscode_annotation details='${vulnText}'>${item.content.value}</vscode_annotation>`;
 			if (previousItem?.kind === 'markdownContent') {
-				// Since this is inside a codeblock, it needs to be merged into the previous markdown content.
 				const merged = appendMarkdownString(previousItem.content, new MarkdownString(markdownText));
 				result[previousItemIndex] = {
 					content: { ...previousItem, content: merged },
@@ -124,7 +115,6 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 				const subAgentText = item.subAgentInvocationId ? ` subAgentInvocationId="${encodeURIComponent(item.subAgentInvocationId)}"` : '';
 				const markdownText = `<vscode_codeblock_uri${isEditText}${subAgentText}>${item.uri.toString()}</vscode_codeblock_uri>`;
 				const merged = appendMarkdownString(previousItem.content, new MarkdownString(markdownText));
-				// delete the previous and append to ensure that we don't reorder the edit before the undo stop containing it
 				result.splice(previousItemIndex, 1);
 				result.push({
 					content: { ...previousItem, content: merged },
@@ -147,21 +137,10 @@ export function annotateSpecialMarkdownContent(response: Iterable<IChatProgressR
 
 const contentRefPattern = new RegExp(`^(\\[.*?\\]\\(${contentRefUrl}/\\d+\\))+$`);
 
-/**
- * Returns true when the text consists entirely of synthesized content-ref
- * links (e.g. `[file.ts](http://_vscodecontentref_/0)`), with no other
- * markdown text mixed in. Used to decide whether the MarkdownString
- * properties are "synthetic defaults" that can safely be replaced.
- */
 function isContentRefOnly(text: string): boolean {
 	return contentRefPattern.test(text);
 }
 
-/**
- * Checks whether the end of a markdown string is inside a code context
- * (fenced code block or inline code span) where markdown link syntax
- * would be rendered as literal text.
- */
 export function isInsideCodeContext(text: string): boolean {
 	const lines = text.split('\n');
 	let inFencedBlock = false;
@@ -173,7 +152,6 @@ export function isInsideCodeContext(text: string): boolean {
 		const trimmed = line.trimStart();
 
 		if (inFencedBlock) {
-			// Check for closing fence: same char, at least same length, only whitespace after
 			const closeLength = countLeadingChar(trimmed, fenceChar);
 			if (closeLength >= fenceLength && trimmed.substring(closeLength).trim() === '') {
 				inFencedBlock = false;
@@ -182,11 +160,9 @@ export function isInsideCodeContext(text: string): boolean {
 			continue;
 		}
 
-		// Check for opening fence (3+ backticks or tildes at start of line)
 		const firstChar = trimmed[0];
 		if (firstChar === '`' || firstChar === '~') {
 			const openLength = countLeadingChar(trimmed, firstChar);
-			// Backtick fences: info string must not contain backticks
 			if (openLength >= 3 && (firstChar === '~' || !trimmed.substring(openLength).includes('`'))) {
 				inFencedBlock = true;
 				fenceChar = firstChar;
@@ -210,11 +186,6 @@ function countLeadingChar(text: string, char: string): number {
 	return count;
 }
 
-/**
- * Checks whether the text has an unclosed inline code span.
- * In CommonMark, a code span opens with a backtick sequence of length N
- * and closes with the next backtick sequence of the same length N.
- */
 function hasUnclosedInlineCode(text: string): boolean {
 	let i = 0;
 	while (i < text.length) {
@@ -226,7 +197,6 @@ function hasUnclosedInlineCode(text: string): boolean {
 		const openLen = countLeadingChar(text.substring(i), '`');
 		i += openLen;
 
-		// Search for a matching closing backtick sequence of the same length
 		let found = false;
 		while (i < text.length) {
 			if (text[i] !== '`') {
@@ -322,7 +292,6 @@ export function extractVulnerabilitiesFromText(text: string): { newText: string;
 				title, description, range: { startLineNumber: linesBefore + 1, startColumn, endLineNumber: linesBefore + linesInside + 1, endColumn }
 			}));
 		} catch (err) {
-			// Something went wrong with encoding this text, just ignore it
 		}
 		newText = newText.substring(0, start) + content + newText.substring(start + full.length);
 	}

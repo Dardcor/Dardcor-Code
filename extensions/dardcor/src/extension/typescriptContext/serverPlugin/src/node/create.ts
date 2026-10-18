@@ -137,15 +137,10 @@ const resolveInput = <T extends tt.server.protocol.FileRequestArgs & tt.server.p
 	let startTime = args.startTime ?? requestStartTime;
 	let timeBudget = typeof args.timeBudget === 'number' ? args.timeBudget : defaultTimeBudget;
 	if (startTime + timeBudget > requestStartTime) {
-		// We are already in a timeout. So we let the computation run for defaultTimeBudget.
-		// to profit from caching for the next request. In all other cases we take
-		// the time budget left since we might be able to provide a little context.
 		startTime = requestStartTime;
 		timeBudget = defaultTimeBudget;
 	}
 
-	// We get the language service here to get the timings outside of the compute context. Accessing the language service
-	// updates the project graph if dirty which can be time consuming.
 	const languageService = project.getLanguageService();
 	const program = languageService.getProgram();
 	if (program === undefined) {
@@ -210,7 +205,6 @@ const prepareNesRenameHandler = (request: PrepareNesRenameRequest): PrepareNesRe
 
 	const { languageService, file, pos, timeBudget, startTime } = input;
 
-	// All the internal API is 0-based for both line and offset
 	const lastSymbolRename = getLastSymbolRename(request.arguments);
 
 	const cancellationToken = new CancellationTokenWithTimer(languageServiceHost?.getCancellationToken ? languageServiceHost.getCancellationToken() : undefined, startTime, timeBudget, languageServerSession?.host.isDebugging() ?? false);

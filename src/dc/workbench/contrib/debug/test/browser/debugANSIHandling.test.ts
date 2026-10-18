@@ -26,9 +26,6 @@ suite('Debug - ANSI Handling', () => {
 	let session: DebugSession;
 	let linkDetector: LinkDetector;
 
-	/**
-	 * Instantiate services for use by the functions being tested.
-	 */
 	setup(() => {
 		disposables = new DisposableStore();
 		model = createMockDebugModel(disposables);
@@ -77,12 +74,6 @@ suite('Debug - ANSI Handling', () => {
 		hoverBehavior.store.dispose();
 	});
 
-	/**
-	 * Apply an ANSI sequence to {@link #getSequenceOutput}.
-	 *
-	 * @param sequence The ANSI sequence to stylize.
-	 * @returns An {@link HTMLSpanElement} that contains the stylized text.
-	 */
 	function getSequenceOutput(sequence: string): HTMLSpanElement {
 		const hoverBehavior = { type: DebugLinkHoverBehavior.None, store: new DisposableStore() };
 		const root: HTMLSpanElement = handleANSIOutput(sequence, linkDetector, session.root, [], hoverBehavior);
@@ -96,34 +87,12 @@ suite('Debug - ANSI Handling', () => {
 		}
 	}
 
-	/**
-	 * Assert that a given ANSI sequence maintains added content following the ANSI code, and that
-	 * the provided {@param assertion} passes.
-	 *
-	 * @param sequence The ANSI sequence to verify. The provided sequence should contain ANSI codes
-	 * only, and should not include actual text content as it is provided by this function.
-	 * @param assertion The function used to verify the output.
-	 */
 	function assertSingleSequenceElement(sequence: string, assertion: (child: HTMLSpanElement) => void): void {
 		const child: HTMLSpanElement = getSequenceOutput(sequence + 'content');
 		assert.strictEqual('content', child.textContent);
 		assertion(child);
 	}
 
-	/**
-	 * Assert that a given DOM element has the custom inline CSS style matching
-	 * the color value provided.
-	 * @param element The HTML span element to look at.
-	 * @param colorType If `foreground`, will check the element's css `color`;
-	 * if `background`, will check the element's css `backgroundColor`.
-	 * if `underline`, will check the elements css `textDecorationColor`.
-	 * @param color RGBA object to compare color to. If `undefined` or not provided,
-	 * will assert that no value is set.
-	 * @param message Optional custom message to pass to assertion.
-	 * @param colorShouldMatch Optional flag (defaults TO true) which allows caller to indicate that the color SHOULD NOT MATCH
-	 * (for testing changes to theme colors where we need color to have changed but we don't know exact color it should have
-	 * changed to (but we do know the color it should NO LONGER BE))
-	 */
 	function assertInlineColor(element: HTMLSpanElement, colorType: 'background' | 'foreground' | 'underline', color?: RGBA | undefined, message?: string, colorShouldMatch: boolean = true): void {
 		if (color !== undefined) {
 			const cssColor = Color.Format.CSS.formatRGB(
@@ -156,17 +125,14 @@ suite('Debug - ANSI Handling', () => {
 
 	test('Expected single sequence operation', () => {
 
-		// Bold code
 		assertSingleSequenceElement('\x1b[1m', (child) => {
 			assert(child.classList.contains('code-bold'), 'Bold formatting not detected after bold ANSI code.');
 		});
 
-		// Italic code
 		assertSingleSequenceElement('\x1b[3m', (child) => {
 			assert(child.classList.contains('code-italic'), 'Italic formatting not detected after italic ANSI code.');
 		});
 
-		// Underline code
 		assertSingleSequenceElement('\x1b[4m', (child) => {
 			assert(child.classList.contains('code-underline'), 'Underline formatting not detected after underline ANSI code.');
 		});
@@ -174,12 +140,10 @@ suite('Debug - ANSI Handling', () => {
 		for (let i = 30; i <= 37; i++) {
 			const customClassName: string = 'code-foreground-colored';
 
-			// Foreground colour class
 			assertSingleSequenceElement('\x1b[' + i + 'm', (child) => {
 				assert(child.classList.contains(customClassName), `Custom foreground class not found on element after foreground ANSI code #${i}.`);
 			});
 
-			// Cancellation code removes colour class
 			assertSingleSequenceElement('\x1b[' + i + ';39m', (child) => {
 				assert(child.classList.contains(customClassName) === false, 'Custom foreground class still found after foreground cancellation code.');
 				assertInlineColor(child, 'foreground', undefined, 'Custom color style still found after foreground cancellation code.');
@@ -189,35 +153,29 @@ suite('Debug - ANSI Handling', () => {
 		for (let i = 40; i <= 47; i++) {
 			const customClassName: string = 'code-background-colored';
 
-			// Foreground colour class
 			assertSingleSequenceElement('\x1b[' + i + 'm', (child) => {
 				assert(child.classList.contains(customClassName), `Custom background class not found on element after background ANSI code #${i}.`);
 			});
 
-			// Cancellation code removes colour class
 			assertSingleSequenceElement('\x1b[' + i + ';49m', (child) => {
 				assert(child.classList.contains(customClassName) === false, 'Custom background class still found after background cancellation code.');
 				assertInlineColor(child, 'foreground', undefined, 'Custom color style still found after background cancellation code.');
 			});
 		}
 
-		// check all basic colors for underlines (full range is checked elsewhere, here we check cancelation)
 		for (let i = 0; i <= 255; i++) {
 			const customClassName: string = 'code-underline-colored';
 
-			// Underline colour class
 			assertSingleSequenceElement('\x1b[58;5;' + i + 'm', (child) => {
 				assert(child.classList.contains(customClassName), `Custom underline color class not found on element after underline color ANSI code 58;5;${i}m.`);
 			});
 
-			// Cancellation underline color code removes colour class
 			assertSingleSequenceElement('\x1b[58;5;' + i + 'm\x1b[59m', (child) => {
 				assert(child.classList.contains(customClassName) === false, 'Custom underline color class still found after underline color cancellation code 59m.');
 				assertInlineColor(child, 'underline', undefined, 'Custom underline color style still found after underline color cancellation code 59m.');
 			});
 		}
 
-		// Different codes do not cancel each other
 		assertSingleSequenceElement('\x1b[1;3;4;30;41m', (child) => {
 			assert.strictEqual(5, child.classList.length, 'Incorrect number of classes found for different ANSI codes.');
 
@@ -228,7 +186,6 @@ suite('Debug - ANSI Handling', () => {
 			assert(child.classList.contains('code-background-colored'), 'Different ANSI codes should not cancel each other.');
 		});
 
-		// Different codes do not ACCUMULATE more than one copy of each class
 		assertSingleSequenceElement('\x1b[1;1;2;2;3;3;4;4;5;5;6;6;8;8;9;9;21;21;53;53;73;73;74;74m', (child) => {
 			assert(child.classList.contains('code-bold'));
 			assert(child.classList.contains('code-italic'), 'italic missing Doubles of each Different ANSI codes should not cancel each other or accumulate.');
@@ -248,7 +205,6 @@ suite('Debug - ANSI Handling', () => {
 
 
 
-		// More Different codes do not cancel each other
 		assertSingleSequenceElement('\x1b[1;2;5;6;21;8;9m', (child) => {
 			assert.strictEqual(7, child.classList.length, 'Incorrect number of classes found for different ANSI codes.');
 
@@ -263,7 +219,6 @@ suite('Debug - ANSI Handling', () => {
 
 
 
-		// New foreground codes don't remove old background codes and vice versa
 		assertSingleSequenceElement('\x1b[40;31;42;33m', (child) => {
 			assert.strictEqual(2, child.classList.length);
 
@@ -271,19 +226,16 @@ suite('Debug - ANSI Handling', () => {
 			assert(child.classList.contains('code-foreground-colored'), 'New background ANSI code should not cancel existing foreground formatting.');
 		});
 
-		// Duplicate codes do not change output
 		assertSingleSequenceElement('\x1b[1;1;4;1;4;4;1;4m', (child) => {
 			assert(child.classList.contains('code-bold'), 'Duplicate formatting codes should have no effect.');
 			assert(child.classList.contains('code-underline'), 'Duplicate formatting codes should have no effect.');
 		});
 
-		// Extra terminating semicolon does not change output
 		assertSingleSequenceElement('\x1b[1;4;m', (child) => {
 			assert(child.classList.contains('code-bold'), 'Extra semicolon after ANSI codes should have no effect.');
 			assert(child.classList.contains('code-underline'), 'Extra semicolon after ANSI codes should have no effect.');
 		});
 
-		// Cancellation code removes multiple codes
 		assertSingleSequenceElement('\x1b[1;4;30;41;32;43;34;45;36;47;0m', (child) => {
 			assert.strictEqual(0, child.classList.length, 'Cancellation ANSI code should clear ALL formatting.');
 			assertInlineColor(child, 'background', undefined, 'Cancellation ANSI code should clear ALL formatting.');
@@ -293,47 +245,37 @@ suite('Debug - ANSI Handling', () => {
 	});
 
 	test('Expected single 8-bit color sequence operation', () => {
-		// Basic and bright color codes specified with 8-bit color code format
 		for (let i = 0; i <= 15; i++) {
-			// As these are controlled by theme, difficult to check actual color value
-			// Foreground codes should add standard classes
 			assertSingleSequenceElement('\x1b[38;5;' + i + 'm', (child) => {
 				assert(child.classList.contains('code-foreground-colored'), `Custom color class not found after foreground 8-bit color code 38;5;${i}`);
 			});
 
-			// Background codes should add standard classes
 			assertSingleSequenceElement('\x1b[48;5;' + i + 'm', (child) => {
 				assert(child.classList.contains('code-background-colored'), `Custom color class not found after background 8-bit color code 48;5;${i}`);
 			});
 		}
 
-		// 8-bit advanced colors
 		for (let i = 16; i <= 255; i++) {
-			// Foreground codes should add custom class and inline style
 			assertSingleSequenceElement('\x1b[38;5;' + i + 'm', (child) => {
 				assert(child.classList.contains('code-foreground-colored'), `Custom color class not found after foreground 8-bit color code 38;5;${i}`);
 				assertInlineColor(child, 'foreground', (calcANSI8bitColor(i) as RGBA), `Incorrect or no color styling found after foreground 8-bit color code 38;5;${i}`);
 			});
 
-			// Background codes should add custom class and inline style
 			assertSingleSequenceElement('\x1b[48;5;' + i + 'm', (child) => {
 				assert(child.classList.contains('code-background-colored'), `Custom color class not found after background 8-bit color code 48;5;${i}`);
 				assertInlineColor(child, 'background', (calcANSI8bitColor(i) as RGBA), `Incorrect or no color styling found after background 8-bit color code 48;5;${i}`);
 			});
 
-			// Color underline codes should add custom class and inline style
 			assertSingleSequenceElement('\x1b[58;5;' + i + 'm', (child) => {
 				assert(child.classList.contains('code-underline-colored'), `Custom color class not found after underline 8-bit color code 58;5;${i}`);
 				assertInlineColor(child, 'underline', (calcANSI8bitColor(i) as RGBA), `Incorrect or no color styling found after underline 8-bit color code 58;5;${i}`);
 			});
 		}
 
-		// Bad (nonexistent) color should not render
 		assertSingleSequenceElement('\x1b[48;5;300m', (child) => {
 			assert.strictEqual(0, child.classList.length, 'Bad ANSI color codes should have no effect.');
 		});
 
-		// Should ignore any codes after the ones needed to determine color
 		assertSingleSequenceElement('\x1b[48;5;100;42;77;99;4;24m', (child) => {
 			assert(child.classList.contains('code-background-colored'));
 			assert.strictEqual(1, child.classList.length);
@@ -342,24 +284,20 @@ suite('Debug - ANSI Handling', () => {
 	});
 
 	test('Expected single 24-bit color sequence operation', () => {
-		// 24-bit advanced colors
 		for (let r = 0; r <= 255; r += 64) {
 			for (let g = 0; g <= 255; g += 64) {
 				for (let b = 0; b <= 255; b += 64) {
 					const color = new RGBA(r, g, b);
-					// Foreground codes should add class and inline style
 					assertSingleSequenceElement(`\x1b[38;2;${r};${g};${b}m`, (child) => {
 						assert(child.classList.contains('code-foreground-colored'), 'DOM should have "code-foreground-colored" class for advanced ANSI colors.');
 						assertInlineColor(child, 'foreground', color);
 					});
 
-					// Background codes should add class and inline style
 					assertSingleSequenceElement(`\x1b[48;2;${r};${g};${b}m`, (child) => {
 						assert(child.classList.contains('code-background-colored'), 'DOM should have "code-foreground-colored" class for advanced ANSI colors.');
 						assertInlineColor(child, 'background', color);
 					});
 
-					// Underline color codes should add class and inline style
 					assertSingleSequenceElement(`\x1b[58;2;${r};${g};${b}m`, (child) => {
 						assert(child.classList.contains('code-underline-colored'), 'DOM should have "code-underline-colored" class for advanced ANSI colors.');
 						assertInlineColor(child, 'underline', color);
@@ -368,18 +306,15 @@ suite('Debug - ANSI Handling', () => {
 			}
 		}
 
-		// Invalid color should not render
 		assertSingleSequenceElement('\x1b[38;2;4;4m', (child) => {
 			assert.strictEqual(0, child.classList.length, `Invalid color code "38;2;4;4" should not add a class (classes found: ${child.classList}).`);
 			assert(!child.style.color, `Invalid color code "38;2;4;4" should not add a custom color CSS (found color: ${child.style.color}).`);
 		});
 
-		// Bad (nonexistent) color should not render
 		assertSingleSequenceElement('\x1b[48;2;150;300;5m', (child) => {
 			assert.strictEqual(0, child.classList.length, `Nonexistent color code "48;2;150;300;5" should not add a class (classes found: ${child.classList}).`);
 		});
 
-		// Should ignore any codes after the ones needed to determine color
 		assertSingleSequenceElement('\x1b[48;2;100;42;77;99;200;75m', (child) => {
 			assert(child.classList.contains('code-background-colored'), `Color code with extra (valid) items "48;2;100;42;77;99;200;75" should still treat initial part as valid code and add class "code-background-custom".`);
 			assert.strictEqual(1, child.classList.length, `Color code with extra items "48;2;100;42;77;99;200;75" should add one and only one class. (classes found: ${child.classList}).`);
@@ -388,13 +323,6 @@ suite('Debug - ANSI Handling', () => {
 	});
 
 
-	/**
-	 * Assert that a given ANSI sequence produces the expected number of {@link HTMLSpanElement} children. For
-	 * each child, run the provided assertion.
-	 *
-	 * @param sequence The ANSI sequence to verify.
-	 * @param assertions A set of assertions to run on the resulting children.
-	 */
 	function assertMultipleSequenceElements(sequence: string, assertions: Array<(child: HTMLSpanElement) => void>, elementsExpected?: number): void {
 		if (elementsExpected === undefined) {
 			elementsExpected = assertions.length;
@@ -415,7 +343,6 @@ suite('Debug - ANSI Handling', () => {
 
 	test('Expected multiple sequence operation', () => {
 
-		// Multiple codes affect the same text
 		assertSingleSequenceElement('\x1b[1m\x1b[3m\x1b[4m\x1b[32m', (child) => {
 			assert(child.classList.contains('code-bold'), 'Bold class not found after multiple different ANSI codes.');
 			assert(child.classList.contains('code-italic'), 'Italic class not found after multiple different ANSI codes.');
@@ -423,7 +350,6 @@ suite('Debug - ANSI Handling', () => {
 			assert(child.classList.contains('code-foreground-colored'), 'Foreground color class not found after multiple different ANSI codes.');
 		});
 
-		// Consecutive codes do not affect previous ones
 		assertMultipleSequenceElements('\x1b[1mbold\x1b[32mgreen\x1b[4munderline\x1b[3mitalic\x1b[0mnothing', [
 			(bold) => {
 				assert.strictEqual(1, bold.classList.length);
@@ -452,7 +378,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 5);
 
-		// Consecutive codes with ENDING/OFF codes do not LEAVE affect previous ones
 		assertMultipleSequenceElements('\x1b[1mbold\x1b[22m\x1b[32mgreen\x1b[4munderline\x1b[24m\x1b[3mitalic\x1b[23mjustgreen\x1b[0mnothing', [
 			(bold) => {
 				assert.strictEqual(1, bold.classList.length);
@@ -484,7 +409,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// more Consecutive codes with ENDING/OFF codes do not LEAVE affect previous ones
 		assertMultipleSequenceElements('\x1b[2mdim\x1b[22m\x1b[32mgreen\x1b[5mslowblink\x1b[25m\x1b[6mrapidblink\x1b[25mjustgreen\x1b[0mnothing', [
 			(dim) => {
 				assert.strictEqual(1, dim.classList.length);
@@ -516,7 +440,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// more Consecutive codes with ENDING/OFF codes do not LEAVE affect previous ones
 		assertMultipleSequenceElements('\x1b[8mhidden\x1b[28m\x1b[32mgreen\x1b[9mcrossedout\x1b[29m\x1b[21mdoubleunderline\x1b[24mjustgreen\x1b[0mnothing', [
 			(hidden) => {
 				assert.strictEqual(1, hidden.classList.length);
@@ -548,7 +471,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// underline, double underline are mutually exclusive, test underline->double underline->off and double underline->underline->off
 		assertMultipleSequenceElements('\x1b[4munderline\x1b[21mdouble underline\x1b[24munderlineOff\x1b[21mdouble underline\x1b[4munderline\x1b[24munderlineOff', [
 			(underline) => {
 				assert.strictEqual(1, underline.classList.length);
@@ -576,8 +498,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// underline and strike-through and overline can exist at the same time and
-		// in any combination
 		assertMultipleSequenceElements('\x1b[4munderline\x1b[9mand strikethough\x1b[53mand overline\x1b[24munderlineOff\x1b[55moverlineOff\x1b[29mstriklethoughOff', [
 			(underline) => {
 				assert.strictEqual(1, underline.classList.length, 'should have found only underline');
@@ -612,8 +532,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// double underline and strike-through and overline can exist at the same time and
-		// in any combination
 		assertMultipleSequenceElements('\x1b[21mdoubleunderline\x1b[9mand strikethough\x1b[53mand overline\x1b[29mstriklethoughOff\x1b[55moverlineOff\x1b[24munderlineOff', [
 			(doubleunderline) => {
 				assert.strictEqual(1, doubleunderline.classList.length, 'should have found only doubleunderline');
@@ -648,7 +566,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// superscript and subscript are mutually exclusive, test superscript->subscript->off and subscript->superscript->off
 		assertMultipleSequenceElements('\x1b[73msuperscript\x1b[74msubscript\x1b[75mneither\x1b[74msubscript\x1b[73msuperscript\x1b[75mneither', [
 			(superscript) => {
 				assert.strictEqual(1, superscript.classList.length, 'should only be superscript class');
@@ -676,7 +593,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// Consecutive font codes switch to new font class and remove previous and then final switch to default font removes class
 		assertMultipleSequenceElements('\x1b[11mFont1\x1b[12mFont2\x1b[13mFont3\x1b[14mFont4\x1b[15mFont5\x1b[10mdefaultFont', [
 			(font1) => {
 				assert.strictEqual(1, font1.classList.length);
@@ -707,7 +623,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// More Consecutive font codes switch to new font class and remove previous and then final switch to default font removes class
 		assertMultipleSequenceElements('\x1b[16mFont6\x1b[17mFont7\x1b[18mFont8\x1b[19mFont9\x1b[20mFont10\x1b[10mdefaultFont', [
 			(font6) => {
 				assert.strictEqual(1, font6.classList.length);
@@ -738,7 +653,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// Blackletter font codes can be turned off with other font codes or 23m
 		assertMultipleSequenceElements('\x1b[3mitalic\x1b[20mfont10blacklatter\x1b[23mitalicAndBlackletterOff\x1b[20mFont10Again\x1b[11mFont1\x1b[10mdefaultFont', [
 			(italic) => {
 				assert.strictEqual(1, italic.classList.length);
@@ -766,7 +680,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// italic can be turned on/off with affecting font codes 1-9  (italic off will clear 'blackletter'(font 23) as per spec)
 		assertMultipleSequenceElements('\x1b[3mitalic\x1b[12mfont2\x1b[23mitalicOff\x1b[3mitalicFont2\x1b[10mjustitalic\x1b[23mnothing', [
 			(italic) => {
 				assert.strictEqual(1, italic.classList.length);
@@ -797,7 +710,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// Reverse video reverses Foreground/Background colors WITH both SET and can called in sequence
 		assertMultipleSequenceElements('\x1b[38;2;10;20;30mfg10,20,30\x1b[48;2;167;168;169mbg167,168,169\x1b[7m8ReverseVideo\x1b[7mDuplicateReverseVideo\x1b[27mReverseOff\x1b[27mDupReverseOff', [
 			(fg10_20_30) => {
 				assert.strictEqual(1, fg10_20_30.classList.length, 'Foreground ANSI color code should add one class.');
@@ -841,7 +753,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// Reverse video reverses Foreground/Background colors WITH ONLY foreground color SET
 		assertMultipleSequenceElements('\x1b[38;2;10;20;30mfg10,20,30\x1b[7m8ReverseVideo\x1b[27mReverseOff', [
 			(fg10_20_30) => {
 				assert.strictEqual(1, fg10_20_30.classList.length, 'Foreground ANSI color code should add one class.');
@@ -862,7 +773,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 3);
 
-		// Reverse video reverses Foreground/Background colors WITH ONLY background color SET
 		assertMultipleSequenceElements('\x1b[48;2;167;168;169mbg167,168,169\x1b[7m8ReverseVideo\x1b[27mReverseOff', [
 			(bg167_168_169) => {
 				assert.strictEqual(1, bg167_168_169.classList.length, 'Background ANSI color code should add one class.');
@@ -883,7 +793,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 3);
 
-		// Underline color Different types of color codes still cancel each other
 		assertMultipleSequenceElements('\x1b[58;2;101;102;103m24bitUnderline101,102,103\x1b[58;5;3m8bitsimpleUnderline\x1b[58;2;104;105;106m24bitUnderline104,105,106\x1b[58;5;101m8bitadvanced\x1b[58;2;200;200;200munderline200,200,200\x1b[59mUnderlineColorResetToDefault', [
 			(adv24Bit) => {
 				assert.strictEqual(1, adv24Bit.classList.length, 'Underline ANSI color codes should only add a single class (1).');
@@ -893,7 +802,6 @@ suite('Debug - ANSI Handling', () => {
 			(adv8BitSimple) => {
 				assert.strictEqual(1, adv8BitSimple.classList.length, 'Multiple underline ANSI color codes should only add a single class (2).');
 				assert(adv8BitSimple.classList.contains('code-underline-colored'), 'Underline ANSI color codes should add custom underline color class.');
-				// changed to simple theme color, don't know exactly what it should be, but it should NO LONGER BE 101,102,103
 				assertInlineColor(adv8BitSimple, 'underline', new RGBA(101, 102, 103), 'Change to theme color SHOULD NOT STILL BE 24-bit RGBA ANSI color code (101,102,103) should add matching color inline style.', false);
 			},
 			(adv24BitAgain) => {
@@ -904,7 +812,6 @@ suite('Debug - ANSI Handling', () => {
 			(adv8BitAdvanced) => {
 				assert.strictEqual(1, adv8BitAdvanced.classList.length, 'Multiple underline ANSI color codes should only add a single class (4).');
 				assert(adv8BitAdvanced.classList.contains('code-underline-colored'), 'Underline ANSI color codes should add custom underline color class.');
-				// changed to 8bit advanced color, don't know exactly what it should be, but it should NO LONGER BE 104,105,106
 				assertInlineColor(adv8BitAdvanced, 'underline', new RGBA(104, 105, 106), 'Change to theme color SHOULD NOT BE 24-bit RGBA ANSI color code (104,105,106) should add matching color inline style.', false);
 			},
 			(adv24BitUnderlin200) => {
@@ -918,7 +825,6 @@ suite('Debug - ANSI Handling', () => {
 			},
 		], 6);
 
-		// Different types of color codes still cancel each other
 		assertMultipleSequenceElements('\x1b[34msimple\x1b[38;2;101;102;103m24bit\x1b[38;5;3m8bitsimple\x1b[38;2;104;105;106m24bitAgain\x1b[38;5;101m8bitadvanced', [
 			(simple) => {
 				assert.strictEqual(1, simple.classList.length, 'Foreground ANSI color code should add one class.');
@@ -932,7 +838,6 @@ suite('Debug - ANSI Handling', () => {
 			(adv8BitSimple) => {
 				assert.strictEqual(1, adv8BitSimple.classList.length, 'Multiple foreground ANSI color codes should only add a single class.');
 				assert(adv8BitSimple.classList.contains('code-foreground-colored'), 'Foreground ANSI color codes should add custom foreground color class.');
-				//color is theme based, so we can't check what it should be but we know it should NOT BE 101,102,103 anymore
 				assertInlineColor(adv8BitSimple, 'foreground', new RGBA(101, 102, 103), 'SHOULD NOT LONGER BE 24-bit RGBA ANSI color code (101,102,103) after simple color change.', false);
 			},
 			(adv24BitAgain) => {
@@ -943,19 +848,12 @@ suite('Debug - ANSI Handling', () => {
 			(adv8BitAdvanced) => {
 				assert.strictEqual(1, adv8BitAdvanced.classList.length, 'Multiple foreground ANSI color codes should only add a single class.');
 				assert(adv8BitAdvanced.classList.contains('code-foreground-colored'), 'Foreground ANSI color codes should add custom foreground color class.');
-				// color should NO LONGER BE 104,105,106
 				assertInlineColor(adv8BitAdvanced, 'foreground', new RGBA(104, 105, 106), 'SHOULD NOT LONGER BE 24-bit RGBA ANSI color code (104,105,106) after advanced color change.', false);
 			}
 		], 5);
 
 	});
 
-	/**
-	 * Assert that the provided ANSI sequence exactly matches the text content of the resulting
-	 * {@link HTMLSpanElement}.
-	 *
-	 * @param sequence The ANSI sequence to verify.
-	 */
 	function assertSequencestrictEqualToContent(sequence: string): void {
 		const child: HTMLSpanElement = getSequenceOutput(sequence);
 		assert(child.textContent === sequence);
@@ -963,14 +861,11 @@ suite('Debug - ANSI Handling', () => {
 
 	test('Invalid codes treated as regular text', () => {
 
-		// Individual components of ANSI code start are printed
 		assertSequencestrictEqualToContent('\x1b');
 		assertSequencestrictEqualToContent('[');
 
-		// Unsupported sequence prints both characters
 		assertSequencestrictEqualToContent('\x1b[');
 
-		// Random strings are displayed properly
 		for (let i = 0; i < 50; i++) {
 			const uuid: string = generateUuid();
 			assertSequencestrictEqualToContent(uuid);
@@ -978,13 +873,6 @@ suite('Debug - ANSI Handling', () => {
 
 	});
 
-	/**
-	 * Assert that a given ANSI sequence maintains added content following the ANSI code, and that
-	 * the expression itself is thrown away.
-	 *
-	 * @param sequence The ANSI sequence to verify. The provided sequence should contain ANSI codes
-	 * only, and should not include actual text content as it is provided by this function.
-	 */
 	function assertEmptyOutput(sequence: string) {
 		const child: HTMLSpanElement = getSequenceOutput(sequence + 'content');
 		assert.strictEqual('content', child.textContent);
@@ -994,7 +882,6 @@ suite('Debug - ANSI Handling', () => {
 	test('Empty sequence output', () => {
 
 		const sequences: string[] = [
-			// No colour codes
 			'',
 			'\x1b[;m',
 			'\x1b[1;;m',
@@ -1006,7 +893,6 @@ suite('Debug - ANSI Handling', () => {
 			assertEmptyOutput(sequence);
 		});
 
-		// Check other possible ANSI terminators
 		const terminators: string[] = 'ABCDHIJKfhmpsu'.split('');
 
 		terminators.forEach(terminator => {
@@ -1016,21 +902,16 @@ suite('Debug - ANSI Handling', () => {
 	});
 
 	test('calcANSI8bitColor', () => {
-		// Invalid values
-		// Negative (below range), simple range, decimals
 		for (let i = -10; i <= 15; i += 0.5) {
 			assert(calcANSI8bitColor(i) === undefined, 'Values less than 16 passed to calcANSI8bitColor should return undefined.');
 		}
-		// In-range range decimals
 		for (let i = 16.5; i < 254; i += 1) {
 			assert(calcANSI8bitColor(i) === undefined, 'Floats passed to calcANSI8bitColor should return undefined.');
 		}
-		// Above range
 		for (let i = 256; i < 300; i += 0.5) {
 			assert(calcANSI8bitColor(i) === undefined, 'Values grather than 255 passed to calcANSI8bitColor should return undefined.');
 		}
 
-		// All valid colors
 		for (let red = 0; red <= 5; red++) {
 			for (let green = 0; green <= 5; green++) {
 				for (let blue = 0; blue <= 5; blue++) {
@@ -1042,7 +923,6 @@ suite('Debug - ANSI Handling', () => {
 			}
 		}
 
-		// All grays
 		for (let i = 232; i <= 255; i++) {
 			const grayOut: any = calcANSI8bitColor(i);
 			assert(grayOut.r === grayOut.g);

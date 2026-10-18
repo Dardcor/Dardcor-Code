@@ -36,22 +36,15 @@ const snapshotDebounce = 30_000;
 const backstopInterval = 10 * 60_000;
 const maximumRepeatedPromptCount = 3;
 const maximumTotalPromptCount = 6;
-/** How long one unchanged indeterminate cause may persist before Agent Merge gives up. */
 const maximumIndeterminateDuration = 30 * 60_000;
-/** How long a gap between indeterminate observations may be before the budget window restarts. */
 const indeterminateObservationGap = 2 * backstopInterval;
 
 export interface IAgentMergeControllerOptions {
 	readonly startTurn: (session: string, turnId: string, prompt: string) => boolean;
 	readonly cancelTurn: (session: string, turnId: string) => void;
-	/**
-	 * Posts an Agent Merge state change into the session transcript. The notice
-	 * is client-visible only; it must never become part of the agent's context.
-	 */
 	readonly postNotice: (session: string, kind: AgentSystemNotificationKind, content: string) => void;
 }
 
-/** The configuration a session was last told about, and the overrides it was resolved from. */
 interface IAnnouncedAgentMergeConfiguration {
 	readonly configuration: AgentMergeConfiguration;
 	readonly overrides: AgentMergeSessionOverrides | undefined;
@@ -61,7 +54,6 @@ interface IDeferredWorkflowRerun {
 	readonly headSha: string;
 	readonly options: GitHubWorkflowRerunOptions;
 	readonly checkIds: ReadonlySet<string>;
-	/** Retain handled check IDs until the check snapshot catches up with the rerun. */
 	settled: boolean;
 }
 
@@ -75,16 +67,8 @@ class AgentMergeRuntime extends Disposable {
 	readonly backstopScheduler: RunOnceScheduler;
 	readonly deferredWorkflowReruns = new Map<string, IDeferredWorkflowRerun>();
 	ref: PullRequestRef | undefined;
-	/**
-	 * Whether this runtime already tried to recompute git state that reported
-	 * no usable branch. Caps that repair at one git call per runtime so a
-	 * checkout that can never report a branch does not spawn one on every
-	 * backstop.
-	 */
 	didRefreshForMissingBranch = false;
-	/** The unchanged indeterminate cause being timed out, if any. */
 	indeterminate: { readonly cause: string; readonly since: number; observedAt: number } | undefined;
-	/** The refused fragment a credential was last requested for, if any. */
 	reportedCredentialFailure: string | undefined;
 
 	constructor(
@@ -108,17 +92,10 @@ export class AgentMergeController extends Disposable {
 	private readonly _activeTurns = new Map<string, IAgentMergeTurnContext>();
 
 	private readonly _onDidReleaseHold = this._register(new Emitter<string>());
-	/** Fires when Agent Merge stops holding a session, so the host can re-arm its idle release. */
 	readonly onDidReleaseHold: Event<string> = this._onDidReleaseHold.event;
 
-	/** Sessions kept resident so their monitoring survives with no client subscriber. */
 	private readonly _heldSessions = new Set<string>();
 
-	/**
-	 * Sessions this controller is monitoring in the current host lifetime. Only a
-	 * session in this set can produce the "turned off" notice, so the re-entrant
-	 * sync that {@link _disable} triggers cannot post a second, reasonless one.
-	 */
 	private readonly _monitoredSessions = new Set<string>();
 	private readonly _announcedConfigurations = new Map<string, IAnnouncedAgentMergeConfiguration>();
 
@@ -148,7 +125,6 @@ export class AgentMergeController extends Disposable {
 				this._postConfigurationChangedNotice(session, current);
 			}
 			if (this._resetRepairBaselineOnReselection(session, previous, current)) {
-				// The reset re-enters this listener, which then syncs.
 				return;
 			}
 			this._syncSession(session);
@@ -195,11 +171,6 @@ export class AgentMergeController extends Disposable {
 		return this._isFeatureEnabled();
 	}
 
-	/**
-	 * Whether Agent Merge is keeping `session` resident. The host consults this
-	 * before releasing an idle session, and re-arms that release when
-	 * {@link onDidReleaseHold} reports the hold has ended.
-	 */
 	holdsSession(session: string): boolean {
 		return this._heldSessions.has(session);
 	}
@@ -218,11 +189,6 @@ export class AgentMergeController extends Disposable {
 		return context;
 	}
 
-	/**
-	 * Whether monitoring needs `session` in memory. Persisted enablement counts
-	 * even before a runtime starts, so a restore is not evicted out from under
-	 * the runtime that is about to claim it.
-	 */
 	private _shouldHoldSession(session: string): boolean {
 		if (this._runtimes.has(session)) {
 			return true;
@@ -237,11 +203,6 @@ export class AgentMergeController extends Disposable {
 		return readAgentMergeSessionState(state.config?.values)?.enabled === true;
 	}
 
-	/**
-	 * Recomputes the hold after a state transition. Tracking it here — rather
-	 * than lazily when the host happens to ask — keeps the answer correct for a
-	 * session the host has never had reason to evict.
-	 */
 	private _updateHold(session: string): void {
 		const shouldHold = this._shouldHoldSession(session);
 		if (shouldHold === this._heldSessions.has(session)) {
@@ -271,10 +232,6 @@ export class AgentMergeController extends Disposable {
 			if (this._runtimes.has(session) || agentMerge?.injectedConfiguration) {
 				this._logService.info(`[AgentMergeController] Stopping disabled session: session=${session}`);
 			}
-			// A session still marked monitored reached this branch because
-			// something outside the controller — the user, or another client —
-			// turned Agent Merge off. Self-disables clear the mark first and
-			// report their own reason.
 			if (this._monitoredSessions.delete(session) && state) {
 				this._postNotice(session, AgentSystemNotificationKind.AgentMergeDisabled, agentMergeDisabledNotice());
 			}
@@ -306,8 +263,6 @@ export class AgentMergeController extends Disposable {
 			this._stopRuntime(session);
 			return;
 		}
-		// Widening approvals mid-turn would hand extra capability to a turn this
-		// controller does not own, so injection waits for an idle session.
 		if (!this._stateManager.hasActiveTurn(session)) {
 			this._reconcileInjectedConfiguration(session, agentMerge);
 		}
@@ -337,11 +292,6 @@ export class AgentMergeController extends Disposable {
 		return this._configurationService.getRootValue(agentMergeRootConfigSchema, AgentMergeConfigKey.Enabled) ?? false;
 	}
 
-	/**
-	 * Applies the provider's current autonomous configuration, recomputing it every
-	 * cycle so a tightened managed policy revokes elevated approvals it previously
-	 * granted. The originally observed user values are preserved for restore.
-	 */
 	private _reconcileInjectedConfiguration(session: string, agentMerge: AgentMergeSessionState): void {
 		const values = this._configurationService.getSessionConfigValues(session) ?? {};
 		const injected = agentMerge.injectedConfiguration;
@@ -359,8 +309,6 @@ export class AgentMergeController extends Disposable {
 				patch[key] = value;
 			}
 		}
-		// A key the provider no longer selects (e.g. policy revoked it) is rolled
-		// back, but only while it still holds the value this controller applied.
 		for (const [key, appliedValue] of Object.entries(injected?.applied ?? {})) {
 			if (!Object.hasOwn(applied, key) && structuralEquals(values[key], appliedValue)) {
 				patch[key] = injected!.previous[key];
@@ -448,8 +396,6 @@ export class AgentMergeController extends Disposable {
 				: undefined;
 			target = { branchName, enabledAt: now, commentWatermark: now, ...(pullRequestUrl ? { pullRequestUrl } : {}) };
 			this._logService.info(`[AgentMergeController] Captured session branch and feedback watermark: session=${session}`);
-			// Announce only on the first capture: a resumed session already has a
-			// target, so restarting the host must not repeat the notice.
 			this._postEnabledNotice(session, { ...agentMerge, target });
 			this._updateAgentMergeState(session, agentMerge, { target });
 			return;
@@ -505,12 +451,7 @@ export class AgentMergeController extends Disposable {
 		}
 		const snapshot = subscription.resource.snapshot.get();
 		const configuration = this._getConfiguration(agentMerge);
-		// Backstop only: `_completeTurn` normally decides this the moment a
-		// repair turn ends. This catches a host restart that lost the in-flight
-		// turn, since the baseline commit is persisted with the session.
 		if (await this._demoteMergePullRequestIfChanged(session, agentMerge, configuration)) {
-			// The config write re-enters evaluation with the demoted value, so
-			// this pass must not go on to merge under the old one.
 			return;
 		}
 		if (!this._isCurrentRuntime(session, runtime)) {
@@ -560,10 +501,6 @@ export class AgentMergeController extends Disposable {
 					return;
 				}
 				const turnId = generateUuid();
-				// Captured before the turn is claimed so the baseline reflects
-				// the worktree the agent is about to act on. An unreadable
-				// worktree records a sentinel that no commit can match, so the
-				// session fails closed rather than authorizing a later merge.
 				const repairBaseCommit = await this._resolveLocalCommit(session) ?? AGENT_MERGE_UNKNOWN_COMMIT;
 				const context: IAgentMergeTurnContext = {
 					session,
@@ -718,7 +655,6 @@ export class AgentMergeController extends Disposable {
 				request.settled = result.outcome !== 'indeterminate';
 				this._logService.info(`[AgentMergeController] Deferred workflow rerun requested: session=${session}, run=${run.id}, outcome=${result.outcome}`);
 			} finally {
-				// Failed or unconfirmed mutations return to the ordinary, budgeted repair flow.
 				if (!request.settled && runtime.deferredWorkflowReruns.get(run.id) === request) {
 					runtime.deferredWorkflowReruns.delete(run.id);
 					this._schedule(session, 0);
@@ -727,23 +663,6 @@ export class AgentMergeController extends Disposable {
 		}
 	}
 
-	/**
-	 * Resolves the branch Agent Merge should act on, repairing session git
-	 * state that does not report one.
-	 *
-	 * A failed git probe can leave persisted git state without a branch. The
-	 * refresh that would repair it normally rides along with a client watching
-	 * the session or an edit landing in the worktree, and neither happens for a
-	 * session this controller is holding resident on its own. Every later step
-	 * — binding the pull request, subscribing to it, acting on its feedback —
-	 * is gated on the branch, so without this the session idles on the backstop
-	 * indefinitely and Agent Merge silently never runs.
-	 *
-	 * A detached `HEAD` is excluded: it reports no branch by design, so
-	 * refreshing would never produce one. The attempt is capped at once per
-	 * runtime regardless, so any other checkout that cannot report a branch
-	 * costs a single git call rather than one per backstop.
-	 */
 	private async _resolveCurrentBranch(session: string, runtime: AgentMergeRuntime, state: NonNullable<ReturnType<AgentHostStateManager['getSessionState']>>): Promise<string | undefined> {
 		const gitState = readSessionGitState(state._meta);
 		if (gitState?.branchName) {
@@ -769,9 +688,6 @@ export class AgentMergeController extends Disposable {
 
 	private async _resolveRef(parsed: IParsedPullRequestUrl, signal: AbortSignal): Promise<PullRequestRef | undefined> {
 		const credential = await this._gitHubService.credentials.getCredential(signal);
-		// The bound pull request URL carries its own host: after a restore or an
-		// endpoint switch the same owner/repo/number can name a different GitHub
-		// instance, which must never be acted on with this account's credential.
 		if (credential.account.host.toLowerCase() !== parsed.apiHost.toLowerCase()) {
 			return undefined;
 		}
@@ -855,11 +771,6 @@ export class AgentMergeController extends Disposable {
 		this._postNotice(session, AgentSystemNotificationKind.AgentMergeEnabled, agentMergeEnabledNotice(agentMerge.target, configuration));
 	}
 
-	/**
-	 * Records what was last announced for a session, together with the session
-	 * overrides it was resolved from, so the next notice can name the scope of
-	 * the change that produced it.
-	 */
 	private _setAnnouncedConfiguration(session: string, agentMerge: AgentMergeSessionState, configuration = this._getConfiguration(agentMerge)): void {
 		this._announcedConfigurations.set(session, { configuration, overrides: agentMerge.overrides });
 	}
@@ -877,7 +788,6 @@ export class AgentMergeController extends Disposable {
 			this._setAnnouncedConfiguration(session, current, currentConfiguration);
 			return;
 		}
-		// Unchanged session overrides mean the effective change came from defaults, including while the runtime was stopped.
 		const scope: AgentMergeConfigurationChangeScope = structuralEquals(announced.overrides, current.overrides) ? 'global' : 'session';
 		const notice = agentMergeConfigurationChangedNotice(announced.configuration, currentConfiguration, scope);
 		this._setAnnouncedConfiguration(session, current, currentConfiguration);
@@ -892,8 +802,6 @@ export class AgentMergeController extends Disposable {
 			return false;
 		}
 		if (!core.headRepositoryNameWithOwner) {
-			// Without head provenance the host cannot establish whether pushes to the
-			// pull request branch are permitted, so it waits for complete state.
 			return false;
 		}
 		if (core.headRepositoryNameWithOwner.toLowerCase() === core.repositoryNameWithOwner.toLowerCase()) {
@@ -902,7 +810,6 @@ export class AgentMergeController extends Disposable {
 		return core.maintainerCanModify === true;
 	}
 
-	/** Whether the session still sits on the branch and pull request this run was authorized for. */
 	private _isTargetStillCurrent(session: string, target: AgentMergeTarget): boolean {
 		const state = this._stateManager.getSessionState(session);
 		if (!this._hasTargetBranch(state, target.branchName)) {
@@ -928,8 +835,6 @@ export class AgentMergeController extends Disposable {
 			runtime.backstopScheduler.schedule();
 			return;
 		}
-		// Authorization can be withdrawn while preparation is in flight, so the
-		// merge is re-authorized against live state rather than the captured copy.
 		const currentState = readAgentMergeSessionState(this._stateManager.getSessionState(session)?.config?.values);
 		const currentTarget = currentState?.target;
 		if (!currentState?.enabled
@@ -946,8 +851,6 @@ export class AgentMergeController extends Disposable {
 			runtime.backstopScheduler.schedule();
 			return;
 		}
-		// `prepareMerge` captures an authoritative snapshot of every fragment the gate
-		// reads, with top-level comments refreshed last, so it is re-evaluated as-is.
 		const freshGate = evaluateAgentMerge(preparation.snapshot, currentConfiguration, currentTarget.commentWatermark);
 		if (freshGate.kind !== 'merge') {
 			this._logService.info(`[AgentMergeController] Native merge aborted after fresh readiness check: session=${session}, outcome=${freshGate.kind}`);
@@ -1004,13 +907,8 @@ export class AgentMergeController extends Disposable {
 			});
 		}
 
-		// Decided here rather than on the next evaluation because the local
-		// commit is authoritative the instant the agent makes it, while the
-		// pull request's published head lags behind the push. Re-read the state
-		// so an advanced watermark is not written back stale.
 		const current = readAgentMergeSessionState(this._stateManager.getSessionState(session)?.config?.values) ?? agentMerge;
 		if (await this._demoteMergePullRequestIfChanged(session, current, this._getConfiguration(current))) {
-			// The config write re-enters evaluation with the demoted value.
 			return;
 		}
 
@@ -1022,11 +920,6 @@ export class AgentMergeController extends Disposable {
 		this._schedule(session, 0);
 	}
 
-	/**
-	 * Resolves the session worktree's current commit, or `undefined` when the
-	 * worktree cannot be read. Callers treat `undefined` as "changed" so an
-	 * unreadable worktree can never authorize an automatic merge.
-	 */
 	private async _resolveLocalCommit(session: string): Promise<string | undefined> {
 		try {
 			const workingDirectory = this._stateManager.getSessionState(session)?.workingDirectories?.[0];
@@ -1041,14 +934,6 @@ export class AgentMergeController extends Disposable {
 		}
 	}
 
-	/**
-	 * Turns automatic merging off once a repair turn has produced work, for
-	 * sessions that only authorized merging while the pull request is unchanged.
-	 *
-	 * The chosen value is rewritten rather than merely gated so the dropdown
-	 * always shows what will actually happen, and so re-selecting the option
-	 * establishes a fresh baseline. Returns whether the value was demoted.
-	 */
 	private async _demoteMergePullRequestIfChanged(
 		session: string,
 		agentMerge: AgentMergeSessionState,
@@ -1070,24 +955,11 @@ export class AgentMergeController extends Disposable {
 				enabled: agentMerge.enabled,
 				overrides,
 			},
-			// Dropping the baseline is what makes re-selecting the option start
-			// fresh: without it the next evaluation would demote again against
-			// this very same commit.
 			[SessionConfigKey.AgentMergeController]: toControllerState(agentMerge, { repairBaseCommit: undefined }),
 		});
 		return true;
 	}
 
-	/**
-	 * Drops the repair baseline when the user selects "merge only while
-	 * unchanged" afresh.
-	 *
-	 * The client writes only its own Agent Merge state, so a baseline recorded
-	 * by an earlier repair turn survives the selection. Without this reset the
-	 * next evaluation would immediately demote the choice back to `never`
-	 * against work the user has already seen, and the option could never be
-	 * turned back on. Returns whether a reset was written.
-	 */
 	private _resetRepairBaselineOnReselection(
 		session: string,
 		previous: AgentMergeSessionState | undefined,
@@ -1116,8 +988,6 @@ export class AgentMergeController extends Disposable {
 	private _disable(session: string, current: AgentMergeSessionState, reason: AgentMergeDisableReason, notificationKind = AgentSystemNotificationKind.AgentMergeDisabled): void {
 		this._logService.info(`[AgentMergeController] Disabling Agent Merge for ${session}: ${reason.log}`);
 		this._activeTurns.delete(session);
-		// Claim the transition before the config write re-enters `_doSyncSession`,
-		// so the reasoned notice below is the only one the user sees.
 		this._monitoredSessions.delete(session);
 		this._announcedConfigurations.delete(session);
 		this._postNotice(session, notificationKind, reason.notice);
@@ -1133,10 +1003,6 @@ export class AgentMergeController extends Disposable {
 		this._stopRuntime(session);
 	}
 
-	/**
-	 * Reports an Agent Merge state change in the session transcript. A failure to
-	 * announce must never interrupt monitoring, so the notice is best-effort.
-	 */
 	private _postNotice(session: string, kind: AgentSystemNotificationKind, content: string): void {
 		try {
 			this._options.postNotice(session, kind, content);
@@ -1159,8 +1025,6 @@ export class AgentMergeController extends Disposable {
 	}
 
 	private _stopRuntime(session: string): void {
-		// A repair turn started by this controller must not keep running with the
-		// elevated capabilities that Agent Merge granted it.
 		const context = this._activeTurns.get(session);
 		if (context) {
 			this._activeTurns.delete(session);
@@ -1173,8 +1037,6 @@ export class AgentMergeController extends Disposable {
 			this._runtimes.deleteAndDispose(session);
 			this._logService.debug(`[AgentMergeController] Disposed session runtime: session=${session}`);
 		}
-		// Also reached directly when the session is removed from state, which
-		// does not go through `_syncSession`.
 		this._updateHold(session);
 	}
 
@@ -1182,17 +1044,12 @@ export class AgentMergeController extends Disposable {
 		return readSessionGitState(state?._meta)?.branchName === branchName;
 	}
 
-	/** Resolves the organization owning the bound pull request, for diagnostics. */
 	private _organizationForSession(session: string): string | undefined {
 		const state = this._stateManager.getSessionState(session);
 		const pullRequestUrl = readAgentMergeSessionState(state?.config?.values)?.target?.pullRequestUrl;
 		return pullRequestUrl ? parsePullRequestUrl(pullRequestUrl)?.owner : undefined;
 	}
 
-	/**
-	 * Asks the client for a credential that can read the bound pull request,
-	 * naming the organization to authorize when GitHub reports SAML enforcement.
-	 */
 	private _requestGitHubAuthorization(session: string, kind: 'authentication' | 'authorization', message: string): void {
 		this._stateManager.emitAuthRequired({
 			resource: this._gitHubEndpointService.getRepoResource(),
@@ -1205,10 +1062,6 @@ export class AgentMergeController extends Disposable {
 		this._logService.warn(`[AgentMergeController] GitHub refused the credential (${kind})${remedy}: session=${session}`);
 	}
 
-	/**
-	 * Requests a credential when a fragment the gate needs was refused by
-	 * GitHub, which only the first refresh of a subscription reports by throwing.
-	 */
 	private _reportBlockedCredential(session: string, runtime: AgentMergeRuntime, snapshot: PullRequestSnapshot): void {
 		const blocked = firstCredentialFailure(snapshot);
 		if (!blocked) {
@@ -1222,11 +1075,6 @@ export class AgentMergeController extends Disposable {
 		this._requestGitHubAuthorization(session, blocked.kind, blocked.message);
 	}
 
-	/**
-	 * Reports whether one unchanged indeterminate cause has persisted past its
-	 * budget, measured over continuously observed time so a turn or a sleeping
-	 * host cannot exhaust it.
-	 */
 	private _isIndeterminateBudgetExhausted(session: string, runtime: AgentMergeRuntime, cause: string): boolean {
 		const now = Date.now();
 		const current = runtime.indeterminate;
@@ -1267,7 +1115,6 @@ interface IParsedPullRequestUrl {
 	readonly owner: string;
 	readonly repo: string;
 	readonly number: number;
-	/** REST API host the credential account must match (`api.github.com` for github.com). */
 	readonly apiHost: string;
 }
 
@@ -1288,8 +1135,6 @@ export function parsePullRequestUrl(value: string): IParsedPullRequestUrl | unde
 		owner: match.groups.owner,
 		repo: match.groups.repo,
 		number,
-		// Derived rather than hard-coded so GitHub Enterprise Cloud web hosts
-		// (`tenant.ghe.com`) canonicalize to the `api.` host the credential reports.
 		apiHost: new URL(deriveGitHubEndpoints(`${url.protocol}//${host}`).apiBaseUri).host.toLowerCase(),
 	};
 }
@@ -1333,12 +1178,10 @@ function githubErrorKind(error: unknown): string {
 		: error instanceof Error ? error.name : typeof error;
 }
 
-/** Detects the SAML single sign-on refusal GitHub returns for organizations that enforce it. */
 export function isSamlEnforcementError(message: string): boolean {
 	return message.toLowerCase().includes('saml enforcement');
 }
 
-/** Finds the first fragment the gate needs that GitHub refused to serve. */
 export function firstCredentialFailure(snapshot: PullRequestSnapshot): { readonly id: string; readonly kind: 'authentication' | 'authorization'; readonly message: string } | undefined {
 	for (const fragment of agentMergeGateFragments) {
 		const error = snapshot[fragment].error;

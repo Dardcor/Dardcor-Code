@@ -36,11 +36,6 @@ type AccountPolicyGateStateClassification = {
 	reasonNotSatisfied: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'Bucketed reason the gate is unsatisfied: noAccount, wrongProvider, orgNotApproved, policyNotResolved.' };
 };
 
-/**
- * UX/observability adapter for the Account Policy gate. Mirrors gate state into
- * a context key, shows a sign-in notification when restricted, and emits telemetry.
- * Does NOT re-evaluate the gate — `AccountPolicyService` owns that.
- */
 export class AccountPolicyGateContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.accountPolicyGate';
@@ -69,20 +64,17 @@ export class AccountPolicyGateContribution extends Disposable implements IWorkbe
 		this.contextKey = ChatAccountPolicyGateActiveContext.bindTo(contextKeyService);
 		this.lastInfo = this.gateService.gateInfo;
 
-		// Apply context key + setForceHidden immediately (fail-closed), but defer the
-		// notification until either the first onDidChangeGateInfo or a 5s timeout —
-		// without this, a startup race shows "sign in" before the default account loads.
-		this.apply(this.lastInfo, /*forceTelemetry*/ true, /*showNotification*/ false);
+		this.apply(this.lastInfo, true, false);
 
 		this._register(this.gateService.onDidChangeGateInfo(info => {
 			this.initialised = true;
-			this.apply(info, /*forceTelemetry*/ false, /*showNotification*/ true);
+			this.apply(info, false, true);
 		}));
 
 		this._register(disposableTimeout(() => {
 			if (!this.initialised) {
 				this.initialised = true;
-				this.apply(this.lastInfo, /*forceTelemetry*/ false, /*showNotification*/ true);
+				this.apply(this.lastInfo, false, true);
 			}
 		}, 5000));
 	}
@@ -91,8 +83,6 @@ export class AccountPolicyGateContribution extends Disposable implements IWorkbe
 		const stateChanged = forceTelemetry || info.state !== this.lastInfo.state || info.reason !== this.lastInfo.reason;
 		this.lastInfo = info;
 
-		// Suppress the context key during the transient `policyNotResolved` state
-		// (user IS in approved org, just waiting for data) so the UI doesn't flash.
 		const isRestricted = info.state === AccountPolicyGateState.Restricted
 			&& info.reason !== AccountPolicyGateUnsatisfiedReason.PolicyNotResolved;
 		this.contextKey.set(isRestricted);
@@ -122,7 +112,6 @@ export class AccountPolicyGateContribution extends Disposable implements IWorkbe
 			return;
 		}
 
-		// Composite key so swapping accounts (while still blocked) re-shows the notification.
 		const accountName = this.defaultAccountService.currentDefaultAccount?.accountName;
 		const notificationKey = `${info.reason ?? ''}:${accountName ?? ''}`;
 
@@ -149,7 +138,6 @@ export class AccountPolicyGateContribution extends Disposable implements IWorkbe
 		const approvedOrgs = info.approvedOrganizations ?? [];
 		const hasConcreteOrgs = approvedOrgs.length > 0 && !approvedOrgs.includes('*');
 
-		// Notifications render as plain inline text — comma-separate orgs.
 		const orgList = approvedOrgs.join(', ');
 		let message: string;
 		if (accountName && hasConcreteOrgs) {
@@ -189,7 +177,7 @@ export class AccountPolicyGateContribution extends Disposable implements IWorkbe
 				},
 				{
 					label: localize('accountPolicy.notification.learnMore', "Learn More"),
-					run: () => this.openerService.open(URI.parse('https://code.visualstudio.com/docs/enterprise/overview')),
+					run: () => this.openerService.open(URI.parse('https://www.dardcor-code.web.id/docs/enterprise/overview')),
 				},
 			],
 			{ sticky: true }

@@ -34,7 +34,7 @@ import { KEYBINDING_CONTEXT_NOTEBOOK_FIND_WIDGET_FOCUSED } from '../../../common
 const FIND_HIDE_TRANSITION = 'find-hide-transition';
 const FIND_SHOW_TRANSITION = 'find-show-transition';
 let MAX_MATCHES_COUNT_WIDTH = 69;
-const PROGRESS_BAR_DELAY = 200; // show progress for at least 200ms
+const PROGRESS_BAR_DELAY = 200;
 
 export interface IShowNotebookFindWidgetOptions {
 	isRegex?: boolean;
@@ -184,7 +184,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 
 	protected onInputChanged(): boolean {
 		this._state.change({ searchString: this.inputValue }, false);
-		// this._findModel.research();
 		const findMatches = this._findModel.findMatches;
 		if (findMatches && findMatches.length) {
 			return true;
@@ -239,7 +238,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 				this._progressBar.stop();
 			});
 		} else {
-			// this should not work
 			console.error('Replace does not work for output match');
 		}
 	}
@@ -282,10 +280,8 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 	}
 
 	protected onReplaceInputFocusTrackerFocus(): void {
-		// throw new Error('Method not implemented.');
 	}
 	protected onReplaceInputFocusTrackerBlur(): void {
-		// throw new Error('Method not implemented.');
 	}
 
 	protected onFindInputFocusTrackerFocus(): void { }
@@ -323,7 +319,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 				this._showTimeout = null;
 			}, 200);
 		} else {
-			// no op
 		}
 	}
 
@@ -345,7 +340,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 				this._showTimeout = null;
 			}, 200);
 		} else {
-			// no op
 		}
 	}
 
@@ -368,7 +362,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 				this._notebookEditor.removeClassName(FIND_HIDE_TRANSITION);
 			}, 200);
 		} else {
-			// no op
 		}
 
 		if (this._previousFocusElement && this._previousFocusElement.offsetParent) {
@@ -395,7 +388,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 		this._matchesCount.style.minWidth = MAX_MATCHES_COUNT_WIDTH + 'px';
 		this._matchesCount.title = '';
 
-		// remove previous content
 		this._matchesCount.firstChild?.remove();
 
 		let label: string;
@@ -424,7 +416,6 @@ class NotebookFindWidget extends SimpleFindReplaceWidget implements INotebookEdi
 				: localize('ariaSearchNoResult', "{0} found for '{1}'", label, searchString);
 		}
 
-		// TODO@rebornix, aria for `cell ${index}, line {line}`
 		return localize('ariaSearchNoResultWithLineNumNoCurrentMatch', "{0} found for '{1}'", label, searchString);
 	}
 	override dispose() {

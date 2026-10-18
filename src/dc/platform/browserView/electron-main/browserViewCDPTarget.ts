@@ -8,11 +8,6 @@ import { Disposable } from '../../../base/common/lifecycle.js';
 import { CDPTargetInfo, ICDPConnection, ICDPTarget } from '../common/cdp/types.js';
 import type { BrowserView } from './browserView.js';
 
-/**
- * Wraps a {@link BrowserViewDebugger} transport as an {@link ICDPTarget},
- * tracking sessions and forwarding target-info changes for a single
- * CDP target (page, worker, iframe, etc.).
- */
 export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 	protected readonly _sessions = new Map<string, ICDPConnection>();
 	get sessions(): ReadonlyMap<string, ICDPConnection> { return this._sessions; }
@@ -72,7 +67,6 @@ export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 			return;
 		}
 		if (this.sessions.size === 0) {
-			// First session attached, update target info to reflect attached state.
 			this._onTargetInfoChanged.fire(this.targetInfo);
 		}
 
@@ -80,7 +74,6 @@ export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 		session.onClose(() => {
 			this._sessions.delete(session.sessionId);
 			if (this.sessions.size === 0) {
-				// Last session detached, update target info to reflect detached state.
 				this._onTargetInfoChanged.fire(this.targetInfo);
 			}
 		});
@@ -94,13 +87,11 @@ export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 		}
 		this._isDisposed = true;
 
-		// Dispose owned sessions.
 		for (const [, session] of this._sessions) {
 			session.dispose();
 		}
 		this._sessions.clear();
 
-		// Signal target closure.
 		this._onClose.fire();
 
 		super.dispose();

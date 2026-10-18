@@ -51,7 +51,6 @@ const completionSpec: Fig.Spec = {
 			},
 		},
 	],
-	// Only uncomment if env takes an argument
 	args: [
 		{
 			name: "name=value ...",

@@ -86,11 +86,6 @@ export interface IAgentHostAutomationService {
 	handleAgentsChanged(): void;
 }
 
-/**
- * Owns the durable automation catalogue. A mutation is persisted before its
- * corresponding AHP action is published, so a published definition always has
- * a durable recovery point after an agent-host restart.
- */
 export class AgentHostAutomationService extends Disposable implements IAgentHostAutomationService {
 	declare readonly _serviceBrand: undefined;
 
@@ -170,9 +165,6 @@ export class AgentHostAutomationService extends Disposable implements IAgentHost
 				throw new Error(`Automation migration is incomplete; ${missing.length} expected automation resources are missing.`);
 			}
 			const completedAt = new Date().toISOString();
-			// Set the completion marker before synthesizing operations so
-			// `_canGrantRun` sees migration as complete. Roll back if persist
-			// fails to preserve the pre-migration invariants.
 			const priorCompletedAt = this._migrationCompletedAt;
 			this._migrationCompletedAt = completedAt;
 			let migratedCatalog: AutomationState;
@@ -203,9 +195,6 @@ export class AgentHostAutomationService extends Disposable implements IAgentHost
 
 	private _migrationOperationsForItem(automation: AutomationEntry): AutomationOperation[] {
 		if (!this._canGrantRun(automation.definition)) {
-			// Pending imports or disabled automations must not receive Run or
-			// Remove: the browser scheduler still owns the legacy row until the
-			// pending flag clears.
 			return automation.operations.filter(op => op !== AutomationOperation.Run && op !== AutomationOperation.Remove);
 		}
 		return automation.runs.some(run => !isTerminalLifecycle(run.lifecycle))
@@ -326,8 +315,6 @@ export class AgentHostAutomationService extends Disposable implements IAgentHost
 		if (isAgentHostLegacyAutomationImportPending(existing.definition)
 			&& !isAgentHostLegacyAutomationImportPending(automation.definition)
 			&& !operations.includes(AutomationOperation.Remove)) {
-			// completeMigration may have stripped Remove from pending items;
-			// restore it now that the browser has acknowledged legacy removal.
 			operations = withOperation(operations, AutomationOperation.Remove);
 		}
 		if (isAgentHostLegacyAutomationImportPending(automation.definition)) {
@@ -610,10 +597,6 @@ export class AgentHostAutomationService extends Disposable implements IAgentHost
 							claimed.push({ run, definition: automation.definition });
 							claimedForAutomation = true;
 						}
-						// A sibling trigger already claimed this Automation this
-						// tick. Coalesce this past-due firing into the earlier
-						// one and let its cursor roll forward below, so we don't
-						// re-fire on the next tick.
 					}
 					scheduledFor = nextAutomationCronOccurrence(trigger.schedule.expression, trigger.schedule.timeZone, now);
 				}
@@ -754,7 +737,6 @@ export class AgentHostAutomationService extends Disposable implements IAgentHost
 				await this._execution.cancelSession(session);
 				return;
 			}
-			// Clients restore the last turn's model configuration, not the SDK's creation defaults.
 			const message: Message = definition.message.model === undefined && definition.session.model !== undefined
 				? { ...definition.message, model: definition.session.model }
 				: definition.message;
@@ -853,7 +835,6 @@ export class AgentHostAutomationService extends Disposable implements IAgentHost
 	}
 
 	private _handleEnvelope(envelope: ActionEnvelope): void {
-		// A rejected action never reached host state, so it must not finalize a run.
 		if (envelope.rejectionReason) {
 			return;
 		}

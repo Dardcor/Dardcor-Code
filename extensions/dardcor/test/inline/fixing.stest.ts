@@ -249,8 +249,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 55 in /fix dataset version 10
-		// The fix in nice_egg_479lg7cb9q was too big, it was not a minimal change, and it was incorrect
 		stest({ description: 'Error 2339 - (AML-10-55) property does not exist on type 2', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_2339_2.ts')],
@@ -267,8 +265,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 98 in /fix dataset version 10
-		// Copilot proposed an incorrect fix, it should have added an additional method, instead it added a catch statement
 		stest({ description: 'Error 2339 - (AML-10-98) property does not exist on type 3', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_2339_3.ts')],
@@ -286,7 +282,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 		});
 
 
-		// Add a missing impor at the right place
 		stest({ description: 'Error 2304 - can not find name', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [
@@ -357,8 +352,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 64 of /fix dataset version 10
-		// The fix was not correct, it just added a new line and did not resolve the error
 		stest({ description: 'Error 18047 - (AML-10-64) possibly null', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_18047.ts')],
@@ -375,7 +368,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 23 of /fix dataset version 10
 		stest({ description: 'Error 7006 - (AML-10-23) implicitly has any type', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_7006.ts')],
@@ -392,7 +384,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 1 of /fix dataset version 8
 		stest({ description: 'Error 18047 - (AML-8-1) property does not exist on type window', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_2339_4.ts')],
@@ -409,7 +400,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 86 of /fix dataset version 10
 		stest({ description: 'Error 18048 - (AML-10-86) possibly undefined', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_18048.ts')],
@@ -426,7 +416,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 125 of /fix dataset version 8
 		stest({ description: 'Error 2304 - (AML-8-125) can not find name', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_2304_2.ts')],
@@ -470,8 +459,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 25 of /fix dataset version 10
-		// The fix was not correct, it just added a new line and did not resolve the error
 		stest({ description: `Error 7053 - (AML-10-25) expression of type can't be used to index`, language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_error_7053.ts')],
@@ -491,7 +478,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 31 in /fix dataset version 10
 		stest({ description: '(AML-10-31) Parameter data implicitly has an any type.', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/tsc_implicit_any.ts')],
@@ -594,7 +580,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 						diagnostics: 'tsc',
 						validate: async (outcome, workspace, accessor) => {
 							if (outcome.type === 'conversational') {
-								// change to tsconfig.json
 							} else {
 								await assertNoDiagnosticsAsync(accessor, outcome, workspace, 'tsc');
 							}
@@ -743,8 +728,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 52 of /fix dataset version 10
-		// The fix was not correct, it just added a new line and did not resolve the error
 		stest({ description: '(AML-10-52) expected conditional expression', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/eslint_expected_conditional_expression.ts')],
@@ -761,7 +744,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 1 in /fix dataset version 10
 		stest({ description: '(AML-10-1) do not access hasOwnProperty', language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/eslint_do_not_access_hasOwnProperty.ts')],
@@ -796,7 +778,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 10 of /fix dataset version 17
 		stest({ description: `(AML-17-10) unexpected constant condition 1`, language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/eslint_unexpected_constant_condition_1.ts')],
@@ -815,7 +796,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 152 of /fix dataset version 17
 		stest({ description: `(AML-17-152) unreachable code`, language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/eslint_unreachable_code.ts')],
@@ -834,7 +814,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 166 of /fix dataset version 17
 		stest({ description: `(AML-17-166) unexpected control character`, language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/eslint_unexpected_control_character.ts')],
@@ -853,7 +832,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 243 of /fix dataset version 17
 		stest({ description: `(AML-17-243) unexpected constant condition 2`, language: 'typescript', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/typescript/eslint_unexpected_constant_condition_2.ts')],
@@ -1564,8 +1542,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 2 in /fix dataset version 10
-		// Copilot misunderstood the directive and did a non-null check on the wrong variable
 		stest({ description: '(AML-10-2) can not be assigned 1', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_can_not_be_assigned_to_1.py')],
@@ -1586,9 +1562,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 15 in /fix dataset version 10
-		// The error was that Copilot was not able to localize exactly the code that is causing the error and it didn't provide any edit
-		// This test has three times the error
 		stest({ description: '(AML-10-15) object not subscriptable', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_object_not_subscriptable.py')],
@@ -1605,8 +1578,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 35 of /fix dataset version 10
-		// In the AML run, dardcor did not understand the error and did not fix it
 		stest({ description: '(AML-10-35) can not access member', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_can_not_access_member.py')],
@@ -1626,8 +1597,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 36 of /fix dataset version 10
-		// In the AML run, dardcor did not understand the error and did not fix it
 		stest({ description: '(AML-10-36) can not be assigned 2', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_can_not_be_assigned_to_2.py')],
@@ -1644,8 +1613,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 4 of /fix dataset version 10
-		// In the AML run, dardcor did not understand the error and did not fix it
 		stest({ description: '(AML-10-4) parameter already assigned', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_parameter_already_assigned.py')],
@@ -1662,8 +1629,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 48 of /fix dataset version 10
-		// In the AML run, dardcor did not understand the error and did not fix it
 		stest({ description: '(AML-10-48) can not be assigned 3', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_can_not_be_assigned_to_3.py')],
@@ -1685,8 +1650,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 58 of /fix dataset version 10
-		// The AML run has removed a big part of the code and replaced with non-minimal edits, this initial issue was not resolved
 		stest({ description: '(AML-10-58) not defined', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_not_defined.py')],
@@ -1703,7 +1666,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 29 of /fix dataset version 10
 		stest({ description: '(AML-10-29) instance of bool has no to_string member', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_no_to_string_member.py')],
@@ -1720,7 +1682,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 110 of /fix dataset version 8
 		stest({ description: '(AML-8-110) not defined', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_self_as_first_argument.py')],
@@ -1738,7 +1699,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 		});
 
 
-		// Inspired by case 73 of /fix dataset version 8
 		stest({ description: '(AML-8-73) no value for argument in function call', language: 'python', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/python/pyright_no_value_for_argument.py')],
@@ -1864,13 +1824,8 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 		});
 	});
 
-	/**
- * This method validates the outcome by finding if after the edit, there remain errors
- */
 	ssuite({ title: `fix${suffix}`, subtitle: 'roslyn', location: 'inline' }, () => {
 
-		// Inspired by case 28 of /fix dataset version 10
-		// Final edit does not correspond to fetched response
 		stest({ description: '(AML-10-28) field is never used', language: 'csharp', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/csharp/roslyn_field_never_used.cs')],
@@ -1887,7 +1842,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 57 of /fix dataset version 10
 		stest({ description: '(AML-10-57) call is not awaited, execution continues', language: 'csharp', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/csharp/roslyn_call_not_awaited.cs')],
@@ -1904,7 +1858,6 @@ forInlineChatIntent((strategy, nonExtensionConfigurations, suffix) => {
 			});
 		});
 
-		// Inspired by case 3523 of /fix dataset version 17
 		stest({ description: '(AML-17-3523) has same name as', language: 'csharp', nonExtensionConfigurations }, (testingServiceCollection) => {
 			return simulateInlineChatWithStrategy(strategy, testingServiceCollection, {
 				files: [fromFixture('fixing/csharp/roslyn_has_same_name_as.cs')],

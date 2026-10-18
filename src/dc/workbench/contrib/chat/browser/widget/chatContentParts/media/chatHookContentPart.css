@@ -32,7 +32,6 @@
 	white-space: pre-wrap;
 }
 
-/* When both reason and message are shown, add a subtle separator */
 .chat-hook-reason + .chat-hook-message {
 	border-top: 1px solid var(--vscode-chat-requestBorder, var(--vscode-editorWidget-border));
 	margin-top: 2px;

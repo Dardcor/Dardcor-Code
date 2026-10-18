@@ -20,19 +20,14 @@ export interface IPagedScreenReaderStrategy<T> {
 export interface ISimpleScreenReaderContentState {
 	value: string;
 
-	/** the offset where selection starts inside `value` */
 	selectionStart: number;
 
-	/** the offset where selection ends inside `value` */
 	selectionEnd: number;
 
-	/** the editor range in the view coordinate system that matches the selection inside `value` */
 	selection: Selection;
 
-	/** the position of the start of the `value` in the editor */
 	startPositionWithinEditor: Position;
 
-	/** the visible line count (wrapped, not necessarily matching \n characters) for the text in `value` before `selectionStart` */
 	newlineCountBeforeSelection: number;
 }
 
@@ -49,8 +44,6 @@ export class SimplePagedScreenReaderStrategy implements IPagedScreenReaderStrate
 	}
 
 	public fromEditorSelection(model: ISimpleModel, selection: Selection, linesPerPage: number, trimLongText: boolean): ISimpleScreenReaderContentState {
-		// Chromium handles very poorly text even of a few thousand chars
-		// Cut text to avoid stalling the entire UI
 		const LIMIT_CHARS = 500;
 
 		const selectionStartPage = this._getPageOfLine(selection.startLineNumber, linesPerPage);
@@ -78,7 +71,6 @@ export class SimplePagedScreenReaderStrategy implements IPagedScreenReaderStrate
 
 		let text: string;
 		if (selectionStartPage === selectionEndPage || selectionStartPage + 1 === selectionEndPage) {
-			// take full selection
 			text = model.getValueInRange(selection, EndOfLinePreference.LF);
 		} else {
 			const selectionRange1 = selectionStartPageRange.intersectRanges(selection)!;
@@ -128,7 +120,6 @@ export function ariaLabelForScreenReaderContent(options: IComputedEditorOptions,
 		} else if (keybindingEditorKeybindingLabel) {
 			return nls.localize('accessibilityOffAriaLabelNoKbs', "{0} Please assign a keybinding for the command Toggle Screen Reader Accessibility Mode by accessing the keybindings editor with {1} and run it.", editorNotAccessibleMessage, keybindingEditorKeybindingLabel);
 		} else {
-			// SOS
 			return editorNotAccessibleMessage;
 		}
 	}

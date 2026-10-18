@@ -12,7 +12,6 @@ function gcache() {
   return globalThis[G_KEY];
 }
 
-// Filter out claude.ai-mediated servers (broken in 3p) and tenant-required entries.
 function isDirectConnect(url) {
   if (!url || typeof url !== "string") return false;
   if (/^https?:\/\/[^/]*\bmcp\.claude\.com\b/i.test(url)) return false;
@@ -53,7 +52,6 @@ async function fetchAll() {
     cursor = j.metadata?.nextCursor;
     if (!cursor) break;
   }
-  // Dedupe by url
   const seen = new Set();
   return out.filter((s) => (seen.has(s.url) ? false : (seen.add(s.url), true)));
 }

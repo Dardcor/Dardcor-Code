@@ -71,12 +71,6 @@ async function showReleaseNotes(accessor: ServicesAccessor, version: string) {
 	}
 }
 
-/**
- * Appends update-related menu items to the given menu. This registers menu items
- * for all update states (idle, checking, downloading, etc.) that show the current
- * update status. The underlying commands (`update.check`, `update.restart`, etc.)
- * must be registered separately.
- */
 export function appendUpdateMenuItems(menuId: MenuId, group: string): void {
 	MenuRegistry.appendMenuItem(menuId, {
 		group,
@@ -190,7 +184,6 @@ export class ProductContribution implements IWorkbenchContribution {
 			const shouldShowPostInstallInfo = configurationService.getValue<boolean>('update.showPostInstallInfo');
 			const releaseNotesUrl = productService.releaseNotesUrl;
 
-			// was there a major/minor update? if so, open release notes (unless post-install info is enabled, which takes over)
 			if (shouldShowReleaseNotes && !shouldShowPostInstallInfo && !environmentService.skipReleaseNotes && releaseNotesUrl && lastVersion && currentVersion && isMajorMinorUpdate(lastVersion, currentVersion)) {
 				showReleaseNotesInEditor(instantiationService, activeVersion, false)
 					.then(undefined, () => {
@@ -239,18 +232,10 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 		this._register(updateService.onStateChange(this.onUpdateStateChange, this));
 		this.onUpdateStateChange(this.updateService.state);
 
-		/*
-		The `update/lastKnownVersion` and `update/updateNotificationTime` storage keys are used in
-		combination to figure out when to show a message to the user that he should update.
-
-		This message should appear if the user has received an update notification but hasn't
-		updated since 5 days.
-		*/
 
 		const currentVersion = this.productService.commit;
 		const lastKnownVersion = storageService.get('update/lastKnownVersion', StorageScope.APPLICATION);
 
-		// if current version != stored version, clear both fields
 		if (currentVersion !== lastKnownVersion) {
 			storageService.remove('update/lastKnownVersion', StorageScope.APPLICATION);
 			storageService.remove('update/updateNotificationTime', StorageScope.APPLICATION);
@@ -264,7 +249,6 @@ export class UpdateContribution extends Disposable implements IWorkbenchContribu
 
 		switch (state.type) {
 			case StateType.Idle:
-				// Themed dialog shown from the last focused window; the windowless macOS case is handled by the main process.
 				if (state.notAvailable && !state.error && await this.hostService.hadLastFocus()) {
 					this.dialogService.info(nls.localize('noUpdatesAvailable', "There are currently no updates available."));
 				}
@@ -397,7 +381,6 @@ export class SwitchProductQualityContribution extends Disposable implements IWor
 							}
 							storageService.store(selectSettingsSyncServiceDialogShownKey, true, StorageScope.APPLICATION, StorageTarget.USER);
 							if (userDataSyncStoreType === 'stable') {
-								// Update the stable service type in the current window, so that it uses stable service after switched to insiders version (after reload).
 								await userDataSyncStoreManagementService.switch(userDataSyncStoreType);
 							}
 						}
@@ -414,12 +397,10 @@ export class SwitchProductQualityContribution extends Disposable implements IWor
 						if (res.confirmed) {
 							const promises: Promise<unknown>[] = [];
 
-							// If sync is happening wait until it is finished before reload
 							if (userDataSyncService.status === SyncStatus.Syncing) {
 								promises.push(Event.toPromise(Event.filter(userDataSyncService.onDidChangeStatus, status => status !== SyncStatus.Syncing)));
 							}
 
-							// If user chose the sync service then synchronise the store type option in insiders service, so that other clients using insiders service are also updated.
 							if (isSwitchingToInsiders && userDataSyncStoreType) {
 								promises.push(userDataSyncWorkbenchService.synchroniseUserDataSyncStoreType());
 							}
@@ -428,7 +409,6 @@ export class SwitchProductQualityContribution extends Disposable implements IWor
 
 							productQualityChangeHandler(newQuality);
 						} else {
-							// Reset
 							if (userDataSyncStoreType) {
 								storageService.remove(selectSettingsSyncServiceDialogShownKey, StorageScope.APPLICATION);
 							}
@@ -476,16 +456,14 @@ export class DefaultAccountUpdateContribution extends Disposable implements IWor
 		super();
 
 		if (isWeb) {
-			return; // Electron only
+			return;
 		}
 
 		this.#internalOrg = this.storageService.get(DefaultAccountUpdateContribution.STORAGE_KEY, StorageScope.APPLICATION, undefined);
 		this.throttler.queue(() => this.updateService.setInternalOrg(this.#internalOrg));
 
-		// Check on startup
 		this.refresh();
 
-		// Listen for account changes
 		this._register(this.defaultAccountService.onDidChangeDefaultAccount(() => this.refresh()));
 	}
 
@@ -511,7 +489,6 @@ export class DefaultAccountUpdateContribution extends Disposable implements IWor
 				this.storageService.remove(DefaultAccountUpdateContribution.STORAGE_KEY, StorageScope.APPLICATION);
 			}
 		} catch (error) {
-			// Silently ignore errors - if we can't get the account, we don't disable background updates
 		}
 	}
 }

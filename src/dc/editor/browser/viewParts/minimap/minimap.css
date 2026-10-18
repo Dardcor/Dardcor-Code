@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* START cover the case that slider is visible on mouseover */
 .monaco-editor .minimap.slider-mouseover .minimap-slider {
 	opacity: 0;
 	transition: opacity 100ms linear;
@@ -14,7 +13,6 @@
 .monaco-editor .minimap.slider-mouseover .minimap-slider.active {
 	opacity: 1;
 }
-/* END cover the case that slider is visible on mouseover */
 .monaco-editor .minimap-slider .minimap-slider-horizontal {
 	background: var(--vscode-minimapSlider-background);
 }
@@ -43,7 +41,6 @@
 	width: 1px;
 }
 
-/* 0.5s fade in/out for the minimap */
 .minimap.minimap-autohide-mouseover,
 .minimap.minimap-autohide-scroll {
 	opacity: 0;

@@ -10,8 +10,7 @@ import { Button } from '../../../../../base/browser/ui/button/button.js';
 import { IAnchor } from '../../../../../base/browser/ui/contextview/contextview.js';
 import { renderIcon } from '../../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import { CancellationTokenSource } from '../../../../../base/common/cancellation.js';
-import { Disposable, DisposableMap, DisposableStore, MutableDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { AnchorPosition } from '../../../../../base/common/layout.js';
 import { KeyCode } from '../../../../../base/common/keyCodes.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
@@ -45,8 +44,6 @@ import { ChatSessionRoutingController, IChatSessionRoutingHost } from '../sessio
 import { combineVoiceInput } from '../voiceClient/voiceInputUtils.js';
 import { IChatInputWindowService, ChatInputWindowStorageKeys, CHAT_INPUT_WINDOW_DEFAULT_HEIGHT, CHAT_INPUT_WINDOW_SET_VOICE_TARGET_COMMAND_ID } from '../../common/chatInputWindow.js';
 import { autorun, IReader, observableValue } from '../../../../../base/common/observable.js';
-import { AgentSessionStatus } from '../agentSessions/agentSessionsModel.js';
-import { IAgentSessionsService } from '../agentSessions/agentSessionsService.js';
 import { IVoiceSessionController } from '../voiceClient/voiceSessionController.js';
 import { IMicCaptureService } from '../voiceClient/micCaptureService.js';
 import { ITtsPlaybackService } from '../voiceClient/ttsPlaybackService.js';
@@ -56,7 +53,6 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';
 import { IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { OmniChatEnabledSettingId } from '../../common/sessionRouter.js';
-import { AgentSessionProviders } from '../agentSessions/agentSessions.js';
 import { derivePendingId, getVoiceToolApprovalCommand, isPendingIdResolved, markPendingIdResolved } from '../../common/voiceClient/voiceClientService.js';
 import { ConfirmationOptionKind } from '../../../../../platform/agentHost/common/state/protocol/state.js';
 
@@ -83,12 +79,6 @@ function getDescendantElements(parent: HTMLElement, className?: string): HTMLEle
 	return result;
 }
 
-/**
- * Hosts a frameless, always-on-top auxiliary window containing the full chat
- * input box — dictation, voice mode, and the glow animation. Submissions are
- * intercepted and routed to the best-matching existing session (or a new one)
- * via the shared {@link ChatSessionRoutingController}.
- */
 export class ChatInputWindowService extends Disposable implements IChatInputWindowService {
 
 	declare readonly _serviceBrand: undefined;
@@ -106,13 +96,10 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 	private _activePendingSessionResource: URI | undefined;
 	private readonly _voiceConfirmationPending = observableValue(this, false);
 	private _fitWindowToContent: () => void = () => { };
-	/** The single input row; routing results are inserted immediately after it. */
 	private _row: HTMLElement | undefined;
 	private _lead: HTMLElement | undefined;
 	private _trail: HTMLElement | undefined;
-	/** Shared routing + advisory-badge behaviour; recreated per widget, torn down on close. */
 	private _routingController: ChatSessionRoutingController | undefined;
-	/** In-flight `openWindow()` operation, so concurrent toggles stay idempotent. */
 	private _openOperation: Promise<void> | undefined;
 	private _desiredOpen = false;
 	private readonly _ownershipId = mainWindow.crypto.randomUUID();
@@ -123,7 +110,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 	private _actionWidgetOpenOperation: Promise<void> | undefined;
 	private _actionWidgetOwner: IAuxiliaryWindow | undefined;
 	private _actionWidgetWindowAnchorY = 0;
-	/** Immutable bounds of the window that invoked omni, captured before service resolution. */
 	private _invokingWindowBounds: IRectangle = this._windowBounds(mainWindow);
 
 	get isOpen(): boolean {
@@ -143,7 +129,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IChatService private readonly chatService: IChatService,
 		@ICommandService private readonly commandService: ICommandService,
-		@IAgentSessionsService private readonly agentSessionsService: IAgentSessionsService,
 		@ILogService private readonly logService: ILogService,
 		@IVoiceSessionController private readonly voiceSessionController: IVoiceSessionController,
 		@IMicCaptureService private readonly micCaptureService: IMicCaptureService,
@@ -205,7 +190,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		if (this._window) {
 			return;
 		}
-		// Coalesce concurrent open/toggle calls so we never create two aux windows.
 		if (this._openOperation) {
 			return this._openOperation;
 		}
@@ -288,10 +272,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		applyThemeColors();
 		this._windowDisposables.add(this.themeService.onDidColorThemeChange(() => applyThemeColors()));
 
-		// Host the real chat input (dictation, voice mode, glow) by rendering a
-		// compact ChatWidget. The response list is filtered out so only the input
-		// box shows. Submission is intercepted via submitHandler (the routing
-		// seam) and routed to the best-matching existing session.
 		this._renderChatWidget(auxiliaryWindow, row, bounds);
 		const pendingActiveWindowSync = this._windowDisposables.add(new MutableDisposable());
 		this._windowDisposables.add(autorun(reader => {
@@ -324,8 +304,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		}));
 		this._renderPendingPrompts(auxiliaryWindow);
 
-		// Clean up when the user closes the window via OS controls. Guard by window
-		// identity so a stale unload after a quick reopen can't tear down the new one.
 		Event.once(auxiliaryWindow.onUnload)(() => {
 			if (this._window !== auxiliaryWindow) {
 				return;
@@ -353,7 +331,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		this._storeWindowPosition(this._window);
 		this.storageService.store(ChatInputWindowStorageKeys.WindowOpen, false, StorageScope.WORKSPACE, StorageTarget.MACHINE);
 
-		// Cancel any in-flight submission so routing can't dispatch after close.
 		this._routingController?.cancelPending();
 		this._disposeWidget();
 		this._window = undefined;
@@ -388,17 +365,11 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 	}
 
 	private _renderChatWidget(auxiliaryWindow: IAuxiliaryWindow, row: HTMLElement, openingBounds: IRectangle): void {
-		// The glow CSS keys off `.monaco-workbench .interactive-session
-		// .chat-input-container` - the aux container already tracks the
-		// `monaco-workbench` class, so we only need the `.interactive-session`
-		// wrapper here.
 		const parent = dom.append(row, dom.$('.interactive-session'));
 		parent.style.flex = '1 1 auto';
 		parent.style.minWidth = '0';
 
 		const scopedContextKeyService = this._windowDisposables.add(this.contextKeyService.createScoped(parent));
-		// Mark this surface so its dedicated accessibility help (routing + how to
-		// close) takes precedence over the generic Quick Chat help.
 		ChatContextKeys.inChatInputWindow.bindTo(scopedContextKeyService).set(true);
 		const scopedInstantiationService = this._windowDisposables.add(this.instantiationService.createChild(
 			new ServiceCollection([
@@ -416,14 +387,10 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 				renderInputOnTop: true,
 				renderStyle: 'compact',
 				renderGettingStartedTip: false,
-				// Show only the input box — drop every response list item.
 				filter: () => false,
 				enableImplicitContext: false,
 				defaultMode: ChatMode.Agent,
 				menus: { telemetrySource: 'chatInputWindow' },
-				// Routing seam: intercept submission before local execution and
-				// route it to the best-matching existing session (or a new one),
-				// forwarding any explicit attachments on the input.
 				submitHandler: (query, mode, attachedContext, isVoiceModeInput) => this._routingController?.handleSubmit(query, mode, attachedContext, isVoiceModeInput) ?? Promise.resolve(false),
 				onDidChangeModelPickerVisibility: (visible: boolean) => this._setModelPickerVisible(auxiliaryWindow, visible),
 				inputPickerPosition: AnchorPosition.BELOW,
@@ -471,14 +438,11 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 
 		let fitWindowToInput = () => { };
 
-		// Route submissions through the shared controller, inserting its advisory
-		// panel below the input and excluding this window's scratch session from
-		// the routing candidates so it can never route to itself.
 		const host: IChatSessionRoutingHost = {
 			widget,
 			getOwnSessionResource: () => this._modelRef?.object.sessionResource,
 			getPendingReplySessionResource: () => this._activePendingSessionResource,
-			getNewSessionTarget: () => AgentSessionProviders.AgentHostCopilot,
+			getNewSessionTarget: () => 'agentHostCopilot',
 			onWillRoute: () => this.voiceSessionController.prepareForRoutingRequest(),
 			onWillDispatchRoute: resource => this.voiceSessionController.markRoutedRequestPending(resource),
 			onDidRejectRoute: resource => this.voiceSessionController.clearRoutedRequest(resource),
@@ -512,13 +476,8 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		};
 		this._routingController = this._windowDisposables.add(this.instantiationService.createInstance(ChatSessionRoutingController, host, 'chatInputWindow'));
 
-		// Fit the frameless window to the widget's own content and any routing
-		// panel below it. Measuring the input container itself includes the
-		// height the host assigned and creates a feedback loop with empty space.
 		let lastContentHeight: number | undefined;
 		let didInitialPosition = false;
-		// Renderer screen coordinates lag native moves, so retain the requested
-		// position until each queued bounds update has completed.
 		let currentPosition = { x: openingBounds.x, y: openingBounds.y };
 		let pendingBounds: IRectangle | undefined;
 		let applyingBounds = false;
@@ -601,23 +560,15 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		this._windowDisposables.add(widget.onDidChangeContentHeight(() => fitWindowToInput()));
 		const scheduledInputLayout = this._windowDisposables.add(new MutableDisposable());
 		this._windowDisposables.add(widget.inputEditor.onDidChangeModelContent(() => {
-			// Submit controls change after the editor event; measure them in the
-			// next frame so the editor yields space before they can cover close.
 			scheduledInputLayout.value = dom.scheduleAtNextAnimationFrame(auxiliaryWindow.window, () => layout());
 		}));
 
 		this._windowDisposables.add(dom.scheduleAtNextAnimationFrame(auxiliaryWindow.window, () => {
 			layout();
-			// Focus the input only after the window has been positioned: the
-			// `moveTo`/`resizeTo` above blur the editor, so focusing in a
-			// follow-up frame (after the OS window is settled and keyed) is what
-			// makes the caret actually render.
 			this._windowDisposables.add(dom.scheduleAtNextAnimationFrame(auxiliaryWindow.window, () => {
 				widget.focusInput();
 			}));
 		}));
-		// Refresh editor focus and transfer the voice capture lease back to omni
-		// when an in-progress omni turn regains OS focus.
 		this._windowDisposables.add(dom.addDisposableListener(auxiliaryWindow.window, 'focus', () => {
 			widget.focusInput();
 			if (this.voiceSessionController.omniInputActive.get()) {
@@ -751,8 +702,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 			}
 		));
 		widget.render(parent);
-		// Tool approvals and questions are rendered in ChatInputPart rather than
-		// the response list. Keep it mounted; CSS hides only the editor chrome.
 		widget.setInputVisible(true);
 		widget.setVisible(true);
 		const list = widget.transcriptDomNode;
@@ -823,9 +772,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 					: renderedContentHeight || widget.contentHeight;
 				const minimumHeight = isQuestion ? 1 : CHAT_INPUT_WINDOW_MIN_CONFIRMATION_HEIGHT;
 				const measuredHeight = Math.min(CHAT_INPUT_WINDOW_MAX_PENDING_HEIGHT, Math.max(minimumHeight, Math.ceil(contentHeight)));
-				// Approval content (diff summaries, risk badges, button rows) can
-				// render after the first frame. Grow to accommodate it, but never
-				// shrink this prompt and re-enter a resize oscillation.
 				const height = isQuestion
 					? measuredHeight
 					: Math.max(lastPendingHeight ?? 0, measuredHeight);
@@ -838,8 +784,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 				if (isQuestion && heightChanged) {
 					widget.layout(height, width);
 				} else if (!panel.classList.contains('question') && height > confirmationWidgetLayoutHeight) {
-					// Keep the virtual row constrained below the input/header, and
-					// allow only monotonic growth when approval details render late.
 					confirmationWidgetLayoutHeight = height;
 					widget.layout(height, width);
 					scheduleLayout();
@@ -909,11 +853,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 			}
 			widget.setModel(model);
 			if (pendingApproval && omniVoiceActive && pendingApproval.occurrence !== lastActivatedApproval) {
-				// The pending card is the most direct observation that this exact
-				// approval is visible in omni. Activate it once so a coalesced/missed
-				// session-state transition cannot leave hands-free mode listening over
-				// an unannounced confirmation. Voice narration dedup is occurrence-based,
-				// so the normal state-change path and this UI path remain exactly-once.
 				lastActivatedApproval = pendingApproval.occurrence;
 				this.voiceSessionController.activateSession(model.sessionResource);
 			}
@@ -927,7 +866,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 		pendingMutationObserver.observe(widget.domNode, { childList: true, subtree: true, attributes: true });
 		this._windowDisposables.add(toDisposable(() => pendingMutationObserver.disconnect()));
 		this._windowDisposables.add(dom.addDisposableListener(auxiliaryWindow.window, 'resize', scheduleLayout));
-		this._loadPendingSessionModels();
 		this._windowDisposables.add(autorun(reader => {
 			this.voiceSessionController.omniInputActive.read(reader);
 			const currentResource = pendingModels[this._pendingPromptIndex]?.sessionResource.toString();
@@ -943,50 +881,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 				: -1;
 			showPendingModel(preservedIndex >= 0 ? preservedIndex : Math.min(this._pendingPromptIndex, pendingModels.length - 1));
 		}));
-	}
-
-	private _loadPendingSessionModels(): void {
-		const refs = this._windowDisposables.add(new DisposableMap<string, IChatModelReference>());
-		const loads = new Set<string>();
-		const cts = new CancellationTokenSource();
-		this._windowDisposables.add(toDisposable(() => cts.dispose(true)));
-		const update = async () => {
-			const pendingSessions = this.agentSessionsService.model.sessions
-				.filter(session => !session.isArchived() && session.status === AgentSessionStatus.NeedsInput);
-			const pendingKeys = new Set(pendingSessions.map(session => session.resource.toString()));
-			for (const key of refs.keys()) {
-				if (!pendingKeys.has(key)) {
-					refs.deleteAndDispose(key);
-				}
-			}
-			await Promise.all(pendingSessions.map(async session => {
-				const key = session.resource.toString();
-				if (this.chatService.getSession(session.resource) || refs.has(key) || loads.has(key)) {
-					return;
-				}
-				loads.add(key);
-				try {
-					const ref = await this.chatService.acquireOrLoadSession(session.resource, ChatAgentLocation.Chat, cts.token, 'ChatInputWindow-pending');
-					if (!ref) {
-						return;
-					}
-					if (cts.token.isCancellationRequested || !this.agentSessionsService.model.sessions.some(candidate =>
-						candidate.resource.toString() === key && candidate.status === AgentSessionStatus.NeedsInput && !candidate.isArchived())) {
-						ref.dispose();
-						return;
-					}
-					refs.set(key, ref);
-				} catch (error) {
-					if (!cts.token.isCancellationRequested) {
-						this.logService.warn(`[chatInputWindow] Failed to load pending session ${key}:`, error);
-					}
-				} finally {
-					loads.delete(key);
-				}
-			}));
-		};
-		this._windowDisposables.add(this.agentSessionsService.model.onDidChangeSessions(() => void update()));
-		void update();
 	}
 
 	private _appendPendingNavigationButton(container: HTMLElement, icon: ThemeIcon, ariaLabel: string): HTMLElement {
@@ -1184,9 +1078,6 @@ export class ChatInputWindowService extends Disposable implements IChatInputWind
 	}
 
 	private _defaultBounds(): IRectangle {
-		// Match Quick Chat's width so the model-detail hover has room to sit
-		// beside the picker: golden-cut of the invoking window, capped like the
-		// quick input widget (MAX_WIDTH = 600).
 		const width = this._defaultWidth();
 		return this._positionedBounds(width, CHAT_INPUT_WINDOW_DEFAULT_HEIGHT);
 	}

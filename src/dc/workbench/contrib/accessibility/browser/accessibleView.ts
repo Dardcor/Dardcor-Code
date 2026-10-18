@@ -310,7 +310,6 @@ export class AccessibleView extends Disposable {
 			onHide: () => {
 				if (!showAccessibleViewHelp) {
 					this._updateLastProvider();
-					// Save cursor position before disposing so it can be restored on reopen
 					if (this._currentProvider) {
 						const currentPosition = this._editorWidget.getPosition();
 						if (currentPosition) {
@@ -326,7 +325,6 @@ export class AccessibleView extends Disposable {
 		this._contextViewService.showContextView(delegate);
 
 		if (position) {
-			// Context view takes time to show up, so we need to wait for it to show up before we can set the position
 			queueMicrotask(() => {
 				this._editorWidget.revealLine(position.lineNumber);
 				this._editorWidget.setSelection({ startLineNumber: position.lineNumber, startColumn: position.column, endLineNumber: position.lineNumber, endColumn: position.column });
@@ -345,7 +343,6 @@ export class AccessibleView extends Disposable {
 			}));
 		}
 		if (provider.options.id) {
-			// only cache a provider with an ID so that it will eventually be cleared.
 			this._lastProvider = provider;
 		}
 		if (provider.id === AccessibleViewProviderId.PanelChat || provider.id === AccessibleViewProviderId.QuickChat) {
@@ -400,7 +397,6 @@ export class AccessibleView extends Disposable {
 			return;
 		}
 		if (this._currentProvider.options.language && this._currentProvider.options.language !== 'markdown') {
-			// Symbols haven't been provided and we cannot parse this language
 			return;
 		}
 		const lines = markdown.split('\n');
@@ -434,7 +430,6 @@ export class AccessibleView extends Disposable {
 			return symbols;
 		}
 		if (provider.options.language && provider.options.language !== 'markdown') {
-			// Symbols haven't been provided and we cannot parse this language
 			return;
 		}
 		const markdownTokens: marked.TokensList | undefined = marked.marked.lexer(this._currentContent);
@@ -517,13 +512,10 @@ export class AccessibleView extends Disposable {
 		let lineNumber: number | undefined = symbol.lineNumber;
 		const markdownToParse = symbol.markdownToParse;
 		if (lineNumber === undefined && markdownToParse === undefined) {
-			// No symbols provided and we cannot parse this language
 			return;
 		}
 
 		if (lineNumber === undefined && markdownToParse) {
-			// Note that this scales poorly, thus isn't used for worst case scenarios like the terminal, for which a line number will always be provided.
-			// Parse the markdown to find the line number
 			const index = this._currentContent.split('\n').findIndex(line => line.includes(markdownToParse.split('\n')[0]) || (symbol.firstListItem && line.includes(symbol.firstListItem))) ?? -1;
 			if (index >= 0) {
 				lineNumber = index + 1;
@@ -613,8 +605,6 @@ export class AccessibleView extends Disposable {
 			if (!model) {
 				return;
 			}
-			// Update the content of the existing model instead of creating a new one
-			// This preserves the cursor position when content changes
 			const currentContent = this._currentContent ?? '';
 			if (model.getValue() !== currentContent) {
 				model.setValue(currentContent);
@@ -641,8 +631,6 @@ export class AccessibleView extends Disposable {
 				ariaLabel = localize('accessibility-help-hint', "Accessibility Help, {0}", actionsHint);
 			}
 			if (isWindows && widgetIsFocused) {
-				// prevent the screen reader on windows from reading
-				// the aria label again when it's refocused
 				ariaLabel = '';
 			}
 			this._editorWidget.updateOptions({ ariaLabel });
@@ -657,9 +645,6 @@ export class AccessibleView extends Disposable {
 					: this._currentProvider.options.position === 'initial-bottom' && !isSameProvider ? savedPosition : undefined;
 				if (preservedPosition && preservedPosition.lineNumber <= (lineCount ?? 0)) {
 					this._editorWidget.setPosition(preservedPosition);
-					// When always preserving the cursor position, keep the current scroll
-					// position on content updates instead of revealing the cursor, which
-					// would cause the view to jump while the user is scrolling.
 					if (this._currentProvider.options.position === 'initial-bottom-preserve' && previousScrollTop !== undefined) {
 						this._editorWidget.setScrollTop(previousScrollTop);
 					} else {
@@ -676,11 +661,9 @@ export class AccessibleView extends Disposable {
 			} else if (previousPosition) {
 				this._editorWidget.setPosition(previousPosition);
 			} else {
-				// Restore the saved position for this provider if available (e.g., after close and reopen)
 				const savedPosition = this._lastProviderPosition.get(provider.id);
 				if (savedPosition) {
 					const lineCount = this._editorWidget.getModel()?.getLineCount() ?? 0;
-					// Only restore if the saved position is still valid within the current content
 					if (savedPosition.lineNumber <= lineCount) {
 						this._editorWidget.setPosition(savedPosition);
 						this._editorWidget.revealPosition(savedPosition);
@@ -693,7 +676,6 @@ export class AccessibleView extends Disposable {
 		const hide = (e?: KeyboardEvent | IKeyboardEvent): void => {
 			const thisWindowIsFocused = getWindow(this._editorWidget.getDomNode()).document.hasFocus();
 			if (!thisWindowIsFocused) {
-				// When switching windows, keep accessible view open
 				e?.preventDefault();
 				e?.stopPropagation();
 				return;
@@ -707,7 +689,6 @@ export class AccessibleView extends Disposable {
 				return;
 			}
 			this._updateContextKeys(provider, false);
-			// Save the cursor position for this provider so it can be restored on reopen
 			const currentPosition = this._editorWidget.getPosition();
 			if (currentPosition) {
 				this._lastProviderPosition.set(provider.id, currentPosition);
@@ -778,7 +759,6 @@ export class AccessibleView extends Disposable {
 		if (existing && !existing.isDisposed()) {
 			return existing;
 		}
-		// Create an empty model - content will be set via setValue() to preserve cursor position
 		return this._modelService.createModel('', null, resource, false);
 	}
 
@@ -834,7 +814,6 @@ export class AccessibleView extends Disposable {
 				() => lastProvider.options.customHelp ? lastProvider?.options.customHelp() : this._accessibleViewHelpDialogContent(this._goToSymbolsSupported()),
 				() => {
 					this._contextViewService.hideContextView();
-					// HACK: Delay to allow the context view to hide #207638
 					queueMicrotask(() => this.show(lastProvider));
 				},
 				lastProvider.verbositySettingKey
@@ -846,13 +825,11 @@ export class AccessibleView extends Disposable {
 				() => lastProvider.options.customHelp ? lastProvider?.options.customHelp() : this._accessibleViewHelpDialogContent(this._goToSymbolsSupported()),
 				() => {
 					this._contextViewService.hideContextView();
-					// HACK: Delay to allow the context view to hide #207638
 					queueMicrotask(() => this.show(lastProvider));
 				},
 			);
 		}
 		this._contextViewService.hideContextView();
-		// HACK: Delay to allow the context view to hide #186514
 		if (accessibleViewHelpProvider) {
 			queueMicrotask(() => this.show(accessibleViewHelpProvider, undefined, true));
 		}
@@ -1052,7 +1029,6 @@ class AccessibleViewSymbolQuickPick {
 		}));
 		disposables.add(quickPick.onDidHide(() => {
 			if (quickPick.selectedItems.length === 0) {
-				// this was escaped, so refocus the accessible view
 				this._accessibleView.show(provider);
 			}
 			disposables.dispose();

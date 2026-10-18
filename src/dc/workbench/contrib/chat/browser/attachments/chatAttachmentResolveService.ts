@@ -62,7 +62,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		@IBrowserViewWorkbenchService private browserViewService: IBrowserViewWorkbenchService,
 	) { }
 
-	// --- EDITORS ---
 
 	public async resolveEditorAttachContext(editor: EditorInput | IDraggedResourceEditorInput): Promise<IChatRequestVariableEntry | undefined> {
 		if (!(editor instanceof EditorInput) && editor.options?.override === BrowserEditorInput.EDITOR_ID) {
@@ -73,7 +72,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 			editor = browserEditor;
 		}
 
-		// untitled editor
 		if (isUntitledResourceEditorInput(editor)) {
 			return await this.resolveUntitledEditorAttachContext(editor);
 		}
@@ -107,12 +105,10 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 	}
 
 	public async resolveUntitledEditorAttachContext(editor: IDraggedResourceEditorInput): Promise<IChatRequestVariableEntry | undefined> {
-		// If the resource is known, we can use it directly
 		if (editor.resource) {
 			return await this.resolveResourceAttachContext(editor.resource, false);
 		}
 
-		// Otherwise, we need to check if the contents are already open in another editor
 		const openUntitledEditors = this.editorService.editors.filter(editor => editor instanceof UntitledTextEditorInput) as UntitledTextEditorInput[];
 		for (const canidate of openUntitledEditors) {
 			const model = await canidate.resolve();
@@ -150,7 +146,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 			return undefined;
 		}
 
-		// Ensure the model is resolved so we can prompt for sharing
 		if (!editor.model) {
 			await editor.resolve();
 		}
@@ -162,11 +157,10 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 			return undefined;
 		}
 
-		// Prompt user to share the page with the agent if not already shared
 		if (model.sharingState === BrowserViewSharingState.Available) {
 			const sharedModel = await model.setSharedWithAgent(true);
 			if (!sharedModel) {
-				return undefined; // User denied sharing
+				return undefined;
 			}
 			model = sharedModel;
 		}
@@ -185,7 +179,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		};
 	}
 
-	// --- IMAGES ---
 
 	public async resolveImageEditorAttachContext(resource: URI, data?: VSBuffer, mimeType?: string): Promise<IChatRequestVariableEntry | undefined> {
 		if (!resource) {
@@ -220,7 +213,7 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 
 			const readFile = await this.fileService.readFile(resource);
 
-			if (stat.size > 30 * 1024 * 1024) { // 30 MB
+			if (stat.size > 30 * 1024 * 1024) {
 				this.dialogService.error(localize('imageTooLarge', 'Image is too large'), localize('imageTooLargeMessage', 'The image {0} is too large to be attached.', fileName));
 				throw new Error('Image is too large');
 			}
@@ -257,7 +250,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		})));
 	}
 
-	// --- MARKERS ---
 
 	public resolveMarkerAttachContext(markers: MarkerTransferData[]): IDiagnosticVariableEntry[] {
 		return markers.map((marker): IDiagnosticVariableEntry => {
@@ -272,7 +264,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		});
 	}
 
-	// --- SYMBOLS ---
 
 	public resolveSymbolsAttachContext(symbols: DocumentSymbolTransferData[]): ISymbolVariableEntry[] {
 		return symbols.map(symbol => {
@@ -289,7 +280,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		});
 	}
 
-	// --- NOTEBOOKS ---
 
 	public resolveNotebookOutputAttachContext(data: NotebookCellOutputTransferData): IChatRequestVariableEntry[] {
 		const notebookEditor = getNotebookEditorFromEditorPane(this.editorService.activeEditorPane);
@@ -316,7 +306,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		return [];
 	}
 
-	// --- DIRECTORIES ---
 
 	public async resolveDirectoryImages(directoryUri: URI): Promise<IChatRequestVariableEntry[]> {
 		const imageEntries: IChatRequestVariableEntry[] = [];
@@ -347,7 +336,7 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 						if (entry) {
 							results.push(entry);
 						}
-					}).catch(() => { /* skip unreadable images */ })
+					}).catch(() => { })
 				);
 			}
 		}
@@ -355,7 +344,6 @@ export class ChatAttachmentResolveService implements IChatAttachmentResolveServi
 		await Promise.all(childPromises);
 	}
 
-	// --- SOURCE CONTROL ---
 
 	public resolveSourceControlHistoryItemAttachContext(data: SCMHistoryItemTransferData[]): ISCMHistoryItemVariableEntry[] {
 		return data.map(d => ({

@@ -13,26 +13,14 @@ suite('cancelPreviousCalls decorator', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
 	class MockDisposable extends Disposable {
-		/**
-		 * Arguments that the {@linkcode doSomethingAsync} method was called with.
-		 */
 		private readonly callArgs1: ([number, string, CancellationToken | undefined])[] = [];
 
-		/**
-		 * Arguments that the {@linkcode doSomethingElseAsync} method was called with.
-		 */
 		private readonly callArgs2: ([number, string, CancellationToken | undefined])[] = [];
 
-		/**
-		 * Returns the arguments that the {@linkcode doSomethingAsync} method was called with.
-		 */
 		public get callArguments1() {
 			return this.callArgs1;
 		}
 
-		/**
-		 * Returns the arguments that the {@linkcode doSomethingElseAsync} method was called with.
-		 */
 		public get callArguments2() {
 			return this.callArgs2;
 		}

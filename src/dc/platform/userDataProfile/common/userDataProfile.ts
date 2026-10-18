@@ -33,9 +33,6 @@ export const enum ProfileResourceType {
 	LanguageModels = 'languageModels',
 }
 
-/**
- * Flags to indicate whether to use the default profile or not.
- */
 export type UseDefaultProfileFlags = { [key in ProfileResourceType]?: boolean };
 export type ProfileResourceTypeFlags = UseDefaultProfileFlags;
 export type SettingValue = string | boolean | number | undefined | null | object;
@@ -611,7 +608,6 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 		const profiles: IUserDataProfile[] = [];
 
 		for (let profile of allProfiles) {
-			// removed
 			if (removed.some(p => profile.id === p.id)) {
 				for (const windowId of [...this.profilesObject.emptyWindows.keys()]) {
 					if (profile.id === this.profilesObject.emptyWindows.get(windowId)?.id) {
@@ -628,7 +624,6 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 					this.transientProfilesObject.profiles.push(profile);
 				} else {
 					if (transientProfile) {
-						// Move the empty window associations from the transient profile to the persisted profile
 						for (const [windowId, p] of this.transientProfilesObject.emptyWindows.entries()) {
 							if (profile.id === p.id) {
 								this.transientProfilesObject.emptyWindows.delete(windowId);
@@ -659,7 +654,6 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 	}
 
 	private updateEmptyWindowAssociation(windowId: string, newProfile: IUserDataProfile | undefined, transient: boolean): void {
-		// Force transient if the new profile to associate is transient
 		transient = newProfile?.isTransient ? true : transient;
 
 		if (transient) {
@@ -671,7 +665,6 @@ export class UserDataProfilesService extends Disposable implements IUserDataProf
 		}
 
 		else {
-			// Unset the transiet association if any
 			this.transientProfilesObject.emptyWindows.delete(windowId);
 			if (newProfile) {
 				this.profilesObject.emptyWindows.set(windowId, newProfile);

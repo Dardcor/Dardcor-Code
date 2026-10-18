@@ -71,4 +71,4 @@ export class EmptyCellEditorHintContribution extends EmptyTextEditorHintContribu
 	}
 }
 
-registerEditorContribution(EmptyCellEditorHintContribution.CONTRIB_ID, EmptyCellEditorHintContribution, EditorContributionInstantiation.Eager); // eager because it needs to render a help message
+registerEditorContribution(EmptyCellEditorHintContribution.CONTRIB_ID, EmptyCellEditorHintContribution, EditorContributionInstantiation.Eager);

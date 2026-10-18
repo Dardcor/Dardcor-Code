@@ -20,8 +20,8 @@ export const ExtensionEditToolId = 'vscode_editFile';
 export const InternalEditToolId = 'vscode_editFile_internal';
 export const EditToolData: IToolData = {
 	id: InternalEditToolId,
-	displayName: '', // not used
-	modelDescription: '', // Not used
+	displayName: '',
+	modelDescription: '',
 	source: ToolDataSource.Internal,
 };
 
@@ -64,7 +64,6 @@ export class EditTool implements IToolImpl {
 			kind: 'markdownContent',
 			content: new MarkdownString('\n````\n')
 		});
-		// Signal start.
 		if (this.notebookService.hasSupportedNotebooks(uri) && (this.notebookService.getNotebookTextModel(uri))) {
 			model.acceptResponseProgress(request, {
 				kind: 'notebookEdit',
@@ -99,7 +98,6 @@ export class EditTool implements IToolImpl {
 			},
 		}, token);
 
-		// Signal end.
 		if (this.notebookService.hasSupportedNotebooks(uri) && (this.notebookService.getNotebookTextModel(uri))) {
 			model.acceptResponseProgress(request, { kind: 'notebookEdit', uri, edits: [], done: true });
 		} else {
@@ -112,8 +110,6 @@ export class EditTool implements IToolImpl {
 
 		let dispose: IDisposable;
 		await new Promise((resolve) => {
-			// The file will not be modified until the first edits start streaming in,
-			// so wait until we see that it _was_ modified before waiting for it to be done.
 			let wasFileBeingModified = false;
 
 			dispose = autorun((r) => {

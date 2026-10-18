@@ -61,7 +61,6 @@ suite('ExternalUriOpenerService', () => {
 
 		externalUriOpenerService.registerExternalOpenerProvider(new class implements IExternalOpenerProvider {
 			async *getOpeners(_targetUri: URI): AsyncGenerator<IExternalUriOpener> {
-				// noop
 			}
 		});
 

@@ -42,10 +42,6 @@ export class ElementSizeObserver extends Disposable {
 
 	public startObserving(): void {
 		if (!this._resizeObserver && this._referenceDomElement) {
-			// We want to react to the resize observer only once per animation frame
-			// The first time the resize observer fires, we will react to it immediately.
-			// Otherwise we will postpone to the next animation frame.
-			// We'll use `observeContentRect` to store the content rect we received.
 
 			let observedDimension: IDimension | null = null;
 			const observeNow = () => {

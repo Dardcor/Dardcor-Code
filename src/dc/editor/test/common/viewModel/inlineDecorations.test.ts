@@ -287,7 +287,7 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		const context: IInjectedTextInlineDecorationsComputerContext = {
 			getInjectionOptions: () => injectionOptions,
 			getInjectionOffsets: () => [5],
-			getBreakOffsets: () => [18], // 10 (original) + 8 (injected)
+			getBreakOffsets: () => [18],
 			getWrappedTextIndentLength: () => 0,
 			getBaseViewLineNumber: () => 1,
 		};
@@ -312,7 +312,7 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		const computer = new InjectedTextInlineDecorationsComputer(context);
 		const result = computer.getInlineDecorations(1);
 		assert.deepStrictEqual(result, [
-			[] // empty - no inlineClassName
+			[]
 		]);
 	});
 
@@ -323,7 +323,7 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		const context: IInjectedTextInlineDecorationsComputerContext = {
 			getInjectionOptions: () => injectionOptions,
 			getInjectionOffsets: () => [0],
-			getBreakOffsets: () => [13], // 10 + 3
+			getBreakOffsets: () => [13],
 			getWrappedTextIndentLength: () => 0,
 			getBaseViewLineNumber: () => 1,
 		};
@@ -342,7 +342,7 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		const context: IInjectedTextInlineDecorationsComputerContext = {
 			getInjectionOptions: () => injectionOptions,
 			getInjectionOffsets: () => [2, 5],
-			getBreakOffsets: () => [15], // 10 + 2 + 3
+			getBreakOffsets: () => [15],
 			getWrappedTextIndentLength: () => 0,
 			getBaseViewLineNumber: () => 1,
 		};
@@ -357,8 +357,6 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 	});
 
 	test('injection spanning across wrapped lines', () => {
-		// Original text is 20 chars, injection of 10 chars at offset 8
-		// Break offsets split at 15 and 30 (two wrapped lines)
 		const injectionOptions: InjectedTextOptions[] = [
 			{ content: '1234567890', inlineClassName: 'injected' }
 		];
@@ -371,9 +369,6 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		};
 		const computer = new InjectedTextInlineDecorationsComputer(context);
 		const result = computer.getInlineDecorations(1);
-		// Injected text starts at offset 8 in the input with injections
-		// Line 0: [0, 15), injected text occupies [8, 18) -> clipped to [8, 15)
-		// Line 1: [15, 30), injected text occupies [8, 18) -> clipped to [15, 18) -> relative: [0, 3)
 		assert.deepStrictEqual(result, [
 			[new InlineDecoration(new Range(5, 9, 5, 16), 'injected', InlineDecorationType.Regular)],
 			[new InlineDecoration(new Range(6, 1, 6, 4), 'injected', InlineDecorationType.Regular)],
@@ -393,8 +388,6 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		};
 		const computer = new InjectedTextInlineDecorationsComputer(context);
 		const result = computer.getInlineDecorations(1);
-		// Line 0 (outputLineIndex 0): no offset, start=0, end=15 -> columns 1 to 16
-		// Line 1 (outputLineIndex 1): wrappedTextIndentLength=4, start=4+0=4, end=4+5=9 -> columns 5 to 10
 		assert.deepStrictEqual(result, [
 			[new InlineDecoration(new Range(1, 1, 1, 16), 'injected', InlineDecorationType.Regular)],
 			[new InlineDecoration(new Range(2, 5, 2, 10), 'injected', InlineDecorationType.Regular)],
@@ -402,21 +395,18 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 	});
 
 	test('injection starting in later wrapped line', () => {
-		// Injection at offset 20 which is past the first line break
 		const injectionOptions: InjectedTextOptions[] = [
 			{ content: 'ab', inlineClassName: 'late-class' }
 		];
 		const context: IInjectedTextInlineDecorationsComputerContext = {
 			getInjectionOptions: () => injectionOptions,
 			getInjectionOffsets: () => [20],
-			getBreakOffsets: () => [15, 32], // 30 + 2
+			getBreakOffsets: () => [15, 32],
 			getWrappedTextIndentLength: () => 0,
 			getBaseViewLineNumber: () => 1,
 		};
 		const computer = new InjectedTextInlineDecorationsComputer(context);
 		const result = computer.getInlineDecorations(1);
-		// Line 0: [0, 15) -> injection at offset 20 is past this line -> empty
-		// Line 1: [15, 32) -> injection at offset 20 -> start=20-15=5, end=22-15=7 -> columns 6 to 8
 		assert.deepStrictEqual(result, [
 			[],
 			[new InlineDecoration(new Range(2, 6, 2, 8), 'late-class', InlineDecorationType.Regular)],
@@ -442,9 +432,6 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 	});
 
 	test('range uses view line number, not model line number', () => {
-		// Model line 3 maps to view line 7 (e.g. due to previous lines wrapping).
-		// The range in the resulting InlineDecoration must use the view line number (7),
-		// not the model line number (3) that is passed to getInlineDecorations().
 		const modelLineNumber = 3;
 		const baseViewLineNumber = 7;
 		const injectionOptions: InjectedTextOptions[] = [
@@ -453,21 +440,18 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		const context: IInjectedTextInlineDecorationsComputerContext = {
 			getInjectionOptions: () => injectionOptions,
 			getInjectionOffsets: () => [0],
-			getBreakOffsets: () => [15], // 10 (original) + 5 (injected)
+			getBreakOffsets: () => [15],
 			getWrappedTextIndentLength: () => 0,
 			getBaseViewLineNumber: () => baseViewLineNumber,
 		};
 		const computer = new InjectedTextInlineDecorationsComputer(context);
 		const result = computer.getInlineDecorations(modelLineNumber);
-		// The range must reference view line 7, not model line 3
 		assert.deepStrictEqual(result, [
 			[new InlineDecoration(new Range(7, 1, 7, 6), 'ghost-class', InlineDecorationType.Regular)]
 		]);
 	});
 
 	test('range uses view line number on wrapped lines, not model line number', () => {
-		// Model line 2 wraps into view lines 5 and 6.
-		// Both output lines must use view line numbers, not model line 2.
 		const modelLineNumber = 2;
 		const baseViewLineNumber = 5;
 		const injectionOptions: InjectedTextOptions[] = [
@@ -482,7 +466,6 @@ suite('InjectedTextInlineDecorationsComputer', () => {
 		};
 		const computer = new InjectedTextInlineDecorationsComputer(context);
 		const result = computer.getInlineDecorations(modelLineNumber);
-		// First wrapped line uses view line 5, second uses view line 6
 		assert.deepStrictEqual(result, [
 			[new InlineDecoration(new Range(5, 1, 5, 9), 'wrap-class', InlineDecorationType.Regular)],
 			[new InlineDecoration(new Range(6, 1, 6, 3), 'wrap-class', InlineDecorationType.Regular)],

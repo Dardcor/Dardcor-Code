@@ -5,7 +5,7 @@
 import type * as marked from '../../../../base/common/marked/marked.js';
 import { htmlAttributeEncodeValue } from '../../../../base/common/strings.js';
 
-export const mathInlineRegExp = /(?<![a-zA-Z0-9])(?<dollars>\${1,2})(?!\.|\(["'])((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\k<dollars>(?![a-zA-Z0-9])/; // Non-standard, but ensure opening $ is not preceded and closing $ is not followed by word/number characters, opening $ not followed by ., (", ('
+export const mathInlineRegExp = /(?<![a-zA-Z0-9])(?<dollars>\${1,2})(?!\.|\(["'])((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\k<dollars>(?![a-zA-Z0-9])/;
 export const katexContainerClassName = 'vscode-katex-container';
 export const katexContainerLatexAttributeName = 'data-latex';
 
@@ -14,8 +14,6 @@ const inlineRule = new RegExp('^' + mathInlineRegExp.source);
 export namespace MarkedKatexExtension {
 	type KatexOptions = import('katex').KatexOptions;
 
-	// From https://github.com/UziTech/marked-katex-extension/blob/main/src/index.js
-	// From https://github.com/UziTech/marked-katex-extension/blob/main/src/index.js
 	export interface MarkedKatexOptions extends KatexOptions { }
 
 	const blockRule = /^(\${1,2})\n((?:\\[^]|[^\\])+?)\n\1(?:\n|$)/;
@@ -39,11 +37,8 @@ export namespace MarkedKatexExtension {
 					displayMode: token.displayMode,
 				});
 
-				// Wrap in a container with attribute as a fallback for extracting the original LaTeX source
-				// This ensures we can always retrieve the source even if the annotation element is not present
 				out = `<span class="${katexContainerClassName}" ${katexContainerLatexAttributeName}="${htmlAttributeEncodeValue(token.text)}">${html}</span>`;
 			} catch {
-				// On failure, just use the original text including the wrapping $ or $$
 				out = token.raw;
 			}
 			return out + (isBlock ? '\n' : '');

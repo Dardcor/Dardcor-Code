@@ -5,9 +5,6 @@
 import { Extension, extensions, Uri } from 'vscode';
 import { createServiceIdentifier } from '../../../util/common/services';
 
-/**
- * API for interacting with the Remote Repositories extension.
- */
 interface RemoteHubApi {
 	getProviderUri(uri: Uri): Uri;
 	getProviderRootUri(uri: Uri): Uri;
@@ -24,9 +21,6 @@ export interface IRemoteRepositoriesService {
 	loadWorkspaceContents(workspaceUri: Uri): Promise<boolean>;
 }
 
-/**
- * Service for interacting with the Remote Repositories API.
- */
 export class RemoteRepositoriesService implements IRemoteRepositoriesService {
 
 	declare readonly _serviceBrand: undefined;
@@ -35,7 +29,6 @@ export class RemoteRepositoriesService implements IRemoteRepositoriesService {
 
 	async loadWorkspaceContents(workspaceUri: Uri) {
 		const api = await this.getApi();
-		// TODO: Defaulted to false in case the API doesn't exist... is this the correct assumption?
 		return await api.loadWorkspaceContents?.(workspaceUri) ?? false;
 	}
 

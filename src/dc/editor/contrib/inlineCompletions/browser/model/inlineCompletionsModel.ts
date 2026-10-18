@@ -65,7 +65,6 @@ export class InlineCompletionsModel extends Disposable {
 
 	private readonly _fetchSpecificProviderSignal = observableSignal<{ provider: InlineCompletionsProvider; changeHint?: IInlineCompletionChangeHint } | undefined>(this);
 
-	// We use a semantic id to keep the same inline completion selected even if the provider reorders the completions.
 	private readonly _selectedInlineCompletionId = observableValue<string | undefined>(this, undefined);
 	public readonly primaryPosition = derived(this, reader => this._positions.read(reader)[0] ?? new Position(1, 1));
 	public readonly allPositions = derived(this, reader => this._positions.read(reader));
@@ -158,7 +157,7 @@ export class InlineCompletionsModel extends Disposable {
 			}
 		}));
 
-		{ // Determine editor type
+		{
 			const isNotebook = this.textModel.uri.scheme === Schemas.vscodeNotebookCell;
 			const [diffEditor] = this._codeEditorService.listDiffEditors()
 				.filter(d =>
@@ -211,7 +210,6 @@ export class InlineCompletionsModel extends Disposable {
 			}
 		}));
 
-		// TODO: should use getAvailableProviders and update on _suppressedInlineCompletionGroupIds change
 		const inlineCompletionProviders = observableFromEvent(this._languageFeaturesService.inlineCompletionsProvider.onDidChange, () => this._languageFeaturesService.inlineCompletionsProvider.all(textModel));
 		mapObservableArrayCached(this, inlineCompletionProviders, (provider, store) => {
 			if (!provider.onDidChangeInlineCompletions) {
@@ -223,20 +221,17 @@ export class InlineCompletionsModel extends Disposable {
 					return;
 				}
 
-				// Only update the active editor
 				const activeEditor = this._codeEditorService.getFocusedCodeEditor() || this._codeEditorService.getActiveCodeEditor();
 				if (activeEditor !== this._editor) {
 					return;
 				}
 
 				if (this._triggerCommandOnProviderChange.get()) {
-					// TODO@hediet remove this and always do the else branch.
 					this.trigger(undefined, { onlyFetchInlineEdits: true });
 					return;
 				}
 
 
-				// If there is an active suggestion from a different provider, we ignore the update
 				const activeState = this.state.get();
 				if (activeState && (activeState.inlineSuggestion || activeState.edits) && activeState.inlineSuggestion?.source.provider !== provider) {
 					return;
@@ -253,8 +248,8 @@ export class InlineCompletionsModel extends Disposable {
 		this._didUndoInlineEdits.recomputeInitiallyAndOnChange(this._store);
 	}
 
-	private _lastShownInlineCompletionInfo: { alternateTextModelVersionId: number; /* already freed! */ inlineCompletion: InlineSuggestionItem } | undefined = undefined;
-	private _lastAcceptedInlineCompletionInfo: { textModelVersionIdAfter: number; /* already freed! */ inlineCompletion: InlineSuggestionItem } | undefined = undefined;
+	private _lastShownInlineCompletionInfo: { alternateTextModelVersionId: number; inlineCompletion: InlineSuggestionItem } | undefined = undefined;
+	private _lastAcceptedInlineCompletionInfo: { textModelVersionIdAfter: number; inlineCompletion: InlineSuggestionItem } | undefined = undefined;
 	private readonly _didUndoInlineEdits = derivedHandleChanges({
 		owner: this,
 		changeTracker: {
@@ -342,7 +337,6 @@ export class InlineCompletionsModel extends Disposable {
 				changeReason: '',
 			}),
 			handleChange: (ctx, changeSummary) => {
-				/** @description fetch inline completions */
 				if (ctx.didChange(this._textModelVersionId)) {
 					if (this._preserveCurrentCompletionReasons.has(this._getReason(ctx.change))) {
 						changeSummary.preserveCurrentCompletion = true;
@@ -366,7 +360,7 @@ export class InlineCompletionsModel extends Disposable {
 		},
 
 	}, (reader, changeSummary) => {
-		this._source.clearOperationOnTextModelChange.read(reader); // Make sure the clear operation runs before the fetch operation
+		this._source.clearOperationOnTextModelChange.read(reader);
 		this._noDelaySignal.read(reader);
 		this.dontRefetchSignal.read(reader);
 		this._onlyRequestInlineEditsSignal.read(reader);
@@ -380,7 +374,7 @@ export class InlineCompletionsModel extends Disposable {
 			return undefined;
 		}
 
-		this._textModelVersionId.read(reader); // Refetch on text change
+		this._textModelVersionId.read(reader);
 
 		const suggestWidgetInlineCompletions = this._source.suggestWidgetInlineCompletions.read(undefined);
 		let suggestItem = this._selectedSuggestItem.read(reader);
@@ -436,8 +430,6 @@ export class InlineCompletionsModel extends Disposable {
 
 		if (context.triggerKind === InlineCompletionTriggerKind.Automatic && changeSummary.textChange) {
 			if (this.textModel.getAlternativeVersionId() === this._lastShownInlineCompletionInfo?.alternateTextModelVersionId) {
-				// When undoing back to a version where an inline edit/completion was shown,
-				// we want to show an inline edit (or completion) again if it was originally an inline edit (or completion).
 				context = {
 					...context,
 					includeInlineCompletions: !this._lastShownInlineCompletionInfo.inlineCompletion.isInlineEdit,
@@ -453,15 +445,13 @@ export class InlineCompletionsModel extends Disposable {
 
 		const providers = changeSummary.provider
 			? { providers: [changeSummary.provider], label: 'single:' + changeSummary.provider.providerId?.toString() }
-			: { providers: this._languageFeaturesService.inlineCompletionsProvider.all(this.textModel), label: undefined }; // TODO: should use inlineCompletionProviders
+			: { providers: this._languageFeaturesService.inlineCompletionsProvider.all(this.textModel), label: undefined };
 		const availableProviders = this.getAvailableProviders(providers.providers);
 		requestInfo.availableProviders = availableProviders.map(p => p.providerId).filter(isDefined);
 
 		return this._source.fetch(availableProviders, providers.label, context, itemToPreserve?.identity, changeSummary.shouldDebounce, userJumpedToActiveCompletion, requestInfo);
 	});
 
-	// TODO: This is not an ideal implementation of excludesGroupIds, however as this is currently still behind proposed API
-	// and due to the time constraints, we are using a simplified approach
 	private getAvailableProviders(providers: InlineCompletionsProvider[]): InlineCompletionsProvider[] {
 		const suppressedProviderGroupIds = this._suppressedInlineCompletionGroupIds.get();
 		const unsuppressedProviders = providers.filter(provider => !(provider.groupId && suppressedProviderGroupIds.has(provider.groupId)));
@@ -538,7 +528,6 @@ export class InlineCompletionsModel extends Disposable {
 		}
 
 		if (visibleCompletions.length !== 0) {
-			// Don't show the inline edit if there is a visible completion
 			inlineEdit = undefined;
 		}
 
@@ -559,7 +548,6 @@ export class InlineCompletionsModel extends Disposable {
 		const idx = this._selectedInlineCompletionId === undefined ? -1
 			: filteredCompletions.findIndex(v => v.semanticId === selectedInlineCompletionId);
 		if (idx === -1) {
-			// Reset the selection so that the selection does not jump back when it appears again
 			this._selectedInlineCompletionId.set(undefined, undefined);
 			return 0;
 		}
@@ -927,7 +915,6 @@ export class InlineCompletionsModel extends Disposable {
 			return;
 		}
 
-		// Make sure the completion list will not be disposed before the text change is sent.
 		completion.addRef();
 
 		try {
@@ -935,7 +922,6 @@ export class InlineCompletionsModel extends Disposable {
 			editor.pushUndoStop();
 
 			if (!completion.originalTextRef.targets(this.textModel)) {
-				// The edit targets a different document, open it and transplant the completion
 				const targetEditor = await this._codeEditorService.openCodeEditor({ resource: completion.originalTextRef.uri }, this._editor);
 				if (targetEditor) {
 					const controller = getInlineCompletionsController(targetEditor);
@@ -945,7 +931,6 @@ export class InlineCompletionsModel extends Disposable {
 					targetEditor.revealLineInCenter(completion.targetRange.startLineNumber);
 				}
 			} else if (isNextEditUri) {
-				// Do nothing
 			} else if (completion.action?.kind === 'edit') {
 				const action = completion.action;
 				if (alternativeAction && action.alternativeAction) {
@@ -965,9 +950,6 @@ export class InlineCompletionsModel extends Disposable {
 				} else {
 					const edits = state.edits;
 
-					// The cursor should move to the end of the edit, not the end of the range provided by the extension
-					// Inline Edit diffs (human readable) the suggestion from the extension so it already removes common suffix/prefix
-					// Inline Completions does diff the suggestion so it may contain common suffix
 					let minimalEdits = edits;
 					if (state.kind === 'ghostText') {
 						minimalEdits = removeTextReplacementCommonSuffixPrefix(edits, this.textModel);
@@ -980,7 +962,6 @@ export class InlineCompletionsModel extends Disposable {
 					editor.edit(edit, this._getMetadata(completion, this.textModel.getLanguageId()));
 
 					if (completion.hint === undefined) {
-						// do not move the cursor when the completion is displayed in a different location
 						editor.setSelections(state.kind === 'inlineEdit' ? selections.slice(-1) : selections, 'inlineCompletionAccept');
 					}
 
@@ -995,7 +976,6 @@ export class InlineCompletionsModel extends Disposable {
 
 			this._onDidAccept.fire();
 
-			// Reset before invoking the command, as the command might cause a follow up trigger (which we don't want to reset).
 			this.stop();
 
 			if (completion.command) {
@@ -1004,7 +984,6 @@ export class InlineCompletionsModel extends Disposable {
 					.then(undefined, onUnexpectedExternalError);
 			}
 
-			// TODO: how can we make alternative actions to retrigger?
 			if (followUpTrigger) {
 				this.trigger(undefined);
 			}
@@ -1069,7 +1048,6 @@ export class InlineCompletionsModel extends Disposable {
 		const completion = state.inlineSuggestion;
 
 		if (completion.snippetInfo) {
-			// not in WYSIWYG mode, partial commit might change completion, thus it is not supported
 			await this.accept(editor);
 			return;
 		}
@@ -1087,7 +1065,6 @@ export class InlineCompletionsModel extends Disposable {
 		const positions = this._positions.get();
 		const cursorPosition = positions[0];
 
-		// Executing the edit might free the completion, so we have to hold a reference on it.
 		completion.addRef();
 		try {
 			this._isAcceptingPartially = true;
@@ -1107,7 +1084,6 @@ export class InlineCompletionsModel extends Disposable {
 			}
 
 			const acceptedRange = Range.fromPositions(completion.editRange.getStartPosition(), TextLength.ofText(partialGhostTextVal).addToPosition(ghostTextPos));
-			// This assumes that the inline completion and the model use the same EOL style.
 			const text = editor.getModel()!.getValueInRange(acceptedRange, EndOfLinePreference.LF);
 			const acceptedLength = text.length;
 			completion.reportPartialAccept(
@@ -1126,7 +1102,6 @@ export class InlineCompletionsModel extends Disposable {
 		const augmentedCompletion = this._computeAugmentation(itemEdit, undefined);
 		if (!augmentedCompletion) { return; }
 
-		// This assumes that the inline completion and the model use the same EOL style.
 		const alreadyAcceptedLength = this.textModel.getValueInRange(augmentedCompletion.completion.editRange, EndOfLinePreference.LF).length;
 		const acceptedLength = alreadyAcceptedLength + itemEdit.text.length;
 
@@ -1179,7 +1154,6 @@ export class InlineCompletionsModel extends Disposable {
 				const targetPosition = targetRange.getStartPosition();
 				this._editor.setPosition(targetPosition, 'inlineCompletions.jump');
 
-				// TODO: consider using view information to reveal it
 				const isSingleLineChange = targetRange.isSingleLine() && (s.inlineSuggestion.hint || (s.inlineSuggestion.action?.kind === 'edit' && !s.inlineSuggestion.action.textReplacement.text.includes('\n')));
 				if (isSingleLineChange || s.inlineSuggestion.action?.kind === 'jumpTo') {
 					this._editor.revealPosition(targetPosition, ScrollType.Smooth);
@@ -1201,13 +1175,7 @@ export class InlineCompletionsModel extends Disposable {
 		await inlineCompletion.reportInlineEditShown(this._commandService, viewKind, viewData, this.textModel, timeWhenShown);
 	}
 
-	/**
-	 * Transplants an inline completion from another model to this one.
-	 * Used for cross-file inline edits.
-	 */
 	public transplantCompletion(item: InlineSuggestionItem): void {
-		// No explicit addRef needed: `seedWithCompletion` creates a new `InlineCompletionsState`
-		// which calls `addRef` on every item it holds and pairs it with `removeRef` in dispose.
 		transaction(tx => {
 			this._source.seedWithCompletion(item, tx);
 			this._isActive.set(true, tx);
@@ -1231,7 +1199,6 @@ export enum VersionIdChangeReason {
 
 export function getSecondaryEdits(textModel: ITextModel, positions: readonly Position[], primaryTextRepl: TextReplacement): (TextReplacement | undefined)[] {
 	if (positions.length === 1) {
-		// No secondary cursor positions
 		return [];
 	}
 	const text = new TextModelText(textModel);
@@ -1301,7 +1268,6 @@ class FadeoutDecoration extends Disposable {
 export function isSuggestionInViewport(editor: ICodeEditor, suggestion: InlineSuggestionItem, reader: IReader | undefined = undefined): boolean {
 	const targetRange = suggestion.targetRange;
 
-	// TODO make getVisibleRanges reactive!
 	observableCodeEditor(editor).scrollTop.read(reader);
 	const visibleRanges = editor.getVisibleRanges();
 

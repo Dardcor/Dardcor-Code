@@ -33,7 +33,6 @@
 	border-left: none;
 }
 
-/* default color styles - based on CSS variables */
 
 .monaco-custom-radio > .monaco-button {
 	color: var(--vscode-radio-inactiveForeground);
@@ -68,7 +67,6 @@
 	background-color: var(--vscode-radio-inactiveHoverBackground);
 }
 
-/* optional segmented appearance - opt in via IRadioOptions.className */
 
 .monaco-custom-radio.segmented {
 	align-items: center;
@@ -78,8 +76,6 @@
 	background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
 }
 
-/* Every segment carries the border box so the selected one can colour it without
- * shifting the reel by a pixel as the selection moves. */
 .monaco-custom-radio.segmented > .monaco-button {
 	flex: 1 1 0;
 	justify-content: center;
@@ -93,7 +89,6 @@
 	white-space: nowrap;
 }
 
-/* Reserve the selected label's width without making unselected labels bold. */
 .monaco-custom-radio.segmented > .monaco-button > [data-label] {
 	display: inline-grid;
 	justify-items: center;
@@ -112,7 +107,6 @@
 	background: transparent;
 }
 
-/* The fill only shifts the hue, so the border is what identifies the selection. */
 .monaco-custom-radio.segmented > .monaco-button.active,
 .monaco-custom-radio.segmented > .monaco-button.active:hover {
 	color: var(--vscode-foreground);

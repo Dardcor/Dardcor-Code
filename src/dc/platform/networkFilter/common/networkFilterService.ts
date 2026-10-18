@@ -23,42 +23,15 @@ function isFilteredNetworkScheme(uri: URI): boolean {
 		|| matchesScheme(uri, 'wss');
 }
 
-/**
- * Service that filters network requests made by agent tools (fetch tool,
- * integrated browser) based on the configured allowed/denied domain lists.
- *
- * Filtering is active for all callers when the `chat.agent.networkFilter` setting
- * is enabled.
- * When both domain lists are empty, all domains are denied.
- * When a domain appears on the denied list it is always blocked, even if it
- * also matches an entry on the allowed list.
- */
 export interface IAgentNetworkFilterService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Extracts the domain from a URI and checks it against the configured
-	 * allowed/denied domain filter.
-	 * File URIs and unfiltered schemes without an authority always pass.
-	 * @returns `true` if the URI's domain is allowed, `false` if blocked.
-	 */
 	isUriAllowed(uri: URI): boolean;
 
-	/**
-	 * Returns whether network filtering is currently enabled.
-	 */
 	isEnabled(): boolean;
 
-	/**
-	 * Formats an error message for a blocked URI based on the current filter configuration.
-	 * @param uri The URI that was blocked.
-	 * @returns A localized error message explaining that access to the URI is blocked by policy.
-	 */
 	formatError(uri: URI): string;
 
-	/**
-	 * Fires when the filter configuration changes.
-	 */
 	readonly onDidChange: Event<void>;
 }
 
@@ -101,12 +74,10 @@ export class AgentNetworkFilterService extends Disposable implements IAgentNetwo
 	}
 
 	isUriAllowed(uri: URI): boolean {
-		// When domain filtering is inactive, allow all requests.
 		if (!this.isEnabled()) {
 			return true;
 		}
 
-		// File URIs and unfiltered schemes without authority always pass
 		if (matchesScheme(uri, Schemas.file)
 			|| (!uri.authority && !isFilteredNetworkScheme(uri))) {
 			return true;

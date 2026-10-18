@@ -36,7 +36,6 @@ export interface IProfileAnalysisWorkerService {
 }
 
 
-// ---- impl
 
 class ProfileAnalysisWorkerService implements IProfileAnalysisWorkerService {
 
@@ -89,7 +88,6 @@ class ProfileAnalysisWorkerService implements IProfileAnalysisWorkerService {
 	}
 }
 
-// ---- worker contract
 
 export interface BottomUpAnalysis {
 	kind: ProfilingOutput;

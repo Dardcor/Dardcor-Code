@@ -35,13 +35,10 @@ export const IExtHostMpcService = createDecorator<IExtHostMpcService>('IExtHostM
 export interface IExtHostMpcService extends ExtHostMcpShape {
 	registerMcpConfigurationProvider(extension: IExtensionDescription, id: string, provider: vscode.McpServerDefinitionProvider): IDisposable;
 
-	/** Event that fires when the set of MCP server definitions changes. */
 	readonly onDidChangeMcpServerDefinitions: Event<void>;
 
-	/** Returns all MCP server definitions known to the editor. */
 	readonly mcpServerDefinitions: readonly vscode.McpServerDefinition[];
 
-	/** Starts an MCP gateway that exposes MCP servers via HTTP endpoints. */
 	startMcpGateway(chatSessionResource?: URI): Promise<vscode.McpGateway | undefined>;
 }
 
@@ -62,25 +59,20 @@ const serverDataValidation = vObj({
 	}))
 });
 
-// Can be validated with:
-// declare const _serverDataValidationTest: vscode.McpStdioServerDefinition | vscode.McpHttpServerDefinition;
-// const _serverDataValidationProd: ValidatorType<typeof serverDataValidation> = _serverDataValidationTest;
 
 export class ExtHostMcpService extends Disposable implements IExtHostMpcService {
 	protected _proxy: MainThreadMcpShape;
 	private readonly _initialProviderPromises = new Set<Promise<void>>();
 	protected readonly _sseEventSources = this._register(new DisposableMap<number, McpHTTPHandle>());
-	private readonly _unresolvedMcpServers = new Map</* collectionId */ string, {
+	private readonly _unresolvedMcpServers = new Map< string, {
 		provider: vscode.McpServerDefinitionProvider;
 		servers: vscode.McpServerDefinition[];
 	}>();
 
-	// MCP server definitions synced from main thread
 	private readonly _onDidChangeMcpServerDefinitions = this._register(new Emitter<void>());
 	readonly onDidChangeMcpServerDefinitions: Event<void> = this._onDidChangeMcpServerDefinitions.event;
 	private _mcpServerDefinitions: readonly vscode.McpServerDefinition[] = [];
 
-	// Active gateways with their server emitters for dynamic updates
 	private readonly _activeGateways = new Map<string, {
 		servers: vscode.McpGatewayServer[];
 		onDidChangeServers: Emitter<readonly vscode.McpGatewayServer[]>;
@@ -97,12 +89,10 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 		this._proxy = extHostRpc.getProxy(MainContext.MainThreadMcp);
 	}
 
-	/** Returns all MCP server definitions known to the editor. */
 	get mcpServerDefinitions(): readonly vscode.McpServerDefinition[] {
 		return this._mcpServerDefinitions;
 	}
 
-	/** Called by main thread to notify that MCP server definitions have changed. */
 	$onDidChangeMcpServerDefinitions(servers: McpServerDefinition.Serialized[]): void {
 		this._mcpServerDefinitions = servers.map(dto => Convert.McpServerDefinition.to(dto));
 		this._onDidChangeMcpServerDefinitions.fire();
@@ -168,7 +158,6 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 		return resolved ? Convert.McpServerDefinition.from(resolved) : undefined;
 	}
 
-	/** {@link vscode.lm.registerMcpServerDefinitionProvider} */
 	public registerMcpConfigurationProvider(extension: IExtensionDescription, id: string, provider: vscode.McpServerDefinitionProvider): IDisposable {
 		const store = new DisposableStore();
 
@@ -239,7 +228,6 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 		if (provider.onDidChangeMcpServerDefinitions) {
 			store.add(provider.onDidChangeMcpServerDefinitions(update));
 		}
-		// todo@connor4312: proposed API back-compat
 		// eslint-disable-next-line local/code-no-any-casts
 		if ((provider as any).onDidChangeServerDefinitions) {
 			// eslint-disable-next-line local/code-no-any-casts
@@ -263,7 +251,6 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 		return store;
 	}
 
-	/** {@link vscode.lm.startMcpGateway} */
 	public async startMcpGateway(chatSessionResource?: URI): Promise<vscode.McpGateway | undefined> {
 		const result = await this._proxy.$startMcpGateway(chatSessionResource?.toJSON());
 		if (!result) {
@@ -290,7 +277,6 @@ export class ExtHostMcpService extends Disposable implements IExtHostMpcService 
 		};
 	}
 
-	/** Called by main thread to notify that a gateway's server set has changed. */
 	$onDidChangeGatewayServers(gatewayId: string, newServers: { label: string; address: UriComponents }[]): void {
 		const gateway = this._activeGateways.get(gatewayId);
 		if (!gateway) {
@@ -333,12 +319,7 @@ type HttpModeT =
 
 const MAX_FOLLOW_REDIRECTS = 5;
 const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308];
-// MCP server URLs are restricted to http(s) at configuration time; the redirect
-// path must enforce the same so a Location header cannot reach unix://, pipe://,
-// file://, etc.
 const ALLOWED_REDIRECT_PROTOCOLS = new Set(['http:', 'https:']);
-// Credential-bearing headers that must not be replayed to a different origin
-// after a redirect (matches browser fetch / curl behavior). Compared case-insensitively.
 const CROSS_ORIGIN_STRIPPED_HEADERS = new Set(['authorization', 'cookie', 'proxy-authorization', 'mcp-session-id']);
 
 function setHostHeader(headers: Record<string, string>, name: string, value: string): void {
@@ -350,13 +331,6 @@ function setHostHeader(headers: Record<string, string>, name: string, value: str
 	headers[name] = value;
 }
 
-/**
- * Implementation of both MCP HTTP Streaming as well as legacy SSE.
- *
- * The first request will POST to the endpoint, assuming HTTP streaming. If the
- * server is legacy SSE, it should return some 4xx status in that case,
- * and we'll automatically fall back to SSE and res
- */
 export class McpHTTPHandle extends Disposable {
 	private readonly _requestSequencer = new Sequencer();
 	private readonly _postEndpoint = new DeferredPromise<{ url: string; transport: McpServerTransportHTTP }>();
@@ -401,7 +375,6 @@ export class McpHTTPHandle extends Disposable {
 			try {
 				await this._closeSession(this._mode.sessionId);
 			} catch {
-				// ignored -- already logged
 			}
 		}
 
@@ -417,12 +390,10 @@ export class McpHTTPHandle extends Disposable {
 		try {
 			await this._addAuthHeader(headers, { errorOnUserInteraction: true });
 		} catch (e) {
-			// If auth is no longer available (e.g. user signed out), skip the close request
 			this._log(LogLevel.Debug, `Skipping session close: authentication no longer available`);
 			return;
 		}
 
-		// no fetch with retry here -- don't try to auth if we get an auth failure
 		await this._fetch(
 			this._launch.uri.toString(true),
 			{
@@ -440,12 +411,6 @@ export class McpHTTPHandle extends Disposable {
 		}
 	}
 
-	/**
-	 * Sends a streamable-HTTP request.
-	 * 1. Posts to the endpoint
-	 * 2. Updates internal state as needed. Falls back to SSE if appropriate.
-	 * 3. If the response body is empty, JSON, or a JSON stream, handle it appropriately.
-	 */
 	private async _sendStreamableHttp(message: string, sessionId: string | undefined) {
 		const asBytes = new TextEncoder().encode(message) as Uint8Array<ArrayBuffer>;
 		const headers: Record<string, string> = {
@@ -470,16 +435,13 @@ export class McpHTTPHandle extends Disposable {
 
 		const wasUnknown = this._mode.value === HttpMode.Unknown;
 
-		// Mcp-Session-Id is the strongest signal that we're in streamable HTTP mode
 		const nextSessionId = res.headers.get('Mcp-Session-Id');
 		if (nextSessionId) {
 			this._mode = { value: HttpMode.Http, sessionId: nextSessionId };
 		}
 
 		if (this._mode.value === HttpMode.Unknown &&
-			// We care about 4xx errors...
 			res.status >= 400 && res.status < 500
-			// ...except for auth errors
 			&& !isAuthStatusCode(res.status)
 		) {
 			this._log(LogLevel.Info, `${res.status} status sending message to ${this._launch.uri}, will attempt to fall back to legacy SSE`);
@@ -488,9 +450,6 @@ export class McpHTTPHandle extends Disposable {
 		}
 
 		if (res.status >= 300) {
-			// "When a client receives HTTP 404 in response to a request containing an Mcp-Session-Id, it MUST start a new session by sending a new InitializeRequest without a session ID attached"
-			// Though this says only 404, some servers send 400s as well, including their example
-			// https://github.com/modelcontextprotocol/typescript-sdk/issues/389
 			const retryWithSessionId = this._mode.value === HttpMode.Http && !!this._mode.sessionId && (res.status === 400 || res.status === 404);
 
 			this._proxy.$onDidChangeState(this._id, {
@@ -521,7 +480,7 @@ export class McpHTTPHandle extends Disposable {
 
 	private async _handleSuccessfulStreamableHttp(res: CommonResponse, message: string) {
 		if (res.status === 202) {
-			return; // no body
+			return;
 		}
 
 		const contentType = res.headers.get('Content-Type')?.toLowerCase() || '';
@@ -530,10 +489,9 @@ export class McpHTTPHandle extends Disposable {
 				if (event.type === 'message') {
 					this._proxy.$onDidReceiveMessage(this._id, event.data);
 				} else if (event.type === 'endpoint') {
-					// An SSE server that didn't correctly return a 4xx status when we POSTed
 					this._log(LogLevel.Warning, `Received SSE endpoint from a POST to ${this._launch.uri}, will fall back to legacy SSE`);
 					this._sseFallbackWithMessage(message);
-					throw new CancellationError(); // just to end the SSE stream
+					throw new CancellationError();
 				}
 			});
 
@@ -546,7 +504,7 @@ export class McpHTTPHandle extends Disposable {
 			this._proxy.$onDidReceiveMessage(this._id, await res.text());
 		} else {
 			const responseBody = await res.text();
-			if (isJSON(responseBody)) { // try to read as JSON even if the server didn't set the content type
+			if (isJSON(responseBody)) {
 				this._proxy.$onDidReceiveMessage(this._id, responseBody);
 			} else {
 				this._log(LogLevel.Warning, `Unexpected ${res.status} response for request: ${responseBody}`);
@@ -554,11 +512,6 @@ export class McpHTTPHandle extends Disposable {
 		}
 	}
 
-	/**
-	 * Attaches the SSE backchannel that streamable HTTP servers can use
-	 * for async notifications. This is a "MAY" support, so if the server gives
-	 * us a 4xx code, we'll stop trying to connect..
-	 */
 	private async _attachStreamableBackchannel() {
 		let lastEventId: string | undefined;
 		let canReconnectAt: number | undefined;
@@ -603,8 +556,6 @@ export class McpHTTPHandle extends Disposable {
 				return;
 			}
 
-			// Only reset the retry counter if we definitely get an event stream to avoid
-			// spamming servers that (incorrectly) don't return one from this endpoint.
 			if (res.headers.get('content-type')?.toLowerCase().includes('text/event-stream')) {
 				retry = 0;
 			}
@@ -629,10 +580,6 @@ export class McpHTTPHandle extends Disposable {
 		}
 	}
 
-	/**
-	 * Starts a legacy SSE attachment, where the SSE response is the session lifetime.
-	 * Unlike `_attachStreamableBackchannel`, this fails the server if it disconnects.
-	 */
 	private async _attachSSE(): Promise<string | undefined> {
 		const postEndpoint = new DeferredPromise<string>();
 		const headers: Record<string, string> = {
@@ -676,10 +623,6 @@ export class McpHTTPHandle extends Disposable {
 		return postEndpoint.p;
 	}
 
-	/**
-	 * Sends a legacy SSE message to the server. The response is always empty and
-	 * is otherwise received in {@link _attachSSE}'s loop.
-	 */
 	private async _sendLegacySSE(url: string, message: string) {
 		const asBytes = new TextEncoder().encode(message) as Uint8Array<ArrayBuffer>;
 		const headers: Record<string, string> = {
@@ -698,7 +641,6 @@ export class McpHTTPHandle extends Disposable {
 		}
 	}
 
-	/** Generic handle to pipe a response into an SSE parser. */
 	private async _doSSE(parser: SSEParser, res: CommonResponse) {
 		if (!res.body) {
 			return;
@@ -796,12 +738,6 @@ export class McpHTTPHandle extends Disposable {
 		}
 	}
 
-	/**
-	 * Helper method to perform fetch with authentication retry logic.
-	 * If the initial request returns an auth error and we don't have auth metadata,
-	 * it will populate the auth metadata and retry once.
-	 * If we already have auth metadata, check if the scopes changed and update them.
-	 */
 	private async _fetchWithAuthRetry(mcpUrl: string, init: MinimalRequestInit, headers: Record<string, string>): Promise<CommonResponse> {
 		const doFetch = () => this._fetch(mcpUrl, init);
 
@@ -819,23 +755,19 @@ export class McpHTTPHandle extends Disposable {
 				this._proxy.$logMcpAuthSetup(this._authMetadata.telemetry);
 				await this._addAuthHeader(headers);
 				if (headers['Authorization']) {
-					// Update the headers in the init object
 					init.headers = headers;
 					res = await doFetch();
 				}
 			} else {
-				// We have auth metadata, but got an auth error. Check if the scopes changed.
 				if (this._authMetadata.update(res.headers)) {
 					await this._addAuthHeader(headers);
 					if (headers['Authorization']) {
-						// Update the headers in the init object
 						init.headers = headers;
 						res = await doFetch();
 					}
 				}
 			}
 		}
-		// If we have an Authorization header and still get an auth error, we should retry with a new auth registration
 		if (headers['Authorization'] && isAuthStatusCode(res.status)) {
 			const errorText = await this._getErrText(res);
 			this._log(LogLevel.Info, `Received ${res.status} status with Authorization header, retrying with new auth registration. Error details: ${errorText || 'no additional details'}`);
@@ -854,7 +786,7 @@ export class McpHTTPHandle extends Disposable {
 				traceObj.body = new TextDecoder().decode(traceObj.body);
 			}
 			if (traceObj.headers?.Authorization) {
-				traceObj.headers.Authorization = '***'; // don't log the auth header
+				traceObj.headers.Authorization = '***';
 			}
 			this._log(LogLevel.Trace, `Fetching ${url} with options: ${JSON.stringify(traceObj)}`);
 		}
@@ -868,7 +800,6 @@ export class McpHTTPHandle extends Disposable {
 				redirect: 'manual'
 			});
 
-			// Check for redirect status codes (301, 302, 303, 307, 308)
 			if (!REDIRECT_STATUS_CODES.includes(response.status)) {
 				break;
 			}
@@ -881,16 +812,10 @@ export class McpHTTPHandle extends Disposable {
 			const currentUrlParsed = new URL(currentUrl);
 			const nextUrlParsed = new URL(location, currentUrl);
 
-			// Only follow redirects to http(s). Blocks a malicious Location header from
-			// reaching the unix:// / pipe:// socket dispatcher or other local schemes.
-			// Fail closed so the connection errors deterministically rather than the
-			// caller treating the 3xx response as final.
 			if (!ALLOWED_REDIRECT_PROTOCOLS.has(nextUrlParsed.protocol)) {
 				throw new Error(`MCP server redirected to a non-http(s) target (${nextUrlParsed.protocol}), which is not allowed`);
 			}
 
-			// On a cross-origin redirect, strip credential-bearing headers so tokens and
-			// session ids configured for the original origin are not replayed to another host.
 			if (currentUrlParsed.origin !== nextUrlParsed.origin) {
 				for (const name of Object.keys(init.headers)) {
 					if (CROSS_ORIGIN_STRIPPED_HEADERS.has(name.toLowerCase())) {
@@ -902,7 +827,6 @@ export class McpHTTPHandle extends Disposable {
 			const nextUrl = nextUrlParsed.toString();
 			this._log(LogLevel.Trace, `Redirect (${response.status}) from ${currentUrl} to ${nextUrl}`);
 			currentUrl = nextUrl;
-			// Per fetch spec, for 303 always use GET, keep method unless original was POST and 301/302, then GET.
 			if (response.status === 303 || ((response.status === 301 || response.status === 302) && init.method === 'POST')) {
 				init.method = 'GET';
 				delete init.body;
@@ -961,36 +885,19 @@ function isAuthStatusCode(status: number): boolean {
 }
 
 
-//#region AuthMetadata
 
-/**
- * Logger callback type for AuthMetadata operations.
- */
 export type AuthMetadataLogger = (level: LogLevel, message: string) => void;
 
-/**
- * Interface for authentication metadata that can be updated when scopes change.
- */
 export interface IAuthMetadata {
 	readonly authorizationServer: URI;
 	readonly serverMetadata: IAuthorizationServerMetadata;
 	readonly resourceMetadata: IAuthorizationProtectedResourceMetadata | undefined;
 	readonly scopes: string[] | undefined;
-	/** Telemetry data about how auth metadata was discovered */
 	readonly telemetry: IAuthMetadataSource;
 
-	/**
-	 * Updates the scopes based on the WWW-Authenticate header in the response.
-	 * @param response The HTTP response containing potential scope challenges
-	 * @returns true if scopes were updated, false otherwise
-	 */
 	update(responseHeaders: Headers): boolean;
 }
 
-/**
- * Concrete implementation of IAuthMetadata that manages OAuth authentication metadata.
- * Consumers should use {@link createAuthMetadata} to create instances.
- */
 class AuthMetadata implements IAuthMetadata {
 	private _scopes: string[] | undefined;
 
@@ -1038,32 +945,12 @@ class AuthMetadata implements IAuthMetadata {
 	}
 }
 
-/**
- * Options for creating AuthMetadata.
- */
 export interface ICreateAuthMetadataOptions {
-	/** Headers to include when fetching metadata from the same origin as the resource server */
 	sameOriginHeaders?: Record<string, string>;
-	/** Fetch function to use for HTTP requests */
 	fetch: (url: string, init: MinimalRequestInit) => Promise<CommonResponse>;
-	/** Logger function for diagnostic output */
 	log: AuthMetadataLogger;
 }
 
-/**
- * Creates an AuthMetadata instance by discovering OAuth metadata from the server.
- *
- * This function:
- * 1. Parses the WWW-Authenticate header for resource_metadata and scope challenges
- * 2. Fetches OAuth protected resource metadata from well-known URIs or the challenge URL
- * 3. Fetches authorization server metadata
- * 4. Falls back to default metadata if discovery fails
- *
- * @param resourceUrl The resource server URL
- * @param wwwAuthenticateValue The value of the WWW-Authenticate header from the original HTTP response
- * @param options Configuration options including headers, fetch function, and logger
- * @returns A new AuthMetadata instance
- */
 export async function createAuthMetadata(
 	resourceUrl: string,
 	initialResponseHeaders: Headers,
@@ -1071,14 +958,11 @@ export async function createAuthMetadata(
 ): Promise<AuthMetadata> {
 	const { sameOriginHeaders, fetch, log } = options;
 
-	// Track discovery sources for telemetry
 	let resourceMetadataSource = IAuthResourceMetadataSource.None;
 	let serverMetadataSource: IAuthServerMetadataSource | undefined;
 
-	// Parse the WWW-Authenticate header for resource_metadata and scope challenges
 	const { resourceMetadataChallenge, scopesChallenge: scopesChallengeFromHeader } = parseWWWAuthenticateHeaderForChallenges(initialResponseHeaders.get('WWW-Authenticate') ?? undefined, log);
 
-	// Fetch the resource metadata either from the challenge URL or from well-known URIs
 	let serverMetadataUrl: string | undefined;
 	let resource: IAuthorizationProtectedResourceMetadata | undefined;
 	let scopesChallenge = scopesChallengeFromHeader;
@@ -1093,11 +977,8 @@ export async function createAuthMetadata(
 		}
 		log(LogLevel.Info, `Discovered resource metadata at ${discoveryUrl}`);
 
-		// Determine if resource metadata came from header or well-known
 		resourceMetadataSource = resourceMetadataChallenge ? IAuthResourceMetadataSource.Header : IAuthResourceMetadataSource.WellKnown;
 
-		// TODO:@TylerLeonhardt support multiple authorization servers
-		// Consider using one that has an auth provider first, over the dynamic flow
 		serverMetadataUrl = metadata.authorization_servers?.[0];
 		if (!serverMetadataUrl) {
 			log(LogLevel.Warning, `No authorization_servers found in resource metadata ${discoveryUrl} - Is this resource metadata configured correctly?`);
@@ -1113,12 +994,9 @@ export async function createAuthMetadata(
 
 	const baseUrl = new URL(resourceUrl).origin;
 
-	// If we are not given a resource_metadata, see if the well-known server metadata is available
-	// on the base url.
 	let additionalHeaders: Record<string, string> = {};
 	if (!serverMetadataUrl) {
 		serverMetadataUrl = baseUrl;
-		// Maintain the same origin headers when talking to the resource origin.
 		if (sameOriginHeaders) {
 			additionalHeaders = sameOriginHeaders;
 		}
@@ -1135,8 +1013,6 @@ export async function createAuthMetadata(
 		}
 		log(LogLevel.Info, `Discovered authorization server metadata at ${discoveryUrl}`);
 
-		// If serverMetadataSource is not yet defined, it means we fell back to baseUrl
-		// and successfully fetched from well-known
 		serverMetadataSource ??= IAuthServerMetadataSource.WellKnown;
 
 		return new AuthMetadata(
@@ -1151,7 +1027,6 @@ export async function createAuthMetadata(
 		log(LogLevel.Warning, `Error populating auth server metadata for ${serverMetadataUrl}: ${String(e)}`);
 	}
 
-	// If there's no well-known server metadata, then use the default values based off of the url.
 	const defaultMetadata = getDefaultMetadataForUrl(new URL(baseUrl));
 	log(LogLevel.Info, 'Using default auth metadata');
 	return new AuthMetadata(
@@ -1164,9 +1039,6 @@ export async function createAuthMetadata(
 	);
 }
 
-/**
- * Parses the WWW-Authenticate header for resource_metadata and scope challenges.
- */
 function parseWWWAuthenticateHeaderForChallenges(
 	wwwAuthenticateValue: string | undefined,
 	log: AuthMetadataLogger
@@ -1199,4 +1071,3 @@ function parseWWWAuthenticateHeaderForChallenges(
 	return { resourceMetadataChallenge, scopesChallenge };
 }
 
-//#endregion

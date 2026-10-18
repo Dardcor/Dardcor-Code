@@ -66,8 +66,6 @@ class NativeLocalizationWorkbenchContribution extends BaseLocalizationWorkbenchC
 						id: languageId,
 						label: languageName ?? languageId,
 						extensionId: localExtension.identifier.id,
-						// If settings sync installs the language pack, then we would have just shown the notification so no
-						// need to show the dialog.
 					}, true);
 				}
 			}],
@@ -117,7 +115,6 @@ class NativeLocalizationWorkbenchContribution extends BaseLocalizationWorkbenchC
 		const fullLocale = locale;
 		let tagResult = await this.galleryService.query({ text: `tag:lp-${locale}` }, CancellationToken.None);
 		if (tagResult.total === 0) {
-			// Trim the locale and try again.
 			locale = locale.split('-')[0];
 			tagResult = await this.galleryService.query({ text: `tag:lp-${locale}` }, CancellationToken.None);
 			if (tagResult.total === 0) {
@@ -153,13 +150,6 @@ class NativeLocalizationWorkbenchContribution extends BaseLocalizationWorkbenchC
 		});
 
 		const logUserReaction = (userReaction: string) => {
-			/* __GDPR__
-				"languagePackSuggestion:popup" : {
-					"owner": "TylerLeonhardt",
-					"userReaction" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-					"language": { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
-				}
-			*/
 			this.telemetryService.publicLog('languagePackSuggestion:popup', { userReaction, language: locale });
 		};
 
@@ -180,7 +170,6 @@ class NativeLocalizationWorkbenchContribution extends BaseLocalizationWorkbenchC
 					label: languageName,
 					extensionId: extensionToInstall?.identifier.id,
 					galleryExtension: extensionToInstall
-					// The user will be prompted if they want to install the language pack before this.
 				}, true);
 			}
 		};

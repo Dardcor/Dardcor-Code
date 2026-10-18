@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Load env
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
 
@@ -50,7 +49,6 @@ class TestFetcher implements IFetcher {
 				return null;
 			}
 			*[Symbol.iterator](): Iterator<[string, string]> {
-				// Empty headers for test
 			}
 		};
 
@@ -108,7 +106,6 @@ class TestCopilotTokenManager implements ICopilotTokenManager {
 	}
 
 	resetCopilotToken(httpError?: number): void {
-		// nothing
 	}
 }
 
@@ -175,7 +172,6 @@ describe('NESProvider Facade', () => {
 		assert.ok(fetcher.requests[0].url.endsWith('/models'), `Unexpected URL: ${fetcher.requests[0].url}`);
 		assert.ok(fetcher.requests[1].url.endsWith('/chat/completions'), `Unexpected URL: ${fetcher.requests[1].url}`);
 
-		// The model list request must carry the editor headers derived from the provided editor info.
 		assert.deepStrictEqual({
 			'Editor-Version': fetcher.requests[0].options.headers?.['Editor-Version'],
 			'Editor-Plugin-Version': fetcher.requests[0].options.headers?.['Editor-Plugin-Version'],
@@ -213,7 +209,7 @@ describe('NESProvider Facade', () => {
 		`);
 
 		nextEditProvider.handleAcceptance(result);
-		await new Promise(resolve => setTimeout(resolve, 100)); // wait for async telemetry sending
+		await new Promise(resolve => setTimeout(resolve, 100));
 		const event = telemetrySender.events.find(e => e.eventName === 'dardcor-nes/provideInlineEdit');
 		expect(event).toBeDefined();
 		expect(event!.properties?.acceptance).toBe('accepted');

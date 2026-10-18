@@ -6,9 +6,7 @@
 import { IStringDictionary } from '../../../base/common/collections.js';
 
 export interface IMcpDevModeConfig {
-	/** Pattern or list of glob patterns to watch relative to the workspace folder. */
 	watch?: string | string[];
-	/** Whether to debug the MCP server when it's started. */
 	debug?: { type: 'node' } | { type: 'debugpy'; debugpyPath?: string };
 }
 

@@ -20,9 +20,6 @@ import { containsRTL } from '../../../base/common/strings.js';
 
 export interface IMouseDispatchData {
 	position: Position;
-	/**
-	 * Desired mouse column (e.g. when position.column gets clamped to text length -- clicking after text on a line).
-	 */
 	mouseColumn: number;
 	revealType: NavigationCommandRevealType;
 	startedOnLineNumbers: boolean;
@@ -132,13 +129,7 @@ export class ViewController {
 		}
 	}
 
-	/**
-	 * Selects content inside brackets if the position is right after an opening bracket or right before a closing bracket.
-	 * @param pos The position in the model.
-	 * @param model The text model.
-	 */
 	private static _trySelectBracketContent(model: ITextModel, pos: Position): Selection | undefined {
-		// Try to find bracket match if we're right after an opening bracket.
 		if (pos.column > 1) {
 			const pair = model.bracketPairs.matchBracket(pos.with(undefined, pos.column - 1));
 			if (pair && pair[0].getEndPosition().equals(pos)) {
@@ -146,7 +137,6 @@ export class ViewController {
 			}
 		}
 
-		// Try to find bracket match if we're right before a closing bracket.
 		if (pos.column <= model.getLineMaxColumn(pos.lineNumber)) {
 			const pair = model.bracketPairs.matchBracket(pos);
 			if (pair && pair[1].getStartPosition().equals(pos)) {
@@ -157,16 +147,10 @@ export class ViewController {
 		return undefined;
 	}
 
-	/**
-	 * Selects content inside a string if the position is right after an opening quote or right before a closing quote.
-	 * @param pos The position in the model.
-	 * @param model The text model.
-	 */
 	private static _trySelectStringContent(model: ITextModel, pos: Position): Selection | undefined {
 		const { lineNumber, column } = pos;
 		const { tokenization: tokens } = model;
 
-		// Ensure we have accurate tokens for the line.
 		if (!tokens.hasAccurateTokensForLine(lineNumber)) {
 			if (tokens.isCheapToTokenize(lineNumber)) {
 				tokens.forceTokenization(lineNumber);
@@ -175,7 +159,6 @@ export class ViewController {
 			}
 		}
 
-		// Expand to the contiguous run of string tokens (StandardTokenType.String) around the click position.
 		const lineTokens = tokens.getLineTokens(lineNumber);
 		let startIndex = lineTokens.findTokenIndexAtOffset(column - 1);
 		let endIndex = startIndex;
@@ -188,14 +171,12 @@ export class ViewController {
 			endIndex++;
 		}
 
-		// Verify the click is after starting or before closing quote.
 		const tokenStart = lineTokens.getStartOffset(startIndex);
 		const tokenEnd = lineTokens.getEndOffset(endIndex);
 		if (column !== tokenStart + 2 && column !== tokenEnd) {
 			return undefined;
 		}
 
-		// Verify the token looks like a complete quoted string (quote ... quote).
 		const lineContent = model.getLineContent(lineNumber);
 		const firstChar = lineContent.charAt(tokenStart);
 		if (firstChar !== '"' && firstChar !== '\'' && firstChar !== '`') {
@@ -205,7 +186,6 @@ export class ViewController {
 			return undefined;
 		}
 
-		// Skip if string contains RTL characters.
 		const content = lineContent.substring(tokenStart + 1, tokenEnd - 1);
 		if (containsRTL(content)) {
 			return undefined;
@@ -221,12 +201,10 @@ export class ViewController {
 		const scrollOnMiddleClick = options.get(EditorOption.scrollOnMiddleClick);
 		if (data.middleButton && !selectionClipboardIsOn) {
 			if (scrollOnMiddleClick) {
-				// nothing to do here, handled in the contribution
 			} else {
 				this._columnSelect(data.position, data.mouseColumn, data.inSelectionMode);
 			}
 		} else if (data.startedOnLineNumbers) {
-			// If the dragging started on the gutter, then have operations work on the entire line
 			if (this._hasMulticursorModifier(data)) {
 				if (data.inSelectionMode) {
 					this._lastCursorLineSelect(data.position, data.revealType);
@@ -284,7 +262,6 @@ export class ViewController {
 					if (data.shiftKey) {
 						this._columnSelect(data.position, data.mouseColumn, true);
 					} else {
-						// Do multi-cursor operations only when purely alt is pressed
 						if (data.inSelectionMode) {
 							this._lastCursorMoveToSelect(data.position, data.revealType);
 						} else {
@@ -389,7 +366,6 @@ export class ViewController {
 		CoreNavigationCommands.SelectAll.runCoreEditorCommand(this.viewModel, { source: 'mouse' });
 	}
 
-	// ----------------------
 
 	private _convertViewToModelPosition(viewPosition: Position): Position {
 		return this.viewModel.coordinatesConverter.convertViewPositionToModelPosition(viewPosition);

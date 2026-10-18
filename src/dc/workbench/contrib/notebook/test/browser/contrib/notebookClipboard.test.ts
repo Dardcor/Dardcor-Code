@@ -139,7 +139,6 @@ suite('Notebook Clipboard', () => {
 
 				viewModel.updateSelectionsState({ kind: SelectionStateType.Index, focus: { start: 2, end: 3 }, selections: [{ start: 2, end: 3 }] }, 'model');
 				assert.ok(clipboardContrib.runCutAction(accessor));
-				// it should be the last cell, other than the first one.
 				assert.deepStrictEqual(viewModel.getFocus(), { start: 1, end: 2 });
 			});
 	});

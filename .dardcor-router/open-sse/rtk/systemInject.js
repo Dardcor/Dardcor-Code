@@ -1,6 +1,3 @@
-// Shared system-prompt injector: appends an instruction into the system message of
-// the final request body, dispatching by format so it works for translated and
-// native-passthrough flows. Used by caveman.js and ponytail.js.
 
 import { FORMATS } from "../translator/formats.js";
 import { OPENAI_BLOCK, CLAUDE_BLOCK, RESPONSES_ITEM } from "../translator/schema/blocks.js";
@@ -13,28 +10,21 @@ export function injectSystemPrompt(body, format, prompt) {
     if (!body || !prompt) return;
     if (typeof body !== "object") return;
 
-    // Kiro wire shape is unique (conversationState) — handle directly.
     if (isKiroBody(body) || format === FORMATS.KIRO) {
       injectKiroSystem(body, prompt);
       return;
     }
 
-    // Claude/Gemini own a dedicated system field, yet their bodies also carry
-    // messages[]/contents[] — decide by format label before the shape sniff below.
-    // Anthropic rejects a "system" role inside messages[] (no such input role).
     if (format === FORMATS.CLAUDE) {
       injectClaudeSystem(body, prompt);
       return;
     }
     if (format === FORMATS.GEMINI || format === FORMATS.GEMINI_CLI
       || format === FORMATS.VERTEX || format === FORMATS.ANTIGRAVITY) {
-      // Antigravity wraps Gemini shape in body.request → injectGeminiSystem handles it
       injectGeminiSystem(body, prompt);
       return;
     }
 
-    // Dispatch by actual wire shape for OpenAI-shaped formats.
-    // instructions string takes precedence; messages[] means Chat; input[] means Responses.
     if (typeof body.instructions === "string") {
       injectInstructionsSystem(body, prompt);
       return;
@@ -44,18 +34,14 @@ export function injectSystemPrompt(body, format, prompt) {
       return;
     }
     if (Array.isArray(body.input)) {
-      // Responses input[]: empty array already normalized elsewhere; string stays untouched here
       injectResponsesInputSystem(body, prompt);
       return;
     }
     if (typeof body.input === "string") {
-      // string input must stay untouched
       return;
     }
 
-    // OpenAI-shaped but no array (e.g. empty body) — no-op
   } catch (_) {
-    // fail-open
   }
 }
 
@@ -63,15 +49,11 @@ function isKiroBody(body) {
   if (!body || typeof body !== "object") return false;
   const cs = body.conversationState;
   if (!cs || typeof cs !== "object") return false;
-  // A top-level `systemPrompt` used to be the marker, but the Kiro translator no
-  // longer emits it (kiro.dev rejects the field), so gate on the turn shape.
   const historyTurn = Array.isArray(cs.history)
     && cs.history.some(it => it && (it.userInputMessage || it.assistantResponseMessage));
   return historyTurn || !!(cs.currentMessage && cs.currentMessage.userInputMessage);
 }
 
-// Exact idempotency: prompt present as its own SEP-delimited segment (or the
-// whole string), not as a substring of unrelated text.
 function hasPrompt(haystack, prompt) {
   if (!haystack || typeof haystack !== "string") return false;
   if (haystack === prompt) return true;
@@ -84,30 +66,26 @@ function dedupStringAppend(curr, prompt) {
   return `${curr}${SEP}${prompt}`;
 }
 
-// ---- OpenAI instructions string ----
 function injectInstructionsSystem(body, prompt) {
   try {
     const curr = body.instructions;
     if (typeof curr !== "string") return;
     if (hasPrompt(curr, prompt)) return;
     const next = curr ? `${curr}${SEP}${prompt}` : prompt;
-    try { body.instructions = next; } catch (_) { /* frozen/proxy fail-open */ }
+    try { body.instructions = next; } catch (_) { }
   } catch (_) {}
 }
 
-// ---- Chat messages[] ----
 function injectChatSystem(body, prompt) {
   try {
     const arr = body.messages;
     if (!Array.isArray(arr)) return;
-    // Exact idempotency: scan existing system/developer content for full prompt
     if (containsPromptInMessages(arr, prompt)) return;
     let idx = -1;
     try { idx = arr.findIndex(m => m && (m.role === ROLE.SYSTEM || m.role === ROLE.DEVELOPER)); } catch (_) { return; }
     if (idx >= 0) {
       appendToChatMessage(arr[idx], prompt);
     } else {
-      // create typed system message at index 0; fail-open on frozen/proxy
       try { arr.unshift({ role: ROLE.SYSTEM, content: prompt }); } catch (_) {}
     }
   } catch (_) {}
@@ -136,12 +114,10 @@ function appendToChatMessage(msg, prompt) {
     if (typeof c === "string") {
       const next = dedupStringAppend(c, prompt);
       if (next === c) return;
-      // avoid partial mutation: try assignment, bail if setter throws
       try { msg.content = next; } catch (_) {}
       return;
     }
     if (Array.isArray(c)) {
-      // already deduped at message level; but guard block-level too
       try {
         if (c.some(b => b && b.text === prompt)) return;
       } catch (_) {}
@@ -152,14 +128,11 @@ function appendToChatMessage(msg, prompt) {
   } catch (_) {}
 }
 
-// ---- Responses input[] ----
 function injectResponsesInputSystem(body, prompt) {
   try {
     const arr = body.input;
     if (!Array.isArray(arr)) return;
-    // instructions already handled above
     if (containsPromptInResponsesInput(arr, prompt)) return;
-    // find system/developer message items only (type === message)
     let idx = -1;
     try {
       idx = arr.findIndex(m => m && m.type === RESPONSES_ITEM.MESSAGE && (m.role === ROLE.SYSTEM || m.role === ROLE.DEVELOPER));
@@ -209,7 +182,6 @@ function appendToResponsesMessage(msg, prompt) {
   } catch (_) {}
 }
 
-// ---- Claude ----
 function injectClaudeSystem(body, prompt) {
   try {
     const sys = body.system;
@@ -234,12 +206,10 @@ function injectClaudeSystem(body, prompt) {
       } catch (_) {}
       return;
     }
-    // absent/null
     try { body.system = prompt; } catch (_) {}
   } catch (_) {}
 }
 
-// ---- Gemini ----
 function injectGeminiSystem(body, prompt) {
   try {
     let target = body;
@@ -260,16 +230,6 @@ function injectGeminiSystem(body, prompt) {
   } catch (_) {}
 }
 
-// ---- Kiro ----
-// The prompt is appended to the first user turn's content — the same place the
-// Kiro translator already mirrors the system text via its contentPrefix.
-//
-// A top-level `systemPrompt` is deliberately NOT written: the kiro.dev gateway
-// answers any body carrying that field with
-//   400 {"message":"Improperly formed request.","reason":"REQUEST_BODY_INVALID"}
-// The translator stopped emitting it in v0.5.59, but this injector kept adding
-// it back, so every kr/ model failed whenever an RTK prompt (caveman, ponytail)
-// was active.
 function injectKiroSystem(body, prompt) {
   try {
     const cs = body.conversationState;
@@ -287,7 +247,7 @@ function injectKiroSystem(body, prompt) {
 
     const content = typeof targetMsg.content === "string" ? targetMsg.content : "";
     const next = dedupStringAppend(content, prompt);
-    if (next === content) return; // already injected — idempotent across retries
-    try { targetMsg.content = next; } catch (_) { /* frozen/proxy fail-open */ }
+    if (next === content) return;
+    try { targetMsg.content = next; } catch (_) { }
   } catch (_) {}
 }

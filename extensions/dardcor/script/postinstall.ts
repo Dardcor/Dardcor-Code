@@ -10,20 +10,14 @@ import { copyStaticAssets } from './build/copyStaticAssets';
 
 export interface ITreeSitterGrammar {
 	name: string;
-	/**
-	 * A custom .wasm filename if the grammar node module doesn't follow the standard naming convention
-	 */
 	filename?: string;
-	/**
-	 * The path where we should spawn `tree-sitter build-wasm`
-	 */
 	projectPath?: string;
 }
 
 const treeSitterGrammars: ITreeSitterGrammar[] = [
 	{
 		name: 'tree-sitter-c-sharp',
-		filename: 'tree-sitter-c_sharp.wasm' // non-standard filename
+		filename: 'tree-sitter-c_sharp.wasm'
 	},
 	{
 		name: 'tree-sitter-cpp',
@@ -32,7 +26,7 @@ const treeSitterGrammars: ITreeSitterGrammar[] = [
 		name: 'tree-sitter-go',
 	},
 	{
-		name: 'tree-sitter-javascript', // Also includes jsx support
+		name: 'tree-sitter-javascript',
 	},
 	{
 		name: 'tree-sitter-python',
@@ -42,11 +36,11 @@ const treeSitterGrammars: ITreeSitterGrammar[] = [
 	},
 	{
 		name: 'tree-sitter-typescript',
-		projectPath: 'tree-sitter-typescript/typescript', // non-standard path
+		projectPath: 'tree-sitter-typescript/typescript',
 	},
 	{
 		name: 'tree-sitter-tsx',
-		projectPath: 'tree-sitter-typescript/tsx', // non-standard path
+		projectPath: 'tree-sitter-typescript/tsx',
 	},
 	{
 		name: 'tree-sitter-java',
@@ -165,7 +159,7 @@ async function materializeCopilotCliSdkLayout(): Promise<string> {
 
 async function removeCopilotCLIShim() {
 	const shimsPath = path.join(COPILOT_PACKAGE_DIR, 'shims.txt');
-	await fs.promises.rm(shimsPath, { force: true }).catch(() => { /* ignore */ });
+	await fs.promises.rm(shimsPath, { force: true }).catch(() => { });
 }
 
 async function removeCopilotCliWorkerFiles() {
@@ -214,11 +208,6 @@ async function copyCopilotCliPrebuildFiles(dardcorCliSourceDir: string) {
 					return src.endsWith('computer.node')
 						|| src.endsWith('runtime.node')
 						|| src.endsWith('cli-native.node')
-						// node-pty natives: pty.node (+ spawn-helper) on Unix,
-						// conpty.node and its companions on Windows. `endsWith('pty.node')`
-						// also matches `conpty.node`. The conpty native additionally needs
-						// conpty_console_list.node and the conpty/ helpers (OpenConsole.exe,
-						// conpty.dll) to actually spawn. The *.pdb debug symbols are skipped.
 						|| src.endsWith('pty.node')
 						|| src.endsWith('conpty_console_list.node')
 						|| src.endsWith('spawn-helper')
@@ -238,11 +227,6 @@ async function copyCopilotCLIFolders(sourceDir: string, targetDir: string) {
 	await fs.promises.cp(sourceDir, targetDir, { recursive: true, force: true });
 }
 
-/**
- * Creates symlinks so that `.claude/` mirrors canonical locations (for testing Claude Agent harness):
- *   .claude/CLAUDE.md  →  .github/dardcor-instructions.md
- *   .claude/skills     →  .agents/skills
- */
 async function createClaudeSymlinks() {
 	if (process.platform === 'win32' || process.env.CI) {
 		return;
@@ -275,7 +259,6 @@ async function main() {
 		await compressTikToken(tokens, `dist/${path.basename(tokens)}`);
 	}
 
-	// copy static assets to dist
 	await copyStaticAssets([
 		...treeSitterGrammars.map(grammar => `node_modules/@vscode/tree-sitter-wasm/wasm/${grammar.name}.wasm`),
 		'node_modules/@vscode/tree-sitter-wasm/wasm/tree-sitter.wasm',
@@ -291,7 +274,6 @@ async function main() {
 	await copyCopilotCliQueryFiles(dardcorCliSourceDir);
 	await copyCopilotCliPrebuildFiles(dardcorCliSourceDir);
 
-	// Check if the base cache file exists (dev-only sanity check, non-fatal in CI)
 	const baseCachePath = path.join('test', 'simulation', 'cache', 'base.sqlite');
 	if (!fs.existsSync(baseCachePath)) {
 		console.warn(`Warning: Base cache file does not exist at ${baseCachePath}. Please ensure that you have git lfs installed and initialized before the repository is cloned.`);

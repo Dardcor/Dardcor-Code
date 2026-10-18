@@ -54,11 +54,10 @@ suite('PromptHoverProvider', () => {
 
 		const testModels: ILanguageModelChatMetadata[] = [
 			{ id: 'mae-4', name: 'MAE 4', vendor: 'olama', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
-			{ id: 'mae-4.1', name: 'MAE 4.1', vendor: 'copilot', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
-			// Claude model equivalents
-			{ id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', vendor: 'copilot', version: '1.0', family: 'claude', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 200000, maxOutputTokens: 8192, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: {} } satisfies ILanguageModelChatMetadata,
-			{ id: 'claude-opus-4.6', name: 'Claude Opus 4.6', vendor: 'copilot', version: '1.0', family: 'claude', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 200000, maxOutputTokens: 8192, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: {} } satisfies ILanguageModelChatMetadata,
-			{ id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5', vendor: 'copilot', version: '1.0', family: 'claude', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 200000, maxOutputTokens: 8192, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: {} } satisfies ILanguageModelChatMetadata,
+			{ id: 'mae-4.1', name: 'MAE 4.1', vendor: 'dardcor', version: '1.0', family: 'mae', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 8192, maxOutputTokens: 1024, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: { [ChatAgentLocation.Chat]: true } } satisfies ILanguageModelChatMetadata,
+			{ id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', vendor: 'dardcor', version: '1.0', family: 'claude', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 200000, maxOutputTokens: 8192, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: {} } satisfies ILanguageModelChatMetadata,
+			{ id: 'claude-opus-4.6', name: 'Claude Opus 4.6', vendor: 'dardcor', version: '1.0', family: 'claude', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 200000, maxOutputTokens: 8192, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: {} } satisfies ILanguageModelChatMetadata,
+			{ id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5', vendor: 'dardcor', version: '1.0', family: 'claude', extension: new ExtensionIdentifier('a.b'), isUserSelectable: true, maxInputTokens: 200000, maxOutputTokens: 8192, capabilities: { agentMode: true, toolCalling: true }, isDefaultForLocation: {} } satisfies ILanguageModelChatMetadata,
 		];
 
 		instaService.stub(ILanguageModelsService, {
@@ -106,7 +105,6 @@ suite('PromptHoverProvider', () => {
 		if (!hover || hover.contents.length === 0) {
 			return undefined;
 		}
-		// Return the markdown value from the first content
 		const firstContent = hover.contents[0];
 		if (firstContent instanceof MarkdownString) {
 			return firstContent.value;
@@ -205,11 +203,9 @@ suite('PromptHoverProvider', () => {
 				`tools: ['execute', 'read']`,
 				'---',
 			].join('\n');
-			// Hover on 'shell' tool
 			const hoverShell = await getHover(content, 4, 10, PromptsType.agent);
 			assert.strictEqual(hoverShell, 'ToolSet: execute\n\n\nExecute code and applications on your machine');
 
-			// Hover on 'read' tool
 			const hoverEdit = await getHover(content, 4, 20, PromptsType.agent);
 			assert.strictEqual(hoverEdit, 'ToolSet: read\n\n\nRead files in your workspace');
 		});
@@ -222,11 +218,9 @@ suite('PromptHoverProvider', () => {
 				`tools: ['shell', 'read']`,
 				'---',
 			].join('\n');
-			// Hover on 'shell' tool
 			const hoverShell = await getHover(content, 4, 10, PromptsType.agent);
 			assert.strictEqual(hoverShell, 'ToolSet: execute\n\n\nExecute code and applications on your machine');
 
-			// Hover on 'read' tool
 			const hoverEdit = await getHover(content, 4, 20, PromptsType.agent);
 			assert.strictEqual(hoverEdit, 'ToolSet: read\n\n\nRead files in your workspace');
 		});
@@ -239,7 +233,6 @@ suite('PromptHoverProvider', () => {
 				`tools: ['tool1', 'tool2']`,
 				'---',
 			].join('\n');
-			// Hover on 'tool1'
 			const hover = await getHover(content, 4, 10, PromptsType.agent);
 			assert.strictEqual(hover, 'Test Tool 1');
 		});
@@ -506,7 +499,6 @@ suite('PromptHoverProvider', () => {
 	});
 
 	suite('claude agent hovers', () => {
-		// Helper that creates a hover in a Claude agent file (URI under .claude/agents/)
 		async function getClaudeHover(content: string, line: number, column: number): Promise<string | undefined> {
 			return getHover(content, line, column, PromptsType.agent, { claudeAgent: true });
 		}
@@ -553,15 +545,12 @@ suite('PromptHoverProvider', () => {
 				`tools: ['Edit', 'Grep', 'WebFetch']`,
 				'---',
 			].join('\n');
-			// Hover on 'Edit' tool
 			const hoverEdit = await getClaudeHover(content, 4, 10);
 			assert.strictEqual(hoverEdit, 'Make targeted file edits');
 
-			// Hover on 'Grep' tool
 			const hoverGrep = await getClaudeHover(content, 4, 17);
 			assert.strictEqual(hoverGrep, 'Search file contents with regex');
 
-			// Hover on 'WebFetch' tool
 			const hoverFetch = await getClaudeHover(content, 4, 27);
 			assert.strictEqual(hoverFetch, 'Fetch URL content');
 		});
@@ -666,11 +655,9 @@ suite('PromptHoverProvider', () => {
 				`disallowedTools: ['Bash', 'Write']`,
 				'---',
 			].join('\n');
-			// Hover on 'Bash' tool value
 			const hoverBash = await getClaudeHover(content, 4, 20);
 			assert.strictEqual(hoverBash, 'Execute shell commands');
 
-			// Hover on 'Write' tool value
 			const hoverWrite = await getClaudeHover(content, 4, 28);
 			assert.strictEqual(hoverWrite, 'Create/overwrite files');
 		});
@@ -735,12 +722,10 @@ suite('PromptHoverProvider', () => {
 				'---',
 			].join('\n');
 			const hover = await getClaudeHover(content, 4, 1);
-			// handoffs is not a Claude attribute, so no hover should appear
 			assert.strictEqual(hover, undefined);
 		});
 
 		test('full example: hover on each attribute of a Claude agent', async () => {
-			// Realistic Claude agent file as user provided
 			const content = [
 				'---',
 				'name: security-reviewer',
@@ -751,23 +736,18 @@ suite('PromptHoverProvider', () => {
 				'You are a senior security engineer.',
 			].join('\n');
 
-			// Hover on name (line 2)
 			const nameHover = await getClaudeHover(content, 2, 1);
 			assert.strictEqual(nameHover, 'Unique identifier using lowercase letters and hyphens (required)');
 
-			// Hover on description (line 3)
 			const descHover = await getClaudeHover(content, 3, 1);
 			assert.strictEqual(descHover, 'When to delegate to this subagent (required)');
 
-			// Hover on tools attribute key (line 4, column 1)
 			const toolsHover = await getClaudeHover(content, 4, 1);
 			assert.strictEqual(toolsHover, 'Array of tools the subagent can use. Inherits all tools if omitted');
 
-			// Hover on 'AskUserQuestion' tool value (line 4)
 			const askHover = await getClaudeHover(content, 4, 28);
 			assert.strictEqual(askHover, 'Ask multiple-choice questions');
 
-			// Hover on model value 'opus' (line 5)
 			const modelHover = await getClaudeHover(content, 5, 1);
 			const expectedModelHover = [
 				'Model to use: sonnet, opus, haiku, or inherit. Defaults to inherit.',

@@ -30,10 +30,6 @@ suite('AutomationsAccessibilityHelp', () => {
 	});
 
 	test('getProvider returns an AccessibleContentProvider with the Automations id and verbosity setting', () => {
-		// Regression: the provider must be an actual `AccessibleContentProvider`
-		// instance so the accessible-view service's `instanceof` branches
-		// (e.g. `_updateLastProvider`, `showAccessibleViewHelp`) take the
-		// correct path and propagate `verbositySettingKey` properly.
 		const instantiationService = teardown.add(new TestInstantiationService());
 		instantiationService.stub(IKeybindingService, new FakeKeybindingService());
 
@@ -69,8 +65,6 @@ suite('AutomationsAccessibilityHelp', () => {
 
 	test('help content does not contain unresolved placeholders', () => {
 		const content = buildAutomationsHelpContent(upcastPartial<IKeybindingService>({ lookupKeybinding: () => undefined }));
-		// The string template uses {0} for keybinding insertion; if any
-		// placeholder leaks through unresolved that is a content bug.
 		assert.doesNotMatch(content, /\{0\}/);
 	});
 });

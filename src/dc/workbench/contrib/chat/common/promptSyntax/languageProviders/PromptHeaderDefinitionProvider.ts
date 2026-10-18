@@ -14,9 +14,6 @@ import { getPromptsTypeForLanguageId } from '../promptTypes.js';
 import { IPromptsService } from '../service/promptsService.js';
 
 export class PromptHeaderDefinitionProvider implements DefinitionProvider {
-	/**
-	 * Debug display name for this provider.
-	 */
 	public readonly _debugDisplayName: string = 'PromptHeaderDefinitionProvider';
 
 	constructor(
@@ -28,7 +25,6 @@ export class PromptHeaderDefinitionProvider implements DefinitionProvider {
 	async provideDefinition(model: ITextModel, position: Position, token: CancellationToken): Promise<Definition | undefined> {
 		const promptType = getPromptsTypeForLanguageId(model.getLanguageId());
 		if (!promptType) {
-			// if the model is not a prompt, we don't provide any definitions
 			return undefined;
 		}
 

@@ -28,9 +28,6 @@ export class GitService extends Disposable implements IGitService {
 	}
 
 	setDelegate(delegate: IGitExtensionDelegate): IDisposable {
-		// The delegate can only be set once, since the vscode.git
-		// extension can only run in one extension host process per
-		// window.
 		if (this._delegate) {
 			this.logService.error('[GitService][setDelegate] GitExtension delegate is already set.');
 			throw new BugIndicatingError('GitExtension delegate is already set.');
@@ -45,9 +42,6 @@ export class GitService extends Disposable implements IGitService {
 	}
 
 	async openRepository(uri: URI): Promise<IGitRepository | undefined> {
-		// We need to wait for the delegate to be set before we can open a repository.
-		// At the moment we are waiting for 10 seconds before we automatically open the
-		// barrier.
 		await this._delegateBarrier.wait();
 
 		if (!this._delegate) {

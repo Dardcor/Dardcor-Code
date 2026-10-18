@@ -90,7 +90,6 @@ suite('Virtual prompt', function () {
 			const [_, setCount] = context.useState(0);
 			outerCancelCount = setCount;
 
-			// Cancel on second rendering
 			if (shouldCancel) {
 				cts.cancel();
 			}

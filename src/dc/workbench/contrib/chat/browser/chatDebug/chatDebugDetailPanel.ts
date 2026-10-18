@@ -35,11 +35,6 @@ const DETAIL_PANEL_DEFAULT_WIDTH = 350;
 const DETAIL_PANEL_MIN_WIDTH = 200;
 const DETAIL_PANEL_MAX_WIDTH = 800;
 
-/**
- * Reusable detail panel that resolves and displays the content of a
- * single {@link IChatDebugEvent}. Used by both the logs view and the
- * flow chart view.
- */
 export class ChatDebugDetailPanel extends Disposable {
 
 	private readonly _onDidHide = this._register(new Emitter<void>());
@@ -83,7 +78,6 @@ export class ChatDebugDetailPanel extends Disposable {
 		this.element.style.width = `${this._width}px`;
 		DOM.hide(this.element);
 
-		// Sash on the parent container, positioned at the left edge of the detail panel
 		this.sash = this._register(new Sash(parent, {
 			getVerticalSashLeft: () => parent.offsetWidth - this._width,
 		}, { orientation: Orientation.VERTICAL }));
@@ -99,7 +93,6 @@ export class ChatDebugDetailPanel extends Disposable {
 			if (sashStartWidth === undefined) {
 				return;
 			}
-			// Dragging left (negative currentX delta) should increase width
 			const delta = e.startX - e.currentX;
 			const newWidth = Math.max(DETAIL_PANEL_MIN_WIDTH, Math.min(DETAIL_PANEL_MAX_WIDTH, sashStartWidth + delta));
 			this._width = newWidth;
@@ -108,7 +101,6 @@ export class ChatDebugDetailPanel extends Disposable {
 			this._onDidChangeWidth.fire(newWidth);
 		}));
 
-		// Handle Ctrl+A / Cmd+A to select all within the detail panel
 		this._register(DOM.addDisposableListener(this.element, DOM.EventType.KEY_DOWN, (e: KeyboardEvent) => {
 			if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
 				const target = e.target as HTMLElement | null;
@@ -128,7 +120,6 @@ export class ChatDebugDetailPanel extends Disposable {
 	}
 
 	async show(event: IChatDebugEvent): Promise<void> {
-		// Skip re-rendering if we're already showing this event's detail
 		if (event.id && event.id === this.currentDetailEventId) {
 			return;
 		}
@@ -143,7 +134,6 @@ export class ChatDebugDetailPanel extends Disposable {
 		DOM.clearNode(this.contentContainer);
 		this.detailDisposables.clear();
 
-		// Header with action buttons
 		const header = DOM.append(this.element, $('.chat-debug-detail-header'));
 		this.headerElement = header;
 		this.element.appendChild(this.scrollable.getDomNode());
@@ -188,7 +178,6 @@ export class ChatDebugDetailPanel extends Disposable {
 			this.currentDetailText = toolCallContentToPlainText(resolved);
 			const { element: contentEl, disposables: contentDisposables } = await renderToolCallContent(resolved, this.languageService, this.clipboardService, this.scrollable);
 			if (this.currentDetailEventId !== event.id) {
-				// Another event was selected while we were rendering
 				contentDisposables.dispose();
 				return;
 			}
@@ -207,7 +196,6 @@ export class ChatDebugDetailPanel extends Disposable {
 			this.currentDetailText = modelTurnContentToPlainText(resolved);
 			const { element: contentEl, disposables: contentDisposables } = await renderModelTurnContent(resolved, this.languageService, this.clipboardService, this.scrollable);
 			if (this.currentDetailEventId !== event.id) {
-				// Another event was selected while we were rendering
 				contentDisposables.dispose();
 				return;
 			}
@@ -217,7 +205,6 @@ export class ChatDebugDetailPanel extends Disposable {
 			this.currentDetailText = hookContentToPlainText(resolved);
 			const { element: contentEl, disposables: contentDisposables } = await renderHookContent(resolved, this.languageService, this.clipboardService, this.scrollable);
 			if (this.currentDetailEventId !== event.id) {
-				// Another event was selected while we were rendering
 				contentDisposables.dispose();
 				return;
 			}
@@ -252,8 +239,6 @@ export class ChatDebugDetailPanel extends Disposable {
 			pre.textContent = this.currentDetailText;
 		}
 
-		// Compute height from the parent container and set explicit
-		// dimensions so the scrollable element can show proper scrollbars.
 		const parentHeight = this.element.parentElement?.clientHeight ?? 0;
 		if (parentHeight > 0) {
 			this.layout(parentHeight);
@@ -270,16 +255,9 @@ export class ChatDebugDetailPanel extends Disposable {
 		this.firstFocusableElement?.focus();
 	}
 
-	/**
-	 * Set explicit dimensions on the scrollable element so the scrollbar
-	 * can compute its size. Call after the panel is shown and whenever
-	 * the available space changes.
-	 */
 	layout(height: number): void {
 		const headerHeight = this.headerElement?.offsetHeight ?? 0;
 		const scrollableHeight = Math.max(0, height - headerHeight);
-		// Preserve scroll position across layout changes (e.g. when opening
-		// an editor causes the workbench to re-layout this panel).
 		const scrollPos = this.scrollable.getScrollPosition();
 		this.contentContainer.style.height = `${scrollableHeight}px`;
 		this.scrollable.scanDomNode();

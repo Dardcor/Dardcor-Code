@@ -24,12 +24,11 @@ export class ExtHostEditorInsets implements ExtHostEditorInsetsShape {
 		private readonly _remoteInfo: WebviewRemoteInfo
 	) {
 
-		// dispose editor inset whenever the hosting editor goes away
 		this._disposables.add(_editors.onDidChangeVisibleTextEditors(() => {
 			const visibleEditor = _editors.getVisibleTextEditors();
 			for (const value of this._insets.values()) {
 				if (visibleEditor.indexOf(value.editor) < 0) {
-					value.inset.dispose(); // will remove from `this._insets`
+					value.inset.dispose();
 				}
 			}
 		}));
@@ -111,7 +110,6 @@ export class ExtHostEditorInsets implements ExtHostEditorInsetsShape {
 					that._proxy.$disposeEditorInset(handle);
 					onDidDispose.fire();
 
-					// final cleanup
 					onDidDispose.dispose();
 					onDidReceiveMessage.dispose();
 				}

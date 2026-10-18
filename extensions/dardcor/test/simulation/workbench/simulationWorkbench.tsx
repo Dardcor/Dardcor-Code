@@ -44,8 +44,6 @@ class SimulationWorkbench extends Disposable {
 		this.storage = new SimulationStorage();
 		this.workbenchMode = this.storage.bind<WorkbenchMode>('workbenchMode', 'tests');
 		this.testSource = this.storage.bind('testSource', TestSource.Local);
-		// Sanitize a possibly stale `testSource` from earlier builds where the adhoc
-		// request mode was (incorrectly) modeled as a `TestSource` member.
 		if (this.testSource.value !== TestSource.Local && this.testSource.value !== TestSource.External && this.testSource.value !== TestSource.NesExternal) {
 			this.testSource.value = TestSource.Local;
 		}

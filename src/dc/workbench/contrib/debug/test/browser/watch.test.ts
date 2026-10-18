@@ -8,7 +8,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { DebugModel, Expression } from '../../common/debugModel.js';
 import { createMockDebugModel } from './mockDebugModel.js';
 
-// Expressions
 
 function assertWatchExpressions(watchExpressions: Expression[], expectedName: string) {
 	assert.strictEqual(watchExpressions.length, 2);

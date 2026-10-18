@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Ambient type declarations for @vscode/copilot-api.
- *
- * The package's .d.ts files use extensionless relative imports which are
- * incompatible with `moduleResolution: "nodenext"`. This file provides
- * the subset of types used by the agent host until the package is fixed.
- */
 declare module '@vscode/copilot-api' {
 
 	export interface IAbortSignal {
@@ -158,10 +151,6 @@ declare module '@vscode/copilot-api' {
 		object: string;
 		policy: CCAModelPolicy;
 		preview: boolean;
-		/**
-		 * API endpoints the model supports (e.g. `'/v1/messages'`, `'/chat/completions'`).
-		 * Anthropic-format models use `'/v1/messages'`.
-		 */
 		supported_endpoints: string[] | undefined;
 		vendor: string;
 		version: string;

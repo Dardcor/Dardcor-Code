@@ -3,30 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------
- *  Audit a ThirdPartyNotices file against the actual repo contents.
- *
- *  Parses the NOTICE file, then walks the repo to collect runtime dependencies
- *  from package.json, Cargo.lock, and cgmanifest.json files.  Produces a report
- *  showing coverage gaps, extras, duplicates, and license breakdown.
- *
- *  Usage:
- *    npx tsx build/azure-pipelines/oss/audit-notices.ts --notice <path> --repo .
- *
- *  --notice   Path to ThirdPartyNotices.txt (or .new.txt)
- *  --repo     Path to the repo root (defaults to cwd)
- *--------------------------------------------------------------------------------------------*/
 
 import fs from 'fs';
 import path from 'path';
 import { parseNoticeFile, type NoticeEntry } from './parse-notices.js';
 import { parseArgs } from './utils.js';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
-/** Recursively walk a directory, yielding file paths that match a predicate. */
 function walkFiles(dir: string, match: (name: string) => boolean): string[] {
 	const results: string[] = [];
 	const skipDirs = new Set(['.git', '.build', 'out', 'out-build', 'out-editor', 'out-dardcor-code']);
@@ -36,7 +19,7 @@ function walkFiles(dir: string, match: (name: string) => boolean): string[] {
 		try {
 			entries = fs.readdirSync(d, { withFileTypes: true });
 		} catch {
-			return; // permission errors, broken symlinks, etc.
+			return;
 		}
 		for (const entry of entries) {
 			if (entry.isDirectory()) {
@@ -53,9 +36,6 @@ function walkFiles(dir: string, match: (name: string) => boolean): string[] {
 	return results;
 }
 
-// ---------------------------------------------------------------------------
-// NOTICE analysis
-// ---------------------------------------------------------------------------
 
 interface NoticeStats {
 	entries: NoticeEntry[];
@@ -66,7 +46,6 @@ interface NoticeStats {
 }
 
 function analyzeNotice(entries: NoticeEntry[]): NoticeStats {
-	// Unique by name@version
 	const keyCounts = new Map<string, number>();
 	for (const e of entries) {
 		const key = `${e.name.toLowerCase()}@${e.version}`;
@@ -79,7 +58,6 @@ function analyzeNotice(entries: NoticeEntry[]): NoticeStats {
 		}
 	}
 
-	// Same name, different versions
 	const nameVersions = new Map<string, Set<string>>();
 	for (const e of entries) {
 		const lower = e.name.toLowerCase();
@@ -97,7 +75,6 @@ function analyzeNotice(entries: NoticeEntry[]): NoticeStats {
 		}
 	}
 
-	// License breakdown
 	const licenseCounts = new Map<string, number>();
 	for (const e of entries) {
 		const lic = e.license || '(unknown)';
@@ -116,17 +93,13 @@ function analyzeNotice(entries: NoticeEntry[]): NoticeStats {
 	};
 }
 
-// ---------------------------------------------------------------------------
-// Manifest discovery
-// ---------------------------------------------------------------------------
 
 interface ManifestPackage {
 	name: string;
 	version: string;
-	source: string; // e.g. "package.json", "Cargo.lock", "cgmanifest.json"
+	source: string;
 }
 
-/** Read runtime deps (dependencies + optionalDependencies) from a package.json. */
 function collectPackageJsonDeps(filePath: string): ManifestPackage[] {
 	const results: ManifestPackage[] = [];
 	try {
@@ -144,12 +117,10 @@ function collectPackageJsonDeps(filePath: string): ManifestPackage[] {
 			}
 		}
 	} catch {
-		// malformed JSON -- skip
 	}
 	return results;
 }
 
-/** Parse [[package]] blocks from a Cargo.lock file. */
 function collectCargoLockDeps(filePath: string): ManifestPackage[] {
 	const results: ManifestPackage[] = [];
 	try {
@@ -169,12 +140,10 @@ function collectCargoLockDeps(filePath: string): ManifestPackage[] {
 			}
 		}
 	} catch {
-		// read error -- skip
 	}
 	return results;
 }
 
-/** Read the full transitive dependency tree from a package-lock.json (v2/v3 format). */
 function collectPackageLockDeps(filePath: string): ManifestPackage[] {
 	const results: ManifestPackage[] = [];
 	try {
@@ -184,19 +153,14 @@ function collectPackageLockDeps(filePath: string): ManifestPackage[] {
 			return results;
 		}
 		for (const [key, entry] of Object.entries(packages)) {
-			// Skip root entry
 			if (key === '') {
 				continue;
 			}
-			// Skip dev-only and devOptional dependencies
 			if (entry.dev === true || entry.devOptional === true) {
 				continue;
 			}
-			// Extract package name from the key path
-			// Keys look like "node_modules/@scope/pkg" or "node_modules/foo/node_modules/bar"
 			const segments = key.split('node_modules/');
 			const lastSegment = segments[segments.length - 1];
-			// Remove trailing slash if present
 			const name = lastSegment.replace(/\/$/, '');
 			if (name && entry.version) {
 				results.push({
@@ -207,12 +171,10 @@ function collectPackageLockDeps(filePath: string): ManifestPackage[] {
 			}
 		}
 	} catch {
-		// malformed JSON or read error -- skip
 	}
 	return results;
 }
 
-/** Parse component registrations from a cgmanifest.json file. */
 function collectCgManifestDeps(filePath: string): ManifestPackage[] {
 	const results: ManifestPackage[] = [];
 	try {
@@ -249,14 +211,10 @@ function collectCgManifestDeps(filePath: string): ManifestPackage[] {
 			}
 		}
 	} catch {
-		// malformed JSON -- skip
 	}
 	return results;
 }
 
-// ---------------------------------------------------------------------------
-// Cross-reference
-// ---------------------------------------------------------------------------
 
 interface CrossRefResult {
 	manifestPackages: ManifestPackage[];
@@ -280,7 +238,6 @@ function crossReference(noticeNames: Set<string>, manifestPackages: ManifestPack
 		}
 	}
 
-	// Unique package counts per source (de-duped by name)
 	const uniqueBySource = new Map<string, Set<string>>();
 	for (const pkg of manifestPackages) {
 		if (!uniqueBySource.has(pkg.source)) {
@@ -308,9 +265,6 @@ function crossReference(noticeNames: Set<string>, manifestPackages: ManifestPack
 	};
 }
 
-// ---------------------------------------------------------------------------
-// Report
-// ---------------------------------------------------------------------------
 
 function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResult, lockfileBreakdown: Map<string, number>): void {
 	const sizeMB = (fs.statSync(noticePath).size / 1024 / 1024).toFixed(2);
@@ -320,7 +274,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 	console.log('+==============================================================+');
 	console.log('');
 
-	// -- Section 1: NOTICE stats --
 	console.log('-- 1. NOTICE FILE STATS ---------------------------------------');
 	console.log(`  File:            ${noticePath}`);
 	console.log(`  Size:            ${sizeMB} MB`);
@@ -328,7 +281,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 	console.log(`  Unique (name@v): ${stats.uniqueKey.size}`);
 	console.log('');
 
-	// Duplicates (same name@version -- bugs)
 	if (stats.duplicateEntries.length > 0) {
 		console.log(`  WARNING: DUPLICATE ENTRIES (same name@version): ${stats.duplicateEntries.length}`);
 		for (const d of stats.duplicateEntries) {
@@ -340,7 +292,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 		console.log('');
 	}
 
-	// Same name, different versions (expected but noted)
 	if (stats.duplicateNames.length > 0) {
 		console.log(`  INFO: Multi-version packages (same name, different versions): ${stats.duplicateNames.length}`);
 		for (const d of stats.duplicateNames.slice(0, 20)) {
@@ -352,7 +303,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 		console.log('');
 	}
 
-	// License breakdown (top 10)
 	console.log('  License breakdown (top 10):');
 	for (const l of stats.licenseBreakdown.slice(0, 10)) {
 		const bar = '#'.repeat(Math.min(Math.round(l.count / stats.entries.length * 40), 40));
@@ -365,7 +315,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 	}
 	console.log('');
 
-	// -- Section 2: Manifest cross-reference --
 	console.log('-- 2. REPO MANIFEST CROSS-REFERENCE --------------------------');
 	console.log('');
 	console.log('  Manifest sources found:');
@@ -398,7 +347,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 		console.log('');
 	}
 
-	// -- Section 3: Summary --
 	console.log('-- 3. SUMMARY ------------------------------------------------');
 	console.log('');
 	const noticeUniqueNames = new Set([...stats.uniqueKey].map(k => k.replace(/@[^@]*$/, '')));
@@ -415,16 +363,13 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 	}
 	console.log('');
 
-	// -- Section 4: Package source breakdown --
 	if (lockfileBreakdown.size > 0) {
 		console.log('-- 4. PACKAGE SOURCE BREAKDOWN -------------------------------');
 		console.log('');
 
-		// Sort by count descending
 		const sorted = [...lockfileBreakdown.entries()].sort((a, b) => b[1] - a[1]);
 		const total = sorted.reduce((sum, [, count]) => sum + count, 0);
 
-		// Find the widest path for alignment
 		const maxPathLen = Math.max(...sorted.map(([p]) => p.length), 'TOTAL across all lockfiles:'.length);
 
 		console.log('  Packages per lockfile (non-dev, sorted by count):');
@@ -434,7 +379,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 		console.log(`     ${'TOTAL across all lockfiles:'.padEnd(maxPathLen)}  ${String(total).padStart(5)}`);
 		console.log('');
 
-		// Top extensions by package count
 		const extensionEntries = sorted.filter(([p]) => /^extensions\/[^/]+\/package-lock\.json$/.test(p));
 		if (extensionEntries.length > 0) {
 			const top10 = extensionEntries.slice(0, 10);
@@ -449,9 +393,6 @@ function printReport(noticePath: string, stats: NoticeStats, xref: CrossRefResul
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 function main(): void {
 	const args = parseArgs(process.argv.slice(2));
@@ -482,17 +423,14 @@ function main(): void {
 
 	console.log(`Walking repo for manifests: ${repoRoot}`);
 
-	// Collect all manifest packages
 	const allManifestPkgs: ManifestPackage[] = [];
 
-	// package.json files
 	const packageJsonFiles = walkFiles(repoRoot, n => n === 'package.json');
 	console.log(`  Found ${packageJsonFiles.length} package.json files`);
 	for (const f of packageJsonFiles) {
 		allManifestPkgs.push(...collectPackageJsonDeps(f));
 	}
 
-	// package-lock.json files (full transitive dependency tree)
 	const packageLockFiles = walkFiles(repoRoot, n => n === 'package-lock.json');
 	console.log(`  Found ${packageLockFiles.length} package-lock.json files`);
 	const lockfileBreakdown = new Map<string, number>();
@@ -503,14 +441,12 @@ function main(): void {
 		allManifestPkgs.push(...deps);
 	}
 
-	// Cargo.lock files
 	const cargoLockFiles = walkFiles(repoRoot, n => n === 'Cargo.lock');
 	console.log(`  Found ${cargoLockFiles.length} Cargo.lock files`);
 	for (const f of cargoLockFiles) {
 		allManifestPkgs.push(...collectCargoLockDeps(f));
 	}
 
-	// cgmanifest.json files
 	const cgManifestFiles = walkFiles(repoRoot, n => n === 'cgmanifest.json');
 	console.log(`  Found ${cgManifestFiles.length} cgmanifest.json files`);
 	for (const f of cgManifestFiles) {
@@ -520,7 +456,6 @@ function main(): void {
 	console.log(`  Total manifest packages collected: ${allManifestPkgs.length}`);
 	console.log('');
 
-	// Build notice name set (lowercase, without version)
 	const noticeNames = new Set<string>();
 	for (const e of entries) {
 		noticeNames.add(e.name.toLowerCase());

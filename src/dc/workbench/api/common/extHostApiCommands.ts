@@ -25,16 +25,13 @@ import type * as vscode from 'vscode';
 import { PromptsType } from '../../contrib/chat/common/promptSyntax/promptTypes.js';
 import type { IExtensionPromptFileResult } from '../../contrib/chat/common/promptSyntax/chatPromptFilesContribution.js';
 
-//#region --- NEW world
 
 const newCommands: ApiCommand[] = [
-	// -- document highlights
 	new ApiCommand(
 		'vscode.executeDocumentHighlights', '_executeDocumentHighlights', 'Execute document highlight provider.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
 		new ApiCommandResult<languages.DocumentHighlight[], types.DocumentHighlight[] | undefined>('A promise that resolves to an array of DocumentHighlight-instances.', tryMapWith(typeConverters.DocumentHighlight.to))
 	),
-	// -- document symbols
 	new ApiCommand(
 		'vscode.executeDocumentSymbolProvider', '_executeDocumentSymbolProvider', 'Execute document symbol provider.',
 		[ApiCommandArgument.Uri],
@@ -68,7 +65,6 @@ const newCommands: ApiCommand[] = [
 
 		})
 	),
-	// -- formatting
 	new ApiCommand(
 		'vscode.executeFormatDocumentProvider', '_executeFormatDocumentProvider', 'Execute document format provider.',
 		[ApiCommandArgument.Uri, new ApiCommandArgument('options', 'Formatting options', _ => true, v => v)],
@@ -84,7 +80,6 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position, new ApiCommandArgument('ch', 'Trigger character', v => typeof v === 'string', v => v), new ApiCommandArgument('options', 'Formatting options', _ => true, v => v)],
 		new ApiCommandResult<languages.TextEdit[], types.TextEdit[] | undefined>('A promise that resolves to an array of TextEdits.', tryMapWith(typeConverters.TextEdit.to))
 	),
-	// -- go to symbol (definition, type definition, declaration, impl, references)
 	new ApiCommand(
 		'vscode.executeDefinitionProvider', '_executeDefinitionProvider', 'Execute all definition providers.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
@@ -135,7 +130,6 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
 		new ApiCommandResult<languages.Location[], types.Location[] | undefined>('A promise that resolves to an array of Location-instances.', tryMapWith(typeConverters.location.to))
 	),
-	// -- hover
 	new ApiCommand(
 		'vscode.executeHoverProvider', '_executeHoverProvider', 'Execute all hover providers.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
@@ -146,7 +140,6 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
 		new ApiCommandResult<languages.Hover[], types.Hover[] | undefined>('A promise that resolves to an array of Hover-instances.', tryMapWith(typeConverters.Hover.to))
 	),
-	// -- selection range
 	new ApiCommand(
 		'vscode.executeSelectionRangeProvider', '_executeSelectionRangeProvider', 'Execute selection range provider.',
 		[ApiCommandArgument.Uri, new ApiCommandArgument<types.Position[], IPosition[]>('position', 'A position in a text document', v => Array.isArray(v) && v.every(v => types.Position.isPosition(v)), v => v.map(typeConverters.Position.from))],
@@ -160,7 +153,6 @@ const newCommands: ApiCommand[] = [
 			});
 		})
 	),
-	// -- symbol search
 	new ApiCommand(
 		'vscode.executeWorkspaceSymbolProvider', '_executeWorkspaceSymbolProvider', 'Execute all workspace symbol providers.',
 		[ApiCommandArgument.String.with('query', 'Search string')],
@@ -168,7 +160,6 @@ const newCommands: ApiCommand[] = [
 			return value.map(typeConverters.WorkspaceSymbol.to);
 		})
 	),
-	// --- call hierarchy
 	new ApiCommand(
 		'vscode.prepareCallHierarchy', '_executePrepareCallHierarchy', 'Prepare call hierarchy at a position inside a document',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
@@ -184,7 +175,6 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.CallHierarchyItem],
 		new ApiCommandResult<IOutgoingCallDto[], types.CallHierarchyOutgoingCall[]>('A promise that resolves to an array of CallHierarchyOutgoingCall-instances', v => v.map(typeConverters.CallHierarchyOutgoingCall.to))
 	),
-	// --- rename
 	new ApiCommand(
 		'vscode.prepareRename', '_executePrepareRename', 'Execute the prepareRename of rename provider.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
@@ -211,13 +201,11 @@ const newCommands: ApiCommand[] = [
 			return typeConverters.WorkspaceEdit.to(value);
 		})
 	),
-	// --- links
 	new ApiCommand(
 		'vscode.executeLinkProvider', '_executeLinkProvider', 'Execute document link provider.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Number.with('linkResolveCount', 'Number of links that should be resolved, only when links are unresolved.').optional()],
 		new ApiCommandResult<languages.ILink[], vscode.DocumentLink[]>('A promise that resolves to an array of DocumentLink-instances.', value => value.map(typeConverters.DocumentLink.to))
 	),
-	// --- semantic tokens
 	new ApiCommand(
 		'vscode.provideDocumentSemanticTokensLegend', '_provideDocumentSemanticTokensLegend', 'Provide semantic tokens legend for a document',
 		[ApiCommandArgument.Uri],
@@ -237,7 +225,6 @@ const newCommands: ApiCommand[] = [
 			}
 			const semanticTokensDto = decodeSemanticTokensDto(value);
 			if (semanticTokensDto.type !== 'full') {
-				// only accepting full semantic tokens from provideDocumentSemanticTokens
 				return undefined;
 			}
 			return new types.SemanticTokens(semanticTokensDto.data, undefined);
@@ -262,13 +249,11 @@ const newCommands: ApiCommand[] = [
 			}
 			const semanticTokensDto = decodeSemanticTokensDto(value);
 			if (semanticTokensDto.type !== 'full') {
-				// only accepting full semantic tokens from provideDocumentRangeSemanticTokens
 				return undefined;
 			}
 			return new types.SemanticTokens(semanticTokensDto.data, undefined);
 		})
 	),
-	// --- completions
 	new ApiCommand(
 		'vscode.executeCompletionItemProvider', '_executeCompletionItemProvider', 'Execute completion item provider.',
 		[
@@ -285,7 +270,6 @@ const newCommands: ApiCommand[] = [
 			return new types.CompletionList(items, value.incomplete);
 		})
 	),
-	// --- signature help
 	new ApiCommand(
 		'vscode.executeSignatureHelpProvider', '_executeSignatureHelpProvider', 'Execute signature help provider.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position, ApiCommandArgument.String.with('triggerCharacter', 'Trigger signature help when the user types the character, like `,` or `(`').optional()],
@@ -296,7 +280,6 @@ const newCommands: ApiCommand[] = [
 			return undefined;
 		})
 	),
-	// --- code lens
 	new ApiCommand(
 		'vscode.executeCodeLensProvider', '_executeCodeLensProvider', 'Execute code lens provider.',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Number.with('itemResolveCount', 'Number of lenses that should be resolved and returned. Will only return resolved lenses, will impact performance)').optional()],
@@ -306,7 +289,6 @@ const newCommands: ApiCommand[] = [
 			})(value);
 		})
 	),
-	// --- code actions
 	new ApiCommand(
 		'vscode.executeCodeActionProvider', '_executeCodeActionProvider', 'Execute code action provider.',
 		[
@@ -339,7 +321,6 @@ const newCommands: ApiCommand[] = [
 			})(value);
 		})
 	),
-	// --- colors
 	new ApiCommand(
 		'vscode.executeDocumentColorProvider', '_executeDocumentColorProvider', 'Execute document color provider.',
 		[ApiCommandArgument.Uri],
@@ -363,7 +344,6 @@ const newCommands: ApiCommand[] = [
 			return [];
 		})
 	),
-	// --- inline hints
 	new ApiCommand(
 		'vscode.executeInlayHintProvider', '_executeInlayHintProvider', 'Execute inlay hints provider',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Range],
@@ -371,7 +351,6 @@ const newCommands: ApiCommand[] = [
 			return result.map(typeConverters.InlayHint.to.bind(undefined, converter));
 		})
 	),
-	// --- folding
 	new ApiCommand(
 		'vscode.executeFoldingRangeProvider', '_executeFoldingRangeProvider', 'Execute folding range provider',
 		[ApiCommandArgument.Uri],
@@ -383,13 +362,9 @@ const newCommands: ApiCommand[] = [
 		})
 	),
 
-	// --- notebooks
 	new ApiCommand(
 		'vscode.resolveNotebookContentProviders', '_resolveNotebookContentProvider', 'Resolve Notebook Content Providers',
 		[
-			// new ApiCommandArgument<string, string>('viewType', '', v => typeof v === 'string', v => v),
-			// new ApiCommandArgument<string, string>('displayName', '', v => typeof v === 'string', v => v),
-			// new ApiCommandArgument<object, object>('options', '', v => typeof v === 'object', v => v),
 		],
 		new ApiCommandResult<{
 			viewType: string;
@@ -414,7 +389,6 @@ const newCommands: ApiCommand[] = [
 			};
 		}))
 	),
-	// --- debug support
 	new ApiCommand(
 		'vscode.executeInlineValueProvider', '_executeInlineValueProvider', 'Execute inline value provider',
 		[
@@ -426,7 +400,6 @@ const newCommands: ApiCommand[] = [
 			return result.map(typeConverters.InlineValue.to);
 		})
 	),
-	// --- open'ish commands
 	new ApiCommand(
 		'vscode.open', '_workbench.open', 'Opens the provided resource in the editor. Can be a text or binary file, or an http(s) URL. If you need more control over the options for opening a text file, use vscode.window.showTextDocument instead.',
 		[
@@ -489,7 +462,6 @@ const newCommands: ApiCommand[] = [
 		],
 		ApiCommandResult.Void
 	),
-	// --- type hierarchy
 	new ApiCommand(
 		'vscode.prepareTypeHierarchy', '_executePrepareTypeHierarchy', 'Prepare type hierarchy at a position inside a document',
 		[ApiCommandArgument.Uri, ApiCommandArgument.Position],
@@ -505,7 +477,6 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.TypeHierarchyItem],
 		new ApiCommandResult<ITypeHierarchyItemDto[], types.TypeHierarchyItem[]>('A promise that resolves to an array of TypeHierarchyItem-instances', v => v.map(typeConverters.TypeHierarchyItem.to))
 	),
-	// --- testing
 	new ApiCommand(
 		'vscode.revealTestInExplorer', '_revealTestInExplorer', 'Reveals a test instance in the explorer',
 		[ApiCommandArgument.TestItem],
@@ -521,13 +492,11 @@ const newCommands: ApiCommand[] = [
 		[ApiCommandArgument.Arr(ApiCommandArgument.TestItem)],
 		ApiCommandResult.Void
 	),
-	// --- continue edit session
 	new ApiCommand(
 		'vscode.experimental.editSession.continue', '_workbench.editSessions.actions.continueEditSession', 'Continue the current edit session in a different workspace',
 		[ApiCommandArgument.Uri.with('workspaceUri', 'The target workspace to continue the current edit session in')],
 		ApiCommandResult.Void
 	),
-	// --- context keys
 	new ApiCommand(
 		'setContext', '_setContext', 'Set a custom context key value that can be used in when clauses.',
 		[
@@ -536,7 +505,6 @@ const newCommands: ApiCommand[] = [
 		],
 		ApiCommandResult.Void
 	),
-	// --- inline chat
 	new ApiCommand(
 		'vscode.editorChat.start', 'inlineChat.start', 'Invoke a new editor chat session',
 		[new ApiCommandArgument<InlineChatEditorApiArg | undefined, InlineChatRunOptions | undefined>('Run arguments', '', _v => true, v => {
@@ -557,7 +525,6 @@ const newCommands: ApiCommand[] = [
 		})],
 		ApiCommandResult.Void
 	),
-	// --- extension prompt files
 	new ApiCommand(
 		'vscode.extensionPromptFileProvider', '_listExtensionPromptFiles', 'Get all extension-contributed prompt files (custom agents, instructions, and prompt files).',
 		[],
@@ -597,10 +564,8 @@ type InlineChatRunOptions = {
 	resolveOnResponse?: boolean;
 };
 
-//#endregion
 
 
-//#region OLD world
 
 export class ExtHostApiCommands {
 

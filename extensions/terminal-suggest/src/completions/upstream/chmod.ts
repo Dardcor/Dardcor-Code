@@ -5,7 +5,6 @@ const completionSpec: Fig.Spec = {
 		{
 			name: "mode",
 			suggestions: [
-				// Some of the most common chmod's (non-exhaustive)
 				{
 					name: "u+x",
 					type: "arg",
@@ -41,7 +40,6 @@ const completionSpec: Fig.Spec = {
 			],
 		},
 		{
-			// Modifying
 			template: "filepaths",
 		},
 	],

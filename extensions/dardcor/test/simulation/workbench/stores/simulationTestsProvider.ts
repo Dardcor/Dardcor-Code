@@ -23,7 +23,6 @@ export interface ISimulationTest {
 	suiteName: string;
 	baselineJSON: IBaselineTestSummary | undefined;
 	baseline: TestRuns | undefined;
-	/** `runnerStatus` is undefined when the test hasn't been run  */
 	runnerStatus: RunnerTestStatus | undefined;
 	activeEditorLangId?: string;
 	errorsOnlyInBefore?: EvaluationError[];
@@ -61,7 +60,7 @@ export class SimulationTestsProvider extends Disposable {
 				const runs = this.resolvedAMLRun.tests;
 				const compareAgainstRun = this.resolvedAMLRun.testsToCompareAgainst;
 
-				const compareAgainstRunMap = new Map<string /* test name */, TestRuns>();
+				const compareAgainstRunMap = new Map<string , TestRuns>();
 				compareAgainstRun.value.forEach(testRun => compareAgainstRunMap.set(testRun.name, testRun));
 
 				return runs.value.map((el): ISimulationTest => {

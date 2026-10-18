@@ -14,10 +14,6 @@ export function create(accessor: ServicesAccessor): IDisposable {
 	return disposables;
 }
 
-// These commands are historic and forward to core commands in VS Code.
-// To preserve muscle memory, they are kept around for now with their
-// command identifier, so that users with associated keybindings can
-// still use them.
 
 function registerContextCommands(accessor: ServicesAccessor) {
 	return Disposable.from(

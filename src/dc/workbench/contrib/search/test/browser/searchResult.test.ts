@@ -433,23 +433,19 @@ suite('SearchResult', () => {
 			}]
 		};
 
-		// Add a file inside the workspace folder
 		addToSearchResult(testObject, [
 			aRawMatch('/workspace/file.txt',
 				new TextSearchMatch('preview 1', lineOneRange)),
 		]);
 
-		// Add a file outside of the workspace folder (goes to "Other files")
 		addToSearchResult(testObject, [
 			aRawMatch('/other/outside.txt',
 				new TextSearchMatch('preview 2', lineOneRange)),
 		]);
 
-		// Should have 2 folder matches: workspace root and "Other files"
 		const folderMatches = testObject.folderMatches();
 		assert.strictEqual(folderMatches.length, 2);
 
-		// Find the "Other files" folder match (FolderMatchNoRoot)
 		const otherFilesMatch = folderMatches.find(fm => isSearchTreeFolderMatchNoRoot(fm));
 		assert.ok(otherFilesMatch, 'Should have an Other files folder match');
 		assert.strictEqual(otherFilesMatch.allDownstreamFileMatches().length, 1);
@@ -458,7 +454,6 @@ suite('SearchResult', () => {
 		testObject.batchRemove([otherFilesMatch]);
 
 		assert.ok(target.calledOnce);
-		// After removal, the Other files folder should be cleared
 		assert.strictEqual(otherFilesMatch.allDownstreamFileMatches().length, 0);
 	});
 
@@ -513,7 +508,7 @@ suite('SearchResult', () => {
 		});
 
 		const root1DownstreamFiles = root1.allDownstreamFileMatches();
-		assert.deepStrictEqual(root1.allDownstreamFileMatches(), [...root1.fileMatchesIterator(), ...getFolderMatchAtIndex(root1, 0).fileMatchesIterator()]); // excludes the matches from nested root
+		assert.deepStrictEqual(root1.allDownstreamFileMatches(), [...root1.fileMatchesIterator(), ...getFolderMatchAtIndex(root1, 0).fileMatchesIterator()]);
 		assert.deepStrictEqual(getFileMatchAtIndex(getFolderMatchAtIndex(root1, 0), 0).parent(), getFolderMatchAtIndex(root1, 0));
 		root1DownstreamFiles.forEach((e) => {
 			assert.deepStrictEqual(e.closestRoot, root1);
@@ -670,28 +665,6 @@ suite('SearchResult', () => {
 			},
 			]
 		};
-		/***
-		 * file structure looks like:
-		 * *voo/
-		 * |- foo.a
-		 * |- beep
-		 *    |- foo.c
-		 * 	  |- boop.c
-		 * *with/
-		 * |- path
-		 *    |- bar.b
-		 * |- path.c
-		 * |- *test/
-		 *    |- woo.c
-		 * eep/
-		 *    |- bar
-		 *       |- goo
-		 *           |- foo
-		 *              |- here.txt
-		 * 			 |- ooo
-		 *              |- there.txt
-		 *    |- eyy.y
-		 */
 
 		addToSearchResult(testObject, [
 			aRawMatch('/voo/foo.a',

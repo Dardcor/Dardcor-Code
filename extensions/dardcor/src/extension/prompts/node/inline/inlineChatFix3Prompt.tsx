@@ -59,7 +59,7 @@ export class InlineFix3Prompt extends PromptElement<InlineFixProps> {
 
 	async render(state: void, sizing: PromptSizing) {
 		const { document, wholeRange, fileIndentInfo, selection, language } = this.props.documentContext;
-		const isIgnored = await this.ignoreService.isCopilotIgnored(document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(document.uri);
 		if (isIgnored) {
 			return <ignoredFiles value={[document.uri]} />;
 		}
@@ -67,11 +67,10 @@ export class InlineFix3Prompt extends PromptElement<InlineFixProps> {
 			throw illegalArgument('InlineFix3PlusPrompt should not be used with a notebook!');
 		}
 
-		const inputDocCharLimit = (sizing.endpoint.modelMaxPromptTokens / 3) * 4; // consume one 3rd of the model window, estimating roughly 4 chars per token;
+		const inputDocCharLimit = (sizing.endpoint.modelMaxPromptTokens / 3) * 4;
 		let projectedDocument: ProjectedDocument;
 		let isSummarized = false;
 		if (document.getText().length > inputDocCharLimit) {
-			// only compute the summarized document if needed
 			const structure = await getStructure(this.parserService, document, fileIndentInfo);
 			projectedDocument = summarizeDocumentSync(inputDocCharLimit, document, wholeRange, structure, { tryPreserveTypeChecking: true });
 			isSummarized = true;
@@ -118,7 +117,7 @@ export class InlineFix3Prompt extends PromptElement<InlineFixProps> {
 				</HistoryWithInstructions>
 
 				<UserMessage priority={700}>
-					<CustomInstructions /*priority={700}*/ languageId={language.languageId} chatVariables={chatVariables} />
+					<CustomInstructions languageId={language.languageId} chatVariables={chatVariables} />
 					<LanguageServerContextPrompt priority={700} document={document} position={selection.start} requestId={this.props.promptContext.requestId} source={KnownSources.fix} />
 					<CompositeElement priority={750} >{...renderedChatVariables}</CompositeElement>
 					<CompositeElement priority={600} >
@@ -133,7 +132,7 @@ export class InlineFix3Prompt extends PromptElement<InlineFixProps> {
 						}
 						<InputCodeBlock uri={document.uri} languageId={language.languageId} code={projectedDocument.text} shouldTrim={false} isSummarized={isSummarized} /><br />
 					</CompositeElement >
-					<CompositeElement /*priority={500}*/>
+					<CompositeElement >
 						{
 							selection.isEmpty ?
 								<>
@@ -144,7 +143,7 @@ export class InlineFix3Prompt extends PromptElement<InlineFixProps> {
 								</>
 						}
 					</CompositeElement >
-					<CompositeElement /*priority={500}*/>
+					<CompositeElement >
 						{
 							selectedLinesContent.length && !diagnostics.some(d => d.range.contains(selection)) &&
 							<>
@@ -153,12 +152,12 @@ export class InlineFix3Prompt extends PromptElement<InlineFixProps> {
 							</>
 						}
 					</CompositeElement >
-					<Diagnostics /*priority={500}*/ documentContext={this.props.documentContext} diagnostics={diagnostics} />
-					<InlineChatWorkspaceSearch /*priority={200}*/ diagnostics={diagnostics} documentContext={this.props.documentContext} useWorkspaceChunksFromDiagnostics={useWorkspaceChunksFromDiagnostics} useWorkspaceChunksFromSelection={useWorkspaceChunksFromSelection} />
+					<Diagnostics documentContext={this.props.documentContext} diagnostics={diagnostics} />
+					<InlineChatWorkspaceSearch diagnostics={diagnostics} documentContext={this.props.documentContext} useWorkspaceChunksFromDiagnostics={useWorkspaceChunksFromDiagnostics} useWorkspaceChunksFromSelection={useWorkspaceChunksFromSelection} />
 					<ChatToolReferences promptContext={this.props.promptContext} />
 
 					<Tag name='userPrompt'>
-						<TextChunk /*priority={700}*/>
+						<TextChunk >
 							Please find a fix for my code so that the result is without any errors.
 						</TextChunk>
 						<UserQuery chatVariables={chatVariables} query={query} /><br />
@@ -229,7 +228,7 @@ export class PatchEditFixReplyInterpreter implements ReplyInterpreter {
 	}
 
 	async processResponse(context: IResponseProcessorContext, inputStream: AsyncIterable<IResponsePart>, outputStream: ChatResponseStream, token: CancellationToken): Promise<void> {
-		let inFirstParagraph = true; // print only the frist paragraph
+		let inFirstParagraph = true;
 		let charactersSent = 0;
 		let newText = '';
 		for await (const part of inputStream) {
@@ -238,16 +237,13 @@ export class PatchEditFixReplyInterpreter implements ReplyInterpreter {
 			}
 			newText += part.delta.text;
 			if (newText.length > this._lastText.length) {
-				this._lastText = newText; // the new complete text
+				this._lastText = newText;
 				if (inFirstParagraph) {
-					// test if the new text added made the first paragraph complete
 					const paragraph = this._replyProcessor.getFirstParagraph(newText);
 					if (paragraph.length > charactersSent) {
-						// still in the first paragraph
 						outputStream.markdown(paragraph.substring(charactersSent));
 						charactersSent = paragraph.length;
 					} else {
-						// the first paragraph is complete
 						inFirstParagraph = false;
 						outputStream.markdown('\n\n');
 						outputStream.progress(l10n.t('Generating edits...'));
@@ -383,7 +379,6 @@ class CodeMapperFixReplyInterpreter implements ReplyInterpreter {
 				if (codeBlockInfo) {
 					inFirstSentence = false;
 					if (codeBlockInfo !== currentCodeBlock) {
-						// first time we see this code block
 						currentCodeBlock = codeBlockInfo;
 						applyCodeBlock = isEqual(codeBlockInfo.resource, this.documentUri);
 						if (!applyCodeBlock && codeBlockInfo.resource) {
@@ -411,7 +406,6 @@ class CodeMapperFixReplyInterpreter implements ReplyInterpreter {
 					outputStream.progress(l10n.t('Generating edits...'));
 					const task = this.codeMapperService.mapCode(request, outputStream, { chatRequestId: context.turn.id, chatRequestSource: 'inline1Fix3', isAgent: false }, token).finally(() => {
 						if (!token.isCancellationRequested) {
-							// signal being done with this uri
 							outputStream.textEdit(codeBlock.resource, true);
 						}
 					});

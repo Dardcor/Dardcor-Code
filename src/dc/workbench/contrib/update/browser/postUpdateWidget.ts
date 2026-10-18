@@ -38,9 +38,6 @@ interface ILastKnownVersion {
 	readonly timestamp: number;
 }
 
-/**
- * Displays post-update call-to-action widget after a version change is detected.
- */
 export class PostUpdateWidgetContribution extends Disposable implements IWorkbenchContribution {
 
 	private static idCounter = 0;
@@ -61,7 +58,7 @@ export class PostUpdateWidgetContribution extends Disposable implements IWorkben
 		super();
 
 		if (isWeb) {
-			return; // Electron only
+			return;
 		}
 
 		this._register(CommandsRegistry.registerCommand('_update.showUpdateInfo', (_accessor, markdown?: string) => this.showUpdateInfo(markdown)));
@@ -145,19 +142,14 @@ export class PostUpdateWidgetContribution extends Disposable implements IWorkben
 		const titleId = `post-update-widget-title-${PostUpdateWidgetContribution.idCounter++}`;
 		container.setAttribute('role', 'dialog');
 		container.setAttribute('aria-labelledby', titleId);
-		// Escape-to-dismiss is handled by the hover widget itself (HoverWidget listens for Escape
-		// on its container and disposes the hover).
 
-		// Banner (decorative). Default is a CSS gradient; an image from the markdown frontmatter overrides it.
 		const banner = dom.append(container, dom.$('.banner'));
 		banner.setAttribute('aria-hidden', 'true');
 		const safeBannerUrl = sanitizeBannerImageUrl(bannerImageUrl);
 		if (safeBannerUrl) {
-			// Use setProperty + JSON.stringify to safely quote the URL inside CSS without breaking out.
 			banner.style.setProperty('background-image', `url(${JSON.stringify(safeBannerUrl)})`);
 		}
 
-		// Close button is a sibling of the banner so it isn't a focusable descendant of an aria-hidden region.
 		const closeButton = dom.append(container, dom.$('button.banner-close')) as HTMLButtonElement;
 		closeButton.setAttribute('aria-label', localize('postUpdate.close', "Close"));
 		const closeIcon = dom.append(closeButton, dom.$(ThemeIcon.asCSSSelector(Codicon.close)));
@@ -166,21 +158,17 @@ export class PostUpdateWidgetContribution extends Disposable implements IWorkben
 			this.hoverService.hideHover(true);
 		}));
 
-		// Body
 		const body = dom.append(container, dom.$('.body'));
 
-		// Badge
 		if (badge) {
 			const badgeEl = dom.append(body, dom.$('.badge'));
 			badgeEl.textContent = badge;
 		}
 
-		// Title
 		const titleEl = dom.append(body, dom.$('.title'));
 		titleEl.id = titleId;
 		titleEl.textContent = title ?? localize('postUpdate.title', "New in {0}", this.productService.version);
 
-		// Features (preferred) or markdown body
 		if (features?.length) {
 			const list = dom.append(body, dom.$('.features'));
 			list.setAttribute('role', 'list');
@@ -196,7 +184,6 @@ export class PostUpdateWidgetContribution extends Disposable implements IWorkben
 				const featureTitle = dom.append(text, dom.$('.feature-title'));
 				featureTitle.textContent = feature.title;
 				const featureDescription = dom.append(text, dom.$('.feature-description'));
-				// Render description as markdown so it can include inline links and emphasis.
 				const rendered = disposables.add(this.markdownRendererService.render(
 					new MarkdownString(feature.description, {
 						isTrusted: true,
@@ -227,7 +214,6 @@ export class PostUpdateWidgetContribution extends Disposable implements IWorkben
 			markdownContainer.appendChild(rendered.element);
 		}
 
-		// Buttons
 		if (buttons?.length) {
 			const buttonBar = dom.append(body, dom.$('.button-bar'));
 			const isSingleButton = buttons.length === 1;
@@ -292,10 +278,6 @@ export class PostUpdateWidgetContribution extends Disposable implements IWorkben
 	}
 }
 
-/**
- * Validates a banner image URL from update info. Only `https:` and `data:image/*` schemes are
- * allowed to prevent CSS-injection or unexpected protocol handlers being invoked from the markdown payload.
- */
 function sanitizeBannerImageUrl(value: string | undefined): string | undefined {
 	if (!value) {
 		return undefined;
@@ -309,7 +291,6 @@ function sanitizeBannerImageUrl(value: string | undefined): string | undefined {
 			return uri.toString(true);
 		}
 	} catch {
-		// fall through
 	}
 	return undefined;
 }

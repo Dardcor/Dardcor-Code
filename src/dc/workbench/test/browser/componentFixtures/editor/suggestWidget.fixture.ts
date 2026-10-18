@@ -20,7 +20,6 @@ import { WordDistance } from '../../../../../editor/contrib/suggest/browser/word
 import { FuzzyScoreOptions } from '../../../../../base/common/filters.js';
 import { IStorageService, InMemoryStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
 
-// CSS imports for the suggest widget
 import '../../../../../editor/contrib/suggest/browser/media/suggest.css';
 import '../../../../../editor/contrib/symbolIcons/browser/symbolIcons.js';
 import '../../../../../base/browser/ui/codicons/codiconStyles.js';

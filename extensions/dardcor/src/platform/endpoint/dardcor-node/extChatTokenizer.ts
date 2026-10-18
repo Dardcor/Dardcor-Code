@@ -11,16 +11,8 @@ import { calculateImageTokenCost, estimateDocumentTokenCost } from '../../tokeni
 import { modelVendorHandlesCacheBreakpoints } from '../common/endpointTypes';
 import { convertToApiChatMessage } from './extChatEndpoint';
 
-/**
- * BaseTokensPerCompletion is the minimum tokens for a completion request.
- * Replies are primed with <|im_start|>assistant<|message|>, so these tokens represent the
- * special token and the role name.
- */
 const BaseTokensPerCompletion = 3;
 
-/*
- * Each GPT 3.5 / GPT 4 message comes with 3 tokens per message due to special characters
- */
 const BaseTokensPerMessage = 3;
 
 
@@ -61,13 +53,10 @@ export class ExtensionContributedChatTokenizer implements ITokenizer {
 		if (!text) {
 			return 0;
 		}
-		// Use the VS Code language model API to count tokens
 		return this.languageModel.countTokens(text);
 	}
 
 	async countMessageTokens(message: Raw.ChatMessage): Promise<number> {
-		// Convert to VS Code message format and use the language model's countTokens.
-		// Mirror the request path so only cache-aware providers ever see the internal sentinel (#313920).
 		const apiMessages = convertToApiChatMessage([message], {
 			emitCacheBreakpoints: modelVendorHandlesCacheBreakpoints(this.languageModel.vendor),
 		});
@@ -75,7 +64,6 @@ export class ExtensionContributedChatTokenizer implements ITokenizer {
 			return 0;
 		}
 
-		// Count tokens for the message using VS Code API
 		const messageTokens = await this.languageModel.countTokens(apiMessages[0]);
 		return BaseTokensPerMessage + messageTokens;
 	}
@@ -101,7 +89,6 @@ export class ExtensionContributedChatTokenizer implements ITokenizer {
 			numTokens += await this._countObjectTokens({ name: tool.name, description: tool.description, parameters: tool.inputSchema });
 		}
 
-		// This is an estimate, so give a little safety margin
 		return Math.floor(numTokens * 1.1);
 	}
 

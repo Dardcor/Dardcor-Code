@@ -47,14 +47,7 @@ export class IndentGuide {
 		public readonly visibleColumn: number | -1,
 		public readonly column: number | -1,
 		public readonly className: string,
-		/**
-		 * If set, this indent guide is a horizontal guide (no vertical part).
-		 * It starts at visibleColumn and continues until endColumn.
-		*/
 		public readonly horizontalLine: IndentGuideHorizontalLine | null,
-		/**
-		 * If set (!= -1), only show this guide for wrapped lines that don't contain this model column, but are after it.
-		*/
 		public readonly forWrappedLinesAfterColumn: number | -1,
 		public readonly forWrappedLinesBeforeOrAtColumn: number | -1
 	) {

@@ -28,7 +28,7 @@ export const ONLINE_SERVICES_SETTING_TAG = 'usesOnlineServices';
 
 export interface ISettingsEditorViewState {
 	settingsTarget: SettingsTarget;
-	query?: string; // used to keep track of loading from setInput vs loading from cache
+	query?: string;
 	tagFilters?: Set<string>;
 	extensionFilters?: Set<string>;
 	featureFilters?: Set<string>;
@@ -96,9 +96,6 @@ export class SettingsTreeGroupElement extends SettingsTreeElement {
 		this.isFirstGroup = isFirstGroup;
 	}
 
-	/**
-	 * Returns whether this group contains the given child key (to a depth of 1 only)
-	 */
 	containsSetting(key: string): boolean {
 		return this._childSettingKeys.has(key);
 	}
@@ -118,49 +115,24 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 	private _displayCategory: string | null = null;
 	private _displayLabel: string | null = null;
 
-	/**
-	 * scopeValue || defaultValue, for rendering convenience.
-	 */
 	value: any;
 
-	/**
-	 * The value in the current settings scope.
-	 */
 	scopeValue: any;
 
-	/**
-	 * The default value
-	 */
 	defaultValue?: any;
 
-	/**
-	 * The source of the default value to display.
-	 * This value also accounts for extension-contributed language-specific default value overrides.
-	 */
 	defaultValueSource: ConfigurationDefaultValueSource | undefined;
 
-	/**
-	 * Whether the setting is configured in the selected scope.
-	 */
 	isConfigured = false;
 
-	/**
-	 * Whether the setting requires trusted target
-	 */
 	isUntrusted = false;
 
-	/**
-	 * Whether the setting is under a policy that blocks all changes.
-	 */
 	hasPolicyValue = false;
 
 	tags?: Set<string>;
 	overriddenScopeList: string[] = [];
 	overriddenDefaultsLanguageList: string[] = [];
 
-	/**
-	 * For each language that contributes setting values or default overrides, we can see those values here.
-	 */
 	languageOverrideValues: Map<string, IConfigurationValue<unknown>> = new Map<string, IConfigurationValue<unknown>>();
 
 	description!: string;
@@ -181,7 +153,6 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 		this.setting = setting;
 		this.parent = parent;
 
-		// Make sure description and valueType are initialized
 		this.initSettingDescription();
 		this.initSettingValueType();
 	}
@@ -339,20 +310,16 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 		this.overriddenScopeList = overriddenScopeList;
 		this.overriddenDefaultsLanguageList = overriddenDefaultsLanguageList;
 
-		// The user might have added, removed, or modified a language filter,
-		// so we reset the default value source to the non-language-specific default value source for now.
 		this.defaultValueSource = this.setting.nonLanguageSpecificDefaultValueSource;
 
 		if (inspected.policyValue !== undefined) {
 			this.hasPolicyValue = true;
-			isConfigured = false; // The user did not manually configure the setting themselves.
+			isConfigured = false;
 			displayValue = inspected.policyValue;
 			this.scopeValue = inspected.policyValue;
 			this.defaultValue = inspected.defaultValue;
 		} else if (languageSelector && this.languageOverrideValues.has(languageSelector)) {
 			const overrideValues = this.languageOverrideValues.get(languageSelector)!;
-			// In the worst case, go back to using the previous display value.
-			// Also, sometimes the override is in the form of a default value override, so consider that second.
 			displayValue = (isConfigured ? overrideValues[targetSelector] : overrideValues.defaultValue) ?? displayValue;
 			this.scopeValue = isConfigured && overrideValues[targetSelector];
 			this.defaultValue = overrideValues.defaultValue ?? inspected.defaultValue;
@@ -371,7 +338,6 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 		this.value = displayValue;
 		this.isConfigured = isConfigured;
 		if (isConfigured || this.setting.tags || this.tags || this.setting.restricted || this.hasPolicyValue) {
-			// Don't create an empty Set for all 1000 settings, only if needed
 			this.tags = new Set<string>();
 			if (isConfigured) {
 				this.tags.add(MODIFIED_SETTING_TAG);
@@ -391,24 +357,17 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 
 	matchesAllTags(tagFilters?: Set<string>): boolean {
 		if (!tagFilters?.size) {
-			// This setting, which may have tags,
-			// matches against a query with no tags.
 			return true;
 		}
 
 		if (!this.tags) {
-			// The setting must inspect itself to get tag information
-			// including for the hasPolicy tag.
 			this.inspectSelf();
 		}
 
-		// Handle the special 'stable' tag filter
 		if (tagFilters.has('stable')) {
-			// For stable filter, exclude preview and experimental settings
 			if (this.tags?.has('preview') || this.tags?.has('experimental')) {
 				return false;
 			}
-			// Check other filters (excluding 'stable' itself)
 			const otherFilters = new Set(Array.from(tagFilters).filter(tag => tag !== 'stable'));
 			if (otherFilters.size === 0) {
 				return true;
@@ -417,7 +376,6 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 				Array.from(otherFilters).every(tag => this.tags!.has(tag));
 		}
 
-		// Check that the filter tags are a subset of this setting's tags
 		return !!this.tags?.size &&
 			Array.from(tagFilters).every(tag => this.tags!.has(tag));
 	}
@@ -471,12 +429,10 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 			return true;
 		}
 
-		// Restrict to core settings
 		if (this.setting.extensionInfo) {
 			return false;
 		}
 
-		// Chat settings are now in their own top-level category
 		if (featureFilters.has('chat')) {
 			const chatFeatures = tocData.children!.find(child => child.id === 'chat');
 			if (chatFeatures?.children) {
@@ -510,15 +466,13 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 			return true;
 		}
 
-		// Check for exact match first
 		if (idFilters.has(this.setting.key)) {
 			return true;
 		}
 
-		// Check for wildcard patterns (ending with .*)
 		for (const filter of idFilters) {
 			if (filter.endsWith('*')) {
-				const prefix = filter.slice(0, -1); // Remove '*' suffix
+				const prefix = filter.slice(0, -1);
 				if (this.setting.key.startsWith(prefix)) {
 					return true;
 				}
@@ -530,19 +484,13 @@ export class SettingsTreeSettingElement extends SettingsTreeElement {
 
 	matchesAllLanguages(languageFilter?: string): boolean {
 		if (!languageFilter) {
-			// We're not filtering by language.
 			return true;
 		}
 
 		if (!this.languageService.isRegisteredLanguageId(languageFilter)) {
-			// We're trying to filter by an invalid language.
 			return false;
 		}
 
-		// We have a language filter in the search widget at this point.
-		// We decide to show all language overridable settings to make the
-		// lang filter act more like a scope filter,
-		// rather than adding on an implicit @modified as well.
 		if (this.setting.scope === ConfigurationScope.LANGUAGE_OVERRIDABLE) {
 			return true;
 		}
@@ -726,18 +674,14 @@ export function inspectSetting(key: string, target: SettingsTarget, languageFilt
 	const overrideIdentifiers = inspected.overrideIdentifiers;
 	const inspectedLanguageOverrides = new Map<string, IConfigurationValue<unknown>>();
 
-	// We must reset isConfigured to be false if languageFilter is set, and manually
-	// determine whether it can be set to true later.
 	if (languageFilter) {
 		isConfigured = false;
 	}
 	if (overrideIdentifiers) {
-		// The setting we're looking at has language overrides.
 		for (const overrideIdentifier of overrideIdentifiers) {
 			inspectedLanguageOverrides.set(overrideIdentifier, configurationService.inspect(key, { overrideIdentifier }));
 		}
 
-		// For all language filters, see if there's an override for that filter.
 		if (languageFilter) {
 			if (inspectedLanguageOverrides.has(languageFilter)) {
 				const overrideValue = inspectedLanguageOverrides.get(languageFilter)![targetOverrideSelector]?.override;
@@ -776,23 +720,13 @@ export function settingKeyToDisplayFormat(key: string, groupId: string = '', isL
 	return { category, label };
 }
 
-/**
- * Removes redundant sections of the category label.
- * A redundant section is a section already reflected in the groupId.
- *
- * @param category The category of the specific setting.
- * @param groupId The author + extension ID.
- * @returns The new category label to use.
- */
 function trimCategoryForGroup(category: string, groupId: string): string {
 	const doTrim = (forward: boolean) => {
-		// Remove the Insiders portion if the category doesn't use it.
 		if (!/insiders$/i.test(category)) {
 			groupId = groupId.replace(/-?insiders$/i, '');
 		}
 		const parts = groupId.split('.')
 			.map(part => {
-				// Remove hyphens, but only if that results in a match with the category.
 				if (part.replace(/-/g, '').toLowerCase() === category.toLowerCase()) {
 					return part.replace(/-/g, '');
 				} else {
@@ -846,7 +780,6 @@ function isIncludeSetting(setting: ISetting): boolean {
 	return setting.key === 'files.readonlyInclude';
 }
 
-// The values of the following settings when a default values has been removed
 export function objectSettingSupportsRemoveDefaultValue(key: string): boolean {
 	return key === 'workbench.editor.customLabels.patterns';
 }
@@ -912,7 +845,6 @@ function getObjectSettingSchemaType({
 		return false;
 	}
 
-	// object can have any shape
 	if (
 		isUndefinedOrNull(objectProperties) &&
 		isUndefinedOrNull(objectPatternProperties) &&
@@ -921,10 +853,6 @@ function getObjectSettingSchemaType({
 		return false;
 	}
 
-	// objectAdditionalProperties allow the setting to have any shape,
-	// but if there's a pattern property that handles everything, then every
-	// property will match that patternProperty, so we don't need to look at
-	// the value of objectAdditionalProperties in that case.
 	if ((objectAdditionalProperties === true || objectAdditionalProperties === undefined)
 		&& !Object.keys(objectPatternProperties ?? {}).includes('.*')) {
 		return false;
@@ -1004,35 +932,22 @@ export class SearchResultModel extends SettingsTreeModel {
 			}
 		}
 
-		// The search only has filters, so we can sort by the order in the TOC.
 		if (!this._viewState.query) {
 			return filterMatches.sort((a, b) => compareTwoNullableNumbers(a.setting.internalOrder, b.setting.internalOrder));
 		}
 
-		// Sort the settings according to their relevancy.
-		// https://github.com/microsoft/vscode/issues/197773
 		filterMatches.sort((a, b) => {
 			if (a.matchType !== b.matchType) {
-				// Sort by match type if the match types are not the same.
-				// The priority of the match type is given by the SettingMatchType enum.
 				return b.matchType - a.matchType;
 			} else if ((a.matchType & SettingMatchType.NonContiguousWordsInSettingsLabel) || (a.matchType & SettingMatchType.ContiguousWordsInSettingsLabel)) {
-				// The match types of a and b are the same and can be sorted by their number of matched words.
-				// If those numbers are the same, sort by the order in the table of contents.
 				return (b.keyMatchScore - a.keyMatchScore) || compareTwoNullableNumbers(a.setting.internalOrder, b.setting.internalOrder);
 			} else if (a.matchType === SettingMatchType.RemoteMatch) {
-				// The match types are the same and are RemoteMatch.
-				// Sort by score.
 				return b.score - a.score;
 			} else {
-				// The match types are the same but are not RemoteMatch.
-				// Sort by their order in the table of contents.
 				return compareTwoNullableNumbers(a.setting.internalOrder, b.setting.internalOrder);
 			}
 		});
 
-		// Remove duplicates, which sometimes occur with settings
-		// such as the experimental toggle setting.
 		return arrays.distinct(filterMatches, (match) => match.setting.key);
 	}
 
@@ -1086,7 +1001,7 @@ export class SearchResultModel extends SettingsTreeModel {
 		combinedFilterMatches = this.sortResults(combinedFilterMatches);
 		const result = {
 			filterMatches: combinedFilterMatches,
-			exactMatch: localResult.exactMatch // remote results should never have an exact match
+			exactMatch: localResult.exactMatch
 		};
 		this.cachedUniqueSearchResults.set(false, result);
 		return result;
@@ -1107,7 +1022,6 @@ export class SearchResultModel extends SettingsTreeModel {
 			settings: this.getUniqueSearchResultSettings()
 		});
 
-		// Save time by filtering children in the search model instead of relying on the tree filter, which still requires heights to be calculated.
 		const isRemote = !!this.environmentService.remoteAuthority;
 
 		const newChildren = [];
@@ -1147,8 +1061,6 @@ export class SearchResultModel extends SettingsTreeModel {
 		this.newExtensionSearchResults = null;
 
 		if (this.rawSearchResults && order === SearchResultIdx.Local) {
-			// To prevent the Settings editor from showing
-			// stale remote results mid-search.
 			delete this.rawSearchResults[SearchResultIdx.Remote];
 		}
 
@@ -1183,14 +1095,6 @@ const idRegex = /(^|\s)@id:("([^"]*)"|[^"]\S*)?/g;
 const languageRegex = /(^|\s)@lang:("([^"]*)"|[^"]\S*)?/g;
 
 export function parseQuery(query: string): IParsedQuery {
-	/**
-	 * A helper function to parse the query on one type of regex.
-	 *
-	 * @param query The search query
-	 * @param filterRegex The regex to use on the query
-	 * @param parsedParts The parts that the regex parses out will be appended to the array passed in here.
-	 * @returns The query with the parsed parts removed
-	 */
 	function getTagsForType(query: string, filterRegex: RegExp, parsedParts: string[]): string {
 		return query.replace(filterRegex, (_, __, quotedParsedElement, unquotedParsedElement) => {
 			const parsedElement: string = unquotedParsedElement || quotedParsedElement;
@@ -1217,7 +1121,6 @@ export function parseQuery(query: string): IParsedQuery {
 		return '';
 	});
 
-	// Handle @stable by excluding preview and experimental tags
 	query = query.replace(/@stable/g, () => {
 		tags.push('stable');
 		return '';
@@ -1237,7 +1140,6 @@ export function parseQuery(query: string): IParsedQuery {
 
 	query = query.trim();
 
-	// For now, only return the first found language filter
 	return {
 		tags,
 		extensionFilters: extensions,

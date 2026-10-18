@@ -58,7 +58,7 @@ export const Extensions = {
 	ConfigurationMigration: 'base.contributions.configuration.migration'
 };
 
-type ConfigurationValue = { value: unknown | undefined /* Remove */ };
+type ConfigurationValue = { value: unknown | undefined };
 export type ConfigurationKeyValuePairs = [string, ConfigurationValue][];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ConfigurationMigrationFn = (value: any, valueAccessor: (key: string) => any) => ConfigurationValue | ConfigurationKeyValuePairs | Promise<ConfigurationValue | ConfigurationKeyValuePairs>;
@@ -156,7 +156,6 @@ export class ConfigurationMigrationWorkbenchContribution extends Disposable impl
 			}
 
 			if (migrationValues.length) {
-				// apply migrations
 				await Promise.allSettled(migrationValues.map(async ([[key, value], overrideIdentifiers]) =>
 					this.configurationService.updateValue(key, value.value, { resource, overrideIdentifiers }, target)));
 			}
@@ -211,7 +210,6 @@ export class DynamicWorkbenchSecurityConfiguration extends Disposable implements
 			}
 		}
 
-		// Windows: UNC allow list security configuration
 		const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 		registry.registerConfiguration({
 			...securityConfigurationNodeBase,
@@ -224,13 +222,13 @@ export class DynamicWorkbenchSecurityConfiguration extends Disposable implements
 						'patternErrorMessage': localize('security.allowedUNCHosts.patternErrorMessage', 'UNC host names must not contain backslashes.')
 					},
 					'default': [],
-					'markdownDescription': localize('security.allowedUNCHosts', 'A set of UNC host names (without leading or trailing backslash, for example `192.168.0.1` or `my-server`) to allow without user confirmation. If a UNC host is being accessed that is not allowed via this setting or has not been acknowledged via user confirmation, an error will occur and the operation stopped. A restart is required when changing this setting. Find out more about this setting at https://aka.ms/vscode-windows-unc.'),
+					'markdownDescription': localize('security.allowedUNCHosts', 'A set of UNC host names (without leading or trailing backslash, for example `192.168.0.1` or `my-server`) to allow without user confirmation. If a UNC host is being accessed that is not allowed via this setting or has not been acknowledged via user confirmation, an error will occur and the operation stopped. A restart is required when changing this setting. Find out more about this setting at https://www.dardcor-code.web.id/docs/platform/windows/unc-paths.'),
 					'scope': ConfigurationScope.APPLICATION_MACHINE
 				},
 				'security.restrictUNCAccess': {
 					'type': 'boolean',
 					'default': true,
-					'markdownDescription': localize('security.restrictUNCAccess', 'If enabled, only allows access to UNC host names that are allowed by the `#security.allowedUNCHosts#` setting or after user confirmation. Find out more about this setting at https://aka.ms/vscode-windows-unc.'),
+					'markdownDescription': localize('security.restrictUNCAccess', 'If enabled, only allows access to UNC host names that are allowed by the `#security.allowedUNCHosts#` setting or after user confirmation. Find out more about this setting at https://www.dardcor-code.web.id/docs/platform/windows/unc-paths.'),
 					'scope': ConfigurationScope.APPLICATION_MACHINE
 				}
 			}

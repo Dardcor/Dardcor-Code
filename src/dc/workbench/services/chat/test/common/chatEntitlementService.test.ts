@@ -48,13 +48,10 @@ suite('chatRequiresSetup', () => {
 	});
 
 	test('signed out (Unknown) requires setup', () => {
-		// completed: true so the result is driven by the Unknown entitlement, not the "not completed" clause.
 		assert.strictEqual(chatRequiresSetup(context({ completed: true, entitlement: ChatEntitlement.Unknown })), true);
 	});
 
 	test('signed out but anonymous access enabled does not require setup', () => {
-		// Anonymous excepts the "signed out" entitlement clause; the completed
-		// clause is satisfied because opting into anonymous completes setup.
 		assert.strictEqual(chatRequiresSetup(context({ completed: true, entitlement: ChatEntitlement.Unknown, anonymous: true })), false);
 	});
 

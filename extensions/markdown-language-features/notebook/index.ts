@@ -307,12 +307,9 @@ export const activate: ActivationFunction<void> = (ctx) => {
 			if (!element.shadowRoot) {
 				const previewRoot = element.attachShadow({ mode: 'open' });
 
-				// Insert styles into markdown preview shadow dom so that they are applied.
-				// First add default webview style
 				const defaultStyles = document.getElementById('_defaultStyles') as HTMLStyleElement;
 				previewRoot.appendChild(defaultStyles.cloneNode(true));
 
-				// And then contributed styles
 				for (const element of document.getElementsByClassName('markdown-style')) {
 					if (element instanceof HTMLTemplateElement) {
 						previewRoot.appendChild(element.content.cloneNode(true));
@@ -408,11 +405,10 @@ function slugify(text: string): string {
 	const slugifiedHeading = encodeURI(
 		text.trim()
 			.toLowerCase()
-			.replace(/\s+/g, '-') // Replace whitespace with -
-			// allow-any-unicode-next-line
-			.replace(/[\]\[\!\/\'\"\#\$\%\&\(\)\*\+\,\.\/\:\;\<\=\>\?\@\\\^\{\|\}\~\`。，、；：？！…—·ˉ¨‘’“”々～‖∶＂＇｀｜〃〔〕〈〉《》「」『』．〖〗【】（）［］｛｝]/g, '') // Remove known punctuators
-			.replace(/^\-+/, '') // Remove leading -
-			.replace(/\-+$/, '') // Remove trailing -
+			.replace(/\s+/g, '-')
+			.replace(/[\]\[\!\/\'\"\#\$\%\&\(\)\*\+\,\.\/\:\;\<\=\>\?\@\\\^\{\|\}\~\`。，、；：？！…—·ˉ¨‘’“”々～‖∶＂＇｀｜〃〔〕〈〉《》「」『』．〖〗【】（）［］｛｝]/g, '')
+			.replace(/^\-+/, '')
+			.replace(/\-+$/, '')
 	);
 	return slugifiedHeading;
 }

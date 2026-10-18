@@ -86,13 +86,11 @@ suite('ChatQuestionCarouselData', () => {
 		const carousel1 = new ChatQuestionCarouselData(createQuestions(), true, 'resolve-1');
 		const carousel2 = new ChatQuestionCarouselData(createQuestions(), true, 'resolve-2');
 
-		// Complete carousel2 first
 		carousel2.completion.complete({ answers: { q1: 'answer2' } });
 
 		assert.strictEqual(carousel1.completion.isSettled, false, 'Carousel 1 should not be settled');
 		assert.strictEqual(carousel2.completion.isSettled, true, 'Carousel 2 should be settled');
 
-		// Now complete carousel1
 		carousel1.completion.complete({ answers: { q1: 'answer1' } });
 
 		const result1 = await carousel1.completion.p;
@@ -105,22 +103,17 @@ suite('ChatQuestionCarouselData', () => {
 	suite('Parallel Carousel Handling', () => {
 		test('when carousel is superseded, completing with undefined does not block', async () => {
 			await runWithFakedTimers({ useFakeTimers: true }, async () => {
-				// This simulates the scenario where parallel subagents call askQuestions
-				// and the first carousel is superseded by the second
 				const carousel1 = new ChatQuestionCarouselData(createQuestions(), true, 'resolve-1');
 				const carousel2 = new ChatQuestionCarouselData(createQuestions(), true, 'resolve-2');
 
-				// Simulate carousel1 being superseded - we complete it with undefined (skipped)
 				carousel1.completion.complete({ answers: undefined });
 
-				// Now complete carousel2 normally
 				carousel2.completion.complete({ answers: { q1: 'answer2' } });
 
 				const timeoutPromise1 = timeout(100);
 				const timeoutPromise2 = timeout(100);
 
 				try {
-					// Both should complete without blocking
 					const [result1, result2] = await Promise.all([
 						Promise.race([carousel1.completion.p, timeoutPromise1.then(() => 'timeout')]),
 						Promise.race([carousel2.completion.p, timeoutPromise2.then(() => 'timeout')])
@@ -140,11 +133,9 @@ suite('ChatQuestionCarouselData', () => {
 		test('completing an already settled carousel is safe', () => {
 			const carousel = new ChatQuestionCarouselData(createQuestions(), true, 'resolve-1');
 
-			// Complete once
 			carousel.completion.complete({ answers: { q1: 'first' } });
 			assert.strictEqual(carousel.completion.isSettled, true);
 
-			// Completing again should not throw
 			assert.doesNotThrow(() => {
 				carousel.completion.complete({ answers: { q1: 'second' } });
 			});

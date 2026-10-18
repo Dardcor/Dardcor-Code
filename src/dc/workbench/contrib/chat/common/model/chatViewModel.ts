@@ -42,11 +42,6 @@ function isPendingChatViewModelItem(item: IChatViewModelItemWithPendingState): b
 	return item.kind === 'pendingDivider' || item.pendingKind !== undefined;
 }
 
-/**
- * The active response that content streams into: the last non-pending item, ignoring
- * trailing queued/steering rows (and their dividers). Falls back to the last item when
- * everything is pending.
- */
 export function getStickyScrollTargetItem<T extends IChatViewModelItemWithPendingState>(items: readonly T[]): T | undefined {
 	for (let i = items.length - 1; i >= 0; i--) {
 		const item = items[i];
@@ -101,7 +96,6 @@ export interface IChatViewModel {
 export interface IChatRequestViewModel {
 	readonly id: string;
 	readonly sessionResource: URI;
-	/** This ID updates every time the underlying data changes */
 	readonly dataId: string;
 	readonly username: string;
 	readonly avatarIcon?: URI | ThemeIcon;
@@ -126,7 +120,6 @@ export interface IChatRequestViewModel {
 	readonly resolvedModelId?: string;
 	readonly timestamp: number;
 	readonly requestTimestamp: number | undefined;
-	/** The kind of pending request, or undefined if not pending */
 	readonly pendingKind?: ChatRequestQueueKind;
 	readonly isSystemInitiated?: boolean;
 	readonly systemInitiatedLabel?: string;
@@ -140,26 +133,17 @@ export interface IChatResponseRenderData {
 	lastRenderTime: number;
 }
 
-/**
- * Content type for references used during rendering, not in the model
- */
 export interface IChatReferences {
 	references: ReadonlyArray<IChatContentReference>;
 	kind: 'references';
 }
 
-/**
- * Content type for the "Working" progress message
- */
 export interface IChatWorkingProgress {
 	kind: 'working';
 	content?: IMarkdownString;
 }
 
 
-/**
- * Content type for citations used during rendering, not in the model
- */
 export interface IChatCodeCitations {
 	citations: ReadonlyArray<IChatCodeCitation>;
 	kind: 'codeCitations';
@@ -184,9 +168,6 @@ export interface IChatTurnPillsPart {
 	readonly isLastTurn: boolean;
 }
 
-/**
- * Type for content parts rendered by IChatListRenderer (not necessarily in the model)
- */
 export type IChatRendererContent = IChatProgressRenderableResponseContent | IChatReferences | IChatCodeCitations | IChatErrorDetailsPart | IChatChangesSummaryPart | IChatWorkingProgress | IChatMcpServersStarting | IChatMcpAuthenticationRequired | IChatMcpServersStartingSlow | IChatQuestionCarousel | IChatPlanReview | IChatDisabledClaudeHooksPart | IChatTurnPillsPart;
 
 export interface IChatResponseViewModel {
@@ -194,9 +175,7 @@ export interface IChatResponseViewModel {
 	readonly id: string;
 	readonly session: IChatViewModel;
 	readonly sessionResource: URI;
-	/** This ID updates every time the underlying data changes */
 	readonly dataId: string;
-	/** The ID of the associated IChatRequestViewModel */
 	readonly requestId: string;
 	readonly username: string;
 	readonly agent?: IChatAgentData;
@@ -210,7 +189,6 @@ export interface IChatResponseViewModel {
 	readonly isComplete: boolean;
 	readonly isCanceled: boolean;
 	readonly isStale: boolean;
-	/** Whether this is the last row in the transcript. */
 	readonly isLast: boolean;
 	readonly vote: ChatAgentVoteDirection | undefined;
 	readonly replyFollowups?: IChatFollowup[];
@@ -235,7 +213,7 @@ export interface IChatResponseViewModel {
 
 export interface IChatPendingDividerViewModel {
 	readonly kind: 'pendingDivider';
-	readonly id: string; // e.g., 'pending-divider-steering' or 'pending-divider-queued'
+	readonly id: string;
 	readonly sessionResource: URI;
 	readonly isComplete: true;
 	readonly dividerKind: ChatRequestQueueKind;
@@ -244,10 +222,6 @@ export interface IChatPendingDividerViewModel {
 }
 
 export interface IChatViewModelOptions {
-	/**
-	 * Maximum number of items to return from getItems().
-	 * When set, only the last N items are returned (most recent request/response pairs).
-	 */
 	readonly maxVisibleItems?: number;
 }
 
@@ -358,11 +332,9 @@ export class ChatViewModel extends Disposable implements IChatViewModel {
 
 		const pendingRequests = this._model.getPendingRequests().filter(pending => !pending.request.isRequestHiddenFromTranscript);
 		if (pendingRequests.length > 0) {
-			// Separate steering and queued requests
 			const steeringRequests = pendingRequests.filter(p => p.kind === ChatRequestQueueKind.Steering);
 			const queuedRequests = pendingRequests.filter(p => p.kind === ChatRequestQueueKind.Queued);
 
-			// Add steering requests with their divider first
 			if (steeringRequests.length > 0) {
 				const isSystemInitiated = steeringRequests.every(p => p.request.isSystemInitiated);
 				items.push({ kind: 'pendingDivider', id: 'pending-divider-steering', sessionResource: this._model.sessionResource, isComplete: true, dividerKind: ChatRequestQueueKind.Steering, isSystemInitiated, currentRenderedHeight: undefined });
@@ -372,7 +344,6 @@ export class ChatViewModel extends Disposable implements IChatViewModel {
 				}
 			}
 
-			// Add queued requests with their divider
 			if (queuedRequests.length > 0) {
 				items.push({ kind: 'pendingDivider', id: 'pending-divider-queued', sessionResource: this._model.sessionResource, isComplete: true, dividerKind: ChatRequestQueueKind.Queued, currentRenderedHeight: undefined });
 				for (const pending of queuedRequests) {
@@ -393,7 +364,7 @@ export class ChatViewModel extends Disposable implements IChatViewModel {
 
 	setEditing(editing: IChatRequestViewModel | undefined): void {
 		if (this.editing && editing && this.editing.id === editing.id) {
-			return; // already editing this request
+			return;
 		}
 
 		this._editing = editing;
@@ -411,9 +382,6 @@ class ChatRequestViewModel implements IChatRequestViewModel {
 		return this._model.id;
 	}
 
-	/**
-	 * An ID that changes when the request should be re-rendered.
-	 */
 	get dataId() {
 		return `${this.id}_${this._model.version + (this._model.response?.isComplete ? 1 : 0)}`;
 	}
@@ -657,11 +625,6 @@ export class ChatResponseViewModel extends Disposable implements IChatResponseVi
 	}
 
 	get isLast(): boolean {
-		// NOTE: this is used in `dataId` to force a re-render when the response transitions
-		// between being the last row and not, e.g. when a queued/steering row is added below
-		// it. It must reflect the actual last row so the row re-renders and drops the
-		// reserved-space filler class. Progressive rendering targets the streaming response
-		// separately (see `getStickyScrollTargetItem`).
 		return this.session.getItems().at(-1) === this;
 	}
 
@@ -728,7 +691,6 @@ export class ChatResponseViewModel extends Disposable implements IChatResponseVi
 		this._register(_model.onDidChange(() => {
 			wordCountScheduler?.schedule();
 
-			// new data -> new id, new content to render
 			this._modelChangeCount++;
 
 			this._onDidChange.fire();

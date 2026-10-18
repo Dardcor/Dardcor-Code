@@ -23,11 +23,9 @@ suite('Notifications', () => {
 
 	test('Items', () => {
 
-		// Invalid
 		assert.ok(!NotificationViewItem.create({ severity: Severity.Error, message: '' }, noFilter));
 		assert.ok(!NotificationViewItem.create({ severity: Severity.Error, message: null! }, noFilter));
 
-		// Duplicates
 		const item1 = NotificationViewItem.create({ severity: Severity.Error, message: 'Error Message' }, noFilter)!;
 		const item2 = NotificationViewItem.create({ severity: Severity.Error, message: 'Error Message' }, noFilter)!;
 		const item3 = NotificationViewItem.create({ severity: Severity.Info, message: 'Info Message' }, noFilter)!;
@@ -52,15 +50,12 @@ suite('Notifications', () => {
 		assert.strictEqual(itemId1.equals(itemId2), true);
 		assert.strictEqual(itemId1.equals(item3), false);
 
-		// Progress
 		assert.strictEqual(item1.hasProgress, false);
 		assert.strictEqual(item6.hasProgress, true);
 
-		// Message Box
 		assert.strictEqual(item5.canCollapse, false);
 		assert.strictEqual(item5.expanded, true);
 
-		// Events
 		let called = 0;
 		disposables.add(item1.onDidChangeExpansion(() => {
 			called++;
@@ -133,11 +128,9 @@ suite('Notifications', () => {
 		item1.close();
 		assert.strictEqual(called, 1);
 
-		// Error with Action
 		const item7 = NotificationViewItem.create({ severity: Severity.Error, message: createErrorWithActions('Hello Error', [disposables.add(new Action('id', 'label'))]) }, noFilter)!;
 		assert.strictEqual(item7.actions!.primary!.length, 1);
 
-		// Filter
 		const item8 = NotificationViewItem.create({ severity: Severity.Error, message: 'Error Message' }, { global: NotificationsFilter.OFF, sources: new Map() })!;
 		assert.strictEqual(item8.priority, NotificationPriority.DEFAULT);
 

@@ -33,22 +33,18 @@ suite('OAuth', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 	suite('Type Guards', () => {
 		test('isAuthorizationProtectedResourceMetadata should correctly identify protected resource metadata', () => {
-			// Valid metadata with minimal required fields
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata({ resource: 'https://example.com' }), true);
 
-			// Valid metadata with scopes_supported as array
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata({
 				resource: 'https://example.com',
 				scopes_supported: ['read', 'write']
 			}), true);
 
-			// Invalid cases - missing resource
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata(null), false);
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata(undefined), false);
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata({}), false);
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata('not an object'), false);
 
-			// Invalid cases - scopes_supported is not an array when provided
 			assert.strictEqual(isAuthorizationProtectedResourceMetadata({
 				resource: 'https://example.com',
 				scopes_supported: 'not an array'
@@ -56,13 +52,11 @@ suite('OAuth', () => {
 		});
 
 		test('isAuthorizationServerMetadata should correctly identify server metadata', () => {
-			// Valid metadata with minimal required fields
 			assert.strictEqual(isAuthorizationServerMetadata({
 				issuer: 'https://example.com',
 				response_types_supported: ['code']
 			}), true);
 
-			// Valid metadata with valid URLs
 			assert.strictEqual(isAuthorizationServerMetadata({
 				issuer: 'https://example.com',
 				authorization_endpoint: 'https://example.com/auth',
@@ -72,7 +66,6 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			}), true);
 
-			// Valid metadata with http URLs (for localhost/testing)
 			assert.strictEqual(isAuthorizationServerMetadata({
 				issuer: 'http://localhost:8080',
 				authorization_endpoint: 'http://localhost:8080/auth',
@@ -80,16 +73,13 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			}), true);
 
-			// Invalid cases - not an object
 			assert.strictEqual(isAuthorizationServerMetadata(null), false);
 			assert.strictEqual(isAuthorizationServerMetadata(undefined), false);
 			assert.strictEqual(isAuthorizationServerMetadata('not an object'), false);
 
-			// Invalid cases - missing issuer should throw
 			assert.throws(() => isAuthorizationServerMetadata({}), /Authorization server metadata must have an issuer/);
 			assert.throws(() => isAuthorizationServerMetadata({ response_types_supported: ['code'] }), /Authorization server metadata must have an issuer/);
 
-			// Invalid cases - URI fields must be strings when provided (truthy values)
 			assert.throws(() => isAuthorizationServerMetadata({
 				issuer: 'https://example.com',
 				authorization_endpoint: 123,
@@ -114,7 +104,6 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			}), /Authorization server metadata 'jwks_uri' must be a string/);
 
-			// Invalid cases - URI fields must start with http:// or https://
 			assert.throws(() => isAuthorizationServerMetadata({
 				issuer: 'ftp://example.com',
 				response_types_supported: ['code']
@@ -146,13 +135,11 @@ suite('OAuth', () => {
 		});
 
 		test('isAuthorizationDynamicClientRegistrationResponse should correctly identify registration response', () => {
-			// Valid response
 			assert.strictEqual(isAuthorizationDynamicClientRegistrationResponse({
 				client_id: 'client-123',
 				client_name: 'Test Client'
 			}), true);
 
-			// Invalid cases
 			assert.strictEqual(isAuthorizationDynamicClientRegistrationResponse(null), false);
 			assert.strictEqual(isAuthorizationDynamicClientRegistrationResponse(undefined), false);
 			assert.strictEqual(isAuthorizationDynamicClientRegistrationResponse({}), false);
@@ -162,13 +149,11 @@ suite('OAuth', () => {
 		});
 
 		test('isAuthorizationAuthorizeResponse should correctly identify authorization response', () => {
-			// Valid response
 			assert.strictEqual(isAuthorizationAuthorizeResponse({
 				code: 'auth-code-123',
 				state: 'state-123'
 			}), true);
 
-			// Invalid cases
 			assert.strictEqual(isAuthorizationAuthorizeResponse(null), false);
 			assert.strictEqual(isAuthorizationAuthorizeResponse(undefined), false);
 			assert.strictEqual(isAuthorizationAuthorizeResponse({}), false);
@@ -178,13 +163,11 @@ suite('OAuth', () => {
 		});
 
 		test('isAuthorizationTokenResponse should correctly identify token response', () => {
-			// Valid response
 			assert.strictEqual(isAuthorizationTokenResponse({
 				access_token: 'token-123',
 				token_type: 'Bearer'
 			}), true);
 
-			// Invalid cases
 			assert.strictEqual(isAuthorizationTokenResponse(null), false);
 			assert.strictEqual(isAuthorizationTokenResponse(undefined), false);
 			assert.strictEqual(isAuthorizationTokenResponse({}), false);
@@ -194,7 +177,6 @@ suite('OAuth', () => {
 		});
 
 		test('isAuthorizationDeviceResponse should correctly identify device authorization response', () => {
-			// Valid response
 			assert.strictEqual(isAuthorizationDeviceResponse({
 				device_code: 'device-code-123',
 				user_code: 'ABCD-EFGH',
@@ -202,7 +184,6 @@ suite('OAuth', () => {
 				expires_in: 1800
 			}), true);
 
-			// Valid response with optional fields
 			assert.strictEqual(isAuthorizationDeviceResponse({
 				device_code: 'device-code-123',
 				user_code: 'ABCD-EFGH',
@@ -212,7 +193,6 @@ suite('OAuth', () => {
 				interval: 5
 			}), true);
 
-			// Invalid cases
 			assert.strictEqual(isAuthorizationDeviceResponse(null), false);
 			assert.strictEqual(isAuthorizationDeviceResponse(undefined), false);
 			assert.strictEqual(isAuthorizationDeviceResponse({}), false);
@@ -224,19 +204,16 @@ suite('OAuth', () => {
 				device_code: 'device-code-123',
 				user_code: 'ABCD-EFGH',
 				verification_uri: 'https://example.com/verify'
-				// Missing expires_in
 			}), false);
 			assert.strictEqual(isAuthorizationDeviceResponse('not an object'), false);
 		});
 
 		test('isAuthorizationErrorResponse should correctly identify error response', () => {
-			// Valid error response
 			assert.strictEqual(isAuthorizationErrorResponse({
 				error: 'authorization_pending',
 				error_description: 'The authorization request is still pending'
 			}), true);
 
-			// Valid error response with different error codes
 			assert.strictEqual(isAuthorizationErrorResponse({
 				error: 'slow_down',
 				error_description: 'Polling too fast'
@@ -252,14 +229,12 @@ suite('OAuth', () => {
 				error_description: 'The device code has expired'
 			}), true);
 
-			// Valid response with optional error_uri
 			assert.strictEqual(isAuthorizationErrorResponse({
 				error: 'invalid_request',
 				error_description: 'The request is missing a required parameter',
 				error_uri: 'https://example.com/error'
 			}), true);
 
-			// Invalid cases
 			assert.strictEqual(isAuthorizationErrorResponse(null), false);
 			assert.strictEqual(isAuthorizationErrorResponse(undefined), false);
 			assert.strictEqual(isAuthorizationErrorResponse({}), false);
@@ -387,7 +362,6 @@ suite('OAuth', () => {
 
 
 		test('getClaimsFromJWT should correctly parse a JWT token', () => {
-			// Create a sample JWT with known payload
 			const payload: IAuthorizationJWTClaims = {
 				jti: 'id123',
 				sub: 'user123',
@@ -398,7 +372,6 @@ suite('OAuth', () => {
 				name: 'Test User'
 			};
 
-			// Create fake but properly formatted JWT
 			const header = { alg: 'HS256', typ: 'JWT' };
 			const encodedHeader = encodeBase64(VSBuffer.fromString(JSON.stringify(header)));
 			const encodedPayload = encodeBase64(VSBuffer.fromString(JSON.stringify(payload)));
@@ -410,14 +383,12 @@ suite('OAuth', () => {
 		});
 
 		test('getClaimsFromJWT should throw for invalid JWT format', () => {
-			// Test with wrong number of parts - should throw "Invalid JWT token format"
 			assert.throws(() => getClaimsFromJWT('only.two'), /Invalid JWT token format.*three parts/);
 			assert.throws(() => getClaimsFromJWT('one'), /Invalid JWT token format.*three parts/);
 			assert.throws(() => getClaimsFromJWT('has.four.parts.here'), /Invalid JWT token format.*three parts/);
 		});
 
 		test('getClaimsFromJWT should throw for invalid header content', () => {
-			// Create JWT with invalid header
 			const encodedHeader = encodeBase64(VSBuffer.fromString('not-json'));
 			const encodedPayload = encodeBase64(VSBuffer.fromString(JSON.stringify({ sub: 'test' })));
 			const token = `${encodedHeader}.${encodedPayload}.signature`;
@@ -426,7 +397,6 @@ suite('OAuth', () => {
 		});
 
 		test('getClaimsFromJWT should throw for invalid payload content', () => {
-			// Create JWT with valid header but invalid payload
 			const header = { alg: 'HS256', typ: 'JWT' };
 			const encodedHeader = encodeBase64(VSBuffer.fromString(JSON.stringify(header)));
 			const encodedPayload = encodeBase64(VSBuffer.fromString('not-json'));
@@ -450,7 +420,6 @@ suite('OAuth', () => {
 		});
 
 		test('fetchDynamicRegistration should make correct request and parse response', async () => {
-			// Setup successful response
 			const mockResponse = {
 				client_id: 'generated-client-id',
 				client_name: 'Test Client',
@@ -473,14 +442,12 @@ suite('OAuth', () => {
 				'Test Client'
 			);
 
-			// Verify fetch was called correctly
 			assert.strictEqual(fetchStub.callCount, 1);
 			const [url, options] = fetchStub.firstCall.args;
 			assert.strictEqual(url, 'https://auth.example.com/register');
 			assert.strictEqual(options.method, 'POST');
 			assert.strictEqual(options.headers['Content-Type'], 'application/json');
 
-			// Verify request body
 			const requestBody = JSON.parse(options.body as string);
 			assert.strictEqual(requestBody.client_name, 'Test Client');
 			assert.strictEqual(requestBody.client_uri, 'https://code.visualstudio.com');
@@ -493,7 +460,6 @@ suite('OAuth', () => {
 				`http://127.0.0.1:${DEFAULT_AUTH_FLOW_PORT}/`
 			]);
 
-			// Verify response is processed correctly
 			assert.deepStrictEqual(result, mockResponse);
 		});
 
@@ -519,7 +485,7 @@ suite('OAuth', () => {
 		test('fetchDynamicRegistration should throw error on invalid response format', async () => {
 			fetchStub.resolves({
 				ok: true,
-				json: async () => ({ invalid: 'response' }) // Missing required fields
+				json: async () => ({ invalid: 'response' })
 			} as Response);
 
 			const serverMetadata: IAuthorizationServerMetadata = {
@@ -535,7 +501,6 @@ suite('OAuth', () => {
 		});
 
 		test('fetchDynamicRegistration should filter grant types based on server metadata', async () => {
-			// Setup successful response
 			const mockResponse = {
 				client_id: 'generated-client-id',
 				client_name: 'Test Client'
@@ -550,22 +515,19 @@ suite('OAuth', () => {
 				issuer: 'https://auth.example.com',
 				registration_endpoint: 'https://auth.example.com/register',
 				response_types_supported: ['code'],
-				grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token'] // Mix of supported and unsupported
+				grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token']
 			};
 
 			await fetchDynamicRegistration(serverMetadata, 'Test Client');
 
-			// Verify fetch was called correctly
 			assert.strictEqual(fetchStub.callCount, 1);
 			const [, options] = fetchStub.firstCall.args;
 
-			// Verify request body contains only the intersection of supported grant types
 			const requestBody = JSON.parse(options.body as string);
-			assert.deepStrictEqual(requestBody.grant_types, ['authorization_code', 'refresh_token']); // client_credentials should be filtered out
+			assert.deepStrictEqual(requestBody.grant_types, ['authorization_code', 'refresh_token']);
 		});
 
 		test('fetchDynamicRegistration should use default grant types when server metadata has none', async () => {
-			// Setup successful response
 			const mockResponse = {
 				client_id: 'generated-client-id',
 				client_name: 'Test Client'
@@ -580,16 +542,13 @@ suite('OAuth', () => {
 				issuer: 'https://auth.example.com',
 				registration_endpoint: 'https://auth.example.com/register',
 				response_types_supported: ['code']
-				// No grant_types_supported specified
 			};
 
 			await fetchDynamicRegistration(serverMetadata, 'Test Client');
 
-			// Verify fetch was called correctly
 			assert.strictEqual(fetchStub.callCount, 1);
 			const [, options] = fetchStub.firstCall.args;
 
-			// Verify request body contains default grant types
 			const requestBody = JSON.parse(options.body as string);
 			assert.deepStrictEqual(requestBody.grant_types, ['authorization_code', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code']);
 		});
@@ -598,7 +557,6 @@ suite('OAuth', () => {
 			const serverMetadata: IAuthorizationServerMetadata = {
 				issuer: 'https://auth.example.com',
 				response_types_supported: ['code']
-				// registration_endpoint is missing
 			};
 
 			await assert.rejects(
@@ -689,7 +647,6 @@ suite('OAuth', () => {
 
 			await fetchDynamicRegistration(serverMetadata, 'Test Client', ['read', 'write']);
 
-			// Verify request includes scopes
 			const [, options] = fetchStub.firstCall.args;
 			const requestBody = JSON.parse(options.body as string);
 			assert.strictEqual(requestBody.scope, 'read write');
@@ -714,7 +671,6 @@ suite('OAuth', () => {
 
 			await fetchDynamicRegistration(serverMetadata, 'Test Client');
 
-			// Verify request does not include scope when not provided
 			const [, options] = fetchStub.firstCall.args;
 			const requestBody = JSON.parse(options.body as string);
 			assert.strictEqual(requestBody.scope, undefined);
@@ -739,7 +695,6 @@ suite('OAuth', () => {
 
 			await fetchDynamicRegistration(serverMetadata, 'Test Client', []);
 
-			// Verify request includes empty scope
 			const [, options] = fetchStub.firstCall.args;
 			const requestBody = JSON.parse(options.body as string);
 			assert.strictEqual(requestBody.scope, '');
@@ -818,7 +773,6 @@ suite('OAuth', () => {
 			const serverMetadata: IAuthorizationServerMetadata = {
 				issuer: 'https://auth.example.com',
 				response_types_supported: ['code']
-				// registration_endpoint is missing
 			};
 
 			await assert.rejects(
@@ -952,7 +906,6 @@ suite('OAuth', () => {
 			const targetResource = 'https://example.com/api';
 			const resourceMetadataUrl = 'https://example.com/.well-known/oauth-protected-resource';
 
-			// Stub all possible URLs to return 404 for robust fallback testing
 			fetchStub.resolves({
 				status: 404,
 				text: async () => 'Not Found'
@@ -961,7 +914,6 @@ suite('OAuth', () => {
 			await assert.rejects(
 				async () => fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub }),
 				(error: any) => {
-					// Should be AggregateError since all URLs fail
 					assert.ok(error instanceof AggregateError || /Failed to fetch resource metadata from.*404 Not Found/.test(error.message));
 					return true;
 				}
@@ -972,7 +924,6 @@ suite('OAuth', () => {
 			const targetResource = 'https://example.com/api';
 			const resourceMetadataUrl = 'https://example.com/.well-known/oauth-protected-resource';
 
-			// Stub all possible URLs to return 500 for robust fallback testing
 			fetchStub.resolves({
 				status: 500,
 				statusText: 'Internal Server Error',
@@ -982,7 +933,6 @@ suite('OAuth', () => {
 			await assert.rejects(
 				async () => fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub }),
 				(error: any) => {
-					// Should be AggregateError since all URLs fail
 					assert.ok(error instanceof AggregateError || /Failed to fetch resource metadata from.*500 Internal Server Error/.test(error.message));
 					return true;
 				}
@@ -996,7 +946,6 @@ suite('OAuth', () => {
 				resource: 'https://different.com/api'
 			};
 
-			// Stub all possible URLs to return invalid metadata for robust fallback testing
 			fetchStub.resolves({
 				status: 200,
 				json: async () => metadata,
@@ -1006,7 +955,6 @@ suite('OAuth', () => {
 			await assert.rejects(
 				async () => fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub }),
 				(error: any) => {
-					// Should be AggregateError since all URLs fail validation
 					assert.ok(error instanceof AggregateError);
 					assert.ok(error.errors.some((e: Error) => /does not match expected value/.test(e.message)));
 					return true;
@@ -1027,7 +975,6 @@ suite('OAuth', () => {
 				text: async () => JSON.stringify(metadata)
 			});
 
-			// URL normalization should handle hostname case differences
 			const result = await fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub });
 			assert.deepStrictEqual(result.metadata, metadata);
 			assert.strictEqual(result.discoveryUrl, resourceMetadataUrl);
@@ -1037,11 +984,9 @@ suite('OAuth', () => {
 			const targetResource = 'https://example.com/api';
 			const resourceMetadataUrl = 'https://example.com/.well-known/oauth-protected-resource';
 			const invalidMetadata = {
-				// Missing required 'resource' property
 				scopes_supported: ['read', 'write']
 			};
 
-			// Stub all possible URLs to return invalid metadata for robust fallback testing
 			fetchStub.resolves({
 				status: 200,
 				json: async () => invalidMetadata,
@@ -1051,7 +996,6 @@ suite('OAuth', () => {
 			await assert.rejects(
 				async () => fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub }),
 				(error: any) => {
-					// Should be AggregateError since all URLs return invalid metadata
 					assert.ok(error instanceof AggregateError || /Invalid resource metadata/.test(error.message));
 					return true;
 				}
@@ -1066,7 +1010,6 @@ suite('OAuth', () => {
 				scopes_supported: 'not an array'
 			};
 
-			// Stub all possible URLs to return invalid metadata for robust fallback testing
 			fetchStub.resolves({
 				status: 200,
 				json: async () => invalidMetadata,
@@ -1076,7 +1019,6 @@ suite('OAuth', () => {
 			await assert.rejects(
 				async () => fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub }),
 				(error: any) => {
-					// Should be AggregateError since all URLs return invalid metadata
 					assert.ok(error instanceof AggregateError || /Invalid resource metadata/.test(error.message));
 					return true;
 				}
@@ -1150,7 +1092,6 @@ suite('OAuth', () => {
 			);
 
 			assert.strictEqual(result.discoveryUrl, resourceMetadataUrl);
-			// Different ports mean different origins
 			const headers = fetchStub.firstCall.args[1].headers;
 			assert.strictEqual(headers['X-Test-Header'], undefined);
 		});
@@ -1178,7 +1119,6 @@ suite('OAuth', () => {
 			);
 
 			assert.strictEqual(result.discoveryUrl, resourceMetadataUrl);
-			// Different protocols mean different origins
 			const headers = fetchStub.firstCall.args[1].headers;
 			assert.strictEqual(headers['X-Test-Header'], undefined);
 		});
@@ -1190,7 +1130,6 @@ suite('OAuth', () => {
 				resource: 'https://different.com/other'
 			};
 
-			// Stub all possible URLs to return invalid metadata for robust fallback testing
 			fetchStub.resolves({
 				status: 200,
 				json: async () => metadata,
@@ -1201,7 +1140,6 @@ suite('OAuth', () => {
 				await fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub });
 				assert.fail('Should have thrown an error');
 			} catch (error: any) {
-				// Should be AggregateError with validation errors
 				const errorMessage = error instanceof AggregateError ? error.errors.map((e: Error) => e.message).join(' ') : error.message;
 				assert.ok(/does not match expected value/.test(errorMessage), 'Error message should mention mismatch');
 				assert.ok(/https:\/\/different\.com\/other/.test(errorMessage), 'Error message should include actual resource value');
@@ -1231,7 +1169,6 @@ suite('OAuth', () => {
 			assert.deepStrictEqual(result.metadata, expectedMetadata);
 			assert.strictEqual(result.discoveryUrl, 'https://example.com/.well-known/oauth-protected-resource/api/v1');
 			assert.strictEqual(fetchStub.callCount, 1);
-			// Should try path-appended version first
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://example.com/.well-known/oauth-protected-resource/api/v1');
 		});
 
@@ -1242,7 +1179,6 @@ suite('OAuth', () => {
 				scopes_supported: ['read', 'write']
 			};
 
-			// First call fails, second succeeds
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1265,9 +1201,7 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://example.com/.well-known/oauth-protected-resource');
 			assert.strictEqual(result.errors.length, 1);
 			assert.strictEqual(fetchStub.callCount, 2);
-			// First attempt with path
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://example.com/.well-known/oauth-protected-resource/api/v1');
-			// Second attempt at root
 			assert.strictEqual(fetchStub.secondCall.args[0], 'https://example.com/.well-known/oauth-protected-resource');
 		});
 
@@ -1314,7 +1248,6 @@ suite('OAuth', () => {
 			assert.deepStrictEqual(result.metadata, expectedMetadata);
 			assert.strictEqual(result.discoveryUrl, 'https://example.com/.well-known/oauth-protected-resource');
 			assert.strictEqual(fetchStub.callCount, 1);
-			// Both URLs should be the same when path is /
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://example.com/.well-known/oauth-protected-resource');
 		});
 
@@ -1354,7 +1287,6 @@ suite('OAuth', () => {
 				scopes_supported: ['read', 'write']
 			};
 
-			// First call throws network error, second succeeds
 			fetchStub.onFirstCall().rejects(new Error('Network connection failed'));
 
 			fetchStub.onSecondCall().resolves({
@@ -1374,16 +1306,13 @@ suite('OAuth', () => {
 			assert.strictEqual(result.errors.length, 1);
 			assert.ok(/Network connection failed/.test(result.errors[0].message));
 			assert.strictEqual(fetchStub.callCount, 2);
-			// First attempt with path should have thrown error
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://example.com/.well-known/oauth-protected-resource/api/v1');
-			// Second attempt at root should succeed
 			assert.strictEqual(fetchStub.secondCall.args[0], 'https://example.com/.well-known/oauth-protected-resource');
 		});
 
 		test('should throw AggregateError when fetchImpl throws on all URLs', async () => {
 			const targetResource = 'https://example.com/api/v1';
 
-			// Both calls throw network errors
 			fetchStub.rejects(new Error('Network connection failed'));
 
 			await assert.rejects(
@@ -1403,10 +1332,8 @@ suite('OAuth', () => {
 		test('should handle mix of fetch error and non-200 response', async () => {
 			const targetResource = 'https://example.com/api/v1';
 
-			// First call throws network error
 			fetchStub.onFirstCall().rejects(new Error('Connection timeout'));
 
-			// Second call returns 404
 			fetchStub.onSecondCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1429,14 +1356,11 @@ suite('OAuth', () => {
 
 		test('should accept root URL in PRM resource when using root discovery fallback (no trailing slash)', async () => {
 			const targetResource = 'https://example.com/api/v1';
-			// Per RFC 9728: when metadata retrieved from root discovery URL,
-			// the resource value must match the root URL (where well-known was inserted)
 			const expectedMetadata = {
 				resource: 'https://example.com',
 				scopes_supported: ['read', 'write']
 			};
 
-			// First call (path-appended) fails, second (root) succeeds
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1461,13 +1385,11 @@ suite('OAuth', () => {
 
 		test('should accept root URL in PRM resource when using root discovery fallback (with trailing slash)', async () => {
 			const targetResource = 'https://example.com/api/v1';
-			// Test that trailing slash form is also accepted (URL normalization)
 			const expectedMetadata = {
 				resource: 'https://example.com/',
 				scopes_supported: ['read', 'write']
 			};
 
-			// First call (path-appended) fails, second (root) succeeds
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1492,13 +1414,11 @@ suite('OAuth', () => {
 
 		test('should reject PRM with full path resource when using root discovery fallback', async () => {
 			const targetResource = 'https://example.com/api/v1';
-			// This violates RFC 9728: root discovery PRM should have root URL, not full path
 			const invalidMetadata = {
 				resource: 'https://example.com/api/v1',
 				scopes_supported: ['read']
 			};
 
-			// First call (path-appended) fails, second (root) returns invalid metadata
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1516,11 +1436,8 @@ suite('OAuth', () => {
 				(error: any) => {
 					assert.ok(error instanceof AggregateError, 'Should be an AggregateError');
 					assert.strictEqual(error.errors.length, 2);
-					// First error is 404 from path-appended attempt
 					assert.ok(/404/.test(error.errors[0].message));
-					// Second error is validation failure from root attempt
 					assert.ok(/does not match expected value/.test(error.errors[1].message));
-					// Check that validation was against root URL (origin) not full path
 					assert.ok(/https:\/\/example\.com\/api\/v1.*https:\/\/example\.com/.test(error.errors[1].message));
 					return true;
 				}
@@ -1531,29 +1448,23 @@ suite('OAuth', () => {
 
 		test('should reject PRM with root resource when using path-appended discovery', async () => {
 			const targetResource = 'https://example.com/api/v1';
-			// This violates RFC 9728: path-appended discovery PRM should match full target URL
 			const invalidMetadata = {
 				resource: 'https://example.com/',
 				scopes_supported: ['read']
 			};
 
-			// First attempt (path-appended) gets the wrong resource value
-			// It will fail validation and continue to second URL (root)
-			// Second attempt (root) will succeed because root expects root resource
 			fetchStub.resolves({
 				status: 200,
 				json: async () => invalidMetadata,
 				text: async () => JSON.stringify(invalidMetadata)
 			});
 
-			// This should actually succeed on the second (root) attempt
 			const result = await fetchResourceMetadata(targetResource, undefined, { fetch: fetchStub });
 
 			assert.deepStrictEqual(result.metadata, invalidMetadata);
 			assert.strictEqual(result.discoveryUrl, 'https://example.com/.well-known/oauth-protected-resource');
 			assert.strictEqual(result.errors.length, 1);
 			assert.strictEqual(fetchStub.callCount, 2);
-			// Verify both URLs were tried
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://example.com/.well-known/oauth-protected-resource/api/v1');
 			assert.strictEqual(fetchStub.secondCall.args[0], 'https://example.com/.well-known/oauth-protected-resource');
 		});
@@ -1561,7 +1472,6 @@ suite('OAuth', () => {
 		test('should validate against targetResource when resourceMetadataUrl is explicitly provided', async () => {
 			const targetResource = 'https://example.com/api/v1';
 			const resourceMetadataUrl = 'https://example.com/.well-known/oauth-protected-resource';
-			// When explicit URL provided (e.g., from WWW-Authenticate), must match targetResource
 			const validMetadata = {
 				resource: 'https://example.com/api/v1',
 				scopes_supported: ['read']
@@ -1593,20 +1503,16 @@ suite('OAuth', () => {
 				scopes_supported: ['read']
 			};
 
-			// Stub all URLs to return root resource metadata
-			// Explicit URL returns root (validation fails), path-appended fails, root succeeds
 			fetchStub.resolves({
 				status: 200,
 				json: async () => invalidMetadata,
 				text: async () => JSON.stringify(invalidMetadata)
 			});
 
-			// Should succeed on root discovery fallback
 			const result = await fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub });
 			assert.deepStrictEqual(result.metadata, invalidMetadata);
 			assert.strictEqual(result.discoveryUrl, 'https://example.com/.well-known/oauth-protected-resource');
 			assert.ok(result.errors.length >= 1);
-			// Should have tried explicit URL, path-appended, then succeeded on root
 			assert.ok(fetchStub.callCount >= 2);
 		});
 
@@ -1614,19 +1520,16 @@ suite('OAuth', () => {
 			const targetResource = 'https://example.com/api';
 			const resourceMetadataUrl = 'https://example.com/.well-known/oauth-protected-resource';
 
-			// Stub all possible URLs to throw network error for robust fallback testing
 			fetchStub.rejects(new Error('DNS resolution failed'));
 
 			await assert.rejects(
 				async () => fetchResourceMetadata(targetResource, resourceMetadataUrl, { fetch: fetchStub }),
 				(error: any) => {
-					// Should be AggregateError since all URLs fail
 					assert.ok(error instanceof AggregateError || /DNS resolution failed/.test(error.message));
 					return true;
 				}
 			);
 
-			// Should have tried explicit URL and well-known discovery
 			assert.ok(fetchStub.callCount >= 2);
 		});
 	});
@@ -1666,7 +1569,6 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/.well-known/oauth-authorization-server/tenant');
 			assert.deepStrictEqual(result.errors, []);
 			assert.strictEqual(fetchStub.callCount, 1);
-			// Should try OAuth discovery with path insertion: https://auth.example.com/.well-known/oauth-authorization-server/tenant
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://auth.example.com/.well-known/oauth-authorization-server/tenant');
 			assert.strictEqual(fetchStub.firstCall.args[1].method, 'GET');
 		});
@@ -1680,7 +1582,6 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			};
 
-			// First call fails, second succeeds
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1701,9 +1602,7 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/.well-known/openid-configuration/tenant');
 			assert.strictEqual(result.errors.length, 1);
 			assert.strictEqual(fetchStub.callCount, 2);
-			// First attempt: OAuth discovery
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://auth.example.com/.well-known/oauth-authorization-server/tenant');
-			// Second attempt: OpenID Connect discovery with path insertion
 			assert.strictEqual(fetchStub.secondCall.args[0], 'https://auth.example.com/.well-known/openid-configuration/tenant');
 		});
 
@@ -1716,7 +1615,6 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			};
 
-			// First two calls fail, third succeeds
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1744,11 +1642,8 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/tenant/.well-known/openid-configuration');
 			assert.strictEqual(result.errors.length, 2);
 			assert.strictEqual(fetchStub.callCount, 3);
-			// First attempt: OAuth discovery
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://auth.example.com/.well-known/oauth-authorization-server/tenant');
-			// Second attempt: OpenID Connect discovery with path insertion
 			assert.strictEqual(fetchStub.secondCall.args[0], 'https://auth.example.com/.well-known/openid-configuration/tenant');
-			// Third attempt: OpenID Connect discovery with path addition
 			assert.strictEqual(fetchStub.thirdCall.args[0], 'https://auth.example.com/tenant/.well-known/openid-configuration');
 		});
 
@@ -1774,7 +1669,6 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/.well-known/oauth-authorization-server');
 			assert.deepStrictEqual(result.errors, []);
 			assert.strictEqual(fetchStub.callCount, 1);
-			// For root URLs, no extra path is added
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://auth.example.com/.well-known/oauth-authorization-server');
 		});
 
@@ -1844,7 +1738,6 @@ suite('OAuth', () => {
 					assert.ok(error instanceof AggregateError, 'Should be an AggregateError');
 					assert.strictEqual(error.errors.length, 3, 'Should contain 3 errors (one for each URL)');
 					assert.strictEqual(error.message, 'Failed to fetch authorization server metadata from all attempted URLs');
-					// Verify each error includes the URL it attempted
 					assert.ok(/oauth-authorization-server.*404/.test(error.errors[0].message), 'First error should mention OAuth discovery and 404');
 					assert.ok(/openid-configuration.*404/.test(error.errors[1].message), 'Second error should mention OpenID path insertion and 404');
 					assert.ok(/openid-configuration.*404/.test(error.errors[2].message), 'Third error should mention OpenID path addition and 404');
@@ -1852,14 +1745,12 @@ suite('OAuth', () => {
 				}
 			);
 
-			// Should have tried all three endpoints
 			assert.strictEqual(fetchStub.callCount, 3);
 		});
 
 		test('should throw single error (not AggregateError) when only one URL is tried and fails', async () => {
 			const authorizationServer = 'https://auth.example.com';
 
-			// First attempt succeeds on second try, so only one error is collected for first URL
 			fetchStub.onFirstCall().resolves({
 				status: 500,
 				text: async () => 'Internal Server Error',
@@ -1879,7 +1770,6 @@ suite('OAuth', () => {
 				statusText: 'OK'
 			});
 
-			// Should succeed on second attempt
 			const result = await fetchAuthorizationServerMetadata(authorizationServer, { fetch: fetchStub });
 			assert.deepStrictEqual(result.metadata, expectedMetadata);
 			assert.strictEqual(result.errors.length, 1);
@@ -1889,10 +1779,8 @@ suite('OAuth', () => {
 		test('should throw AggregateError when multiple URLs fail with mixed error types', async () => {
 			const authorizationServer = 'https://auth.example.com/tenant';
 
-			// First call: network error
 			fetchStub.onFirstCall().rejects(new Error('Connection timeout'));
 
-			// Second call: 404
 			fetchStub.onSecondCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -1900,7 +1788,6 @@ suite('OAuth', () => {
 				json: async () => { throw new Error('Not JSON'); }
 			});
 
-			// Third call: 500
 			fetchStub.onThirdCall().resolves({
 				status: 500,
 				text: async () => 'Internal Server Error',
@@ -1913,11 +1800,8 @@ suite('OAuth', () => {
 				(error: any) => {
 					assert.ok(error instanceof AggregateError, 'Should be an AggregateError');
 					assert.strictEqual(error.errors.length, 3, 'Should contain 3 errors');
-					// First error is network error
 					assert.ok(/Connection timeout/.test(error.errors[0].message), 'First error should be network error');
-					// Second error is 404
 					assert.ok(/404.*Not Found/.test(error.errors[1].message), 'Second error should be 404');
-					// Third error is 500
 					assert.ok(/500.*Internal Server Error/.test(error.errors[2].message), 'Third error should be 500');
 					return true;
 				}
@@ -1945,7 +1829,6 @@ suite('OAuth', () => {
 		test('should handle valid JSON but invalid metadata structure', async () => {
 			const authorizationServer = 'https://auth.example.com';
 			const invalidMetadata = {
-				// Missing required 'issuer' field
 				authorization_endpoint: 'https://auth.example.com/authorize'
 			};
 
@@ -1992,7 +1875,6 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			};
 
-			// First call throws network error, second succeeds
 			fetchStub.onFirstCall().rejects(new Error('Network error'));
 			fetchStub.onSecondCall().resolves({
 				status: 200,
@@ -2006,7 +1888,6 @@ suite('OAuth', () => {
 			assert.deepStrictEqual(result.metadata, expectedMetadata);
 			assert.strictEqual(result.errors.length, 1);
 			assert.ok(/Network error/.test(result.errors[0].message));
-			// Should have tried two endpoints
 			assert.strictEqual(fetchStub.callCount, 2);
 		});
 
@@ -2021,7 +1902,6 @@ suite('OAuth', () => {
 					assert.ok(error instanceof AggregateError, 'Should be an AggregateError');
 					assert.strictEqual(error.errors.length, 3, 'Should contain 3 errors');
 					assert.strictEqual(error.message, 'Failed to fetch authorization server metadata from all attempted URLs');
-					// All errors should be network errors
 					assert.ok(/Network error/.test(error.errors[0].message), 'First error should be network error');
 					assert.ok(/Network error/.test(error.errors[1].message), 'Second error should be network error');
 					assert.ok(/Network error/.test(error.errors[2].message), 'Third error should be network error');
@@ -2029,7 +1909,6 @@ suite('OAuth', () => {
 				}
 			);
 
-			// Should have tried all three endpoints
 			assert.strictEqual(fetchStub.callCount, 3);
 		});
 
@@ -2040,10 +1919,8 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			};
 
-			// First call throws network error
 			fetchStub.onFirstCall().rejects(new Error('Connection timeout'));
 
-			// Second call returns 404
 			fetchStub.onSecondCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -2051,7 +1928,6 @@ suite('OAuth', () => {
 				json: async () => { throw new Error('Not JSON'); }
 			});
 
-			// Third call succeeds
 			fetchStub.onThirdCall().resolves({
 				status: 200,
 				json: async () => expectedMetadata,
@@ -2063,7 +1939,6 @@ suite('OAuth', () => {
 
 			assert.deepStrictEqual(result.metadata, expectedMetadata);
 			assert.strictEqual(result.errors.length, 2);
-			// Should have tried all three endpoints
 			assert.strictEqual(fetchStub.callCount, 3);
 		});
 
@@ -2082,7 +1957,6 @@ suite('OAuth', () => {
 				(error: any) => {
 					assert.ok(error instanceof AggregateError, 'Should be an AggregateError');
 					assert.strictEqual(error.errors.length, 3, 'Should contain 3 errors');
-					// All errors should include status code and statusText (fallback when text() fails)
 					for (const err of error.errors) {
 						assert.ok(/500 Internal Server Error/.test(err.message), `Error should mention 500 and statusText: ${err.message}`);
 					}
@@ -2098,7 +1972,6 @@ suite('OAuth', () => {
 				response_types_supported: ['code']
 			};
 
-			// First two calls fail, third succeeds
 			fetchStub.onFirstCall().resolves({
 				status: 404,
 				text: async () => 'Not Found',
@@ -2126,7 +1999,6 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/tenant/.well-known/openid-configuration');
 			assert.strictEqual(result.errors.length, 2);
 			assert.strictEqual(fetchStub.callCount, 3);
-			// Third attempt should correctly handle trailing slash (not double-slash)
 			assert.strictEqual(fetchStub.thirdCall.args[0], 'https://auth.example.com/tenant/.well-known/openid-configuration');
 		});
 
@@ -2150,7 +2022,6 @@ suite('OAuth', () => {
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/.well-known/oauth-authorization-server/tenant/org/sub');
 			assert.deepStrictEqual(result.errors, []);
 			assert.strictEqual(fetchStub.callCount, 1);
-			// Should correctly insert well-known path with nested paths
 			assert.strictEqual(fetchStub.firstCall.args[0], 'https://auth.example.com/.well-known/oauth-authorization-server/tenant/org/sub');
 		});
 
@@ -2173,7 +2044,6 @@ suite('OAuth', () => {
 				(error: any) => {
 					assert.ok(error instanceof AggregateError, 'Should be an AggregateError');
 					assert.strictEqual(error.errors.length, 3, 'Should contain 3 errors');
-					// All errors should indicate failed to fetch with status code
 					for (const err of error.errors) {
 						assert.ok(/Failed to fetch authorization server metadata from/.test(err.message), `Error should mention failed fetch: ${err.message}`);
 					}
@@ -2181,13 +2051,11 @@ suite('OAuth', () => {
 				}
 			);
 
-			// Should try all three endpoints
 			assert.strictEqual(fetchStub.callCount, 3);
 		});
 
 		test('should validate metadata according to isAuthorizationServerMetadata', async () => {
 			const authorizationServer = 'https://auth.example.com';
-			// Valid metadata with all required fields
 			const validMetadata: IAuthorizationServerMetadata = {
 				issuer: 'https://auth.example.com/',
 				authorization_endpoint: 'https://auth.example.com/authorize',
@@ -2229,7 +2097,6 @@ suite('OAuth', () => {
 			const result = await fetchAuthorizationServerMetadata(authorizationServer, { fetch: fetchStub });
 
 			assert.deepStrictEqual(result.metadata, expectedMetadata);
-			// Query parameters are not included in the discovery URL (only pathname is extracted)
 			assert.strictEqual(result.discoveryUrl, 'https://auth.example.com/.well-known/oauth-authorization-server/tenant');
 			assert.deepStrictEqual(result.errors, []);
 			assert.strictEqual(fetchStub.callCount, 1);
@@ -2258,7 +2125,6 @@ suite('OAuth', () => {
 	});
 
 	suite('Cross App Access (ID-JAG) wire format', () => {
-		// Spec: draft-ietf-oauth-identity-assertion-authz-grant-03
 		test('buildIdJagExchangeBody emits the exact spec parameters', () => {
 			const body = buildIdJagExchangeBody(
 				'my_idp_client_id',

@@ -1,17 +1,12 @@
-// Pure JavaScript In-Memory Full-JSON Engine for Dardcor Router
-// Zero SQLite dependencies (no node:sqlite, no better-sqlite3, no sql.js).
-// All data is stored in memory as JavaScript objects/arrays and persisted to modular JSON files.
 
 import { TABLES } from "./schema.js";
 
 export function createJsonStoreAdapter() {
-  // Pre-initialize all tables declared in schema
   const tables = {};
   for (const name of Object.keys(TABLES)) {
     tables[name] = [];
   }
 
-  // Track primary keys and unique keys
   const primaryKeys = {
     _meta: ["key"],
     settings: ["id"],
@@ -35,7 +30,6 @@ export function createJsonStoreAdapter() {
     usageHistory: 1,
   };
 
-  // Track active indexes for DDL reflection
   const indexes = new Map();
   for (const [tName, def] of Object.entries(TABLES)) {
     for (const idxSql of def.indexes || []) {
@@ -116,24 +110,19 @@ export function createJsonStoreAdapter() {
       const idx = paramTracker.idx++;
       return params[idx];
     }
-    // Check COALESCE(col, fallback)
     const coalMatch = expr.match(/^COALESCE\s*\(([^,]+),\s*([^)]+)\)$/i);
     if (coalMatch) {
       const first = parseVal(coalMatch[1], row, params, paramTracker);
       if (first !== null && first !== undefined && first !== "") return first;
       return parseVal(coalMatch[2], row, params, paramTracker);
     }
-    // String literal 'value'
     if ((expr.startsWith("'") && expr.endsWith("'")) || (expr.startsWith('"') && expr.endsWith('"'))) {
       return expr.slice(1, -1);
     }
-    // Numeric literal
     if (/^-?\d+(?:\.\d+)?$/.test(expr)) {
       return Number(expr);
     }
-    // NULL
     if (expr.toUpperCase() === "NULL") return null;
-    // Row column reference
     if (row && Object.prototype.hasOwnProperty.call(row, expr)) {
       return row[expr];
     }
@@ -149,7 +138,6 @@ export function createJsonStoreAdapter() {
       const trimmed = part.trim();
       if (!trimmed) continue;
 
-      // Check IN subquery / literal list
       const inMatch = trimmed.match(/^([\s\S]+?)\s+(?:NOT\s+)?IN\s*\(([\s\S]+)\)$/i);
       if (inMatch) {
         const isNot = /\bNOT\s+IN\b/i.test(trimmed);
@@ -159,7 +147,6 @@ export function createJsonStoreAdapter() {
 
         let allowedValues = [];
         if (/^SELECT\s+/i.test(inside)) {
-          // Subquery
           const subParamCount = (inside.match(/\?/g) || []).length;
           const subParams = params.slice(paramTracker.idx, paramTracker.idx + subParamCount);
           paramTracker.idx += subParamCount;
@@ -169,7 +156,6 @@ export function createJsonStoreAdapter() {
             allowedValues = subRows.map((r) => r[firstKey]);
           }
         } else {
-          // Comma-separated items: 'a', 'b' or ?, ?
           const items = splitTopLevel(inside, ",");
           for (const item of items) {
             allowedValues.push(parseVal(item.trim(), row, params, paramTracker));
@@ -181,7 +167,6 @@ export function createJsonStoreAdapter() {
         continue;
       }
 
-      // Check IS NOT NULL
       const isNotNullMatch = trimmed.match(/^([\s\S]+?)\s+IS\s+NOT\s+NULL$/i);
       if (isNotNullMatch) {
         const val = parseVal(isNotNullMatch[1], row, params, paramTracker);
@@ -189,7 +174,6 @@ export function createJsonStoreAdapter() {
         continue;
       }
 
-      // Check IS NULL
       const isNullMatch = trimmed.match(/^([\s\S]+?)\s+IS\s+NULL$/i);
       if (isNullMatch) {
         const val = parseVal(isNullMatch[1], row, params, paramTracker);
@@ -197,7 +181,6 @@ export function createJsonStoreAdapter() {
         continue;
       }
 
-      // Check NOT LIKE
       const notLikeMatch = trimmed.match(/^([\s\S]+?)\s+NOT\s+LIKE\s+([\s\S]+)$/i);
       if (notLikeMatch) {
         const left = parseVal(notLikeMatch[1], row, params, paramTracker);
@@ -206,7 +189,6 @@ export function createJsonStoreAdapter() {
         continue;
       }
 
-      // Check LIKE
       const likeMatch = trimmed.match(/^([\s\S]+?)\s+LIKE\s+([\s\S]+)$/i);
       if (likeMatch) {
         const left = parseVal(likeMatch[1], row, params, paramTracker);
@@ -215,7 +197,6 @@ export function createJsonStoreAdapter() {
         continue;
       }
 
-      // Comparison operators: >=, <=, !=, <>, =, >, <
       const opMatch = trimmed.match(/^([\s\S]+?)\s*(>=|<=|!=|<>|=|>|<)\s*([\s\S]+)$/);
       if (opMatch) {
         const left = parseVal(opMatch[1], row, params, paramTracker);
@@ -248,7 +229,6 @@ export function createJsonStoreAdapter() {
         continue;
       }
 
-      // Boolean/truthy fallback
       const boolVal = parseVal(trimmed, row, params, paramTracker);
       if (!boolVal) return false;
     }
@@ -258,13 +238,11 @@ export function createJsonStoreAdapter() {
 
   function executeSelect(sql, params = []) {
     sql = sql.trim();
-    // 1. Check sqlite_master
     if (/FROM\s+sqlite_master/i.test(sql)) {
       const names = Object.keys(tables).filter((t) => !t.startsWith("sqlite_"));
       return names.map((name) => ({ name }));
     }
 
-    // 2. Check PRAGMA table_info(tableName)
     const pragmaTableMatch = sql.match(/^PRAGMA\s+table_info\s*\(([a-zA-Z0-9_]+)\)/i);
     if (pragmaTableMatch) {
       const tbl = pragmaTableMatch[1];
@@ -294,7 +272,6 @@ export function createJsonStoreAdapter() {
       }));
     }
 
-    // 3. Check PRAGMA index_list(tableName)
     const pragmaIdxMatch = sql.match(/^PRAGMA\s+index_list\s*\(([a-zA-Z0-9_]+)\)/i);
     if (pragmaIdxMatch) {
       const tbl = pragmaIdxMatch[1];
@@ -308,7 +285,6 @@ export function createJsonStoreAdapter() {
       return list;
     }
 
-    // 4. Match SELECT ... FROM table ...
     const selectMatch = sql.match(
       /^SELECT\s+([\s\S]+?)\s+FROM\s+([a-zA-Z0-9_]+)(?:\s+WHERE\s+([\s\S]+?))?(?:\s+ORDER\s+BY\s+([\s\S]+?))?(?:\s+LIMIT\s+([\s\S]+?))?$/i
     );
@@ -325,7 +301,6 @@ export function createJsonStoreAdapter() {
 
     const rows = getTable(tableName);
 
-    // Filter rows matching WHERE
     let filtered = [];
     if (!whereClause) {
       filtered = rows.slice();
@@ -338,11 +313,9 @@ export function createJsonStoreAdapter() {
       }
     }
 
-    // Parameters consumed by WHERE clause
     const wherePlaceholderCount = (whereClause.match(/\?/g) || []).length;
     let nextParamIdx = wherePlaceholderCount;
 
-    // ORDER BY
     if (orderByClause) {
       const orderDirectives = splitTopLevel(orderByClause, ",").map((d) => {
         const trimmed = d.trim();
@@ -374,7 +347,6 @@ export function createJsonStoreAdapter() {
       });
     }
 
-    // LIMIT & OFFSET
     if (limitClause) {
       let limit = Infinity;
       let offset = 0;
@@ -397,15 +369,12 @@ export function createJsonStoreAdapter() {
       }
     }
 
-    // Projections
-    // COUNT(*)
     const countMatch = selectClause.match(/^COUNT\s*\(\*\)(?:\s+(?:AS\s+)?([a-zA-Z0-9_]+))?$/i);
     if (countMatch) {
       const alias = countMatch[1] || "c";
       return [{ [alias]: filtered.length, n: filtered.length, c: filtered.length, "COUNT(*)": filtered.length }];
     }
 
-    // DISTINCT col
     const distinctMatch = selectClause.match(/^DISTINCT\s+([a-zA-Z0-9_]+)$/i);
     if (distinctMatch) {
       const col = distinctMatch[1];
@@ -421,17 +390,14 @@ export function createJsonStoreAdapter() {
       return out;
     }
 
-    // SELECT 1
     if (selectClause === "1") {
       return filtered.map(() => ({ 1: 1 }));
     }
 
-    // SELECT *
     if (selectClause === "*") {
       return filtered.map((r) => ({ ...r }));
     }
 
-    // Specific columns: col1, col2
     const targetCols = splitTopLevel(selectClause, ",").map((c) => c.trim());
     return filtered.map((r) => {
       const rowOut = {};
@@ -472,7 +438,6 @@ export function createJsonStoreAdapter() {
       }
     }
 
-    // Auto-increment support for usageHistory
     if (autoIncrements[tableName] !== undefined) {
       if (row.id === undefined || row.id === null) {
         row.id = autoIncrements[tableName]++;
@@ -485,12 +450,9 @@ export function createJsonStoreAdapter() {
     const pk = conflictCols || primaryKeys[tableName] || ["id"];
     const unique = uniqueKeys[tableName] || [];
 
-    // Find existing row by primary key or unique key
     const existingIndex = tableRows.findIndex((r) => {
-      // Check PK
       const pkMatch = pk.every((k) => r[k] !== undefined && row[k] !== undefined && String(r[k]) === String(row[k]));
       if (pkMatch) return true;
-      // Check Unique keys
       for (const u of unique) {
         if (r[u] !== undefined && row[u] !== undefined && String(r[u]) === String(row[u])) return true;
       }

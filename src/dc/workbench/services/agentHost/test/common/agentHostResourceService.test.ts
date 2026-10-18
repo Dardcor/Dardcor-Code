@@ -28,22 +28,12 @@ class CapturingConfigurationService extends TestConfigurationService {
 	override async updateValue(key: string, value: unknown, arg3?: ConfigurationTarget | unknown): Promise<void> {
 		const target = typeof arg3 === 'number' ? arg3 as ConfigurationTarget : undefined;
 		this.lastUpdate = { key, value, target };
-		// Reflect into the inspected value so subsequent inspect() reads it back.
 		await this.setUserConfiguration(key, value);
 	}
 
 	lastUpdate: { key: string; value: unknown; target?: ConfigurationTarget } | undefined;
 }
 
-/**
- * Stub file service that returns the URI as-is from `realpath`, with the
- * lexical normalization that `extUri.normalizePath` applied. This lets the
- * unit tests exercise the policy logic without a real filesystem; canonical
- * form == lexically normalized form.
- *
- * `undefined` realpath responses simulate non-existent paths to drive the
- * `_canonicalize` ancestor walk.
- */
 function createStubFileService(opts?: {
 	realpathReturns?: (uri: URI) => URI | undefined;
 }): IFileService {
@@ -292,7 +282,6 @@ suite('AgentHostResourceService', () => {
 	});
 
 	test('check canonicalizes via realpath so symlink to outside the grant is denied', async () => {
-		// `/safe/sym` is a symlink to `/sensitive`. The grant is for `/safe` only.
 		const fileService = createStubFileService({
 			realpathReturns: uri => uri.path.startsWith('/safe/sym')
 				? URI.file('/sensitive' + uri.path.slice('/safe/sym'.length))
@@ -301,27 +290,18 @@ suite('AgentHostResourceService', () => {
 		const { service } = createService(undefined, fileService);
 		disposables.add(service.grantImplicitRead('host', URI.file('/safe')));
 
-		// `/safe/foo` resolves to itself; covered by grant.
 		assert.strictEqual(await service.check('host', URI.file('/safe/foo'), AgentHostPermissionMode.Read), true);
 
-		// `/safe/sym/leak` resolves through symlink to `/sensitive/leak`; not covered.
 		assert.strictEqual(await service.check('host', URI.file('/safe/sym/leak'), AgentHostPermissionMode.Read), false);
 	});
 
 	test('implicit grant for a symlinked directory still covers descendants resolved through the symlink', async () => {
-		// The grant root is itself a symlink: `/safe/sym` → `/real`.
-		// A request for `/safe/sym/leaf` should canonicalize to `/real/leaf`,
-		// and the grant should canonicalize to `/real`, so the comparison
-		// passes. Pre-fix, the grant URI was stored lexically until realpath
-		// completed, which left a window where the comparison failed.
 		const fileService = createStubFileService({
 			realpathReturns: uri => uri.path.startsWith('/safe/sym')
 				? URI.file('/real' + uri.path.slice('/safe/sym'.length))
 				: uri,
 		});
 		const { service } = createService(undefined, fileService);
-		// Issue the grant and the check immediately, before any awaits, to
-		// reproduce the race window.
 		disposables.add(service.grantImplicitRead('host', URI.file('/safe/sym')));
 		assert.strictEqual(await service.check('host', URI.file('/safe/sym/leaf'), AgentHostPermissionMode.Read), true);
 	});
@@ -330,15 +310,10 @@ suite('AgentHostResourceService', () => {
 		const { service } = createService();
 		disposables.add(service.grantImplicitRead('host', URI.file('/safe')));
 
-		// `/safe/../etc/passwd` lexically normalizes to `/etc/passwd` — outside the grant.
 		assert.strictEqual(await service.check('host', URI.file('/safe/../etc/passwd'), AgentHostPermissionMode.Read), false);
 	});
 
 	test('check canonicalizes nonexistent paths via the parent realpath', async () => {
-		// `/safe/sym` is a symlink to `/real`. We're asking about a *new*
-		// file at `/safe/sym/new.txt` (e.g. a `resourceWrite` for a file
-		// that doesn't exist yet). Realpath returns `undefined` for the
-		// file, so the service falls back to realpathing the parent.
 		const fileService = createStubFileService({
 			realpathReturns: uri => {
 				if (uri.path === '/safe/sym/new.txt') {
@@ -353,7 +328,6 @@ suite('AgentHostResourceService', () => {
 		const { service } = createService(undefined, fileService);
 		disposables.add(service.grantImplicitRead('host', URI.file('/real')));
 
-		// Wait for the implicit-grant realpath upgrade to settle.
 		await new Promise(resolve => setTimeout(resolve, 0));
 
 		assert.strictEqual(
@@ -364,10 +338,6 @@ suite('AgentHostResourceService', () => {
 	});
 
 	test('check walks ancestors so nested missing paths through a symlink are denied', async () => {
-		// `/safe/sym` → `/outside`. Intermediate `/safe/sym/a` and leaf
-		// `/safe/sym/a/b.txt` do not exist. One missing component under the
-		// symlink is already denied; two or more used to fall back to the
-		// lexical workspace path and pass the `/safe` grant.
 		const fileService = createStubFileService({
 			realpathReturns: uri => {
 				if (
@@ -415,7 +385,6 @@ suite('AgentHostResourceService', () => {
 		const uri = URI.file('/etc/foo');
 		const promise = service.request('host', { channel: 'ahp-root://', uri: uri.toString(), read: true });
 
-		// Wait for canonicalization + enqueue.
 		await new Promise(resolve => setTimeout(resolve, 0));
 		const pending = service.allPending.get();
 		assert.strictEqual(pending.length, 1);
@@ -423,12 +392,9 @@ suite('AgentHostResourceService', () => {
 		pending[0].allow();
 		await promise;
 
-		// The grant must take effect synchronously: subsequent check passes.
 		assert.strictEqual(await service.check('host', uri, AgentHostPermissionMode.Read), true);
-		// And nothing was persisted.
 		assert.strictEqual(config.lastUpdate, undefined);
 
-		// Connection close revokes the in-memory grant.
 		service.connectionClosed('host');
 		assert.strictEqual(await service.check('host', uri, AgentHostPermissionMode.Read), false);
 	});
@@ -443,10 +409,8 @@ suite('AgentHostResourceService', () => {
 		pending[0].allow();
 		await promise;
 
-		// Mirrors the persisted "rw" semantics: write access implies read access on the same URI.
 		assert.strictEqual(await service.check('host', URI.file('/etc/foo'), AgentHostPermissionMode.Write), true);
 		assert.strictEqual(await service.check('host', URI.file('/etc/foo'), AgentHostPermissionMode.Read), true);
-		// But a sibling URI gets nothing.
 		assert.strictEqual(await service.check('host', URI.file('/etc/bar'), AgentHostPermissionMode.Read), false);
 	});
 
@@ -483,7 +447,6 @@ suite('AgentHostResourceService', () => {
 	});
 
 	test('allowAlways covers immediate retry without waiting for the settings write', async () => {
-		// `updateValue` deliberately deferred to simulate slow propagation.
 		const config = new (class extends CapturingConfigurationService {
 			override async updateValue(key: string, value: unknown, target?: unknown): Promise<void> {
 				await new Promise(resolve => setTimeout(resolve, 50));
@@ -498,7 +461,6 @@ suite('AgentHostResourceService', () => {
 		service.allPending.get()[0].allowAlways();
 		await promise;
 
-		// The check must succeed immediately even though `updateValue` hasn't returned yet.
 		assert.strictEqual(await service.check('host', uri, AgentHostPermissionMode.Read), true);
 	});
 
@@ -519,7 +481,6 @@ suite('AgentHostResourceService', () => {
 				[URI.file('/etc').toString()]: AgentHostAccessMode.ReadWrite,
 			},
 		});
-		// Already covered by parent — request resolves without prompting.
 		await service.request('host', { channel: 'ahp-root://', uri: URI.file('/etc/foo').toString(), read: true });
 		assert.strictEqual(config.lastUpdate, undefined);
 	});
@@ -545,7 +506,6 @@ suite('AgentHostResourceService', () => {
 		await new Promise(resolve => setTimeout(resolve, 0));
 		assert.strictEqual(service.allPending.get().length, 1);
 		assert.strictEqual(service.allPending.get()[0].mode, AgentHostPermissionMode.Write);
-		// Resolve to clean up.
 		service.allPending.get()[0].allow();
 		await promise;
 	});
@@ -583,12 +543,10 @@ suite('AgentHostResourceService', () => {
 		await new Promise(resolve => setTimeout(resolve, 0));
 		const [pending] = service.allPending.get();
 		assert.strictEqual(service.findPending(pending.id), pending);
-		// Resolve to clean up before the test ends so the deferred doesn't leak.
 		pending.allow();
 		await promise;
 	});
 
-	// ---- Address isolation ----------------------------------------------
 
 	test('grants for one host do not leak into another host', async () => {
 		const { service } = createService({
@@ -598,10 +556,8 @@ suite('AgentHostResourceService', () => {
 		});
 		disposables.add(service.grantImplicitRead('host-a', URI.file('/plugins/p')));
 
-		// Same URI, different host → not granted.
 		assert.strictEqual(await service.check('host-b', URI.file('/etc/foo'), AgentHostPermissionMode.Read), false);
 		assert.strictEqual(await service.check('host-b', URI.file('/plugins/p'), AgentHostPermissionMode.Read), false);
-		// Sanity: grant still works for the originating host.
 		assert.strictEqual(await service.check('host-a', URI.file('/etc/foo'), AgentHostPermissionMode.Write), true);
 	});
 
@@ -617,16 +573,13 @@ suite('AgentHostResourceService', () => {
 		service.connectionClosed('host-a');
 
 		await assert.rejects(pendingA, (err: unknown) => err instanceof CancellationError);
-		// host-b's grant and pending request survive.
 		assert.strictEqual(await service.check('host-b', URI.file('/plugins/b'), AgentHostPermissionMode.Read), true);
 		assert.strictEqual(service.allPending.get().length, 1);
 
-		// Clean up: resolve the surviving pending request.
 		service.allPending.get()[0].allow();
 		await pendingB;
 	});
 
-	// ---- pendingFor filter ---------------------------------------------
 
 	test('pendingFor returns only this host\'s requests, with normalized address', async () => {
 		const { service } = createService();
@@ -637,19 +590,14 @@ suite('AgentHostResourceService', () => {
 		assert.strictEqual(service.pendingFor('host-a').get().length, 1);
 		assert.strictEqual(service.pendingFor('host-b').get().length, 1);
 		assert.strictEqual(service.pendingFor('host-b').get()[0].uri.toString(), URI.file('/etc/b').toString());
-		// Normalized lookup: querying with the ws:// prefix returns the same set.
 		assert.strictEqual(service.pendingFor('ws://host-b').get().length, 1);
 
 		service.allPending.get().forEach(p => p.allow());
 		await Promise.all([a, b]);
 	});
 
-	// ---- Multi-mode requests --------------------------------------------
 
 	test('request with both read and write prompts sequentially', async () => {
-		// We surface read first, then once approved we surface write. Asking
-		// for the smaller scope first lets the user decline the dangerous
-		// part without ever seeing it.
 		const { service } = createService();
 		const promise = service.request('host', { channel: 'ahp-root://', uri: URI.file('/etc/foo').toString(), read: true, write: true });
 		await new Promise(resolve => setTimeout(resolve, 0));
@@ -667,26 +615,19 @@ suite('AgentHostResourceService', () => {
 		await promise;
 	});
 
-	// ---- Implicit-grant realpath upgrade --------------------------------
 
 	test('grantImplicitRead asynchronously upgrades to realpath', async () => {
-		// `~/plugin-link` is a symlink to `/real/plugin`. Initial check sees
-		// the lexical URI; after realpath resolves, the grant covers the
-		// realpath target as well.
 		const fileService = createStubFileService({
 			realpathReturns: uri => uri.path === '/home/me/plugin-link' ? URI.file('/real/plugin') : uri,
 		});
 		const { service } = createService(undefined, fileService);
 		disposables.add(service.grantImplicitRead('host', URI.file('/home/me/plugin-link')));
 
-		// Wait for the deferred upgrade to land.
 		await new Promise(resolve => setTimeout(resolve, 0));
 
-		// Check sees the realpath form because canonicalize + grant both point at /real/plugin.
 		assert.strictEqual(await service.check('host', URI.file('/real/plugin/skill.md'), AgentHostPermissionMode.Read), true);
 	});
 
-	// ---- Settings-scope inference ---------------------------------------
 
 	test('allowAlways defaults to APPLICATION scope when no value is configured anywhere', async () => {
 		const { service, config } = createService();
@@ -695,17 +636,10 @@ suite('AgentHostResourceService', () => {
 		service.allPending.get()[0].allowAlways();
 		await promise;
 
-		// The setting is registered as ConfigurationScope.APPLICATION, so a
-		// fresh write must land there — not in USER (which would be invisible
-		// to other windows that read this APPLICATION-scoped setting).
 		assert.strictEqual(config.lastUpdate?.target, ConfigurationTarget.APPLICATION);
 	});
 
 	test('allowAlways merges with existing APPLICATION-scoped grants instead of overwriting them', async () => {
-		// Pre-existing grant for `other-host` lives in APPLICATION scope.
-		// The service must read from APPLICATION when picking the merge
-		// base, otherwise it would build the next value from {} and clobber
-		// the existing `other-host` entry on write.
 		const config = new CapturingConfigurationService();
 		const existing: AgentHostPermissionsSetting = {
 			'other-host': { [URI.file('/etc/preexisting').toString()]: AgentHostAccessMode.ReadWrite },
@@ -738,8 +672,6 @@ suite('AgentHostResourceService', () => {
 	});
 
 	test('allowAlways persists into USER_LOCAL when a pre-existing value is in USER_LOCAL', async () => {
-		// Hand-edited or migrated entries living in USER_LOCAL are honoured
-		// rather than silently relocated to APPLICATION on the next write.
 		const config = new CapturingConfigurationService();
 		const originalInspect = config.inspect.bind(config);
 		(config as { inspect: (key: string) => unknown }).inspect = (key: string) => {
@@ -797,7 +729,6 @@ suite('AgentHostResourceService', () => {
 		);
 	});
 
-	// ---- Defensive: malformed settings entries --------------------------
 
 	test('persisted entries with malformed URI keys or unknown modes are ignored', async () => {
 		const { service } = createService({
@@ -807,9 +738,7 @@ suite('AgentHostResourceService', () => {
 				[URI.file('/etc/good').toString()]: AgentHostAccessMode.Read,
 			},
 		});
-		// The malformed and unknown-mode entries don't grant access.
 		assert.strictEqual(await service.check('host', URI.file('/etc/garbage'), AgentHostPermissionMode.Read), false);
-		// The valid entry still works.
 		assert.strictEqual(await service.check('host', URI.file('/etc/good'), AgentHostPermissionMode.Read), true);
 	});
 });

@@ -8,9 +8,6 @@ import { Position } from '../position.js';
 import { Range } from '../range.js';
 import { TextLength } from '../text/textLength.js';
 
-/**
- * Represents a list of mappings of ranges from one document to another.
- */
 export class RangeMapping {
 	constructor(public readonly mappings: readonly SingleRangeMapping[]) {
 	}

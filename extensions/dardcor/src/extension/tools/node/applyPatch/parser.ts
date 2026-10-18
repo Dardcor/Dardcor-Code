@@ -1,19 +1,9 @@
 // Copyright 2025 OpenAI
 
 // Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
 
-//        http://www.apache.org/licenses/LICENSE-2.0
 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-// Based on reference implementation from
-// https://cookbook.openai.com/examples/gpt4-1_prompting_guide#reference-implementation-apply_patchpy
 
 // eslint-disable-next-line header/header
 import type { TextDocument } from 'vscode';
@@ -37,22 +27,11 @@ import {
 
 const CHUNK_DELIMITER = '@@';
 
-// Max edit distance allowed per line to allow for fuzzy matching context. 4.1
-// occasionally 'forgets' a character in a diff, and this allows those to still
-// match in conservative cases.
 const EDIT_DISTANCE_ALLOWANCE_PER_LINE = 0.34;
 
 
-// GPT models have some tendency to forget to escape \t, \r, \n, and such in
-// their edits. Generally we're somewhat aggressive about normalizing these
-// when they lead a line. The following are a list of language/file extensions
-// where we don't do this because they are common operators,
-// such as `\textbf{}` in LaTeX.
 const AVOID_EXPLICIT_TABS_REGEX = /\.(tex|latex|sty|cls|bib|bst|ins)$/i;
 
-// -----------------------------------------------------------------------------
-// Types & Models
-// -----------------------------------------------------------------------------
 
 export enum ActionType {
 	ADD = 'add',
@@ -71,24 +50,14 @@ export interface Commit {
 	changes: Record<string, FileChange>;
 }
 
-/**
- * Flags for on context matching that indicates what steps were used to match the file.
- */
 export const enum Fuzz {
 	None = 0,
-	/** Trailing whitespace was removed in context patch */
 	IgnoredTrailingWhitespace = 1 << 1,
-	/** Explicit \\t characters were fixed in the context patch */
 	NormalizedExplicitTab = 1 << 2,
-	/** Leading and trailing whitespace was removed in the context patch */
 	IgnoredWhitespace = 1 << 3,
-	/** Edit-distance-based fuzzy matching was used in the context patch */
 	EditDistanceMatch = 1 << 4,
-	/** The patch said it came at the end of the file, but it did not and matched elsewhere */
 	IgnoredEofSignal = 1 << 5,
-	/** Surrounding operations were removed in patch context (see docs on peek_next_section) */
 	MergedOperatorSection = 1 << 6,
-	/** Explicit \\n characters were fixed in the context patch */
 	NormalizedExplicitNL = 1 << 7,
 }
 
@@ -130,12 +99,9 @@ export function assemble_changes(
 	return commit;
 }
 
-// -----------------------------------------------------------------------------
-// Patch‑related structures
-// -----------------------------------------------------------------------------
 
 export interface Chunk {
-	origIndex: number; // line index of the first line in the original file
+	origIndex: number;
 	delLines: Array<string>;
 	insLines: Array<string>;
 }
@@ -165,9 +131,6 @@ export class InvalidPatchFormatError extends DiffError {
 	}
 }
 
-// -----------------------------------------------------------------------------
-// Parser (patch text -> Patch)
-// -----------------------------------------------------------------------------
 
 export class Parser {
 	current_files: Record<string, AbstractDocumentWithLanguageId | TextDocument>;
@@ -288,10 +251,6 @@ export class Parser {
 			}
 			if (defStr) {
 				let found = false;
-				// ------------------------------------------------------------------
-				// Equality helpers using the canonicalisation from find_context_core.
-				// (We duplicate a minimal version here because the scope is local.)
-				// ------------------------------------------------------------------
 				const canonLocal = (s: string): string =>
 					s.normalize('NFC').replace(
 						/./gu,
@@ -371,8 +330,6 @@ export class Parser {
 					nextSection.eof,
 				);
 				if (!match) {
-					// The model sometimes returns patches out of order,
-					// so start searching from the beginning of the file.
 					match = find_context(
 						path,
 						fileLines,
@@ -479,64 +436,41 @@ function find_context_core(
 	context: Array<string>,
 	start: number,
 ): { line: number; fuzz: Fuzz; indent?: string } | undefined {
-	// ---------------------------------------------------------------------------
-	// Helpers – Unicode punctuation normalisation
-	// ---------------------------------------------------------------------------
 
-	/*
-	 * The patch-matching algorithm originally required **exact** string equality
-	 * for non-whitespace characters.  That breaks when the file on disk contains
-	 * visually identical but different Unicode code-points (e.g. “EN DASH” vs
-	 * ASCII "-"), because models almost always emit the ASCII variant.  To make
-	 * apply_patch resilient we canonicalise a handful of common punctuation
-	 * look-alikes before doing comparisons.
-	 *
-	 * We purposefully keep the mapping *small* – only characters that routinely
-	 * appear in source files and are highly unlikely to introduce ambiguity are
-	 * included.  Each entry is written using the corresponding Unicode escape so
-	 * that the file remains ASCII-only even after transpilation.
-	 */
 
 	const PUNCT_EQUIV: Record<string, string> = {
-		// Hyphen / dash variants --------------------------------------------------
-		/* U+002D HYPHEN-MINUS */ '-': '-',
-		/* U+2010 HYPHEN */ '\u2010': '-',
-		/* U+2011 NO-BREAK HYPHEN */ '\u2011': '-',
-		/* U+2012 FIGURE DASH */ '\u2012': '-',
-		/* U+2013 EN DASH */ '\u2013': '-',
-		/* U+2014 EM DASH */ '\u2014': '-',
-		/* U+2212 MINUS SIGN */ '\u2212': '-',
+		'-': '-',
+		'\u2010': '-',
+		'\u2011': '-',
+		'\u2012': '-',
+		'\u2013': '-',
+		'\u2014': '-',
+		'\u2212': '-',
 
-		// Double quotes -----------------------------------------------------------
-		/* U+0022 QUOTATION MARK */ '\u0022': '"',
-		/* U+201C LEFT DOUBLE QUOTATION MARK */ '\u201C': '"',
-		/* U+201D RIGHT DOUBLE QUOTATION MARK */ '\u201D': '"',
-		/* U+201E DOUBLE LOW-9 QUOTATION MARK */ '\u201E': '"',
-		/* U+00AB LEFT-POINTING DOUBLE ANGLE QUOTATION MARK */ '\u00AB': '"',
-		/* U+00BB RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK */ '\u00BB': '"',
+		'\u0022': '"',
+		'\u201C': '"',
+		'\u201D': '"',
+		'\u201E': '"',
+		'\u00AB': '"',
+		'\u00BB': '"',
 
-		// Single quotes -----------------------------------------------------------
-		/* U+0027 APOSTROPHE */ '\u0027': `'`,
-		/* U+2018 LEFT SINGLE QUOTATION MARK */ '\u2018': `'`,
-		/* U+2019 RIGHT SINGLE QUOTATION MARK */ '\u2019': `'`,
-		/* U+201B SINGLE HIGH-REVERSED-9 QUOTATION MARK */ '\u201B': `'`,
-		// Spaces ------------------------------------------------------------------
-		/* U+00A0 NO-BREAK SPACE */ '\u00A0': ' ',
-		/* U+202F NARROW NO-BREAK SPACE */ '\u202F': ' ',
+		'\u0027': `'`,
+		'\u2018': `'`,
+		'\u2019': `'`,
+		'\u201B': `'`,
+		'\u00A0': ' ',
+		'\u202F': ' ',
 	};
 
 	const canon = (s: string): string =>
 		s
-			// Canonical Unicode composition first
 			.normalize('NFC')
-			// Replace punctuation look-alikes
 			.replace(/./gu, (c) => PUNCT_EQUIV[c] ?? c);
 	if (context.length === 0) {
 		return { line: start, fuzz: Fuzz.None };
 	}
 
 
-	// Pass 1 – exact equality after canonicalisation ---------------------------
 	const ctxPass1 = canon(context.join('\n'));
 	const workingLines = lines.map(canon);
 	for (let i = start; i < workingLines.length; i++) {
@@ -546,7 +480,6 @@ function find_context_core(
 		}
 	}
 
-	// Pass 2 – ignore trailing whitespace -------------------------------------
 	const ctxPass2 = ctxPass1.split('\n').map(l => l.trimEnd()).join('\n');
 	let fuzz = Fuzz.IgnoredTrailingWhitespace;
 	for (let i = start; i < workingLines.length; i++) {
@@ -558,7 +491,6 @@ function find_context_core(
 		}
 	}
 
-	// Pass 3 – normalize explicit \\t tab chars --------------------------------
 	const ctxPass3 = replace_explicit_tabs(ctxPass2);
 	if (ctxPass3 !== ctxPass2) {
 		fuzz |= Fuzz.NormalizedExplicitTab;
@@ -569,8 +501,7 @@ function find_context_core(
 		}
 	}
 
-	// Pass 4 normalize explicit \\t and \\n tab chars -------------------------
-	if (context.length === 1) { // https://github.com/microsoft/vscode/issues/253960
+	if (context.length === 1) {
 		const ctxPass4 = replace_explicit_nl(ctxPass3);
 		if (ctxPass4 !== ctxPass3) {
 			const newContextLines = count(ctxPass4, '\n') + 1;
@@ -582,7 +513,6 @@ function find_context_core(
 		}
 	}
 
-	// Pass 5 – ignore all surrounding whitespace ------------------------------
 	const ctxPass5 = ctxPass3.split('\n').map(l => l.trim()).join('\n');
 	fuzz |= Fuzz.IgnoredWhitespace;
 	for (let i = start; i < workingLines.length; i++) {
@@ -594,7 +524,6 @@ function find_context_core(
 		}
 	}
 
-	// Pass 5 - within edit distance while ignoring surrounding whitespace -----
 	const maxDistance = Math.floor(context.length * EDIT_DISTANCE_ALLOWANCE_PER_LINE);
 	fuzz |= Fuzz.EditDistanceMatch;
 	if (maxDistance > 0) {
@@ -618,7 +547,6 @@ function find_context(
 	start: number,
 	eof: boolean,
 ) {
-	// Skip filepath comments in provided context
 	path = path.trim();
 	if (lines[0]?.includes(path)) {
 		lines = lines.slice(1);
@@ -645,15 +573,6 @@ function find_context(
 	return find_context_core(lines, context, start);
 }
 
-/**
- * @param lines Lines of the patch text
- * @param initialIndex Index in the patch lines from which to parse the next patch
- * @param fuzzMerge Numeral of the fuzz merge to apply. We observe that sometimes
- * 4.1 omits the operation for outdented lines, and can attempt to fix this
- * automatically. We only 'fuzz merge' on candidate section at a time, which is
- * generally fine.
- * @returns
- */
 function peek_next_section(
 	lines: Array<string>,
 	initialIndex: number,
@@ -685,9 +604,6 @@ function peek_next_section(
 			].some((p) => s.startsWith(p.trim()))
 		) {
 			if (mode === Mode.Keep && old.length && !/\S/.test(old[old.length - 1])) {
-				// @connor4312: If the last line is context and empty, remove it. Example
-				// input adds an extra newline between `@@`-delimited sections which
-				// cause matching to fail if preserved.
 				old.pop();
 			}
 			break;
@@ -708,9 +624,6 @@ function peek_next_section(
 		} else if (line[0] === ' ') {
 			mode = Mode.Keep;
 		} else {
-			// Tolerate invalid lines where the leading whitespace is missing. This is necessary as
-			// the model sometimes doesn't fully adhere to the spec and returns lines without leading
-			// whitespace for context lines.
 			const nextLine = lines[index];
 			const nextOp = nextLine?.[0] === HUNK_ADD_LINE_PREFIX ? Mode.Add : nextLine?.[0] === HUNK_DELETE_LINE_PREFIX ? Mode.Delete : Mode.Keep;
 			const canFuzz = mode !== Mode.Keep && nextOp === mode;
@@ -725,8 +638,6 @@ function peek_next_section(
 				}
 			}
 
-			// TODO: Re-enable strict mode.
-			// throw new DiffError(`Invalid Line: ${line}`)
 		}
 
 		line = line.slice(1);
@@ -765,9 +676,6 @@ function peek_next_section(
 	return { nextChunkContext: old, chunks, endPatchIndex: index, eof: false, fuzzMerges: fuzzMergeNo };
 }
 
-// -----------------------------------------------------------------------------
-// High‑level helpers
-// -----------------------------------------------------------------------------
 
 export function text_to_patch(
 	text: string,
@@ -862,7 +770,6 @@ function _get_updated_file(
 		const delta = chunk.origIndex - origIndex;
 		origIndex += delta;
 
-		// inserted lines
 		if (chunk.insLines.length) {
 			for (const l of chunk.insLines) {
 				destLines.push(l);
@@ -904,9 +811,6 @@ export function patch_to_commit(
 	return commit;
 }
 
-// -----------------------------------------------------------------------------
-// Filesystem helpers for Node environment
-// -----------------------------------------------------------------------------
 
 export async function load_files(
 	paths: Array<string>,
@@ -917,8 +821,6 @@ export async function load_files(
 		try {
 			orig[p] = await openFn(p);
 		} catch {
-			// Convert any file read error into a DiffError so that callers
-			// consistently receive DiffError for patch-related failures.
 			throw new DiffError(`File not found: ${p}`);
 		}
 	}

@@ -39,7 +39,6 @@ interface IPlaceholderViewContainer {
 	readonly themeIcon?: ThemeIcon;
 	readonly isBuiltin?: boolean;
 	readonly views?: { when?: string }[];
-	// TODO @sandy081: Remove this after a while. Migrated to visible in IViewContainerWorkspaceState
 	readonly visible?: boolean;
 }
 
@@ -47,7 +46,6 @@ interface IPinnedViewContainer {
 	readonly id: string;
 	readonly pinned: boolean;
 	readonly order?: number;
-	// TODO @sandy081: Remove this after a while. Migrated to visible in IViewContainerWorkspaceState
 	readonly visible: boolean;
 }
 
@@ -161,7 +159,6 @@ export class PaneCompositeBar extends Disposable {
 		const defaultLocation = this.viewDescriptorService.getDefaultViewContainerLocation(viewContainer)!;
 		const currentLocation = this.viewDescriptorService.getViewContainerLocation(viewContainer);
 
-		// Move View Container
 		const moveActions = [];
 		for (const location of [ViewContainerLocation.Sidebar, ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel]) {
 			if (currentLocation !== location) {
@@ -171,7 +168,6 @@ export class PaneCompositeBar extends Disposable {
 
 		actions.push(new SubmenuAction('moveToMenu', localize('moveToMenu', "Move To"), moveActions));
 
-		// Reset Location
 		if (defaultLocation !== currentLocation) {
 			actions.push(toAction({
 				id: 'resetLocationAction', label: localize('resetLocation', "Reset Location"), run: () => {
@@ -205,9 +201,9 @@ export class PaneCompositeBar extends Disposable {
 			run: () => {
 				let index: number | undefined;
 				if (newLocation !== defaultLocation) {
-					index = this.viewDescriptorService.getViewContainersByLocation(newLocation).length; // move to the end of the location
+					index = this.viewDescriptorService.getViewContainersByLocation(newLocation).length;
 				} else {
-					index = undefined; // restore default location
+					index = undefined;
 				}
 				this.viewDescriptorService.moveViewContainerToLocation(viewContainer, newLocation, index);
 				this.viewService.openViewContainer(viewContainer.id, true);
@@ -217,15 +213,12 @@ export class PaneCompositeBar extends Disposable {
 
 	private registerListeners(): void {
 
-		// View Container Changes
 		this._register(this.viewDescriptorService.onDidChangeViewContainers(({ added, removed }) => this.onDidChangeViewContainers(added, removed)));
 		this._register(this.viewDescriptorService.onDidChangeContainerLocation(({ viewContainer, from, to }) => this.onDidChangeViewContainerLocation(viewContainer, from, to)));
 
-		// View Container Visibility Changes
 		this._register(this.paneCompositePart.onDidPaneCompositeOpen(e => this.onDidChangeViewContainerVisibility(e.getId(), true)));
 		this._register(this.paneCompositePart.onDidPaneCompositeClose(e => this.onDidChangeViewContainerVisibility(e.getId(), false)));
 
-		// Extension registration
 		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
 			if (this._store.isDisposed) {
 				return;
@@ -256,10 +249,8 @@ export class PaneCompositeBar extends Disposable {
 
 	private onDidChangeViewContainerVisibility(id: string, visible: boolean) {
 		if (visible) {
-			// Activate view container action on opening of a view container
 			this.onDidViewContainerVisible(id);
 		} else {
-			// Deactivate view container action on close
 			this.compositeBar.deactivateComposite(id);
 		}
 	}
@@ -267,7 +258,6 @@ export class PaneCompositeBar extends Disposable {
 	private onDidRegisterExtensions(): void {
 		this.hasExtensionsRegistered = true;
 
-		// show/hide/remove composites
 		for (const { id } of this.cachedViewContainers) {
 			const viewContainer = this.getViewContainer(id);
 			if (viewContainer) {
@@ -288,14 +278,12 @@ export class PaneCompositeBar extends Disposable {
 		const viewContainer = this.getViewContainer(id);
 		if (viewContainer) {
 
-			// Update the composite bar by adding
 			this.addComposite(viewContainer);
 			this.compositeBar.activateComposite(viewContainer.id);
 
 			if (this.shouldBeHidden(viewContainer)) {
 				const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
 				if (viewContainerModel.activeViewDescriptors.length === 0) {
-					// Update the composite bar by hiding
 					this.hideComposite(viewContainer.id);
 				}
 			}
@@ -339,13 +327,11 @@ export class PaneCompositeBar extends Disposable {
 		for (const viewContainer of viewContainers) {
 			this.addComposite(viewContainer);
 
-			// Pin it by default if it is new
 			const cachedViewContainer = this.cachedViewContainers.filter(({ id }) => id === viewContainer.id)[0];
 			if (!cachedViewContainer) {
 				this.compositeBar.pin(viewContainer.id);
 			}
 
-			// Active
 			const visibleViewContainer = this.paneCompositePart.getActivePaneComposite();
 			if (visibleViewContainer?.getId() === viewContainer.id) {
 				this.compositeBar.activateComposite(viewContainer.id);
@@ -422,7 +408,6 @@ export class PaneCompositeBar extends Disposable {
 		} else {
 			this.addComposite(viewContainer);
 
-			// Activate if this is the active pane composite
 			const activePaneComposite = this.paneCompositePart.getActivePaneComposite();
 			if (activePaneComposite?.getId() === viewContainer.id) {
 				this.compositeBar.activateComposite(viewContainer.id);
@@ -444,11 +429,9 @@ export class PaneCompositeBar extends Disposable {
 			}
 		}
 
-		// Check cache only if extensions are not yet registered and current window is not native (desktop) remote connection window
 		if (!this.hasExtensionsRegistered && !(this.part === Parts.SIDEBAR_PART && this.environmentService.remoteAuthority && isNative)) {
 			cachedViewContainer = cachedViewContainer || this.cachedViewContainers.find(({ id }) => id === viewContainerId);
 
-			// Show builtin ViewContainer if not registered yet
 			if (!viewContainer && cachedViewContainer?.isBuiltin && cachedViewContainer?.visible) {
 				return false;
 			}
@@ -546,7 +529,6 @@ export class PaneCompositeBar extends Disposable {
 		}
 
 		for (const viewContainer of this.getViewContainers()) {
-			// Add missing view containers
 			if (!newCompositeItems.some(({ id }) => id === viewContainer.id)) {
 				const index = compositeItems.findIndex(({ id }) => id === viewContainer.id);
 				if (index !== -1) {
@@ -597,7 +579,7 @@ export class PaneCompositeBar extends Disposable {
 				state.push({
 					id: compositeItem.id,
 					name: viewContainerModel.title,
-					icon: URI.isUri(viewContainerModel.icon) && this.environmentService.remoteAuthority ? undefined : viewContainerModel.icon, // Do not cache uri icons with remote connection
+					icon: URI.isUri(viewContainerModel.icon) && this.environmentService.remoteAuthority ? undefined : viewContainerModel.icon,
 					views,
 					pinned: compositeItem.pinned,
 					order: compositeItem.order,
@@ -624,7 +606,7 @@ export class PaneCompositeBar extends Disposable {
 					cachedViewContainer.icon = placeholderViewContainer.themeIcon ? placeholderViewContainer.themeIcon :
 						placeholderViewContainer.iconUrl ? URI.revive(placeholderViewContainer.iconUrl) : undefined;
 					if (URI.isUri(cachedViewContainer.icon) && this.environmentService.remoteAuthority) {
-						cachedViewContainer.icon = undefined; // Do not cache uri icons with remote connection
+						cachedViewContainer.icon = undefined;
 					}
 					cachedViewContainer.views = placeholderViewContainer.views;
 					cachedViewContainer.isBuiltin = placeholderViewContainer.isBuiltin;
@@ -795,12 +777,11 @@ class ViewContainerActivityAction extends CompositeBarAction {
 
 	override async run(event: { preserveFocus: boolean }): Promise<void> {
 		if (isMouseEvent(event) && event.button === 2) {
-			return; // do not run on right click
+			return;
 		}
 
-		// prevent accident trigger on a doubleclick (to help nervous people)
 		const now = Date.now();
-		if (now > this.lastRun /* https://github.com/microsoft/vscode/issues/25830 */ && now - this.lastRun < ViewContainerActivityAction.preventDoubleClickDelay) {
+		if (now > this.lastRun && now - this.lastRun < ViewContainerActivityAction.preventDoubleClickDelay) {
 			return;
 		}
 		this.lastRun = now;
@@ -819,7 +800,6 @@ class ViewContainerActivityAction extends CompositeBarAction {
 						break;
 					case 'toggle':
 					default:
-						// Hide sidebar if selected viewlet already visible
 						this.layoutService.setPartHidden(true, Parts.SIDEBAR_PART);
 						break;
 				}

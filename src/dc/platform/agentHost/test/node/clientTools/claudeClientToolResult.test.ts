@@ -59,8 +59,6 @@ suite('claudeClientToolResult / convertToolCallResult', () => {
 				{ type: ToolResultContentType.EmbeddedResource, data: 'BASE64ZIP', contentType: 'application/zip' },
 			],
 		}), 'tu/with-slash');
-		// Per-call URI carries the tool_use_id (encoded) and the block index, so
-		// parallel calls with the same shape stay disambiguated.
 		assert.deepStrictEqual(out.content[0], {
 			type: 'resource',
 			resource: { uri: 'claude-client://tu%2Fwith-slash/0', mimeType: 'application/pdf', blob: 'BASE64PDF' },

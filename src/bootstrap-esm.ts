@@ -16,30 +16,9 @@ globalThis._DCCODE_PRODUCT_JSON = globalThis._VSCODE_PRODUCT_JSON = { ...product
 globalThis._DCCODE_PACKAGE_JSON = globalThis._VSCODE_PACKAGE_JSON = { ...pkg };
 globalThis._DCCODE_FILE_ROOT = globalThis._VSCODE_FILE_ROOT = import.meta.dirname;
 
-// Install a hook to ESM module resolution that
-// 1) maps 'fs' to 'original-fs' (the ASAR-unaware Node.js `fs`), and
-// 2) resolves bare module specifiers into our `node_modules.asar` archive.
-//
-// The archive keeps the same top-level layout as `node_modules`
-// (`node_modules.asar/<module>`). Node's default ESM resolver only ever looks
-// into directories literally named `node_modules`, so it cannot find modules at
-// the archive's top level on its own. We therefore locate the target package
-// inside the archive (via its `package.json`) and re-run the default resolution
-// rooted inside that package so Node resolves it as a package self-reference,
-// applying the package's real `exports`/`main` fields and ESM conditions. This
-// top-level layout is what allows extensions (e.g. Dev Containers) that reach
-// into `${appRoot}/node_modules.asar/<module>` to keep working.
-//
-// The archive stands in for the application's own `node_modules` folder, which
-// is the *farthest* directory Node would walk to. We therefore always try the
-// default resolution first: an importer that ships its own dependencies (e.g. a
-// built-in extension under `${appRoot}/extensions/<ext>` that bundles a
-// different copy of a package) must resolve against its own, closer
-// `node_modules` — exactly as it would without the archive. Only when the
-// default resolution finds nothing do we consult the archive.
 function enableASARSupport(): void {
 	if (!process.env['ELECTRON_RUN_AS_NODE'] && !process.versions['electron']) {
-		return; // only on Electron / Electron-as-node
+		return;
 	}
 
 	const jsCode = `
@@ -227,7 +206,6 @@ function enableASARSupport(): void {
 	}`;
 
 	const traceSink = process.env['DCCODE_ASAR_TRACE'] || process.env['VSCODE_ASAR_TRACE'] || undefined;
-	// Unlike process.resourcesPath, import.meta.dirname reflects Node's junction-resolved module path.
 	const appRoot = dirname(import.meta.dirname);
 
 	register(`data:text/javascript;base64,${Buffer.from(jsCode).toString('base64')}`, import.meta.url, {
@@ -241,7 +219,6 @@ function enableASARSupport(): void {
 
 enableASARSupport();
 
-//#region NLS helpers
 
 let setupNLSResult: Promise<INLSConfiguration | undefined> | undefined = undefined;
 
@@ -296,7 +273,6 @@ async function doSetupNLS(): Promise<INLSConfiguration | undefined> {
 	} catch (error) {
 		console.error(`Error reading NLS messages file ${messagesFile}: ${error}`);
 
-		// Mark as corrupt: this will re-create the language pack cache next startup
 		if (nlsConfig?.languagePack?.corruptMarkerFile) {
 			try {
 				await fs.promises.writeFile(nlsConfig.languagePack.corruptMarkerFile, 'corrupted');
@@ -305,7 +281,6 @@ async function doSetupNLS(): Promise<INLSConfiguration | undefined> {
 			}
 		}
 
-		// Fallback to the default message file to ensure english translation at least
 		if (nlsConfig?.defaultMessagesFile && nlsConfig.defaultMessagesFile !== messagesFile) {
 			try {
 				const defaultMessages = JSON.parse((await fs.promises.readFile(nlsConfig.defaultMessagesFile)).toString());
@@ -321,10 +296,8 @@ async function doSetupNLS(): Promise<INLSConfiguration | undefined> {
 	return nlsConfig;
 }
 
-//#endregion
 
 export async function bootstrapESM(): Promise<void> {
 
-	// NLS
 	await setupNLS();
 }

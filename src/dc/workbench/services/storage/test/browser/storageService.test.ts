@@ -95,7 +95,7 @@ flakySuite('StorageService (browser specific)', () => {
 		disposables.clear();
 	});
 
-	test.skip('clear', () => { // slow test and also only ever being used as a developer action
+	test.skip('clear', () => {
 		return runWithFakedTimers({ useFakeTimers: true }, async () => {
 			storageService.store('bar', 'foo', StorageScope.APPLICATION, StorageTarget.MACHINE);
 			storageService.store('bar', 3, StorageScope.APPLICATION, StorageTarget.USER);
@@ -154,7 +154,6 @@ flakySuite('IndexDBStorageDatabase (browser)', () => {
 
 		await storage.init();
 
-		// Insert initial data
 		storage.set('bar', 'foo');
 		storage.set('barNumber', 55);
 		storage.set('barBoolean', true);
@@ -176,7 +175,6 @@ flakySuite('IndexDBStorageDatabase (browser)', () => {
 
 		await storage.init();
 
-		// Check initial data still there
 		strictEqual(storage.get('bar'), 'foo');
 		strictEqual(storage.get('barNumber'), '55');
 		strictEqual(storage.get('barBoolean'), 'true');
@@ -186,7 +184,6 @@ flakySuite('IndexDBStorageDatabase (browser)', () => {
 		strictEqual(storage.size, 3);
 		strictEqual(storage.items.size, 3);
 
-		// Update data
 		storage.set('bar', 'foo2');
 		storage.set('barNumber', 552);
 
@@ -199,7 +196,6 @@ flakySuite('IndexDBStorageDatabase (browser)', () => {
 
 		await storage.init();
 
-		// Check initial data still there
 		strictEqual(storage.get('bar'), 'foo2');
 		strictEqual(storage.get('barNumber'), '552');
 		strictEqual(storage.get('barBoolean'), 'true');
@@ -209,7 +205,6 @@ flakySuite('IndexDBStorageDatabase (browser)', () => {
 		strictEqual(storage.size, 3);
 		strictEqual(storage.items.size, 3);
 
-		// Delete data
 		storage.delete('bar');
 		storage.delete('barNumber');
 		storage.delete('barBoolean');

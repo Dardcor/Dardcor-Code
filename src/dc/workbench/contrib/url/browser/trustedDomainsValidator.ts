@@ -74,8 +74,6 @@ export class OpenerValidatorContributions implements IWorkbenchContribution {
 			if (linkTailLengthToKeep === linkTail.length) {
 				formattedLink += linkTail;
 			} else {
-				// keep the first char ? or #
-				// add ... and keep the tail end as much as possible
 				formattedLink += linkTail.charAt(0) + '...' + linkTail.substring(linkTail.length - linkTailLengthToKeep + 1);
 			}
 
@@ -113,11 +111,9 @@ export class OpenerValidatorContributions implements IWorkbenchContribution {
 								this._editorService,
 								this._telemetryService,
 							);
-							// Trust all domains
 							if (pickedDomains.indexOf('*') !== -1) {
 								return true;
 							}
-							// Trust current domain
 							if (isURLDomainTrusted(resourceUri, pickedDomains)) {
 								return true;
 							}

@@ -130,7 +130,6 @@ function stripSideChatContext(turns: readonly Turn[]): readonly Turn[] {
 	return [{ ...first, message: { ...first.message, text: userPrompt } }, ...turns.slice(1)];
 }
 
-/** Resolves the index of the first turn owned by a side chat. */
 export function resolveSideChatBoundary(turns: readonly Turn[], sideChat: ISideChatBoundaryDescriptor | undefined): number {
 	if (!sideChat) {
 		return 0;
@@ -149,7 +148,6 @@ export function resolveSideChatBoundary(turns: readonly Turn[], sideChat: ISideC
 	return turns.length;
 }
 
-/** Returns the turns owned by a side chat. */
 export function sliceSideChatTurns(turns: readonly Turn[], sideChat: ISideChatBoundaryDescriptor | undefined): readonly Turn[] {
 	if (!sideChat) {
 		return turns;

@@ -17,7 +17,6 @@ function* resolveExtensionResources(extension: vscode.Extension<any>, resourcePa
 			try {
 				yield resolveExtensionResource(extension, resource);
 			} catch {
-				// noop
 			}
 		}
 	}
@@ -133,7 +132,6 @@ export namespace MarkdownContributions {
 					type: contribution.type,
 				};
 			} catch {
-				// noop
 			}
 		}
 	}

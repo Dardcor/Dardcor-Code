@@ -63,9 +63,6 @@ suite('Agent Summarization', () => {
 			text: 'This is a test custom instruction file',
 		} satisfies CodeGenerationTextInstruction]);
 
-		// Warm up the tokenizer once so per-test timing is predictable. The first
-		// tokenizer use parses a ~3.6MB BPE file which can take seconds on slow CI
-		// machines and would otherwise be charged to whichever test runs first.
 		const endpoint = accessor.get(IInstantiationService).createInstance(MockEndpoint, undefined);
 		await accessor.get(ITokenizerProvider).acquireTokenizer(endpoint).tokenLength('warmup');
 	});
@@ -93,8 +90,6 @@ suite('Agent Summarization', () => {
 			promptContext = { ...promptContext, conversation };
 		}
 
-		// Real agent requests always advertise the non-deferred memory tool, which gates the
-		// memory context blocks. Advertise it here so the rendered Agent prompt matches real usage.
 		if (!promptContext.tools?.availableTools.some(t => t.name === ToolName.Memory)) {
 			const memoryTool = accessor.get(IToolsService).tools.find(t => t.name === ToolName.Memory);
 			if (memoryTool) {
@@ -248,7 +243,6 @@ suite('Agent Summarization', () => {
 		}
 	}
 
-	// Summarization for rounds in current turn
 	test('trigger summarization during tool calling', async () => await testTriggerSummarizationDuringToolCalling(TestPromptType.Agent));
 	test('FullSummarization - trigger summarization during tool calling', async () => await testTriggerSummarizationDuringToolCalling(TestPromptType.FullSummarization));
 	test('SimpleSummarization - trigger summarization during tool calling', async () => await testTriggerSummarizationDuringToolCalling(TestPromptType.SimpleSummarization));
@@ -275,7 +269,6 @@ suite('Agent Summarization', () => {
 			}, promptType)).toMatchFileSnapshot(getSnapshotFile(promptType, 'currentTurn'));
 	}
 
-	// SummarizationPrompt test is not relevant when the last round was summarized
 	test('render summary in current turn', async () => await testSummaryCurrentTurn(TestPromptType.Agent));
 
 	async function testSummaryCurrentTurnEarlierRound(promptType: TestPromptType) {
@@ -359,11 +352,6 @@ suite('Agent Summarization', () => {
 	test('SimpleSummarization - render summary in previous turn (with multiple)', () => testSummaryPrevTurnMultiple(TestPromptType.SimpleSummarization));
 
 	test('manual /compact summary is honored when summarization is disabled (#311503)', async () => {
-		// Repro for #311503: with chat.summarizeAgentConversationHistory.enabled = false
-		// the agent renders the non-summarizing history path. A summary stored by a
-		// manual `/compact` must still cause the superseded history to be dropped
-		// instead of replayed verbatim, otherwise the context window immediately
-		// refills on the next turn.
 		const previousTurn = new Turn('id', { type: 'user', message: 'first user message EXCLUDED' });
 		previousTurn.setResponse(TurnStatus.Success, { type: 'user', message: 'response' }, 'responseId', {
 			metadata: {
@@ -477,9 +465,6 @@ suite('Agent Summarization', () => {
 	}
 
 	test('failed summarization throws from renderer (fallback is in agentIntent)', async () => {
-		// Keep the summary tiny-budgeted so the failure is immediate. The PromptRenderer propagates the error;
-		// the fallback to a no-cache-breakpoints render lives in agentIntent.ts's
-		// renderWithSummarization, not here.
 		chatResponse[0] = 'summary that is definitely too large for one token';
 		const { instaService, endpoint, historyProps } = createSummarizationTestContext();
 
@@ -546,8 +531,6 @@ suite('Agent Summarization', () => {
 	});
 
 	test('summarization request explicitly opts out of the stateful marker #323554', async () => {
-		// Call-site contract only: MockEndpoint skips ChatEndpoint's defaulting, which is
-		// itself why this must be explicit (true on ChatEndpoint, false on OpenAIEndpoint).
 		chatResponse[0] = '<summary>summarized successfully!</summary>';
 		const { instaService, endpoint, historyProps } = createSummarizationTestContext();
 
@@ -568,7 +551,6 @@ suite('Agent Summarization', () => {
 	});
 
 	test('large <analysis> block does not push an in-budget summary over the token limit #321200', async () => {
-		// The budget check must count the extracted summary, not the raw response.
 		chatResponse[0] = `<analysis>${'verbose scratchpad '.repeat(200)}</analysis>\n<summary>short summary</summary>`;
 		const { instaService, endpoint, historyProps } = createSummarizationTestContext();
 
@@ -582,7 +564,6 @@ suite('Agent Summarization', () => {
 	});
 
 	test('empty <summary> fails rather than silently compacting to nothing', async () => {
-		// Empty summaries are ignored by the truthy round.summary checks on the next render.
 		chatResponse[0] = '<analysis>reasoning</analysis>\n<summary>   </summary>';
 		const { instaService, endpoint, historyProps } = createSummarizationTestContext();
 
@@ -600,7 +581,6 @@ suite('Agent Summarization', () => {
 		});
 		await expect(renderer.render()).rejects.toThrow('Summary too large');
 
-		// None of the rounds should have summary set since summarization failed
 		for (const round of toolCallRounds) {
 			expect(round.summary).toBeUndefined();
 		}
@@ -672,17 +652,9 @@ suite('Agent Summarization', () => {
 	});
 
 	test('simple mode summarization with small token budget renders zero messages (repro for No messages provided)', async () => {
-		// Repro for: "Prompt failed validation with the reason: No messages provided"
-		//
-		// Root cause: when modelMaxPromptTokens is small enough that the summarization
-		// prompt content exceeds the budget, prompt-tsx prunes all child elements.
-		// After pruning, toChatMessages() silently skips messages whose content is
-		// empty (isEmpty check), producing an empty messages array — without throwing
-		// BudgetExceededError. The downstream makeChatRequest2 then hits the
-		// isValidChatPayload check: "No messages provided".
 		const instaService = accessor.get(IInstantiationService);
 		const endpoint = instaService.createInstance(MockEndpoint, 'claude-sonnet');
-		endpoint.modelMaxPromptTokens = 5; // So small that even a single short message cannot fit
+		endpoint.modelMaxPromptTokens = 5;
 
 		const toolCallRounds = [
 			new ToolCallRound('ok', [createEditFileToolCall(1)]),
@@ -715,21 +687,16 @@ suite('Agent Summarization', () => {
 		const renderer = PromptRenderer.create(instaService, endpoint, ConversationHistorySummarizationPrompt, { ...propsInfo!.props, simpleMode: true });
 		const result = await renderer.render();
 
-		// prompt-tsx prunes all content and silently drops empty messages → 0 messages
 		expect(result.messages.length).toBe(0);
 	});
 
 	test('failure metadata on turn prevents repeated foreground summarization attempts', async () => {
-		// This test verifies the contract that agentIntent.ts relies on:
-		// after a foreground summarization failure, setting SummarizedConversationHistoryMetadata
-		// with outcome !== 'success' on the turn causes the retry guard to skip summarization.
 
 		const turn = new Turn('turnId', { type: 'user', message: 'hello' });
 
-		// Simulate what agentIntent.ts does after a failed foreground summarization
 		turn.setMetadata(new SummarizedConversationHistoryMetadata(
-			'', // no toolCallRoundId for failures
-			'', // no summary text for failures
+			'',
+			'',
 			{
 				model: 'test-model',
 				source: 'foreground',
@@ -738,20 +705,17 @@ suite('Agent Summarization', () => {
 			},
 		));
 
-		// Verify the retry guard condition from renderWithSummarization matches
 		const previousForegroundSummary = turn.getMetadata(SummarizedConversationHistoryMetadata);
 		expect(previousForegroundSummary).toBeDefined();
 		expect(previousForegroundSummary!.source).toBe('foreground');
 		expect(previousForegroundSummary!.outcome).toBe('budgetExceeded');
 		expect(previousForegroundSummary!.outcome).not.toBe('success');
 
-		// The guard condition: source === 'foreground' && outcome && outcome !== 'success'
 		const shouldSkip = previousForegroundSummary!.source === 'foreground'
 			&& !!previousForegroundSummary!.outcome
 			&& previousForegroundSummary!.outcome !== 'success';
 		expect(shouldSkip).toBe(true);
 
-		// Also verify that successful summarization does NOT trigger the skip guard
 		turn.setMetadata(new SummarizedConversationHistoryMetadata(
 			'roundId',
 			'summary text',

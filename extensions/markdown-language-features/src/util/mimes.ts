@@ -31,7 +31,6 @@ export function getMediaKindForMime(mime: string): MediaKind | undefined {
 }
 
 export const mediaFileExtensions = new Map<string, MediaKind>([
-	// Images
 	['avif', MediaKind.Image],
 	['bmp', MediaKind.Image],
 	['gif', MediaKind.Image],
@@ -47,12 +46,10 @@ export const mediaFileExtensions = new Map<string, MediaKind>([
 	['tiff', MediaKind.Image],
 	['webp', MediaKind.Image],
 
-	// Videos
 	['ogg', MediaKind.Video],
 	['mp4', MediaKind.Video],
 	['mov', MediaKind.Video],
 
-	// Audio Files
 	['mp3', MediaKind.Audio],
 	['aac', MediaKind.Audio],
 	['wav', MediaKind.Audio],

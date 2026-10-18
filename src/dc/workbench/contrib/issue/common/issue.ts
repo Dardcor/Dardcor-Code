@@ -6,8 +6,6 @@
 import { UriComponents } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 
-// Since data sent through the service is serialized to JSON, functions will be lost, so Color objects
-// should not be sent as their 'toString' method will be stripped. Instead convert to strings before sending.
 export interface WindowStyles {
 	backgroundColor?: string;
 	color?: string;
@@ -68,17 +66,7 @@ export interface IssueReporterExtensionData {
 export interface IssueReporterData extends WindowData {
 	styles: IssueReporterStyles;
 	enabledExtensions: IssueReporterExtensionData[];
-	/**
-	 * Resolves once `enabledExtensions` has been populated (or failed to populate).
-	 * Lets the wizard pane wait for the async extension enumeration in
-	 * `NativeIssueService` to finish before rendering the extensions section.
-	 */
 	whenExtensionsLoaded?: Promise<void>;
-	/**
-	 * Resolves once all async data (extensions, token, integrity, experiments)
-	 * has been populated. Lets the wizard pane forward late-arriving values
-	 * like `isInstallationPure` and `githubAccessToken` into the overlay model.
-	 */
 	whenDataComplete?: Promise<void>;
 	issueType?: IssueType;
 	issueSource?: IssueSource;
@@ -102,12 +90,6 @@ export interface ISettingSearchResult {
 
 export const IIssueFormService = createDecorator<IIssueFormService>('issueFormService');
 
-/**
- * Narrow surface of the issue reporter wizard that `IIssueFormService.submitIssue`
- * relies on. Keeping this in `common/` (rather than depending on the browser-side
- * `IssueReporterOverlay` class) lets the service interface be implemented and
- * consumed cleanly across layers.
- */
 export interface IIssueSubmissionHost {
 	getScreenshots(): readonly { readonly dataUrl: string; readonly annotatedDataUrl?: string }[];
 	getRecordings(): readonly { readonly filePath: string }[];
@@ -118,7 +100,6 @@ export interface IIssueSubmissionHost {
 export interface IIssueFormService {
 	readonly _serviceBrand: undefined;
 
-	// Used by the issue reporter
 	openReporter(data: IssueReporterData): Promise<void>;
 	reloadWithExtensionsDisabled(): Promise<void>;
 	showConfirmCloseDialog(): Promise<void>;

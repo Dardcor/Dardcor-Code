@@ -30,15 +30,10 @@ export class NativeWorkingCopyBackupService extends WorkingCopyBackupService {
 
 	private registerListeners(): void {
 
-		// Lifecycle: ensure to prolong the shutdown for as long
-		// as pending backup operations have not finished yet.
-		// Otherwise, we risk writing partial backups to disk.
 		this._register(this.lifecycleService.onWillShutdown(event => event.join(this.joinBackups(), { id: 'join.workingCopyBackups', label: localize('join.workingCopyBackups', "Backup working copies") })));
 	}
 }
 
-// Register Service
 registerSingleton(IWorkingCopyBackupService, NativeWorkingCopyBackupService, InstantiationType.Eager);
 
-// Register Backup Tracker
 registerWorkbenchContribution2(NativeWorkingCopyBackupTracker.ID, NativeWorkingCopyBackupTracker, WorkbenchPhase.BlockStartup);

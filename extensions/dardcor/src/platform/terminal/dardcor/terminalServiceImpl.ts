@@ -16,20 +16,12 @@ export class TerminalServiceImpl extends Disposable implements ITerminalService 
 
 	declare readonly _serviceBrand: undefined;
 
-	// Ensure the order is preserved, as that matters for PATH contributions.
-	// VS Code will apply them in order from its own cache.
-	// So when re-loading VS Code vscode first applies it from its cache, then we apply our contributions.
-	// If they are different, then user will be prompted to restart terminal to apply changes.
 	private readonly pathContributions: { contributor: string; path: string; description?: string | { command: string }; prepend: boolean }[] = [];
 
 	constructor(
 		@IVSCodeExtensionContext private readonly context: IVSCodeExtensionContext,
 	) {
 		super();
-		// This used to be setup in the past for Copilot CLI auth in terminals.
-		// It was only ever shipped in the VSCode insiders and never got into stable.
-		// So this is only required for users who had insiders installed before it was removed.
-		// Safe to remove this after a few months or so (https://github.com/microsoft/vscode/issues/275692).
 		this.context.environmentVariableCollection.delete('GH_TOKEN');
 
 		for (const l of installTerminalBufferListeners()) {
@@ -126,7 +118,6 @@ export class TerminalServiceImpl extends Disposable implements ITerminalService 
 	private updateEnvironmentPath(): void {
 		const pathVariable = 'PATH';
 
-		// Clear existing PATH modification
 		this.context.environmentVariableCollection.delete(pathVariable);
 
 		if (this.pathContributions.length === 0) {
@@ -134,7 +125,6 @@ export class TerminalServiceImpl extends Disposable implements ITerminalService 
 		}
 
 
-		// Build combined description
 		const allDescriptions = coalesce(this.pathContributions
 			.map(c => c.description && typeof c.description === 'string' ? c.description : undefined)
 			.filter(d => d));
@@ -160,8 +150,6 @@ export class TerminalServiceImpl extends Disposable implements ITerminalService 
 		const description = [descriptions, commandsDescription].filter(d => d).join(' and ');
 		this.context.environmentVariableCollection.description = description || 'Enables additional commands in the terminal.';
 
-		// Build combined path from all contributions
-		// Since we cannot mix and match append/prepend, if there are any prepend paths, then prepend everything.
 		const allPaths = this.pathContributions.map(c => c.path);
 		if (this.pathContributions.some(c => c.prepend)) {
 			const pathVariableChange = allPaths.join(path.delimiter) + path.delimiter;

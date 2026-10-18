@@ -35,11 +35,8 @@ function balance(out: boolean) {
 		return rangeFn(document, rootNode, selection);
 	});
 
-	// check whether we are starting a balance elsewhere
 	if (areSameSelections(lastBalancedSelections, editor.selections)) {
-		// we are not starting elsewhere, so use the stack as-is
 		if (out) {
-			// make sure we are able to expand outwards
 			if (!areSameSelections(editor.selections, newSelections)) {
 				balanceOutStack.push(editor.selections);
 			}
@@ -47,7 +44,6 @@ function balance(out: boolean) {
 			newSelections = balanceOutStack.pop()!;
 		}
 	} else {
-		// we are starting elsewhere, so reset the stack
 		balanceOutStack = out ? [editor.selections] : [];
 	}
 
@@ -65,7 +61,6 @@ function getRangeToBalanceOut(document: vscode.TextDocument, rootNode: HtmlFlatN
 		return offsetRangeToSelection(document, nodeToBalance.start, nodeToBalance.end);
 	}
 
-	// Set reverse direction if we were in the end tag
 	let innerSelection: vscode.Selection;
 	let outerSelection: vscode.Selection;
 	if (nodeToBalance.close.start <= offset && nodeToBalance.close.end > offset) {

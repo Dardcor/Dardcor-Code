@@ -3,18 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * The annotations channel: client-owned review comments anchored to a resource.
- *
- * Every annotations action is client-dispatchable (see `ClientAnnotationsAction`
- * in `action-origin.generated.ts`), and the same reducer runs on both sides, so
- * these scenarios exercise the synchronized-state contract end to end without
- * any model traffic: dispatch, observe the server echo, then read the channel
- * back to confirm the host applied the same reduction the client did.
- *
- * This channel was previously covered by neither the E2E suite nor the frozen
- * `../protocol/` suite.
- */
 
 import assert from 'assert';
 import { mkdtempSync } from 'fs';
@@ -30,7 +18,6 @@ import { createRealSession } from '../harness/agentHostE2ETestHarness.js';
 import { getActionEnvelope, isActionNotification } from '../../serverIntegrationTestHelpers.js';
 import { conformanceTest, type IAgentHostE2ETestContext } from './e2eTestContext.js';
 
-/** The subset of `Annotation` these tests assert on. */
 interface IObservedAnnotation {
 	readonly id: string;
 	readonly origin: {
@@ -45,11 +32,6 @@ interface IObservedAnnotation {
 export function defineAnnotationsTests(context: IAgentHostE2ETestContext): void {
 	const { config, createdSessions, tempDirs } = context;
 
-	/**
-	 * Client sequence numbers must strictly increase for the lifetime of a
-	 * client, and the suite shares one across tests, so they cannot be
-	 * hard-coded per scenario.
-	 */
 	let clientSeq = 3000;
 	function nextClientSeq(): number {
 		return clientSeq++;
@@ -69,11 +51,6 @@ export function defineAnnotationsTests(context: IAgentHostE2ETestContext): void 
 		context.client.dispatch({ channel, clientSeq: nextClientSeq(), action: action as Parameters<typeof context.client.dispatch>[0]['action'] });
 	}
 
-	/**
-	 * Waits for the server to echo `actionType` on the annotations channel, then
-	 * reads the channel back. Reading without waiting would race the reduction
-	 * and could observe the pre-dispatch state.
-	 */
 	async function annotationsAfter(channel: string, actionType: string): Promise<readonly IObservedAnnotation[]> {
 		await context.client.waitForNotification(n =>
 			isActionNotification(n, actionType) && getActionEnvelope(n).channel === channel,
@@ -127,8 +104,6 @@ export function defineAnnotationsTests(context: IAgentHostE2ETestContext): void 
 		});
 		await annotationsAfter(annotationsUri, 'annotations/set');
 
-		// `annotations/updated` carries only the fields that change, so
-		// resolving must not disturb the entries already on the annotation.
 		context.client.clearReceived();
 		dispatchAnnotationAction(annotationsUri, { type: ActionType.AnnotationsUpdated, annotationId, resolved: true, origin: { session: sessionUri, chat: buildDefaultChatUri(sessionUri), turnId: 'turn-resolve' } });
 

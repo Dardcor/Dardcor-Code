@@ -11,15 +11,8 @@ import { IChangeTracker } from '../changeTracker.js';
 import { DebugLocation } from '../debugLocation.js';
 
 export const enum AutorunState {
-	/**
-	 * A dependency could have changed.
-	 * We need to explicitly ask them if at least one dependency changed.
-	 */
 	dependenciesMightHaveChanged = 1,
 
-	/**
-	 * A dependency changed and we need to recompute.
-	 */
 	stale = 2,
 	upToDate = 3,
 }
@@ -66,7 +59,7 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 		}
 		this._disposed = true;
 		for (const o of this._dependencies) {
-			o.removeObserver(this); // Warning: external call!
+			o.removeObserver(this);
 		}
 		this._dependencies.clear();
 
@@ -100,14 +93,14 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 					this._isRunning = true;
 					if (this._changeTracker) {
 						this._changeTracker.beforeUpdate?.(this, changeSummary);
-						this._changeSummary = this._changeTracker.createChangeSummary(changeSummary); // Warning: external call!
+						this._changeSummary = this._changeTracker.createChangeSummary(changeSummary);
 					}
 					if (this._store !== undefined) {
 						this._store.dispose();
 						this._store = undefined;
 					}
 
-					this._runFn(this, changeSummary); // Warning: external call!
+					this._runFn(this, changeSummary);
 				} catch (e) {
 					onBugIndicatingError(e);
 				} finally {
@@ -121,10 +114,8 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 			if (!this._disposed) {
 				getLogger()?.handleAutorunFinished(this);
 			}
-			// We don't want our observed observables to think that they are (not even temporarily) not being observed.
-			// Thus, we only unsubscribe from observables that are definitely not read anymore.
 			for (const o of this._dependenciesToBeRemoved) {
-				o.removeObserver(this); // Warning: external call!
+				o.removeObserver(this);
 			}
 			this._dependenciesToBeRemoved.clear();
 		}
@@ -134,7 +125,6 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 		return `Autorun<${this.debugName}>`;
 	}
 
-	// IObserver implementation
 	public beginUpdate(_observable: IObservable<any>): void {
 		if (this._state === AutorunState.upToDate) {
 			this._checkIterations();
@@ -154,9 +144,8 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 					if (this._state === AutorunState.dependenciesMightHaveChanged) {
 						this._state = AutorunState.upToDate;
 						for (const d of this._dependencies) {
-							d.reportChanges(); // Warning: external call!
+							d.reportChanges();
 							if (this._state as AutorunState === AutorunState.stale) {
-								// The other dependencies will refresh on demand
 								break;
 							}
 						}
@@ -164,7 +153,7 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 
 					this._iteration++;
 					if (this._state !== AutorunState.upToDate) {
-						this._run(); // Warning: indirect external call!
+						this._run();
 					}
 				} while (this._state !== AutorunState.upToDate);
 			}
@@ -186,7 +175,6 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 		if (this._isDependency(observable)) {
 			getLogger()?.handleAutorunDependencyChanged(this, observable, change);
 			try {
-				// Warning: external call!
 				const shouldReact = this._changeTracker ? this._changeTracker.handleChange({
 					changedObservable: observable,
 					change,
@@ -207,7 +195,6 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 		return this._dependencies.has(observable) && !this._dependenciesToBeRemoved.has(observable);
 	}
 
-	// IReader implementation
 
 	private _ensureNoRunning(): void {
 		if (!this._isRunning) { throw new BugIndicatingError('The reader object cannot be used outside its compute function!'); }
@@ -216,13 +203,12 @@ export class AutorunObserver<TChangeSummary = any> implements IObserver, IReader
 	public readObservable<T>(observable: IObservable<T>): T {
 		this._ensureNoRunning();
 
-		// In case the run action disposes the autorun
 		if (this._disposed) {
-			return observable.get(); // warning: external call!
+			return observable.get();
 		}
 
-		observable.addObserver(this); // warning: external call!
-		const value = observable.get(); // warning: external call!
+		observable.addObserver(this);
+		const value = observable.get();
 		this._dependencies.add(observable);
 		this._dependenciesToBeRemoved.delete(observable);
 		return value;

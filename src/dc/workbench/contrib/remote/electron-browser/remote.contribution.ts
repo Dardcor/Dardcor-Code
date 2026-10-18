@@ -155,9 +155,6 @@ class RemoteEmptyWorkbenchPresentation extends Disposable implements IWorkbenchC
 	}
 }
 
-/**
- * Sets the 'wslFeatureInstalled' context key if the WSL feature is or was installed on this machine.
- */
 class WSLContextKeyInitializer extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.wslContextKeyInitializer';
@@ -183,7 +180,6 @@ class WSLContextKeyInitializer extends Disposable implements IWorkbenchContribut
 				nativeHostService.hasWSLFeatureInstalled().then(res => {
 					if (res) {
 						contextKey.set(true);
-						// once detected, set to true
 						storageService.store(storageKey, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
 					}
 				});
@@ -268,7 +264,6 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor) {
 		const remoteExplorerService = accessor.get(IRemoteExplorerService);
 		const ports: Tunnel[] = [];
-		// collect all forwarded ports and filter out those who do not have a process running
 		const forwarded = remoteExplorerService.tunnelModel.forwarded;
 		for (const [_, tunnel] of forwarded) {
 			if (tunnel.hasRunningProcess === false) {
@@ -276,7 +271,6 @@ registerAction2(class extends Action2 {
 			}
 		}
 
-		// Close the collected unused ports
 		if (ports.length) {
 			for (const port of ports) {
 				await remoteExplorerService.close({

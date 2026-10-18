@@ -122,7 +122,6 @@ async function renderHintsToolbar(options: HintsToolbarOptions): Promise<void> {
 		'typescript'
 	));
 
-	// Register an inline completion provider (not an inline edit) so the result is ghost text
 	const languageFeaturesService = instantiationService.get(ILanguageFeaturesService);
 	disposableStore.add(languageFeaturesService.inlineCompletionsProvider.register({ pattern: '**' }, {
 		provideInlineCompletions: () => ({
@@ -286,7 +285,6 @@ function renderNextFileEdit({ container, disposableStore, theme }: ComponentFixt
 
 	const instantiationService = createEditorServices(disposableStore, { colorTheme: theme });
 
-	// The editor shows this file
 	const editorModel = disposableStore.add(createTextModel(
 		instantiationService,
 		`import { Config } from './config';
@@ -299,7 +297,6 @@ export function createApp(config: Config) {
 		'typescript'
 	));
 
-	// The suggestion targets a different file
 	const targetModel = disposableStore.add(createTextModel(
 		instantiationService,
 		`export interface Config {

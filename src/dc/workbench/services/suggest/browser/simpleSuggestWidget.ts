@@ -66,43 +66,18 @@ export const SimpleSuggestContext = {
 };
 
 export interface IWorkbenchSuggestWidgetOptions {
-	/**
-	 * The {@link MenuId} to use for the status bar. Items on the menu must use the groups `'left'`
-	 * and `'right'`.
-	 */
 	statusBarMenuId?: MenuId;
 
-	/**
-	 * The setting for showing the status bar.
-	 */
 	showStatusBarSettingId?: string;
 
-	/**
-	 * The setting for selection mode.
-	 */
 	selectionModeSettingId?: string;
 
-	/**
-	 * Disables specific detail placements when positioning the details overlay.
-	 */
 	preventDetailsPlacements?: readonly SimpleSuggestDetailsPlacement[];
 }
 
-/**
- * Controls how suggest selection works
-*/
 export const enum SuggestSelectionMode {
-	/**
-	 * Default. Will show a border and only accept via Tab until navigation has occurred. After that, it will show selection and accept via Enter or Tab.
-	 */
 	Partial = 'partial',
-	/**
-	 * Always select, what enter does depends on runOnEnter.
-	 */
 	Always = 'always',
-	/**
-	 * User needs to press down to select.
-	 */
 	Never = 'never'
 }
 
@@ -188,7 +163,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 
 		let state: ResizeState | undefined;
 		this._register(this.element.onDidWillResize(() => {
-			// this._preferenceLocked = true;
 			state = new ResizeState(this._persistedSize.restore(), this.element.size);
 		}));
 		this._register(this.element.onDidResize(e => {
@@ -205,8 +179,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 			}
 
 			if (state) {
-				// only store width or height value that have changed and also
-				// only store changes that are above a certain threshold
 				const { itemHeight, defaultSize } = this._getLayoutInfo();
 				const threshold = Math.round(itemHeight / 2);
 				let { width, height } = this.element.size;
@@ -219,8 +191,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 				this._persistedSize.store(new dom.Dimension(width, height));
 			}
 
-			// reset working state
-			// this._preferenceLocked = false;
 			state = undefined;
 		}));
 
@@ -321,8 +291,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		}
 
 		if (this._state === State.Details) {
-			// This can happen when focus is in the details-panel and when
-			// arrow keys are pressed to select next/prev items
 			this._setState(State.Open);
 		}
 
@@ -384,7 +352,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 					return;
 				}
 
-				// item can have extra information, so re-render
 				this._ignoreFocusEvents = true;
 				this._list.splice(index, 1, [item]);
 				this._list.setFocus([index]);
@@ -400,7 +367,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		}
 
 		this._ctxFirstSuggestionFocused.set(index === 0);
-		// emit an event
 		this._onDidFocus.fire({ item, index, model: this._completionModel });
 	}
 
@@ -455,11 +421,8 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		this._loadingTimeout?.dispose();
 
 		const selectionMode = this._options?.selectionModeSettingId ? this._configurationService.getValue<SuggestSelectionMode>(this._options.selectionModeSettingId) : undefined;
-		// When explicitly invoked (not auto), always select the first item regardless of selectionMode
 		const noFocus = !this._ctxSuggestWidgetExplicitlyInvoked.get() && selectionMode === SuggestSelectionMode.Never;
 
-		// this._currentSuggestionDetails?.cancel();
-		// this._currentSuggestionDetails = undefined;
 
 		if (isFrozen && this._state !== State.Empty && this._state !== State.Hidden) {
 			this._setState(State.Frozen);
@@ -468,7 +431,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 
 		const visibleCount = this._completionModel?.items.length ?? 0;
 		const isEmpty = visibleCount === 0;
-		// this._ctxSuggestWidgetMultipleSuggestions.set(visibleCount > 1);
 
 		if (isEmpty) {
 			this._setState(isAuto ? State.Hidden : State.Empty);
@@ -476,29 +438,18 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 			return;
 		}
 
-		// this._focusedItem = undefined;
 
-		// calling list.splice triggers focus event which this widget forwards. That can lead to
-		// suggestions being cancelled and the widget being cleared (and hidden). All this happens
-		// before revealing and focusing is done which means revealing and focusing will fail when
-		// they get run.
-		// this._onDidFocus.pause();
-		// this._onDidSelect.pause();
 		try {
 			this._list.splice(0, this._list.length, this._completionModel?.items ?? []);
 			this._setState(isFrozen ? State.Frozen : State.Open);
 			this._list.reveal(selectionIndex, 0);
 			this._list.setFocus(noFocus ? [] : [selectionIndex]);
 		} finally {
-			// this._onDidFocus.resume();
-			// this._onDidSelect.resume();
 		}
 
 		this._pendingLayout.value = dom.runAtThisOrScheduleAtNextAnimationFrame(dom.getWindow(this.element.domNode), () => {
 			this._pendingLayout.clear();
 			this._layout(this.element.size);
-			// Reset focus border
-			// this._details.widget.domNode.classList.remove('focused');
 		});
 		this._updateListStyles();
 		this._afterRender();
@@ -507,7 +458,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 	private _updateListStyles(): void {
 		if (this._options.selectionModeSettingId) {
 			const selectionMode = this._configurationService.getValue<SuggestSelectionMode>(this._options.selectionModeSettingId);
-			// When explicitly invoked, always show full selection (background) instead of partial (border)
 			const usePartialStyle = !this._ctxSuggestWidgetExplicitlyInvoked.get() && selectionMode === SuggestSelectionMode.Partial;
 			this._list.style(getListStylesWithMode(usePartialStyle));
 			this.element.domNode.classList.toggle(Classes.PartialSelection, usePartialStyle);
@@ -539,9 +489,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 				dom.hide(this.element.domNode);
 				this._details.hide(true);
 				this._status?.hide();
-				// this._contentWidget.hide();
-				// this._ctxSuggestWidgetVisible.reset();
-				// this._ctxSuggestWidgetMultipleSuggestions.reset();
 				this._ctxSuggestWidgetHasFocusedSuggestion.reset();
 				this._showTimeout.cancel();
 				this.element.domNode.classList.remove('visible');
@@ -604,16 +551,11 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 	}
 
 	private _show(): void {
-		// this._layout(this._persistedSize.restore());
-		// dom.show(this.element.domNode);
-		// this._onDidShow.fire();
 
 
 		this._status?.show();
-		// this._contentWidget.show();
 		dom.show(this.element.domNode);
 		this._layout(this._persistedSize.restore());
-		// this._ctxSuggestWidgetVisible.set(true);
 
 		this._onDidShow.fire(this);
 		this._showTimeout.cancelAndSet(() => {
@@ -624,7 +566,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 
 	toggleDetailsFocus(): void {
 		if (this._state === State.Details) {
-			// Should return the focus to the list item.
 			this._list.setFocus(this._list.getFocus());
 			this._setState(State.Open);
 		} else if (this._state === State.Open) {
@@ -639,17 +580,13 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 
 	toggleDetails(focused: boolean = false): void {
 		if (this._isDetailsVisible()) {
-			// hide details widget
 			this._pendingShowDetails.clear();
-			// this._ctxSuggestWidgetDetailsVisible.set(false);
 
 			this._setDetailsVisible(false);
 			this._details.hide();
 			this.element.domNode.classList.remove('shows-details');
 
 		} else if ((canExpandCompletionItem(this._list.getFocusedElements()[0]) || this._explainMode) && (this._state === State.Open || this._state === State.Details || this._state === State.Frozen)) {
-			// show details widget (iff possible)
-			// this._ctxSuggestWidgetDetailsVisible.set(true);
 
 			this._setDetailsVisible(true);
 			this._showDetails(false, focused);
@@ -677,7 +614,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 				this._details.hide();
 			}
 			if (!didFocusDetails) {
-				// this.editor.focus();
 			}
 		});
 	}
@@ -704,8 +640,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		this._onDidHide.fire(this);
 		dom.hide(this.element.domNode);
 		this.element.clearSashHoverState();
-		// ensure that a reasonable widget height is persisted so that
-		// accidential "resize-to-single-items" cases aren't happening
 		const dim = this._persistedSize.restore();
 		const minPersistedHeight = Math.ceil(this._getLayoutInfo().itemHeight * 4.3);
 		if (dim && dim.height < minPersistedHeight) {
@@ -717,13 +651,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		if (!this._cursorPosition) {
 			return;
 		}
-		// if (!this.editor.hasModel()) {
-		// 	return;
-		// }
-		// if (!this.editor.getDomNode()) {
-		// 	// happens when running tests
-		// 	return;
-		// }
 
 		const bodyBox = dom.getClientArea(this._container.ownerDocument.body);
 		const info = this._getLayoutInfo();
@@ -735,38 +662,22 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		let height = size.height;
 		let width = size.width;
 
-		// status bar
 		if (this._status) {
 			this._status.element.style.height = `${info.itemHeight}px`;
 		}
 
-		// if (this._state === State.Empty || this._state === State.Loading) {
-		// 	// showing a message only
-		// 	height = info.itemHeight + info.borderHeight;
-		// 	width = info.defaultSize.width / 2;
-		// 	this.element.enableSashes(false, false, false, false);
-		// 	this.element.minSize = this.element.maxSize = new dom.Dimension(width, height);
-		// 	this._preference = WidgetPositionPreference.Below;
 
-		// } else {
-		// showing items
 
-		// width math
 		const maxWidth = bodyBox.width - info.borderHeight - 2 * info.horizontalPadding;
 		if (width > maxWidth) {
 			width = maxWidth;
 		}
 		const preferredWidth = this._completionModel ? this._completionModel.stats.pLabelLen * info.typicalHalfwidthCharacterWidth : width;
 
-		// height math
-		// Cap list content height to a reasonable maximum (12 items worth), matching suggestWidget behavior
 		const cappedListContentHeight = Math.min(this._list.contentHeight, info.itemHeight * 12);
 		const fullHeight = info.statusBarHeight + cappedListContentHeight + this._messageElement.clientHeight + info.borderHeight;
 		const minHeight = info.itemHeight + info.statusBarHeight;
-		// const editorBox = dom.getDomNodePagePosition(this.editor.getDomNode());
-		// const cursorBox = this.editor.getScrolledVisiblePosition(this.editor.getPosition());
 		const editorBox = dom.getDomNodePagePosition(this._container);
-		// Convert absolute cursor position to relative position (relative to container)
 		const cursorBox = {
 			top: this._cursorPosition.top - editorBox.top,
 			left: this._cursorPosition.left,
@@ -779,8 +690,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		let maxHeight = Math.min(Math.max(maxHeightAbove, maxHeightBelow) + info.borderHeight, fullHeight);
 
 		if (height === this._cappedHeight?.capped) {
-			// Restore the old (wanted) height when the current
-			// height is capped to fit
 			height = this._cappedHeight.wanted;
 		}
 
@@ -805,19 +714,13 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		this.element.maxSize = new dom.Dimension(maxWidth, maxHeight);
 		this.element.minSize = new dom.Dimension(220, minHeight);
 
-		// Know when the height was capped to fit and remember
-		// the wanted height for later. This is required when going
-		// left to widen suggestions.
 		this._cappedHeight = height === fullHeight
 			? { wanted: this._cappedHeight?.wanted ?? size.height, capped: height }
 			: undefined;
-		// }
-		// Horizontal positioning: Position widget at cursor, flip to left if would overflow right
 		let anchorLeft = this._cursorPosition.left;
 		const wouldOverflowRight = anchorLeft + width > bodyBox.width;
 
 		if (wouldOverflowRight) {
-			// Position right edge at cursor (extends left)
 			anchorLeft = this._cursorPosition.left - width;
 		}
 
@@ -827,19 +730,11 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 		} else {
 			this.element.domNode.style.top = `${this._cursorPosition.top + this._cursorPosition.height}px`;
 		}
-		// }
 		this._resize(width, height);
 	}
 
 	_afterRender() {
-		// if (position === null) {
-		// 	if (this._isDetailsVisible()) {
-		// 		this._details.hide(); //todo@jrieken soft-hide
-		// 	}
-		// 	return;
-		// }
 		if (this._state === State.Empty || this._state === State.Loading) {
-			// no special positioning when widget isn't showing list
 			return;
 		}
 		if (this._isDetailsVisible() && !this._details.widget.isEmpty) {
@@ -897,7 +792,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 			return;
 		}
 
-		// prevent stealing browser focus from the terminal
 		e.browserEvent.preventDefault();
 		e.browserEvent.stopPropagation();
 
@@ -994,8 +888,6 @@ export class SimpleSuggestWidget<TModel extends SimpleCompletionModel<TItem>, TI
 }
 
 function getListStylesWithMode(partial?: boolean): IListStyles {
-	// The suggest widget uses the list's inactive focus to mean selection since it's not actually
-	// focused.
 	if (partial) {
 		return getListStyles({
 			listInactiveFocusOutline: focusBorder,

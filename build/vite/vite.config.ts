@@ -51,7 +51,6 @@ function injectBuiltinExtensionsPlugin(): Plugin {
 
 	const prebuiltExtensionsLocation = '.build/builtInExtensions';
 	async function getScannedBuiltinExtensions(vsCodeDevLocation: string) {
-		// use the build utility as to not duplicate the code
 		const extensionsUtil = await import(pathToFileURL(path.join(vsCodeDevLocation, 'build', 'lib', 'extensions.ts')).toString());
 		const localExtensions = extensionsUtil.scanBuiltinExtensions(path.join(vsCodeDevLocation, 'extensions'));
 		const prebuiltExtensions = extensionsUtil.scanBuiltinExtensions(path.join(vsCodeDevLocation, prebuiltExtensionsLocation));
@@ -143,8 +142,6 @@ const logger = createLogger();
 const loggerWarn = logger.warn;
 
 logger.warn = (msg, options) => {
-	// the baseUrl code cannot be analyzed by vite.
-	// However, it is not needed, so it is okay to silence the warning.
 	if (msg.indexOf('await import(new URL(`dc/workbench/workbench.desktop.main.js`, baseUrl).href)') !== -1) {
 		return;
 	}
@@ -152,7 +149,6 @@ logger.warn = (msg, options) => {
 		return;
 	}
 
-	// See https://github.com/microsoft/vscode/issues/278153
 	if (msg.indexOf('marked.esm.js.map') !== -1 || msg.indexOf('purify.es.mjs.map') !== -1) {
 		return;
 	}
@@ -185,12 +181,11 @@ export default defineConfig({
 			}
 		}
 	},
-	root: '../..', // To support /out/... paths
+	root: '../..',
 	build: {
 		outDir: join(__dirname, 'dist'),
 		rollupOptions: {
 			input: {
-				//index: path.resolve(__dirname, 'index.html'),
 				workbench: path.resolve(__dirname, 'workbench-vite.html'),
 			}
 		}
@@ -200,7 +195,6 @@ export default defineConfig({
 		port: 5199,
 		fs: {
 			allow: [
-				// To allow loading from sources, not needed when loading monaco-editor from npm package
 				join(import.meta.dirname, '../../../')
 			]
 		}

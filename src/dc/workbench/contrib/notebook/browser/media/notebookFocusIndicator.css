@@ -25,18 +25,15 @@
 }
 
 .monaco-workbench .notebookOverlay .monaco-list .monaco-list-row .cell-focus-indicator-side {
-	/** Overidden for code cells */
 	top: 0px;
 	bottom: 0px;
 }
 
 .monaco-workbench .notebookOverlay .monaco-list .webview-backed-markdown-cell .cell-focus-indicator-side {
-	/* Disable pointer events for the folding container */
 	pointer-events: none;
 }
 
 .monaco-workbench .notebookOverlay .monaco-list .webview-backed-markdown-cell .cell-focus-indicator-side .notebook-folding-indicator {
-	/* But allow clicking on the folding indicator itself */
 	pointer-events: all;
 }
 
@@ -49,7 +46,6 @@
 	right: 0px;
 }
 
-/** cell border colors */
 
 .monaco-workbench .notebookOverlay .monaco-list:focus-within .monaco-list-row.focused .cell-editor-focus .cell-focus-indicator-top:before,
 .monaco-workbench .notebookOverlay .monaco-list:focus-within .monaco-list-row.focused .cell-editor-focus .cell-focus-indicator-bottom:before,
@@ -73,7 +69,7 @@
 	display: none;
 	position: relative;
 	cursor: pointer;
-	pointer-events: all; /* Take pointer-events in markdown cell */
+	pointer-events: all;
 	width: 11px;
 }
 

@@ -5,13 +5,8 @@
 
 import { ILogService } from '../../../log/common/log.js';
 import { createDecorator } from '../../../instantiation/common/instantiation.js';
-import { ICopilotApiService, type ICopilotUtilityChatMessage } from './copilotApiService.js';
+import { IDardcorRouterService, type IDardcorUtilityChatMessage } from './dardcorRouterService.js';
 
-/**
- * Branch-name prefix for worktree-isolated agent sessions, e.g.
- * `agents/add-feature`. Shared by every agent-host provider (Copilot, Codex,
- * Claude) via {@link WorktreeIsolation}.
- */
 export const AGENT_BRANCH_PREFIX = 'agents/';
 const AGENT_BRANCH_SESSION_ID_SUFFIX_LENGTH = 8;
 const MAX_BRANCH_NAME_HINT_LENGTH = 48;
@@ -21,19 +16,8 @@ const MAX_BRANCH_NAME_CANDIDATES = 100;
 export interface IAgentBranchNameGeneratorRequest {
 	readonly sessionId: string;
 	readonly message?: string;
-	readonly githubToken?: string;
 	readonly signal?: AbortSignal;
-	/**
-	 * Optional prefix prepended before the built-in {@link AGENT_BRANCH_PREFIX}
-	 * when constructing the branch name (e.g. the user's `git.branchPrefix`
-	 * setting). An empty or omitted value preserves the historical
-	 * `agents/<hint>` naming.
-	 */
 	readonly branchPrefix?: string;
-	/**
-	 * Optional predicate used to check whether a candidate branch name collides
-	 * with an existing branch or its corresponding worktree path.
-	 */
 	readonly branchNameCollides?: (branchName: string) => Promise<boolean>;
 }
 
@@ -48,7 +32,7 @@ export class AgentBranchNameGenerator implements IAgentBranchNameGenerator {
 	declare readonly _serviceBrand: undefined;
 
 	constructor(
-		@ICopilotApiService private readonly _copilotApiService: ICopilotApiService,
+		@IDardcorRouterService private readonly _dardcorRouterService: IDardcorRouterService,
 		@ILogService private readonly _logService: ILogService,
 	) { }
 
@@ -59,12 +43,12 @@ export class AgentBranchNameGenerator implements IAgentBranchNameGenerator {
 
 	private async _generateBranchNameHint(request: IAgentBranchNameGeneratorRequest): Promise<string | undefined> {
 		const message = request.message?.trim();
-		if (!message || !request.githubToken) {
+		if (!message) {
 			return undefined;
 		}
 
 		try {
-			const rawBranchName = await this._copilotApiService.utilityChatCompletion(request.githubToken, {
+			const rawBranchName = await this._dardcorRouterService.utilityChatCompletion({
 				messages: this._buildBranchNamePrompt(message),
 			}, {
 				signal: request.signal,
@@ -95,7 +79,7 @@ export class AgentBranchNameGenerator implements IAgentBranchNameGenerator {
 		}
 	}
 
-	private _buildBranchNamePrompt(userRequest: string): ICopilotUtilityChatMessage[] {
+	private _buildBranchNamePrompt(userRequest: string): IDardcorUtilityChatMessage[] {
 		return [
 			{
 				role: 'system',
@@ -117,9 +101,6 @@ export class AgentBranchNameGenerator implements IAgentBranchNameGenerator {
 	}
 
 	private async _buildBranchName(request: IAgentBranchNameGeneratorRequest, branchNameHint: string | undefined): Promise<string> {
-		// Prepend the caller-supplied prefix (e.g. `git.branchPrefix`) ahead of
-		// the built-in `agents/` prefix. An empty/omitted value keeps the
-		// historical `agents/<hint>` shape.
 		const prefix = `${request.branchPrefix ?? ''}${AGENT_BRANCH_PREFIX}`;
 
 		const branchName = `${prefix}${branchNameHint ?? request.sessionId}`;
@@ -142,24 +123,15 @@ export class AgentBranchNameGenerator implements IAgentBranchNameGenerator {
 }
 
 export function normalizeAgentBranchName(branchName: string): string {
-	// Only support alphanumeric characters and dashes for simplicity.
 	let normalized = branchName.replace(/[^a-zA-Z0-9\-]/g, '').toLowerCase();
-	// Collapse consecutive dots (..) into a single dot
 	normalized = normalized.replace(/\.{2,}/g, '.');
-	// Strip leading '-' or '.'
 	normalized = normalized.replace(/^[-.]+/, '');
-	// Strip trailing '.' or '/'
 	normalized = normalized.replace(/[./]+$/, '');
-	// Strip trailing .lock
 	normalized = normalized.replace(/\.lock$/, '');
 
 	return normalized;
 }
 
-/**
- * Derive a slug-style branch-name hint from the user's first message. Used as
- * a local fallback when the utility branch name generation is unavailable.
- */
 export function getAgentBranchNameHintFromMessage(message: string): string | undefined {
 	const words = message
 		.toLowerCase()

@@ -81,22 +81,18 @@ export class DesktopMain extends Disposable {
 
 	private init(): void {
 
-		// Massage configuration file URIs
 		this.reviveUris();
 
-		// Apply fullscreen early if configured
 		setFullscreen(!!this.configuration.fullscreen, mainWindow);
 	}
 
 	private reviveUris() {
 
-		// Workspace
 		const workspace = reviveIdentifier(this.configuration.workspace);
 		if (isWorkspaceIdentifier(workspace) || isSingleFolderWorkspaceIdentifier(workspace)) {
 			this.configuration.workspace = workspace;
 		}
 
-		// Files
 		const filesToWait = this.configuration.filesToWait;
 		const filesToWaitPaths = filesToWait?.paths;
 		for (const paths of [filesToWaitPaths, this.configuration.filesToOpenOrCreate, this.configuration.filesToDiff, this.configuration.filesToMerge]) {
@@ -116,31 +112,19 @@ export class DesktopMain extends Disposable {
 
 	async open(): Promise<void> {
 
-		// Init services and wait for DOM to be ready in parallel
 		const [services] = await Promise.all([this.initServices(), domContentLoaded(mainWindow)]);
 
-		// Apply zoom level early once we have a configuration service
-		// and before the workbench is created to prevent flickering.
-		// We also need to respect that zoom level can be configured per
-		// workspace, so we need the resolved configuration service.
-		// Finally, it is possible for the window to have a custom
-		// zoom level that is not derived from settings.
-		// (fixes https://github.com/microsoft/vscode/issues/187982)
 		this.applyWindowZoomLevel(services.configurationService);
 
-		// Create Workbench
 		const workbench = new Workbench(mainWindow.document.body, {
 			extraClasses: this.getExtraClasses(),
 			resetLayout: this.configuration['disable-layout-restore'] === true
 		}, services.serviceCollection, services.logService);
 
-		// Listeners
 		this.registerListeners(workbench, services.storageService);
 
-		// Startup
 		const instantiationService = workbench.startup();
 
-		// Window
 		this._register(instantiationService.createInstance(NativeWindow));
 	}
 
@@ -166,7 +150,6 @@ export class DesktopMain extends Disposable {
 
 	private registerListeners(workbench: Workbench, storageService: NativeWorkbenchStorageService): void {
 
-		// Workbench Lifecycle
 		this._register(workbench.onWillShutdown(event => event.join(storageService.close(), { id: 'join.closeStorage', label: localize('join.closeStorage', "Saving UI state") })));
 		this._register(workbench.onDidShutdown(() => this.dispose()));
 	}
@@ -175,48 +158,33 @@ export class DesktopMain extends Disposable {
 		const serviceCollection = new ServiceCollection();
 
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.desktop.main.ts` if the service
-		//       is desktop only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-		// Main Process
 		const mainProcessService = this._register(new ElectronIPCMainProcessService(this.configuration.windowId));
 		serviceCollection.set(IMainProcessService, mainProcessService);
 
-		// Product
 		const productService: IProductService = { _serviceBrand: undefined, ...product };
 		serviceCollection.set(IProductService, productService);
 
-		// Environment
 		const environmentService = new NativeWorkbenchEnvironmentService(this.configuration, productService);
 		serviceCollection.set(INativeWorkbenchEnvironmentService, environmentService);
 
-		// Logger
 		const loggers = this.configuration.loggers.map(loggerResource => ({ ...loggerResource, resource: URI.revive(loggerResource.resource) }));
 		const loggerService = new LoggerChannelClient(this.configuration.windowId, this.configuration.logLevel, environmentService.windowLogsPath, loggers, mainProcessService.getChannel('logger'));
 		serviceCollection.set(ILoggerService, loggerService);
 
-		// Log
 		const logService = this._register(new NativeLogService(loggerService, environmentService));
 		serviceCollection.set(ILogService, logService);
 		if (isCI) {
-			logService.info('workbench#open()'); // marking workbench open helps to diagnose flaky integration/smoke tests
+			logService.info('workbench#open()');
 		}
 		if (logService.getLevel() === LogLevel.Trace) {
-			logService.trace('workbench#open(): with configuration', safeStringify({ ...this.configuration, nls: undefined /* exclude large property */ }));
+			logService.trace('workbench#open(): with configuration', safeStringify({ ...this.configuration, nls: undefined }));
 		}
 
-		// Default Account
 		const defaultAccountService = this._register(new DefaultAccountService(productService));
 		serviceCollection.set(IDefaultAccountService, defaultAccountService);
 
-		// Policies
 		let policyService: IPolicyService;
 		const policyChannel = this.configuration.policiesData ? this._register(new PolicyChannelClient(this.configuration.policiesData, mainProcessService.getChannel('policy'))) : undefined;
 		const nativeManagedSettings = this._register(new NativeManagedSettingsChannelClient(mainProcessService.getChannel('nativeManagedSettings'), logService));
@@ -233,82 +201,51 @@ export class DesktopMain extends Disposable {
 		serviceCollection.set(IPolicyService, policyService);
 		serviceCollection.set(IAccountPolicyGateService, accountPolicy);
 
-		// Shared Process
 		const sharedProcessService = new SharedProcessService(this.configuration.windowId, logService);
 		serviceCollection.set(ISharedProcessService, sharedProcessService);
 
-		// Utility Process Worker
 		const utilityProcessWorkerWorkbenchService = new UtilityProcessWorkerWorkbenchService(this.configuration.windowId, logService, mainProcessService);
 		serviceCollection.set(IUtilityProcessWorkerWorkbenchService, utilityProcessWorkerWorkbenchService);
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.desktop.main.ts` if the service
-		//       is desktop only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-		// Sign
 		const signService = ProxyChannel.toService<ISignService>(mainProcessService.getChannel('sign'));
 		serviceCollection.set(ISignService, signService);
 
-		// Files
 		const fileService = this._register(new FileService(logService));
 		serviceCollection.set(IFileService, fileService);
 
-		// Remote
 		const remoteAuthorityResolverService = new RemoteAuthorityResolverService(productService, new ElectronRemoteResourceLoader(environmentService.window.id, mainProcessService, fileService));
 		serviceCollection.set(IRemoteAuthorityResolverService, remoteAuthorityResolverService);
 
-		// Local Files
 		const diskFileSystemProvider = this._register(new DiskFileSystemProvider(mainProcessService, utilityProcessWorkerWorkbenchService, logService, loggerService));
 		fileService.registerProvider(Schemas.file, diskFileSystemProvider);
 
-		// URI Identity
 		const uriIdentityService = new UriIdentityService(fileService);
 		serviceCollection.set(IUriIdentityService, uriIdentityService);
 
-		// User Data Profiles
 		const userDataProfilesService = new UserDataProfilesService(this.configuration.profiles.all, URI.revive(this.configuration.profiles.home).with({ scheme: environmentService.userRoamingDataHome.scheme }), mainProcessService.getChannel('userDataProfiles'));
 		serviceCollection.set(IUserDataProfilesService, userDataProfilesService);
 		const userDataProfileService = new UserDataProfileService(reviveProfile(this.configuration.profiles.profile, userDataProfilesService.profilesHome.scheme));
 		serviceCollection.set(IUserDataProfileService, userDataProfileService);
 
-		// Use FileUserDataProvider for user data to
-		// enable atomic read / write operations.
 		fileService.registerProvider(Schemas.vscodeUserData, this._register(new FileUserDataProvider(Schemas.file, diskFileSystemProvider, Schemas.vscodeUserData, userDataProfilesService, uriIdentityService, logService)));
 
-		// Remote Agent
 		const remoteSocketFactoryService = new RemoteSocketFactoryService();
 		remoteSocketFactoryService.register(RemoteConnectionType.WebSocket, new BrowserSocketFactory(null));
 		serviceCollection.set(IRemoteSocketFactoryService, remoteSocketFactoryService);
 		const remoteAgentService = this._register(new RemoteAgentService(remoteSocketFactoryService, userDataProfileService, environmentService, productService, remoteAuthorityResolverService, signService, logService));
 		serviceCollection.set(IRemoteAgentService, remoteAgentService);
 
-		// Remote Files
 		this._register(RemoteFileSystemProviderClient.register(remoteAgentService, fileService, logService));
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.desktop.main.ts` if the service
-		//       is desktop only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-		// Create services that require resolving in parallel
 		const workspace = this.resolveWorkspaceIdentifier(environmentService);
 		const [configurationService, storageService] = await Promise.all([
 			this.createWorkspaceService(workspace, environmentService, userDataProfileService, userDataProfilesService, fileService, remoteAgentService, uriIdentityService, logService, policyService).then(service => {
 
-				// Workspace
 				serviceCollection.set(IWorkspaceContextService, service);
 
-				// Configuration
 				serviceCollection.set(IWorkbenchConfigurationService, service);
 
 				return service;
@@ -316,7 +253,6 @@ export class DesktopMain extends Disposable {
 
 			this.createStorageService(workspace, environmentService, userDataProfileService, userDataProfilesService, mainProcessService).then(service => {
 
-				// Storage
 				serviceCollection.set(IStorageService, service);
 
 				return service;
@@ -324,33 +260,22 @@ export class DesktopMain extends Disposable {
 
 			this.createKeyboardLayoutService(mainProcessService).then(service => {
 
-				// KeyboardLayout
 				serviceCollection.set(INativeKeyboardLayoutService, service);
 
 				return service;
 			})
 		]);
 
-		// Workspace Trust Service
 		const workspaceTrustEnablementService = new WorkspaceTrustEnablementService(configurationService, environmentService);
 		serviceCollection.set(IWorkspaceTrustEnablementService, workspaceTrustEnablementService);
 
 		const workspaceTrustManagementService = new WorkspaceTrustManagementService(configurationService, remoteAuthorityResolverService, storageService, uriIdentityService, environmentService, configurationService, workspaceTrustEnablementService, fileService);
 		serviceCollection.set(IWorkspaceTrustManagementService, workspaceTrustManagementService);
 
-		// Update workspace trust so that configuration is updated accordingly
 		configurationService.updateWorkspaceTrust(workspaceTrustManagementService.isWorkspaceTrusted());
 		this._register(workspaceTrustManagementService.onDidChangeTrust(() => configurationService.updateWorkspaceTrust(workspaceTrustManagementService.isWorkspaceTrusted())));
 
 
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		//
-		// NOTE: Please do NOT register services here. Use `registerSingleton()`
-		//       from `workbench.common.main.ts` if the service is shared between
-		//       desktop and web or `workbench.desktop.main.ts` if the service
-		//       is desktop only.
-		//
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 		return { serviceCollection, logService, storageService, configurationService };
@@ -358,12 +283,10 @@ export class DesktopMain extends Disposable {
 
 	private resolveWorkspaceIdentifier(environmentService: INativeWorkbenchEnvironmentService): IAnyWorkspaceIdentifier {
 
-		// Return early for when a folder or multi-root is opened
 		if (this.configuration.workspace) {
 			return this.configuration.workspace;
 		}
 
-		// Otherwise, workspace is empty, so we derive an identifier
 		return toWorkspaceIdentifier(this.configuration.backupPath, environmentService.isExtensionDevelopment);
 	}
 
@@ -378,7 +301,7 @@ export class DesktopMain extends Disposable {
 		logService: ILogService,
 		policyService: IPolicyService
 	): Promise<WorkspaceService> {
-		const configurationCache = new ConfigurationCache([Schemas.file, Schemas.vscodeUserData] /* Cache all non native resources */, environmentService, fileService);
+		const configurationCache = new ConfigurationCache([Schemas.file, Schemas.vscodeUserData] , environmentService, fileService);
 		const workspaceService = new WorkspaceService({ remoteAuthority: environmentService.remoteAuthority, configurationCache }, environmentService, userDataProfileService, userDataProfilesService, fileService, remoteAgentService, uriIdentityService, logService, policyService);
 
 		try {

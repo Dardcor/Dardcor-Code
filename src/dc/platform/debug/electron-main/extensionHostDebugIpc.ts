@@ -72,7 +72,7 @@ export class ElectronExtensionHostDebugBroadcastChannel<TContext> extends Extens
 	}
 
 	private async openCdpServer(ident: string, onSocket: (socket: ISocket) => void): Promise<{ server: Server; wsUrl: string; port: number }> {
-		const { createServer } = await import('http'); // Lazy due to https://github.com/nodejs/node/issues/59686
+		const { createServer } = await import('http');
 		const server = createServer((req, res) => {
 			if (req.url === '/json/list' || req.url === '/json') {
 				res.setHeader('Content-Type', 'application/json');
@@ -139,8 +139,8 @@ export class ElectronExtensionHostDebugBroadcastChannel<TContext> extends Extens
 			store.add(listener);
 
 			const writeMessage = (message: object) => {
-				if (!store.isDisposed) { // in case sendCommand promises settle after closed
-					listener.write(VSBuffer.fromString(JSON.stringify(message))); // null-delimited, CDP-compatible
+				if (!store.isDisposed) {
+					listener.write(VSBuffer.fromString(JSON.stringify(message)));
 				}
 			};
 
@@ -168,7 +168,6 @@ export class ElectronExtensionHostDebugBroadcastChannel<TContext> extends Extens
 				}
 
 				if (debugRenderer) {
-					// Emulate Target.* methods that js-debug expects but Electron's debugger doesn't support
 					const targetInfo = { targetId: ident, type: 'page', title: 'VS Code Renderer', url: 'vscode://renderer' };
 					if (data.method === 'Target.setDiscoverTargets') {
 						writeMessage({ id: data.id, sessionId: data.sessionId, result: {} });
@@ -190,7 +189,6 @@ export class ElectronExtensionHostDebugBroadcastChannel<TContext> extends Extens
 					}
 				}
 
-				// Forward to Electron's debugger, stripping our synthetic page sessionId
 				const forwardSessionId = data.sessionId === pageSessionId ? undefined : data.sessionId;
 
 				debug.sendCommand(data.method, data.params, forwardSessionId)

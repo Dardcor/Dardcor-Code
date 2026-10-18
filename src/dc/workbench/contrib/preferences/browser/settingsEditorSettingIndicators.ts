@@ -37,31 +37,15 @@ export interface ISettingOverrideClickEvent {
 
 interface SettingIndicator {
 	element: HTMLElement;
-	/**
-	 * The element to focus on when navigating with keyboard.
-	 * When undefined, use {@link element} instead.
-	 */
 	focusElement?: HTMLElement;
 	label: SimpleIconLabel;
 	disposables: DisposableStore;
 }
 
-/**
- * Contains a set of the sync-ignored settings
- * to keep the sync ignored indicator and the getIndicatorsLabelAriaLabel() function in sync.
- * SettingsTreeIndicatorsLabel#updateSyncIgnored provides the source of truth.
- */
 let cachedSyncIgnoredSettingsSet: Set<string> = new Set<string>();
 
-/**
- * Contains a copy of the sync-ignored settings to determine when to update
- * cachedSyncIgnoredSettingsSet.
- */
 let cachedSyncIgnoredSettings: string[] = [];
 
-/**
- * Renders the indicators next to a setting, such as "Also Modified In".
- */
 export class SettingsTreeIndicatorsLabel implements IDisposable {
 	private readonly indicatorsContainerElement: HTMLElement;
 
@@ -72,9 +56,7 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 	private readonly syncIgnoredIndicator: SettingIndicator;
 	private readonly defaultOverrideIndicator: SettingIndicator;
 
-	/** Indicators that each have their own square container at the top-right of the setting */
 	private readonly isolatedIndicators: SettingIndicator[] = [];
-	/** Indicators that end up wrapped in a parenthesis at the top-right of the setting */
 	private readonly parenthesizedIndicators: SettingIndicator[];
 
 	private readonly keybindingListeners: DisposableStore = new DisposableStore();
@@ -137,7 +119,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 
 	private createScopeOverridesIndicator(): SettingIndicator {
 		const disposables = new DisposableStore();
-		// Don't add .setting-indicator class here, because it gets conditionally added later.
 		const otherOverridesElement = $('span.setting-item-overrides');
 		const otherOverridesLabel = disposables.add(new SimpleIconLabel(otherOverridesElement));
 		return {
@@ -352,7 +333,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 		this.scopeOverridesIndicator.element.style.display = 'none';
 		this.scopeOverridesIndicator.focusElement = this.scopeOverridesIndicator.element;
 		if (element.hasPolicyValue) {
-			// If the setting falls under a policy, then no matter what the user sets, the policy value takes effect.
 			this.scopeOverridesIndicator.element.style.display = 'inline';
 			this.scopeOverridesIndicator.element.classList.add('setting-indicator');
 
@@ -382,9 +362,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 			}, { setupKeyboardEvents: true }));
 		} else if (element.overriddenScopeList.length || element.overriddenDefaultsLanguageList.length) {
 			if (element.overriddenScopeList.length === 1 && !element.overriddenDefaultsLanguageList.length) {
-				// We can inline the override and show all the text in the label
-				// so that users don't have to wait for the hover to load
-				// just to click into the one override there is.
 				this.scopeOverridesIndicator.element.style.display = 'inline';
 				this.scopeOverridesIndicator.element.classList.remove('setting-indicator');
 
@@ -475,7 +452,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 			this.defaultOverrideIndicator.element.style.display = 'inline';
 			this.defaultOverrideIndicator.disposables.clear();
 
-			// Show source of default value when hovered
 			if (Array.isArray(sourceToDisplay) && sourceToDisplay.length === 1) {
 				sourceToDisplay = sourceToDisplay[0];
 			}
@@ -546,7 +522,6 @@ function getAccessibleScopeDisplayMidSentenceText(completeScope: string, languag
 export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement, configurationService: IWorkbenchConfigurationService, userDataProfilesService: IUserDataProfilesService, languageService: ILanguageService): string {
 	const ariaLabelSections: string[] = [];
 
-	// Add preview or experimental indicator text
 	if (element.tags?.has('preview')) {
 		ariaLabelSections.push(localize('previewLabel', "Preview"));
 	} else if (element.tags?.has('experimental')) {
@@ -557,7 +532,6 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 		ariaLabelSections.push(localize('advancedLabel', "Advanced"));
 	}
 
-	// Add workspace trust text
 	if (element.isUntrusted) {
 		ariaLabelSections.push(localize('workspaceUntrustedAriaLabel', "Workspace untrusted; setting value not applied"));
 	}
@@ -567,7 +541,6 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 	} else if (element.settingsTarget === ConfigurationTarget.USER_LOCAL && configurationService.isSettingAppliedForAllProfiles(element.setting.key)) {
 		ariaLabelSections.push(localize('applicationSettingDescriptionAccessible', "Setting value retained when switching profiles"));
 	} else {
-		// Add other overrides text
 		const otherOverridesStart = element.isConfigured ?
 			localize('alsoConfiguredIn', "Also modified in") :
 			localize('configuredIn', "Modified in");
@@ -578,12 +551,10 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 		}
 	}
 
-	// Add sync ignored text
 	if (cachedSyncIgnoredSettingsSet.has(element.setting.key)) {
 		ariaLabelSections.push(localize('syncIgnoredAriaLabel', "Setting ignored during sync"));
 	}
 
-	// Add default override indicator text
 	let sourceToDisplay = getDefaultValueSourceToDisplay(element);
 	if (sourceToDisplay !== undefined) {
 		if (Array.isArray(sourceToDisplay) && sourceToDisplay.length === 1) {
@@ -599,7 +570,6 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 		ariaLabelSections.push(overriddenDetailsText);
 	}
 
-	// Add text about default values being overridden in other languages
 	const otherLanguageOverridesList = element.overriddenDefaultsLanguageList
 		.map(language => languageService.getLanguageName(language)).join(', ');
 	if (element.overriddenDefaultsLanguageList.length) {
@@ -611,9 +581,6 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 	return ariaLabel;
 }
 
-/**
- * Internal links used to open a specific scope in the settings editor
- */
 namespace SettingScopeLink {
 	export function create(scope: string): URI {
 		return URI.from({

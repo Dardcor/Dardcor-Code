@@ -7,23 +7,16 @@ import { register } from './codiconsUtil.js';
 import { codiconsLibrary } from './codiconsLibrary.js';
 
 
-/**
- * Only to be used by the iconRegistry.
- */
 export function getAllCodicons(): ThemeIcon[] {
 	return Object.values(Codicon);
 }
 
-/**
- * Derived icons, that could become separate icons.
- * These mappings should be moved into the mapping file in the vscode-codicons repo at some point.
- */
 export const codiconsDerived = {
 	dialogError: register('dialog-error', 'error'),
 	dialogWarning: register('dialog-warning', 'warning'),
 	dialogInfo: register('dialog-info', 'info'),
 	dialogClose: register('dialog-close', 'close'),
-	treeItemExpanded: register('tree-item-expanded', 'chevron-down'), // collapsed is done with rotation
+	treeItemExpanded: register('tree-item-expanded', 'chevron-down'),
 	treeFilterOnTypeOn: register('tree-filter-on-type-on', 'list-filter'),
 	treeFilterOnTypeOff: register('tree-filter-on-type-off', 'list-selection'),
 	treeFilterClear: register('tree-filter-clear', 'close'),
@@ -54,13 +47,6 @@ export const codiconsDerived = {
 
 } as const;
 
-/**
- * The Codicon library is a set of default icons that are built-in in VS Code.
- *
- * In the product (outside of base) Codicons should only be used as defaults. In order to have all icons in VS Code
- * themeable, component should define new, UI component specific icons using `iconRegistry.registerIcon`.
- * In that call a Codicon can be named as default.
- */
 export const Codicon = {
 	...codiconsLibrary,
 	...codiconsDerived

@@ -10,9 +10,6 @@ import { URI } from '../../../../util/dardcor/base/common/uri';
 import { TestWorkspaceService } from '../../../test/node/testWorkspaceService';
 import { PromptPathRepresentationService, TestPromptPathRepresentationService } from '../../common/promptPathRepresentationService';
 
-/**
- * Subclass that simulates a Windows environment for testing Windows-specific code paths.
- */
 class WindowsPromptPathRepresentationService extends PromptPathRepresentationService {
 	protected override isWindows() {
 		return true;
@@ -130,7 +127,6 @@ describe('PromptPathRepresentationService', () => {
 		it('preserves UNC paths while collapsing extra backslashes', () => {
 			const result = windowsService.resolveFilePath('\\\\server\\share\\\\file.ts');
 			expect(result).toBeDefined();
-			// UNC paths get their leading \\ preserved
 			expect(result?.toString()).toContain('server');
 			expect(result?.toString()).toContain('share');
 		});
@@ -149,7 +145,6 @@ describe('PromptPathRepresentationService', () => {
 			const result = windowsService.resolveFilePath('/Projects/myapp/src/file.ts');
 			expect(result).toBeDefined();
 			expect(result!.scheme).toBe(Schemas.file);
-			// Should have prepended the drive letter from workspace folder
 			expect(result!.path).toMatch(/^\/d:/i);
 		});
 
@@ -161,7 +156,6 @@ describe('PromptPathRepresentationService', () => {
 			const result = windowsService.resolveFilePath('/Projects/myapp/src/file.ts');
 			expect(result).toBeDefined();
 			expect(result!.scheme).toBe(Schemas.file);
-			// Should not have prepended the drive letter since workspace folders don't match
 			expect(result!.path).toBe('/Projects/myapp/src/file.ts');
 		});
 
@@ -173,14 +167,12 @@ describe('PromptPathRepresentationService', () => {
 			const result = windowsService.resolveFilePath('/Projects/file.ts', Schemas.vscodeRemote);
 			expect(result).toBeDefined();
 			expect(result!.scheme).toBe(Schemas.vscodeRemote);
-			// Should not have a drive letter since predominantScheme is not file
 			expect(result!.path).toBe('/Projects/file.ts');
 		});
 
 		it('resolves posix paths without drive letter prepended when no workspace folders', () => {
 			const result = windowsService.resolveFilePath('/home/user/file.ts');
 			expect(result).toBeDefined();
-			// No workspace folders, so no drive letter rectification
 			expect(result!.path).toBe('/home/user/file.ts');
 		});
 	});
@@ -195,7 +187,6 @@ describe('PromptPathRepresentationService', () => {
 			workspaceService = new TestWorkspaceService();
 			const windowsService = new WindowsPromptPathRepresentationService(workspaceService);
 			const result = windowsService.getExampleFilePath('/workspace/src/file.ts');
-			// On Windows, the example path should include c: drive letter (URI.file lowercases it)
 			expect(result.toLowerCase()).toContain('c:');
 			expect(result).toContain('workspace');
 		});

@@ -103,10 +103,6 @@ export interface ISpeechService {
 
 	readonly hasActiveSpeechToTextSession: boolean;
 
-	/**
-	 * Starts to transcribe speech from the default microphone. The returned
-	 * session object provides an event to subscribe for transcribed text.
-	 */
 	createSpeechToTextSession(token: CancellationToken, context?: string): Promise<ISpeechToTextSession>;
 
 	readonly onDidStartTextToSpeechSession: Event<void>;
@@ -114,11 +110,6 @@ export interface ISpeechService {
 
 	readonly hasActiveTextToSpeechSession: boolean;
 
-	/**
-	 * Creates a synthesizer to synthesize speech from text. The returned
-	 * session object provides a method to synthesize text and listen for
-	 * events.
-	 */
 	createTextToSpeechSession(token: CancellationToken, context?: string): Promise<ITextToSpeechSession>;
 
 	readonly onDidStartKeywordRecognition: Event<void>;
@@ -126,11 +117,6 @@ export interface ISpeechService {
 
 	readonly hasActiveKeywordRecognition: boolean;
 
-	/**
-	 * Starts to recognize a keyword from the default microphone. The returned
-	 * status indicates if the keyword was recognized or if the session was
-	 * stopped.
-	 */
 	recognizeKeyword(token: CancellationToken): Promise<KeywordRecognitionStatus>;
 }
 
@@ -211,7 +197,6 @@ export const SPEECH_LANGUAGES = {
 		name: localize('speechLanguage.sv-SE', "Swedish (Sweden)")
 	},
 	['tr-TR']: {
-		// allow-any-unicode-next-line
 		name: localize('speechLanguage.tr-TR', "Turkish (Türkiye)")
 	},
 	['zh-CN']: {

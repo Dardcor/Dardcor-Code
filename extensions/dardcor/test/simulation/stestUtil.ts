@@ -22,10 +22,8 @@ interface FixtureFileInfo {
 	readonly fileContents: string;
 }
 
-/** See https://github.com/microsoft/vscode-ts-file-path-support */
 type RelativeFilePath<T extends string> = string & { baseDir?: T };
 
-/** This function allows [tools](https://github.com/microsoft/vscode-ts-file-path-support/tree/main) to inline/extract the file content. */
 export function toFile(data: { filePath: string | FixtureFileInfo } | { fileName: string; fileContents: string } | { uri: URI; fileContents: string }): IFile {
 	if ('filePath' in data) {
 		if (typeof data.filePath === 'string') {
@@ -53,8 +51,8 @@ let _fixturesDir: string | undefined;
 export function getFixturesDir() {
 	if (!_fixturesDir) {
 		_fixturesDir = [
-			path.join(__dirname, '../test/simulation/fixtures'), // after bundling with esbuild
-			path.join(__dirname, './fixtures'), // when running from sources
+			path.join(__dirname, '../test/simulation/fixtures'),
+			path.join(__dirname, './fixtures'),
 		].filter(p => fs.existsSync(p))[0];
 		if (!_fixturesDir) {
 			throw new Error('Could not find fixtures directory');
@@ -104,21 +102,13 @@ export function fromFixtureDir(dirnameWithinFixturesDir: string, dirnameWithinDi
 	return out;
 }
 
-/**
- * Asserts that one of the given assertions passes.
- *
- * @template T - The type of the value returned by the assertions.
- * @param assertions - An array of functions that represent the assertions to be checked.
- * @returns - The value returned by the assertion that passes.
- * @throws {assert.AssertionError} - If none of the assertions pass.
- */
 export function assertOneOf<T>(assertions: (() => T)[]): T {
 	for (const assertion of assertions) {
 		try {
 			return assertion();
 		} catch (e) {
 			if (!(e instanceof assert.AssertionError)) {
-				throw e; // surface unexpected errors
+				throw e;
 			}
 		}
 	}
@@ -153,9 +143,6 @@ export function assertWorkspaceEdit(outcome: IOutcome): asserts outcome is IWork
 	assert.strictEqual(outcome.type, 'workspaceEdit', `'${outcome.type}' === 'workspaceEdit'`);
 }
 
-/**
- * returns null if the files are identical
- */
 export function extractInlineReplaceEdits(outcome: IInlineEditOutcome): IInlineReplaceEdit | null {
 	const originalLines = outcome.originalFileContents.split(/\r\n|\r|\n/g);
 	const modifiedLines = outcome.fileContents.split(/\r\n|\r|\n/g);
@@ -168,7 +155,6 @@ export function extractInlineReplaceEdits(outcome: IInlineEditOutcome): IInlineR
 	}
 
 	if (ostart === originalLines.length && mstart === modifiedLines.length) {
-		// identical files
 		return null;
 	}
 
@@ -230,30 +216,20 @@ export function assertInlineEditShape(outcome: IOutcome, _expected: IInlineEditS
 			assert.deepStrictEqual(actualLines, expected);
 			return actual;
 		} catch (e) {
-			// Let's try the next one
 			err = e;
 		}
 	}
-	// No options matched
-	// console.log(`\n`, JSON.stringify(actualLines), '\n', JSON.stringify(expectedArr));
 	throw err;
 }
 
 export function assertQualifiedFile(file: IFile | { srcUri: string; post: string }): asserts file is IQualifiedFile {
 	if ('srcUri' in file && 'post' in file) {
-		// New format - nothing to assert, it's already a qualified file equivalent
 		return;
 	}
-	// Old format - check the kind
 	assert.strictEqual(file.kind, 'qualifiedFile', `'${file.kind}' === 'qualifiedFile'`);
 }
 
 
-/**
- * Asserts that at least `n` out of `expected.length` strings are present in `actual` string.
- *
- * If `n` is not given, `n = Math.floor(1, expected.length / 2)` is used.
- */
 export function assertSomeStrings(actual: string, expected: string[], n?: number) {
 	assert.ok(expected.length > 0, 'Need to expect at least one string');
 
@@ -303,8 +279,6 @@ export async function cleanTempDir(folderPath: string): Promise<void> {
 }
 
 export async function cleanTempDirWithRetry(path: string, retry = 3): Promise<void> {
-	// On windows, sometimes the tsc process holds locks on the directory even after it exits.
-	// This tries to delete the folder a few times with a delay in between.
 	let err = null;
 	for (let i = 0; i < retry; i++) {
 		try {
@@ -313,7 +287,6 @@ export async function cleanTempDirWithRetry(path: string, retry = 3): Promise<vo
 		} catch (e) {
 			err = e;
 			await timeout(1000);
-			// Ignore error
 		}
 	}
 

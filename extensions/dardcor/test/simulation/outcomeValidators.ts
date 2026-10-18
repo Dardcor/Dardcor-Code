@@ -27,9 +27,6 @@ export function assertContainsAllSnippets(text: string, snippets: string[], dbgM
 	}
 }
 
-/**
- * Searches for `marker1`, and then for `marker2` after `marker1`.
- */
 export function findTextBetweenMarkersFromTop(text: string, marker1: string, marker2: string): string | null {
 	const index1 = text.indexOf(marker1);
 	if (index1 === -1) {
@@ -43,9 +40,6 @@ export function findTextBetweenMarkersFromTop(text: string, marker1: string, mar
 }
 
 
-/**
- * Searches for `marker2`, and then for `marker1` before `marker2`.
- */
 export function findTextBetweenMarkersFromBottom(text: string, marker1: string, marker2: string) {
 	const index2 = text.indexOf(marker2);
 	if (index2 === -1) {
@@ -59,9 +53,6 @@ export function findTextBetweenMarkersFromBottom(text: string, marker1: string, 
 }
 
 
-/**
- * This method validates the outcome by finding if after the edit, there remain errors
- */
 export async function assertNoDiagnosticsAsync(accessor: ITestingServicesAccessor, outcome: IOutcome, workspace: SimulationWorkspace, method: DiagnosticProviderId | DiagnosticsProvider) {
 	assert.strictEqual(outcome.type, 'inlineEdit');
 	const diagnostics = await getWorkspaceDiagnostics(accessor, workspace, method);
@@ -75,9 +66,6 @@ export async function assertNoDiagnosticsAsync(accessor: ITestingServicesAccesso
 	assert.deepStrictEqual(diagnostics.length, 0, JSON.stringify(diagnostics, undefined, 2));
 }
 
-/**
- * This method validates the outcome by finding if after the edit, there remain errors
- */
 export async function assertNoSyntacticDiagnosticsAsync(accessor: ITestingServicesAccessor, outcome: IOutcome, workspace: SimulationWorkspace, method: DiagnosticProviderId | DiagnosticsProvider) {
 	assert.strictEqual(outcome.type, 'inlineEdit');
 	const diagnostics = await getWorkspaceDiagnostics(accessor, workspace, method);
@@ -86,9 +74,6 @@ export async function assertNoSyntacticDiagnosticsAsync(accessor: ITestingServic
 	assert.strictEqual(syntacticDiagnostics.length, 0, JSON.stringify(syntacticDiagnostics, undefined, 2));
 }
 
-/**
- * This method validates the outcome by comparing the number of errors before and after
- */
 export async function assertLessDiagnosticsAsync(accessor: ITestingServicesAccessor, outcome: IOutcome, workspace: SimulationWorkspace, method: DiagnosticProviderId) {
 	assert.strictEqual(outcome.type, 'inlineEdit');
 	const initialDiagnostics = outcome.initialDiagnostics;
@@ -102,9 +87,6 @@ export async function assertLessDiagnosticsAsync(accessor: ITestingServicesAcces
 	assert.ok(numberOfDiagnosticsAfter < numberOfDiagnosticsInitially);
 }
 
-/**
- * Returns the diagnostics in all workspace files
- */
 export async function getWorkspaceDiagnostics(accessor: ITestingServicesAccessor, workspace: SimulationWorkspace, method: DiagnosticProviderId | DiagnosticsProvider): Promise<ITestDiagnostic[]> {
 	const files = workspace.documents.map(doc => ({ fileName: workspace.getFilePath(doc.document.uri), fileContents: doc.document.getText() }));
 	if (typeof method === 'string') {
@@ -117,9 +99,7 @@ export async function getWorkspaceDiagnostics(accessor: ITestingServicesAccessor
 export function assertFileContent(files: IFile[] | Array<{ srcUri: string; post: string }>, fileName: string): string {
 	const existing = [];
 	for (const file of files) {
-		// Handle new format
 		if ('srcUri' in file && 'post' in file) {
-			// Convert string to URI if needed
 			const uri = typeof file.srcUri === 'string'
 				? URI.parse(file.srcUri)
 				: file.srcUri;
@@ -129,7 +109,6 @@ export function assertFileContent(files: IFile[] | Array<{ srcUri: string; post:
 			}
 			existing.push(name);
 		}
-		// Handle old format
 		else {
 			const name = file.kind === 'relativeFile' ? file.fileName : basename(file.uri);
 			if (name === fileName) {
@@ -149,15 +128,10 @@ export function assertJSON(content: string): any {
 	}
 }
 
-/**
- * Helper function to get file content regardless of file format (old or new)
- */
 export function getFileContent(file: IFile | { srcUri: string; post: string }): string {
 	if ('srcUri' in file && 'post' in file) {
-		// New format
 		return file.post;
 	} else if ('kind' in file && (file.kind === 'relativeFile' || file.kind === 'qualifiedFile')) {
-		// Old format
 		return file.fileContents;
 	} else {
 		throw new Error(`Unknown file format: ${JSON.stringify(file)}`);
@@ -171,7 +145,6 @@ export function assertNoElidedCodeComments(outcome: IInlineEditOutcome | IWorksp
 		assertNoElidedCodeComments(outcome.fileContents);
 	} else if (outcome.type === 'workspaceEdit') {
 		for (const file of outcome.files) {
-			// Use the helper function
 			assertNoElidedCodeComments(getFileContent(file));
 		}
 	}
@@ -184,14 +157,13 @@ export async function assertCriteriaMetAsync(accessor: ITestingServicesAccessor,
 }
 
 export function validateConsistentIndentation(newText: string, insertSpaces: boolean, annotations: OutcomeAnnotation[]): void {
-	const indentationRegex = insertSpaces ? /^[ ]*[\S$]/ : /^\t*(\S|$|( \*))/; // special handling for Doc comments that start with ` *
+	const indentationRegex = insertSpaces ? /^[ ]*[\S$]/ : /^\t*(\S|$|( \*))/;
 	const lines = splitLines(newText);
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		if (line.length > 0 && !indentationRegex.test(line)) {
 			const message = `Expected line ${i} to start with ${insertSpaces ? 'spaces' : 'tabs'}: ${line}`;
 			annotations.push({ label: 'indentation', message, severity: 'warning' });
-			//assert.fail(message);
 		}
 	}
 }

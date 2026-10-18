@@ -119,7 +119,7 @@ export class NotebookSearchService implements INotebookSearchService {
 	private async doesFileExist(includes: string[], folderQueries: IFolderQuery<URI>[], token: CancellationToken): Promise<boolean> {
 		const promises: Promise<boolean>[] = includes.map(async includePattern => {
 			const query = this.queryBuilder.file(folderQueries.map(e => e.folder), {
-				includePattern: includePattern.startsWith('/') ? includePattern : '**/' + includePattern, // todo: find cleaner way to ensure that globs match all appropriate filetypes
+				includePattern: includePattern.startsWith('/') ? includePattern : '**/' + includePattern,
 				exists: true,
 				onlyFileScheme: true,
 			});
@@ -143,10 +143,6 @@ export class NotebookSearchService implements INotebookSearchService {
 
 		userAssociations.forEach(association => {
 
-			// we gather the editor associations here, but cannot check them until we actually have the files that the glob matches
-			// this is because longer patterns take precedence over shorter ones, and even if there is a user association that
-			// specifies the exact same glob as a contributed notebook type, there might be another user association that is longer/more specific
-			// that still matches the path and should therefore take more precedence.
 			if (!association.filenamePattern) {
 				return;
 			}
@@ -197,7 +193,6 @@ export class NotebookSearchService implements INotebookSearchService {
 		const results = searchComplete.flatMap(e => e.results);
 		let limitHit = searchComplete.some(e => e.limitHit);
 
-		// results are already sorted with high priority first, filter out duplicates.
 		const uniqueResults = new ResourceMap<INotebookFileMatchNoModel | null>(uri => this.uriIdentityService.extUri.getComparisonKey(uri));
 
 		let numResults = 0;

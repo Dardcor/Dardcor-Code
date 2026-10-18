@@ -49,18 +49,10 @@ export const BrowserRemoteProxyEnabledSettingId = 'workbench.browser.enableRemot
 export const BrowserNewTabPlacementSettingId = 'workbench.browser.newTabPlacement';
 const OPEN_BROWSER_NAVIGATION_TIMEOUT_MS = 30_000;
 
-/**
- * Where new integrated browser tabs are opened.
- * - `activeGroup`: the currently active editor group (default).
- * - `sideGroup`: a dedicated editor group to the side, locked so that other editors are not opened into it.
- * - `window`: a dedicated auxiliary window, locked so that other editors are not opened into it.
- */
 export type BrowserNewTabPlacement = 'activeGroup' | 'sideGroup' | 'window';
 
-/** The placement kinds that resolve to a new group. */
 type DedicatedGroupPlacement = Exclude<BrowserNewTabPlacement, 'activeGroup'>;
 
-/** Command IDs whose accelerators are shown in browser view context menus. */
 const browserViewContextMenuCommands = [
 	BrowserViewCommandId.GoBack,
 	BrowserViewCommandId.GoForward,
@@ -76,15 +68,8 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 	private readonly _openHandlers = new Set<IBrowserViewOpenHandler>();
 	private readonly _mainWindowId: number;
 
-	/** Latest tunnel-proxy credentials pushed from the local extension host. */
 	private _remoteProxyInfo: ITunnelProxyInfo | undefined;
 
-	/**
-	 * In-flight creation of the dedicated browser window group, used to coalesce
-	 * concurrent requests so we don't spawn multiple auxiliary windows. The group
-	 * itself is not tracked in memory: it is rediscovered dynamically via
-	 * {@link _findDedicatedGroup} so that it survives window reloads.
-	 */
 	private _dedicatedWindowGroupPromise: Promise<IEditorGroup> | undefined;
 
 	private readonly _onDidChangeBrowserViews = this._register(new Emitter<void>());
@@ -128,8 +113,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		this._browserViewService = ProxyChannel.toService<IBrowserViewService>(channel);
 		this._mainWindowId = mainWindow.vscodeWindowId;
 
-		// Send the full per-window configuration as a single unit, and resend it
-		// whenever any of its inputs change.
 		this._updateWindowConfiguration();
 		const chatEnabledKeys = new Set(ChatContextKeys.enabled.keys());
 		this._register(this.keybindingService.onDidUpdateKeybindings(() => this._updateWindowConfiguration()));
@@ -181,13 +164,11 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 			this.logService.error('[BrowserViewWorkbenchService] Failed to initialize existing browser views.', e);
 		});
 
-		// Listen for new browser views
 		this._register(this._browserViewService.onDidCreateBrowserView(e => {
 			if (e.info.host.windowId !== this._mainWindowId) {
-				return; // Not for this window
+				return;
 			}
 
-			// Eagerly create the model from the state we already have
 			this._createModel(e.info, e.initialUrl);
 
 			const editor = this._known.get(e.info.id);
@@ -253,25 +234,19 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 	}
 
 	async getPreferredGroup(preferredGroup?: PreferredGroup): Promise<PreferredGroup | undefined> {
-		// "Open to side" requests are routed into the dedicated side group.
 		if (preferredGroup === SIDE_GROUP) {
 			return this._getOrCreateDedicatedGroup('sideGroup');
 		}
 
-		// Other explicit placements are always honored as-is.
 		if (preferredGroup !== undefined && preferredGroup !== ACTIVE_GROUP) {
 			return preferredGroup;
 		}
 
-		// Honor the user-configured default for new browser tabs.
 		const placement = this.configurationService.getValue<BrowserNewTabPlacement>(BrowserNewTabPlacementSettingId);
 		if (placement === 'sideGroup' || placement === 'window') {
 			return this._getOrCreateDedicatedGroup(placement);
 		}
 
-		// When editors are forced modal via `workbench.editor.useModal: 'all'`,
-		// redirect active/unspecified browser opens to the main editor area so the
-		// browser docks instead of opening as a modal overlay.
 		if (this.configurationService.getValue<UseModalEditorMode>(USE_MODAL_EDITOR_SETTING) === 'all') {
 			return this.editorGroupsService.mainPart.activeGroup;
 		}
@@ -279,12 +254,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		return preferredGroup;
 	}
 
-	/**
-	 * Resolve the dedicated editor group for the given placement, reusing an
-	 * existing locked browser group if one is found (so it survives window
-	 * reloads) or creating and locking a new one otherwise. Side-group creation
-	 * is synchronous; window creation is asynchronous.
-	 */
 	private _getOrCreateDedicatedGroup(placement: DedicatedGroupPlacement): IEditorGroup | Promise<IEditorGroup> {
 		const existing = this._findDedicatedGroup(placement);
 		if (existing) {
@@ -294,13 +263,10 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		if (placement === 'sideGroup') {
 			const direction = preferredSideBySideGroupDirection(this.configurationService);
 			const group = this.editorGroupsService.addGroup(this.editorGroupsService.activeGroup, direction);
-			// Lock the group so that other (non-browser) editors are not opened
-			// into it. Browser tabs still open here because we target it directly.
 			group.lock(true);
 			return group;
 		}
 
-		// Auxiliary-window creation is async; coalesce concurrent requests so we don't spawn multiple windows.
 		if (!this._dedicatedWindowGroupPromise) {
 			this._dedicatedWindowGroupPromise = this.editorGroupsService.createAuxiliaryEditorPart()
 				.then(part => {
@@ -312,13 +278,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		return this._dedicatedWindowGroupPromise;
 	}
 
-	/**
-	 * Find an existing dedicated browser group for the given placement. A group
-	 * qualifies when it is locked and contains a browser editor (or is empty),
-	 * which lets us rediscover the dedicated group after a window reload
-	 * without tracking it in memory. Side groups live in the main editor part;
-	 * window groups live in an auxiliary editor part.
-	 */
 	private _findDedicatedGroup(placement: DedicatedGroupPlacement): IEditorGroup | undefined {
 		const mainPart = this.editorGroupsService.mainPart;
 		for (const group of this.editorGroupsService.groups) {
@@ -428,10 +387,8 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 			!this.workspaceTrustManagementService.isWorkspaceTrusted();
 
 		if (isWorkspaceUntrusted) {
-			// Always use ephemeral sessions for untrusted workspaces
 			dataStorage = BrowserViewStorageScope.Ephemeral;
 		} else if (dataStorage === 'default') {
-			// Workspace-scoped for remote workspaces.
 			dataStorage = this.environmentService.remoteAuthority
 				? BrowserViewStorageScope.Workspace
 				: BrowserViewStorageScope.Global;
@@ -440,10 +397,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		return dataStorage;
 	}
 
-	/**
-	 * Fetch all views owned by this window from the main service and create
-	 * models for them so they are available synchronously.
-	 */
 	private async _initializeExistingViews(): Promise<void> {
 		const views = await this._browserViewService.getBrowserViews(this._mainWindowId);
 		for (const info of views) {
@@ -453,7 +406,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 
 	private _createModel(info: IBrowserViewInfo, initialUrl?: string): IBrowserViewModel {
 		const associatedResource = URI.revive(info.associatedResource);
-		// Don't double-create
 		const input = this._known.get(info.id);
 		const existing = input?.model;
 		if (existing) {
@@ -472,7 +424,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 				: info.state;
 		const model = this.instantiationService.createInstance(BrowserViewModel, info.id, info.host, info.owner, associatedResource, state, this._browserViewService);
 
-		// Sanity: both pass and assign the model to be sure. It will no-op if already set.
 		this._getOrCreateLazy({ id: info.id, associatedResource, url: initialUrl }, model).model = model;
 
 		this._onDidChangeBrowserViews.fire();
@@ -480,29 +431,22 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		return model;
 	}
 
-	/**
-	 * Open an editor tab for a newly created browser view.
-	 */
 	private async _openEditorForCreatedView(view: BrowserEditorInput, owner: IBrowserViewOwner, options: IBrowserViewEditorOpenOptions): Promise<void> {
-		// Give registered handlers a chance to prevent the editor from opening.
 		for (const handler of this._openHandlers) {
 			if (!handler.shouldOpenEditor(view, owner, options)) {
 				return;
 			}
 		}
 
-		// Resolve target group: auxiliary window, parent's group, or default
 		let targetGroup: PreferredGroup | undefined;
 		if (options.auxiliaryWindow) {
 			targetGroup = AUX_WINDOW_GROUP;
 		} else if (options.parentViewId) {
 			targetGroup = this._findEditorGroupForView(options.parentViewId);
 			if (targetGroup === undefined) {
-				return; // If the parent isn't open, don't open the child either
+				return;
 			}
 		} else {
-			// Keep the browser docked in the main editor area even when editors
-			// are forced modal via `workbench.editor.useModal: 'all'`.
 			targetGroup = await this.getPreferredGroup();
 		}
 
@@ -515,9 +459,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 				: undefined,
 		};
 
-		// If the browser is opened by a chat session,
-		// only open in the foreground if the session's widget is currently visible
-		// and not the active editor in the target group.
 		const [group] = await this.instantiationService.invokeFunction(findGroup, { editor: view, options: editorOptions }, targetGroup);
 		if (owner.type === 'agent') {
 			const sessionResource = URI.parse(owner.sessionId);
@@ -533,10 +474,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		void this.editorService.openEditor(view, editorOptions, group);
 	}
 
-	/**
-	 * Find the editor group that currently contains a browser view with the
-	 * given ID, or undefined if not open in any group.
-	 */
 	private _findEditorGroupForView(viewId: string): number | undefined {
 		for (const group of this.editorGroupsService.groups) {
 			for (const editor of group.editors) {
@@ -592,7 +529,6 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 	}
 
 	private _getTrustedFileRoots(): string[] {
-		// Trust Copilot roots so agents can create HTML files and open them in the browser.
 		const roots = new Set(getCopilotRootPaths(this.environmentService.userHome.fsPath, process.env));
 		if (this.workspaceTrustManagementService.isWorkspaceTrusted()) {
 			for (const folder of this.workspaceContextService.getWorkspace().folders) {

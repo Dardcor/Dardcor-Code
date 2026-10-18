@@ -73,7 +73,6 @@ export class GlobalStateResource implements IProfileResource {
 		if (storageKeys.length) {
 			const updatedStorage = new Map<string, string | undefined>();
 			const nonProfileKeys = [
-				// Do not include application scope user target keys because they also include default profile user target keys
 				...this.storageService.keys(StorageScope.APPLICATION, StorageTarget.MACHINE),
 				...this.storageService.keys(StorageScope.WORKSPACE, StorageTarget.USER),
 				...this.storageService.keys(StorageScope.WORKSPACE, StorageTarget.MACHINE),

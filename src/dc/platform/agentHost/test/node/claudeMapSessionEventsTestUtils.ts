@@ -6,13 +6,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { SDKAssistantMessage, SDKPartialAssistantMessage, SDKResultError, SDKResultSuccess, SDKSystemMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 
-// Beta event-stream type aliases. The `Anthropic` namespace re-exports
-// these from `@anthropic-ai/sdk/resources/beta/messages.js`, but
-// importing that subpath directly trips the `local/code-import-patterns`
-// allowlist (the agentHost rule only permits the bare
-// `@anthropic-ai/sdk` specifier). Local aliases via the `Anthropic`
-// import keep the body of this file readable without extending the
-// allowlist.
 export type BetaRawContentBlockDeltaEvent = Anthropic.Beta.BetaRawContentBlockDeltaEvent;
 export type BetaRawContentBlockStartEvent = Anthropic.Beta.BetaRawContentBlockStartEvent;
 export type BetaRawContentBlockStopEvent = Anthropic.Beta.BetaRawContentBlockStopEvent;
@@ -20,19 +13,8 @@ export type BetaRawMessageStartEvent = Anthropic.Beta.BetaRawMessageStartEvent;
 export type BetaRawMessageStopEvent = Anthropic.Beta.BetaRawMessageStopEvent;
 export type BetaContentBlock = Anthropic.Beta.BetaContentBlock;
 
-/**
- * Static fixture uuid used by every helper that needs to emit a
- * `${string}-${string}-${string}-${string}-${string}`-shaped value.
- * Tests that exercise uuid-sensitive logic (e.g. the Cycle C send-seam
- * test) construct their own uuids instead of relying on this constant.
- */
 export const TEST_UUID = '11111111-2222-3333-4444-555555555555';
 
-/**
- * Builds the non-nullable shape of {@link SDKResultSuccess.usage}. Most
- * fields are zeroed; the mapper only reads `input_tokens`,
- * `output_tokens`, and `cache_read_input_tokens`.
- */
 export function makeNonNullableUsage(): SDKResultSuccess['usage'] {
 	return {
 		cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
@@ -106,13 +88,6 @@ export function makeResultError(sessionId: string, errors: string[]): SDKResultE
 	};
 }
 
-// `stream_event` (SDKPartialAssistantMessage) builders. The SDK's
-// `Options.includePartialMessages: true` setting (Phase 6 §3.4) routes
-// raw `BetaRawMessageStreamEvent`s through to the agent so we can map
-// per-token. The deep `BetaMessage` shape on `message_start` carries
-// many required fields irrelevant to mapping; these helpers populate
-// only what the mapper reads, with everything else set to safe zero
-// values so the SDK type-checks pass without `as unknown` casts.
 
 export function makeStreamEvent(
 	sessionId: string,
@@ -201,10 +176,6 @@ export function makeThinkingDelta(index: number, thinking: string): BetaRawConte
 	};
 }
 
-/**
- * Phase 7 §3.3: `content_block_delta` with `input_json_delta` is the
- * stream of partial parameter JSON for an open `tool_use` block.
- */
 export function makeInputJsonDelta(index: number, partialJson: string): BetaRawContentBlockDeltaEvent {
 	return {
 		type: 'content_block_delta',
@@ -224,15 +195,6 @@ export function makeMessageStop(): BetaRawMessageStopEvent {
 	return { type: 'message_stop' };
 }
 
-/**
- * Builds the canonical {@link SDKAssistantMessage} envelope (`type:
- * 'assistant'`) the SDK delivers as the final, authoritative message
- * for a turn alongside its `'stream_event'` partials. The {@link
- * content} blocks mirror what the partial accumulator should already
- * have produced via `content_block_*` events. Only the fields the
- * mapper inspects are filled with real values; the rest are zeroed so
- * the SDK type-checks pass.
- */
 export function makeAssistantMessage(
 	sessionId: string,
 	content: BetaContentBlock[],
@@ -269,15 +231,6 @@ export function makeAssistantMessage(
 	};
 }
 
-/**
- * Builds the synthetic {@link SDKUserMessage} envelope (`type: 'user'`)
- * the SDK delivers as the response to a previously-emitted `tool_use`.
- * Phase 7 §3.3.4 — the mapper detects this by walking
- * `message.content` for `tool_result` blocks and emits a
- * `ChatToolCallComplete` per match. The `content` field is the SDK's
- * `string | (TextBlockParam | ImageBlockParam | ...)[]` shape; the
- * helper accepts a string or pre-built block array verbatim.
- */
 export function makeUserToolResultMessage(
 	sessionId: string,
 	toolUseId: string,

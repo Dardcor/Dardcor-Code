@@ -92,9 +92,6 @@ suite('Stream', () => {
 	});
 
 	test('stream with non-reducible messages', () => {
-		/**
-		 * A complex object that cannot be reduced to a single object.
-		 */
 		class TestMessage {
 			constructor(public value: string) { }
 		}
@@ -237,7 +234,6 @@ suite('Stream', () => {
 		error = false;
 		stream.removeListener('error', errorListener);
 
-		// always leave at least one error listener to streams to avoid unexpected errors during test running
 		stream.on('error', () => { });
 		stream.error(new Error());
 		assert.strictEqual(error, false);
@@ -314,7 +310,6 @@ suite('Stream', () => {
 
 	test('peekReadable - error handling', async () => {
 
-		// 0 Chunks
 		let stream = newWriteableStream(data => data);
 
 		let error: Error | undefined = undefined;
@@ -331,7 +326,6 @@ suite('Stream', () => {
 
 		assert.ok(error);
 
-		// 1 Chunk
 		stream = newWriteableStream(data => data);
 
 		error = undefined;
@@ -349,7 +343,6 @@ suite('Stream', () => {
 
 		assert.ok(error);
 
-		// 2 Chunks
 		stream = newWriteableStream(data => data);
 
 		error = undefined;
@@ -382,7 +375,6 @@ suite('Stream', () => {
 	function readableToStream(readable: Readable<string>): ReadableStream<string> {
 		const stream = newWriteableStream<string>(strings => strings.join());
 
-		// Simulate async behavior
 		setTimeout(() => {
 			let chunk: string | null = null;
 			while ((chunk = readable.read()) !== null) {
@@ -539,7 +531,6 @@ suite('Stream', () => {
 
 		const result = transform(source, { data: string => string + string }, strings => strings.join());
 
-		// Simulate async behavior
 		setTimeout(() => {
 			source.write('1');
 			source.write('2');
@@ -571,18 +562,15 @@ suite('Stream', () => {
 
 	test('prefixedReadable', () => {
 
-		// Basic
 		let readable = prefixedReadable('1,2', arrayToReadable(['3', '4', '5']), val => val.join(','));
 		assert.strictEqual(consumeReadable(readable, val => val.join(',')), '1,2,3,4,5');
 
-		// Empty
 		readable = prefixedReadable('empty', arrayToReadable<string>([]), val => val.join(','));
 		assert.strictEqual(consumeReadable(readable, val => val.join(',')), 'empty');
 	});
 
 	test('prefixedStream', async () => {
 
-		// Basic
 		let stream = newWriteableStream<string>(strings => strings.join());
 		stream.write('3');
 		stream.write('4');
@@ -592,14 +580,12 @@ suite('Stream', () => {
 		let prefixStream = prefixedStream<string>('1,2', stream, val => val.join(','));
 		assert.strictEqual(await consumeStream(prefixStream, val => val.join(',')), '1,2,3,4,5');
 
-		// Empty
 		stream = newWriteableStream<string>(strings => strings.join());
 		stream.end();
 
 		prefixStream = prefixedStream<string>('1,2', stream, val => val.join(','));
 		assert.strictEqual(await consumeStream(prefixStream, val => val.join(',')), '1,2');
 
-		// Error
 		stream = newWriteableStream<string>(strings => strings.join());
 		stream.error(new Error('fail'));
 

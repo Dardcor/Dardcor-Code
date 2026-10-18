@@ -55,9 +55,6 @@ export interface ChatVariablesProps extends BasePromptElementProps, EmbeddedInsi
 	readonly omitReferences?: boolean;
 	readonly isAgent?: boolean;
 	readonly useFixCookbook?: boolean;
-	/**
-	 * If true, file attachment contents are omitted and only the file names/paths are included.
-	 */
 	readonly omitFileContents?: boolean;
 }
 
@@ -72,7 +69,6 @@ export class ChatVariables extends PromptElement<ChatVariablesProps, void> {
 	}
 
 	override async render(state: void, sizing: PromptSizing): Promise<PromptPiece<any, any> | undefined> {
-		// Only check experiment setting for agent mode
 		const omitFileContents = this.props.omitFileContents ?? (this.props.isAgent && this.configurationService.getExperimentBasedConfig(ConfigKey.Advanced.AgentOmitFileAttachmentContents, this.experimentationService));
 		const elements = await renderChatVariables(this.props.chatVariables, this.fileSystemService, this.props.includeFilepath, true, this.props.omitReferences, this.props.isAgent, this.props.useFixCookbook, omitFileContents);
 		if (elements.length === 0) {
@@ -123,11 +119,6 @@ export class UserQuery extends PromptElement<QueryProps, void> {
 	}
 }
 
-/**
- * Builds the user message for a slash command query. If the query matches a slash command
- * that corresponds to a prompt file, returns an instruction to follow that prompt file
- * (with any trailing arguments). Otherwise, returns the original query.
- */
 export function buildSlashCommandUserMessage(query: string, chatVariables: ChatVariablesCollection): string {
 	const match = parseSlashCommand(query, chatVariables);
 	if (match) {
@@ -141,15 +132,9 @@ export function buildSlashCommandUserMessage(query: string, chatVariables: ChatV
 export interface ChatVariablesAndQueryProps extends BasePromptElementProps, EmbeddedInsideUserMessage {
 	readonly query: string;
 	readonly chatVariables: ChatVariablesCollection;
-	/**
-	 * By default, the chat variables are reversed. Set this to true to maintain the variable order.
-	 */
 	readonly maintainOrder?: boolean;
 	readonly includeFilepath?: boolean;
 	readonly omitReferences?: boolean;
-	/**
-	 * If true, file attachment contents are omitted and only the file names/paths are included.
-	 */
 	readonly omitFileContents?: boolean;
 }
 
@@ -204,7 +189,7 @@ export async function renderChatVariables(chatVariables: ChatVariablesCollection
 			: FilePathMode.None;
 	for (const variable of chatVariables) {
 		const { uniqueName: variableName, value: variableValue, reference } = variable;
-		if (isInstructionFile(variable.reference) || isCustomizationsIndex(variable.reference) || isPromptFile(variable.reference)) { // instructions and index are handled in the `CustomInstructions` element, prompt file as part of the UserQuery
+		if (isInstructionFile(variable.reference) || isCustomizationsIndex(variable.reference) || isPromptFile(variable.reference)) {
 			continue;
 		}
 
@@ -216,7 +201,6 @@ export async function renderChatVariables(chatVariables: ChatVariablesCollection
 		if (URI.isUri(variableValue) || isLocation(variableValue)) {
 			const uri = 'uri' in variableValue ? variableValue.uri : variableValue;
 
-			// Check if the variable is a directory
 			let isDirectory = false;
 			try {
 				const stat = await fileSystemService.stat(uri);
@@ -238,8 +222,6 @@ export async function renderChatVariables(chatVariables: ChatVariablesCollection
 				/>;
 
 				if (!isAgent || (!URI.isUri(variableValue) || variableValue.scheme !== Schemas.vscodeNotebookCellOutput)) {
-					// When attaching outupts, there's no need to add the entire notebook file again, as model can request the notebook file.
-					// In non agent mode, we need to add the file for context.
 					elements.push(file);
 				}
 				if (URI.isUri(variableValue) && variableValue.scheme === Schemas.vscodeNotebookCellOutput) {
@@ -258,7 +240,7 @@ export async function renderChatVariables(chatVariables: ChatVariablesCollection
 			);
 		} else if (variableValue instanceof ChatReferenceBinaryData) {
 			elements.push(<Image variableName={variableName} variableValue={await variableValue.data()} reference={variableValue.reference} omitReferences={omitReferences}></Image>);
-		} else if (typeof ChatReferenceDiagnostic !== 'undefined' && variableValue instanceof ChatReferenceDiagnostic) { // check undefined to avoid breaking old Insiders versions
+		} else if (typeof ChatReferenceDiagnostic !== 'undefined' && variableValue instanceof ChatReferenceDiagnostic) {
 			elements.push(<DiagnosticVariable diagnostics={variableValue.diagnostics} useCookbook={useFixCookbook ?? false} />);
 		}
 	}
@@ -268,7 +250,6 @@ export async function renderChatVariables(chatVariables: ChatVariablesCollection
 interface IDiagnosticVariableProps extends BasePromptElementProps {
 	diagnostics: [uri: Uri, diagnostics: Diagnostic[]][];
 	useCookbook?: boolean;
-	// useRelatedInfo?: boolean;
 }
 
 const diagnosticSeverityMap: { [K in DiagnosticSeverity]: string } = {
@@ -345,9 +326,6 @@ interface IFolderVariableProps extends BasePromptElementProps {
 	folderUri: Uri;
 	omitReferences?: boolean;
 	description?: string;
-	/**
-	 * If true, folder contents (file tree) are omitted and only the folder path is included.
-	 */
 	omitContents?: boolean;
 }
 
@@ -362,7 +340,6 @@ class FolderVariable extends PromptElement<IFolderVariableProps, IFileTreeData |
 
 	override async prepare(sizing: PromptSizing): Promise<IFileTreeData | undefined> {
 		if (this.props.omitContents) {
-			// Skip fetching the file tree when contents are omitted
 			return undefined;
 		}
 		try {
@@ -370,7 +347,6 @@ class FolderVariable extends PromptElement<IFolderVariableProps, IFileTreeData |
 				workspaceVisualFileTree(accessor, this.props.folderUri, { maxLength: 2000, excludeDotFiles: false }, CancellationToken.None)
 			);
 		} catch {
-			// Directory doesn't exist or is not accessible
 			return undefined;
 		}
 	}
@@ -402,9 +378,6 @@ interface IToolCallResult {
 	readonly value: LanguageModelToolResult2;
 }
 
-/**
- * Render toolReferences set on the request.
- */
 export class ChatToolReferences extends PromptElement<ChatToolCallProps, void> {
 	constructor(
 		props: ChatToolCallProps,
@@ -482,7 +455,7 @@ export class ChatToolReferences extends PromptElement<ChatToolCallProps, void> {
 	}
 
 	private async fetchToolArgs(tool: LanguageModelToolInformation, endpoint: IChatEndpoint): Promise<any> {
-		const ownTool = this.toolsService.getCopilotTool(tool.name as ToolName);
+		const ownTool = this.toolsService.getAgentTool(tool.name as ToolName);
 		if (typeof ownTool?.provideInput === 'function') {
 			const input = await ownTool.provideInput(this.props.promptContext);
 			if (input) {

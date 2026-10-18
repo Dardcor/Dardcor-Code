@@ -50,11 +50,6 @@ import { BrowserUrlBarWidget, IBrowserUrlBarHost, IUrlPickerItem } from '../widg
 const CONTEXT_BROWSER_CAN_GO_BACK = new RawContextKey<boolean>('browserCanGoBack', false, localize('browser.canGoBack', "Whether the browser can go back"));
 const CONTEXT_BROWSER_CAN_GO_FORWARD = new RawContextKey<boolean>('browserCanGoForward', false, localize('browser.canGoForward', "Whether the browser can go forward"));
 
-/**
- * Browser navigation bar widget: nav toolbar (back/forward/etc), URL bar
- * (display + editing picker, see {@link BrowserUrlBarWidget}), actions toolbar.
- * Owned by {@link BrowserNavigationFeatures}.
- */
 class BrowserNavigationBar extends Disposable {
 	readonly element: HTMLElement;
 	private readonly _urlBar: BrowserUrlBarWidget;
@@ -103,7 +98,6 @@ class BrowserNavigationBar extends Disposable {
 					}
 					return undefined;
 				},
-				// Render all actions inline regardless of group.
 				toolbarOptions: { primaryGroup: () => true, useSeparatorsInPrimaryActions: true },
 				menuOptions: { shouldForwardArgs: true }
 			}
@@ -135,14 +129,11 @@ class BrowserNavigationBar extends Disposable {
 					kind: 'last',
 					minItems: 0,
 
-					// The URL bar is the flexible element, so the actions toolbar's own
-					// element width does not reflect the room it could occupy.
-					// So we pass manual calculations based on the navbar's overall width and the URL bar's width.
 					observedElement: this.element,
 					getAvailableWidth: () => {
 						const toolbarBounds = this.element.getBoundingClientRect();
 						const urlBarBounds = this._urlBar.element.getBoundingClientRect();
-						return Math.max(0, toolbarBounds.right - urlBarBounds.left - 240 /* approximate: preferred width of the URL input plus padding */);
+						return Math.max(0, toolbarBounds.right - urlBarBounds.left - 240 );
 					}
 				},
 			}
@@ -170,25 +161,11 @@ class BrowserNavigationBar extends Disposable {
 		this._urlBar.mountContributions(contributions);
 	}
 
-	/**
-	 * The configured address bar search engine, or `undefined` when search
-	 * routing is disabled (the setting is `'none'`).
-	 */
 	private get _searchEngine(): BrowserSearchEngineId | undefined {
 		const value = this._configurationService.getValue<string>(BrowserSearchEngineSettingId);
 		return value && value !== BROWSER_SEARCH_NONE ? value as BrowserSearchEngineId : undefined;
 	}
 
-	/**
-	 * The URL bar's primary picker item(s) for the given text, mirroring
-	 * Chrome/Edge. With search enabled: a URL reads "{url}" (globe icon) first
-	 * with a search fallback after, a clear query reads "{query} - {engine}
-	 * Search" (search icon), and an ambiguous input offers both — Search first,
-	 * then Go to — so the user can pick. The destination URL is resolved here
-	 * (search text → search-engine URL) so {@link BrowserEditorInput.navigate}
-	 * receives a plain URL; the telemetry source is passed through so a
-	 * search-initiated navigation is tracked as such.
-	 */
 	private _resolvePrimaryActions(text: string): IUrlPickerItem[] {
 		const goTo: IUrlPickerItem = {
 			id: text,
@@ -215,22 +192,16 @@ class BrowserNavigationBar extends Disposable {
 		};
 		switch (resolveAddressBarInputType(text)) {
 			case 'url':
-				// Looks like a URL: navigate first, but still offer search after.
 				return [goTo, search];
 			case 'query':
 				return [search];
 			default:
-				// Ambiguous: offer both, search first.
 				return [search, goTo];
 		}
 	}
 }
 
 
-/**
- * Owns the navbar widget and the navigation-related context keys. Mounts
- * sibling PreUrl/PostUrl widgets and URL renderers into the navbar.
- */
 export class BrowserNavigationFeatures extends BrowserEditorContribution {
 
 	private readonly _navbar: BrowserNavigationBar;
@@ -238,11 +209,6 @@ export class BrowserNavigationFeatures extends BrowserEditorContribution {
 	private readonly _canGoForwardContext: IContextKey<boolean>;
 	private readonly _pendingTryFocus = this._register(new MutableDisposable());
 
-	/**
-	 * Whether a navigation has been initiated on the current tab. Once true,
-	 * an empty URL means "navigation in flight" rather than "fresh tab", so
-	 * {@link tryFocus} keeps focus on the page instead of reopening the picker.
-	 */
 	private _hasInitiatedNavigation = false;
 
 	constructor(
@@ -257,8 +223,6 @@ export class BrowserNavigationFeatures extends BrowserEditorContribution {
 		this._canGoBackContext = CONTEXT_BROWSER_CAN_GO_BACK.bindTo(contextKeyService);
 		this._canGoForwardContext = CONTEXT_BROWSER_CAN_GO_FORWARD.bindTo(contextKeyService);
 
-		// Keep the URL bar presentation (placeholder, primary action) in sync
-		// when the user toggles search settings while the bar is visible.
 		this._register(configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(BrowserSearchEngineSettingId)) {
 				this._navbar.refreshUrl();
@@ -287,8 +251,6 @@ export class BrowserNavigationFeatures extends BrowserEditorContribution {
 	}
 
 	protected override onModelAttached(model: IBrowserViewModel, store: DisposableStore): void {
-		// A model that is already loading on attach (e.g. switching back to a
-		// tab mid-navigation) counts as having initiated navigation.
 		this._hasInitiatedNavigation = model.loading;
 		this._updateFromModel(model);
 		store.add(model.onDidNavigate(() => this._updateFromModel(model)));
@@ -308,15 +270,11 @@ export class BrowserNavigationFeatures extends BrowserEditorContribution {
 	override tryFocus(): boolean {
 		const input = this.editor.input;
 
-		// Defer one tick so editor-tab activation can focus the tab control first;
-		// then we move focus into the browser editor's URL flow.
 		this._pendingTryFocus.value = disposableTimeout(() => {
 			if (this.editor.input !== input) {
 				return;
 			}
 
-			// A new tab (no URL loaded) auto-opens the picker so the user can immediately type / browse suggestions.
-			// Otherwise we move focus into the browser editor so it doesn't stay on the tab control.
 			const url = this.editor.model?.url ?? (input instanceof BrowserEditorInput ? input.url : undefined);
 			if (!url && !this._hasInitiatedNavigation) {
 				this._navbar.openUrlPicker();
@@ -508,7 +466,6 @@ class OpenInExternalBrowserAction extends Action2 {
 			category: BrowserActionCategory,
 			icon: Codicon.linkExternal,
 			f1: true,
-			// Note: We do allow opening in an external browser even if there is an error page shown
 			precondition: ContextKeyExpr.and(BROWSER_EDITOR_ACTIVE, CONTEXT_BROWSER_HAS_URL),
 			menu: {
 				id: MenuId.BrowserActionsToolbar,
@@ -525,9 +482,7 @@ class OpenInExternalBrowserAction extends Action2 {
 			if (url) {
 				const openerService = accessor.get(IOpenerService);
 				await openerService.open(url, {
-					// ensures that VS Code itself doesn't try to open the URL, even for non-"http(s):" scheme URLs.
 					openExternal: true,
-					// ensures that the link isn't opened in Integrated Browser or other contributed external openers. False is the default, but just being explicit here.
 					allowContributedOpeners: false
 				});
 			}

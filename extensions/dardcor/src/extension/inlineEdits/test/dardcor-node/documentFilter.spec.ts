@@ -102,7 +102,6 @@ describe('DocumentFilter', () => {
 
 		// a language without an explicit setting falls back to the (overridden) global setting
 		expect(documentFilter.isLanguageEnabled(js)).toBe(true);
-		// an explicit per-language disablement is still respected
 		expect(documentFilter.isLanguageEnabled('markdown')).toBe(false);
 	});
 });

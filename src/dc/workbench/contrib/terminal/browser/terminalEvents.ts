@@ -29,7 +29,6 @@ export function createInstanceCapabilityEventMultiplexer<T extends TerminalCapab
 		instanceCapabilityListeners.set(capability, listener);
 	}
 
-	// Existing instances
 	for (const instance of currentInstances) {
 		const capability = instance.capabilities.get(capabilityId);
 		if (capability) {
@@ -37,12 +36,10 @@ export function createInstanceCapabilityEventMultiplexer<T extends TerminalCapab
 		}
 	}
 
-	// Removed instances
 	store.add(onRemoveInstance(instance => {
 		capabilityListeners.deleteAndDispose(instance.instanceId);
 	}));
 
-	// Added capabilities
 	const addCapabilityMultiplexer = store.add(new DynamicListEventMultiplexer(
 		currentInstances,
 		onAddInstance,
@@ -53,7 +50,6 @@ export function createInstanceCapabilityEventMultiplexer<T extends TerminalCapab
 		addCapability(e.instance, e.changeEvent);
 	}));
 
-	// Removed capabilities
 	const removeCapabilityMultiplexer = store.add(new DynamicListEventMultiplexer(
 		currentInstances,
 		onAddInstance,

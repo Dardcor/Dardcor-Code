@@ -42,29 +42,13 @@ use super::agent_host_metadata::{
 use super::paths::{get_server_folder_name, SERVER_FOLDER_NAME};
 use super::shutdown_signal::ShutdownSignal;
 
-/// How often to check for server updates.
 pub const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
-/// How often to re-check whether the server has exited when an update is pending.
 pub const UPDATE_POLL_INTERVAL: Duration = Duration::from_secs(10 * 60);
-/// How long to wait for the server to signal readiness.
 pub const STARTUP_TIMEOUT: Duration = Duration::from_secs(30);
-/// Environment variable carrying the path of the management control
-/// socket the CLI is listening on. Read by the agent host server at
-/// startup; its presence is what tells the server that it has a managing
-/// CLI and may therefore advertise the management RPC method to clients.
 pub const MANAGEMENT_SOCKET_ENV: &str = "VSCODE_AGENT_HOST_MANAGEMENT_SOCKET";
 
-/// Environment variable holding a commit SHA used to override the agent
-/// host version the *first* time it is resolved. When set, the agent host
-/// is initially downloaded and started at this commit; subsequent upgrades
-/// still resolve the real latest version. Intended for testing the upgrade
-/// flow.
 pub const INITIAL_AGENT_HOST_VERSION_ENV: &str = "VSCODE_CLI_INITIAL_AH_VERSION";
 
-/// Reads {@link INITIAL_AGENT_HOST_VERSION_ENV}, returning the commit SHA
-/// override if it is set to a non-empty value. The value is restricted to
-/// hex digits so it can't smuggle path separators (`/`, `..`) or other
-/// characters into the URL and filesystem paths derived from the commit.
 fn initial_agent_host_version() -> Option<String> {
 	match std::env::var(INITIAL_AGENT_HOST_VERSION_ENV) {
 		Ok(v) => {
@@ -79,13 +63,8 @@ fn initial_agent_host_version() -> Option<String> {
 	}
 }
 
-/// Delay between sending the upgrade response and actually killing the
-/// running server. Lets the response hop back through the CLI proxy and
-/// reach the requesting client before the transport drops out from under
-/// it, so the user sees the "upgrading" status before reconnect kicks in.
 const UPGRADE_KILL_DELAY: Duration = Duration::from_secs(3);
 
-/// Configuration for the agent host server process.
 #[derive(Clone, Debug)]
 pub struct AgentHostConfig {
 	pub server_data_dir: Option<String>,
@@ -94,38 +73,22 @@ pub struct AgentHostConfig {
 	pub connection_token_file: Option<String>,
 }
 
-/// State of the running VS Code server process.
 struct RunningServer {
 	child: tokio::process::Child,
 	commit: String,
 }
 
-/// Manages the VS Code server lifecycle: on-demand start, auto-restart
-/// after idle shutdown, and background update checking.
 pub struct AgentHostManager {
 	log: log::Logger,
 	config: AgentHostConfig,
 	platform: Platform,
 	cache: DownloadCache,
 	update_service: UpdateService,
-	/// The latest known release, with the time it was checked.
 	latest_release: Mutex<Option<(Instant, Release)>>,
-	/// The currently running server, if any.
 	running: Mutex<Option<RunningServer>>,
-	/// Barrier that opens when a server is ready (socket path available).
-	/// Reset each time a new server is started.
 	ready: Mutex<Option<Barrier<Result<PathBuf, String>>>>,
-	/// Path of the management control socket. Generated up-front; cheap.
-	/// Spawned servers receive this via {@link MANAGEMENT_SOCKET_ENV} and
-	/// dial it to forward client-initiated upgrade requests back to us.
 	management_socket_path: PathBuf,
-	/// Guards spawning the management listener so it only starts once,
-	/// even if multiple server starts race.
 	management_listener_started: AtomicBool,
-	/// Guards the upgrade pipeline so concurrent `POST /upgrade` requests
-	/// don't each spawn their own kill+restart task and trip over each
-	/// other. Set once download completes and the kill is scheduled;
-	/// cleared by the spawned task once the restart attempt finishes.
 	upgrade_in_progress: AtomicBool,
 }
 
@@ -152,14 +115,11 @@ impl AgentHostManager {
 		})
 	}
 
-	/// Returns an endpoint to a running agent host, starting one if needed.
 	async fn ensure_server(self: &Arc<Self>) -> Result<PathBuf, CodeError> {
-		// Fast path: if we already have a barrier, wait on it
 		{
 			let ready = self.ready.lock().await;
 			if let Some(barrier) = &*ready {
 				if barrier.is_open() {
-					// Check if the process is still running
 					let running = self.running.lock().await;
 					if running.is_some() {
 						return barrier
@@ -170,7 +130,6 @@ impl AgentHostManager {
 							.map_err(CodeError::ServerDownloadError);
 					}
 				} else {
-					// Still starting up, wait for it
 					let mut barrier = barrier.clone();
 					drop(ready);
 					return barrier
@@ -182,17 +141,10 @@ impl AgentHostManager {
 			}
 		}
 
-		// Need to start a new server
 		self.start_server().await
 	}
 
-	/// Starts the server with the latest already-downloaded version.
-	/// Only blocks on a network fetch if no version has been downloaded yet.
 	async fn start_server(self: &Arc<Self>) -> Result<PathBuf, CodeError> {
-		// Every managed agent host gets a management listener: the
-		// listener is what makes server upgrades possible, and every
-		// AgentHostManager-managed server can be upgraded. Idempotent so
-		// concurrent first-starts don't race two listeners.
 		self.ensure_management_listener();
 
 		let (release, server_dir) = self.get_cached_or_download().await?;
@@ -218,7 +170,6 @@ impl AgentHostManager {
 			.map_err(CodeError::ServerDownloadError)
 	}
 
-	/// Runs the server process to completion, handling readiness signaling.
 	async fn run_server(
 		self: &Arc<Self>,
 		release: Release,
@@ -277,7 +228,6 @@ impl AgentHostManager {
 			BufReader::new(child.stderr.take().unwrap()).lines(),
 		);
 
-		// Wait for readiness with a timeout
 		let mut opener = Some(opener);
 		let socket_path = agent_host_socket.clone();
 		let startup_deadline = tokio::time::sleep(STARTUP_TIMEOUT);
@@ -300,7 +250,6 @@ impl AgentHostManager {
 				}
 				_ = &mut startup_deadline, if !ready => {
 					warning!(self.log, "[{}]: Server did not become ready within {}s", commit_prefix, STARTUP_TIMEOUT.as_secs());
-					// Don't fail — the server may still start up, just slowly
 					if let Some(o) = opener.take() {
 						o.open(Ok(socket_path.clone()));
 					}
@@ -311,9 +260,6 @@ impl AgentHostManager {
 					if let Some(o) = opener.take() {
 						o.open(Err(format!("Server exited before ready: {e:?}")));
 					}
-					// Child has already exited; don't store it in `running`,
-					// otherwise the manager would be wedged with a dead child
-					// forever and ensure_server() would never restart.
 					return;
 				}
 			}
@@ -323,7 +269,6 @@ impl AgentHostManager {
 			}
 		}
 
-		// Store the running server state
 		{
 			let mut running = self.running.lock().await;
 			*running = Some(RunningServer {
@@ -334,7 +279,6 @@ impl AgentHostManager {
 
 		info!(self.log, "[{}]: Server ready", commit_prefix);
 
-		// Continue reading output until the process exits
 		let log = self.log.clone();
 		let commit_prefix = commit_prefix.to_string();
 		let self_clone = self.clone();
@@ -351,7 +295,6 @@ impl AgentHostManager {
 				}
 			}
 
-			// Server process has exited (auto-shutdown or crash)
 			info!(log, "[{}]: Server process ended", commit_prefix);
 			let mut running = self_clone.running.lock().await;
 			if let Some(r) = &*running {
@@ -362,13 +305,7 @@ impl AgentHostManager {
 		});
 	}
 
-	/// Returns a release and its local directory. Prefers the latest known
-	/// release if it has already been downloaded; otherwise falls back to any
-	/// cached version. Only fetches from the network and downloads if
-	/// nothing is cached at all.
 	async fn get_cached_or_download(&self) -> Result<(Release, PathBuf), CodeError> {
-		// When using a dev override, skip the update service entirely -
-		// the override path is used directly by run_server().
 		if option_env!("VSCODE_CLI_OVERRIDE_SERVER_PATH").is_some() {
 			let release = Release {
 				name: String::new(),
@@ -380,7 +317,6 @@ impl AgentHostManager {
 			return Ok((release, PathBuf::new()));
 		}
 
-		// Best case: the latest known release is already downloaded
 		if let Some((_, release)) = &*self.latest_release.lock().await {
 			let name = get_server_folder_name(release.quality, &release.commit);
 			if let Some(dir) = self.cache.exists(&name) {
@@ -388,9 +324,6 @@ impl AgentHostManager {
 			}
 		}
 
-		// On the very first resolution, an explicit initial version override
-		// (used to test the upgrade flow) must win over the generic cached
-		// fallback below so the requested commit is what we download and start.
 		if self.latest_release.lock().await.is_none() && initial_agent_host_version().is_some() {
 			let release = self.get_latest_release().await?;
 			let dir = self.ensure_downloaded(&release).await?;
@@ -403,8 +336,6 @@ impl AgentHostManager {
 				Quality::try_from(q).map_err(|_| CodeError::UpdatesNotConfigured("unknown quality"))
 			})?;
 
-		// Fall back to any cached version (still instant, just not the newest).
-		// Cache entries are named "<quality>-<commit>" via get_server_folder_name.
 		for entry in self.cache.get() {
 			if let Some(dir) = self.cache.exists(&entry) {
 				let (entry_quality, commit) = match entry.split_once('-') {
@@ -425,14 +356,12 @@ impl AgentHostManager {
 			}
 		}
 
-		// Nothing cached — must fetch and download (blocks the first connection)
 		info!(self.log, "No cached server version, downloading latest...");
 		let release = self.get_latest_release().await?;
 		let dir = self.ensure_downloaded(&release).await?;
 		Ok((release, dir))
 	}
 
-	/// Ensures the release is downloaded, returning the server directory.
 	pub async fn ensure_downloaded(&self, release: &Release) -> Result<PathBuf, CodeError> {
 		let cache_name = get_server_folder_name(release.quality, &release.commit);
 		if let Some(dir) = self.cache.exists(&cache_name) {
@@ -463,7 +392,6 @@ impl AgentHostManager {
 			.map_err(|e| CodeError::ServerDownloadError(e.to_string()))
 	}
 
-	/// Gets the latest release, caching the result.
 	pub async fn get_latest_release(&self) -> Result<Release, CodeError> {
 		let mut latest = self.latest_release.lock().await;
 		let now = Instant::now();
@@ -474,11 +402,6 @@ impl AgentHostManager {
 				Quality::try_from(q).map_err(|_| CodeError::UpdatesNotConfigured("unknown quality"))
 			})?;
 
-		// The first time we resolve a version, honor an explicit commit
-		// override so the upgrade flow can be tested: the agent host is
-		// initially downloaded and started at this commit, and a subsequent
-		// upgrade (which calls this method again, with `latest` already set)
-		// still resolves the real latest version.
 		if latest.is_none() {
 			if let Some(commit) = initial_agent_host_version() {
 				let release = Release {
@@ -503,7 +426,6 @@ impl AgentHostManager {
 			.await
 			.map_err(|e| CodeError::UpdateCheckFailed(e.to_string()));
 
-		// If the update service is unavailable, fall back to the cached version
 		if let (Err(e), Some((_, previous))) = (&result, latest.clone()) {
 			warning!(self.log, "Error checking for updates, using cached: {}", e);
 			*latest = Some((now, previous.clone()));
@@ -516,11 +438,9 @@ impl AgentHostManager {
 		Ok(release)
 	}
 
-	/// Background loop: checks for updates periodically and pre-downloads
-	/// new versions when the server is idle.
 	pub async fn run_update_loop(self: Arc<Self>) {
 		let mut interval = tokio::time::interval(UPDATE_CHECK_INTERVAL);
-		interval.tick().await; // skip the immediate first tick
+		interval.tick().await;
 
 		loop {
 			interval.tick().await;
@@ -533,7 +453,6 @@ impl AgentHostManager {
 				}
 			};
 
-			// Check if we already have this version
 			let name = get_server_folder_name(new_release.quality, &new_release.commit);
 			if self.cache.exists(&name).is_some() {
 				continue;
@@ -541,7 +460,6 @@ impl AgentHostManager {
 
 			info!(self.log, "New server version available: {}", new_release);
 
-			// Wait until the server is not running before downloading
 			loop {
 				{
 					let running = self.running.lock().await;
@@ -553,7 +471,6 @@ impl AgentHostManager {
 				tokio::time::sleep(UPDATE_POLL_INTERVAL).await;
 			}
 
-			// Download the new version
 			match self.ensure_downloaded(&new_release).await {
 				Ok(_) => info!(self.log, "Updated server to {}", new_release),
 				Err(e) => warning!(self.log, "Failed to download update: {}", e),
@@ -561,23 +478,12 @@ impl AgentHostManager {
 		}
 	}
 
-	/// Kills the currently running server, if any.
-	///
-	/// The server is launched via a bash/cmd shim (`<server>/bin/code-server-<quality>`)
-	/// which `spawn`s the underlying `node ... server-main.js` child. A plain
-	/// `child.kill()` only terminates the shim and reparents the node child to
-	/// PID 1, leaking it. `kill_tree` signals the shim and its descendants so
-	/// the node process is reaped along with the launcher. See issue #319516.
 	pub async fn kill_running_server(&self) {
 		let mut running = self.running.lock().await;
 		if let Some(mut server) = running.take() {
 			if let Some(pid) = server.child.id() {
 				let _ = kill_tree(pid).await;
 			}
-			// Reap the child so we don't leave a zombie. Bound the wait so a
-			// process that ignores SIGTERM can't wedge the supervisor's
-			// shutdown or upgrade path; escalate to SIGKILL via Child::kill if
-			// the graceful shutdown doesn't land in time.
 			const REAP_TIMEOUT: Duration = Duration::from_secs(5);
 			if tokio::time::timeout(REAP_TIMEOUT, server.child.wait())
 				.await
@@ -594,17 +500,10 @@ impl AgentHostManager {
 		}
 	}
 
-	/// Path the management socket is (or will be) bound on. Useful for
-	/// tests and callers that want to verify the path the spawned server
-	/// would dial.
 	pub fn management_socket_path(&self) -> &PathBuf {
 		&self.management_socket_path
 	}
 
-	/// Spawns the management listener task if it hasn't been started yet.
-	/// Idempotent: subsequent calls are no-ops, so it's safe to invoke on
-	/// every `start_server` call. Called automatically from `start_server`
-	/// — direct callers should only need this in tests.
 	pub fn ensure_management_listener(self: &Arc<Self>) {
 		if self
 			.management_listener_started
@@ -618,17 +517,6 @@ impl AgentHostManager {
 		});
 	}
 
-	/// Serves the HTTP control API on the management socket (advertised to
-	/// spawned servers via {@link MANAGEMENT_SOCKET_ENV}). Currently
-	/// exposes a single endpoint, `POST /upgrade`, used by the agent host
-	/// server to forward client-initiated upgrade requests.
-	///
-	/// On bind failure, clears {@link management_listener_started} so a
-	/// subsequent {@link ensure_management_listener} call (e.g. from the
-	/// next `start_server`) can retry. Without that, a transient bind
-	/// error (leftover socket, EACCES, etc.) would permanently leave
-	/// spawned servers with `MANAGEMENT_SOCKET_ENV` set but nothing
-	/// listening behind it.
 	async fn run_management_listener(self: Arc<Self>) {
 		let path = &self.management_socket_path;
 		let mut listener = match listen_socket_rw_stream(path).await {
@@ -671,7 +559,6 @@ impl AgentHostManager {
 		}
 	}
 
-	/// Routes a single HTTP request received on the management socket.
 	async fn handle_management_request(
 		self: Arc<Self>,
 		req: Request<Incoming>,
@@ -685,16 +572,6 @@ impl AgentHostManager {
 			.unwrap())
 	}
 
-	/// Implements the `POST /upgrade` endpoint. The download is awaited
-	/// *synchronously* so that the `upgradeStarted` flag in the response
-	/// reflects committed work — i.e. the kill+restart is actually about
-	/// to happen — rather than an aspirational guess that may silently
-	/// abort if the download fails. Concurrent requests are deduplicated
-	/// through {@link Self::upgrade_in_progress}.
-	///
-	/// The response carries `restart_delay_ms` so the client knows how long
-	/// to wait before reconnecting: the kill is intentionally delayed to
-	/// let the response itself drain back through the proxy.
 	async fn handle_upgrade_request(self: Arc<Self>) -> Response<HyperBody> {
 		let running_commit = {
 			let running = self.running.lock().await;
@@ -740,9 +617,6 @@ impl AgentHostManager {
 			);
 		}
 
-		// Serialize against other in-flight upgrades. We swap to true and
-		// only proceed if we were the ones to flip the flag; otherwise
-		// surface that an upgrade is already scheduled.
 		if self.upgrade_in_progress.swap(true, Ordering::SeqCst) {
 			return json_response(
 				200,
@@ -758,9 +632,6 @@ impl AgentHostManager {
 			);
 		}
 
-		// Download synchronously so we don't lie to the client about
-		// `upgradeStarted`. The background update loop usually pre-fetches
-		// this, so the common path is a no-op.
 		if let Err(e) = self.ensure_downloaded(&new_release).await {
 			warning!(self.log, "Failed to download upgrade {}: {}", new_release, e);
 			self.upgrade_in_progress.store(false, Ordering::SeqCst);
@@ -778,17 +649,11 @@ impl AgentHostManager {
 			);
 		}
 
-		// Download succeeded — commit to the kill+restart. Schedule it
-		// after the delay so the HTTP response we're about to return can
-		// drain back through the proxy to the original requesting client
-		// before the transport drops.
 		let self_clone = self.clone();
 		let release_commit = new_release.commit.clone();
 		tokio::spawn(async move {
 			tokio::time::sleep(UPGRADE_KILL_DELAY).await;
 			self_clone.kill_running_server().await;
-			// Eagerly spin up the new server so the next dial sees a
-			// ready endpoint instead of paying for startup again.
 			match self_clone.start_server().await {
 				Ok(_) => info!(self_clone.log, "Restarted agent host on {}", release_commit),
 				Err(e) => warning!(self_clone.log, "Failed to restart agent host after upgrade: {}", e),
@@ -811,9 +676,6 @@ impl AgentHostManager {
 	}
 }
 
-/// JSON body returned by the management socket's `POST /upgrade` endpoint.
-/// Forwarded verbatim by the agent host server back to the client that
-/// invoked the upgrade RPC, so the UI can describe what happened.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 struct UpgradeResponse {
 	ok: bool,
@@ -825,9 +687,6 @@ struct UpgradeResponse {
 	running_commit: Option<String>,
 	#[serde(rename = "latestCommit", skip_serializing_if = "Option::is_none")]
 	latest_commit: Option<String>,
-	/// Milliseconds the client should wait after this response before
-	/// reconnecting. Set only when `upgrade_started` is true. Lets the
-	/// client avoid landing on the still-running pre-upgrade server.
 	#[serde(rename = "restartDelayMs", skip_serializing_if = "Option::is_none")]
 	restart_delay_ms: Option<u64>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -843,9 +702,7 @@ fn json_response<T: Serialize>(status: u16, body: &T) -> Response<HyperBody> {
 		.unwrap()
 }
 
-// ---- HTTP/WebSocket proxy ---------------------------------------------------
 
-/// Proxies an incoming HTTP/WebSocket request to the agent host's Unix socket.
 pub async fn handle_request(
 	manager: Arc<AgentHostManager>,
 	req: Request<Incoming>,
@@ -884,7 +741,6 @@ pub async fn handle_request(
 	}
 }
 
-/// Proxies a standard HTTP request through the given upstream stream.
 async fn forward_http_to_server<T>(rw: T, req: Request<Incoming>) -> Response<HyperBody>
 where
 	T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
@@ -903,7 +759,6 @@ where
 	}
 }
 
-/// Proxies a WebSocket upgrade request through the given upstream stream.
 async fn forward_ws_to_server<T>(
 	log: log::Logger,
 	rw: T,
@@ -986,14 +841,7 @@ fn connection_err(err: hyper::Error) -> Response<HyperBody> {
 		.unwrap()
 }
 
-// ---- Sidecar ----------------------------------------------------------------
 
-/// A CLI-owned agent host sidecar: binds a public listener up front, writes
-/// the canonical lockfile pointing at it, and lazily starts/maintains the
-/// underlying VS Code server through an [`AgentHostManager`]. The lockfile is
-/// removed on shutdown / drop only when the recorded PID still matches this
-/// process, so a foreign sidecar that has taken over the same path is left
-/// alone.
 pub struct AgentHostSidecar {
 	log: log::Logger,
 	manager: Arc<AgentHostManager>,
@@ -1005,16 +853,6 @@ pub struct AgentHostSidecar {
 }
 
 impl AgentHostSidecar {
-	/// Binds a TCP listener at `addr`, writes the canonical agent host
-	/// lockfile pointing at the bound port, and returns a sidecar ready to
-	/// [`serve`](Self::serve) connections. The agent host backend is *not*
-	/// started here — the wrapped [`AgentHostManager`] starts it on demand
-	/// when the first request arrives.
-	///
-	/// `loopback_auth` decides whether the local TCP accept loop enforces a
-	/// connection token. The caller MUST make this choice deliberately:
-	/// loopback is reachable from any local process, so binding without a
-	/// token must be a conscious user opt-in (e.g. `--without-connection-token`).
 	pub async fn bind_tcp(
 		log: log::Logger,
 		manager: Arc<AgentHostManager>,
@@ -1033,11 +871,6 @@ impl AgentHostSidecar {
 			.map_err(CodeError::CouldNotListenOnInterface)?;
 
 		let pid = std::process::id();
-		// Prefer the caller-supplied host label so we record what the user
-		// asked for (e.g. `localhost`) instead of the resolved IP. That
-		// lets the foreground command compare `--host` invocations
-		// character-equal without spuriously flagging hostname-vs-IP
-		// equivalents as a config conflict.
 		let host = host_label.unwrap_or_else(|| bound_addr.ip().to_string());
 		let metadata = build_metadata(
 			pid,
@@ -1061,20 +894,14 @@ impl AgentHostSidecar {
 		}))
 	}
 
-	/// Returns the wrapped manager, e.g. so callers can pre-fetch the latest
-	/// release, run an update loop, or directly serve tunnel-relayed
-	/// connections that bypass the public connection token.
 	pub fn manager(&self) -> Arc<AgentHostManager> {
 		self.manager.clone()
 	}
 
-	/// The address the local TCP listener is bound to.
 	pub fn bound_addr(&self) -> SocketAddr {
 		self.bound_addr
 	}
 
-	/// Runs the local accept loop, enforcing the public connection token on
-	/// every request, until `shutdown` fires.
 	pub async fn serve(&self, mut shutdown: Barrier<ShutdownSignal>) -> Result<(), AnyError> {
 		loop {
 			tokio::select! {
@@ -1100,7 +927,6 @@ impl AgentHostSidecar {
 							.serve_connection_with_upgrades(io, svc)
 							.await
 						{
-							// Connection-level errors are normal (client disconnect, etc.)
 							let _ = e;
 						}
 					});
@@ -1109,9 +935,6 @@ impl AgentHostSidecar {
 		}
 	}
 
-	/// Serves a single connection coming from the dev tunnel. The relay
-	/// authenticates the caller, so this path bypasses the public connection
-	/// token check used by [`serve`](Self::serve).
 	pub async fn serve_tunnel_connection<RW>(&self, rw: RW)
 	where
 		RW: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
@@ -1131,8 +954,6 @@ impl AgentHostSidecar {
 		}
 	}
 
-	/// Stops the agent host backend and removes the lockfile if it still
-	/// belongs to this process. Safe to call multiple times.
 	pub async fn shutdown(&self) {
 		self.manager.kill_running_server().await;
 		if let Err(e) = remove_agent_host_metadata_for_pid(&self.lockfile_path, self.pid) {
@@ -1143,8 +964,6 @@ impl AgentHostSidecar {
 
 impl Drop for AgentHostSidecar {
 	fn drop(&mut self) {
-		// Best-effort cleanup if the caller forgot to call `shutdown`. Only
-		// removes the lockfile when the recorded PID still matches us.
 		let _ = remove_agent_host_metadata_for_pid(&self.lockfile_path, self.pid);
 	}
 }
@@ -1164,15 +983,8 @@ fn build_metadata(
 	metadata
 }
 
-/// How the loopback TCP accept loop authenticates incoming connections.
-/// Forces callers to make a deliberate choice rather than accidentally
-/// exposing the agent host to every process on the host.
 pub enum LoopbackAuth {
-	/// Require `?tkn=<token>` on every request to the local accept loop.
 	Token(String),
-	/// The user explicitly opted into running without a connection token
-	/// (e.g. `code agent host --without-connection-token`). Anyone on the
-	/// host can dial the listener; only use this when that is the intent.
 	Disabled,
 }
 
@@ -1185,10 +997,6 @@ impl LoopbackAuth {
 	}
 }
 
-/// Wraps [`handle_request`] with public connection-token enforcement. Used by
-/// the local TCP accept loop; tunnel connections served through
-/// [`AgentHostSidecar::serve_tunnel_connection`] bypass this check because
-/// the relay provides its own authentication.
 async fn handle_request_with_auth(
 	manager: Arc<AgentHostManager>,
 	req: Request<Incoming>,
@@ -1210,26 +1018,10 @@ async fn handle_request_with_auth(
 	handle_request(manager, req).await
 }
 
-// ---- Lockfile-aware reuse ---------------------------------------------------
 
-/// Decision derived from inspecting `agent-host-<quality>.lock`. Used by
-/// CLI entry points (e.g. `code tunnel`, `code agent host`) to decide
-/// whether they may safely own the agent host lockfile or should forward
-/// to / share the existing one.
-///
-/// The agent host server is downloaded on demand and may speak a newer
-/// protocol than the CLI itself is built with, so we deliberately do NOT
-/// check the protocol version: any live registered supervisor is always
-/// considered reusable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AgentHostLockfileDecision {
-	/// No live agent host registered; the caller may start its own sidecar.
 	SpawnFresh,
-	/// A live agent host supervisor owns the lockfile. Tunnel callers
-	/// should forward to `127.0.0.1:port` instead of binding a second
-	/// listener / clobbering the lockfile. `host` and `tunnel_name`
-	/// expose the supervisor's effective config so foreground callers
-	/// can detect a configuration conflict and refuse to silently reuse.
 	Reuse {
 		pid: u32,
 		host: Option<String>,
@@ -1239,10 +1031,6 @@ pub enum AgentHostLockfileDecision {
 	},
 }
 
-/// Inspect the agent host lockfile at `path` and decide whether the caller
-/// should spawn a fresh sidecar or reuse an existing live one. Missing /
-/// unreadable / stale (dead-PID) lockfiles all map to
-/// [`AgentHostLockfileDecision::SpawnFresh`].
 pub fn classify_agent_host_lockfile(
 	log: &log::Logger,
 	path: &std::path::Path,
@@ -1283,13 +1071,6 @@ pub fn classify_agent_host_lockfile(
 	}
 }
 
-/// Forwards a single tunnel-relayed connection to an existing agent host
-/// listening on `<upstream_host>:<upstream_port>`. Mirrors the TS-side
-/// `AgentHostProxy`: per request, it opens a TCP connection upstream and
-/// injects `?tkn=<token>` into the request URI when the lockfile records a
-/// connection token. `upstream_host` should already be a dialable
-/// loopback address (the caller is responsible for mapping wildcard
-/// binds like `0.0.0.0` to the corresponding loopback).
 pub async fn forward_tunnel_connection_to_existing_ah<RW>(
 	log: log::Logger,
 	rw: RW,
@@ -1331,10 +1112,6 @@ async fn handle_reuse_request(
 		*req.uri_mut() = new_uri;
 	}
 
-	// Resolve via `lookup_host` so we tolerate hostnames (`localhost`) and
-	// IPv6 literals (`::1`) in addition to bare IPv4. `TcpStream::connect`
-	// also accepts `(host, port)` directly but doing the lookup explicitly
-	// gives us a clearer error path.
 	let target = format!("{upstream_host}:{upstream_port}");
 	let stream = match tokio::net::TcpStream::connect(&target).await {
 		Ok(s) => s,
@@ -1362,9 +1139,6 @@ async fn handle_reuse_request(
 	}
 }
 
-/// Append `tkn=<token>` to a request-target URI's query string, preserving
-/// any existing query parameters. Mirrors `AgentHostProxy._rewriteUri` on
-/// the TypeScript side.
 fn inject_connection_token(uri: &::http::Uri, token: &str) -> ::http::Uri {
 	let path = uri.path();
 	let path = if path.is_empty() { "/" } else { path };
@@ -1409,8 +1183,6 @@ mod tests {
 		let manager = make_test_manager(dir.path());
 		let socket_path = manager.management_socket_path().clone();
 		manager.ensure_management_listener();
-		// First-bind is synchronous but spawn scheduling is not; a short
-		// sleep makes the test deterministic on slow CI hosts.
 		tokio::time::sleep(Duration::from_millis(50)).await;
 
 		let pipe = get_socket_rw_stream(&socket_path).await.expect("connect");
@@ -1432,10 +1204,6 @@ mod tests {
 	fn ensure_management_listener_is_idempotent() {
 		let dir = tempfile::tempdir().unwrap();
 		let manager = make_test_manager(dir.path());
-		// Without a tokio runtime spawn would panic, but the atomic flip
-		// itself is the contract we care about: a second call must not
-		// re-trigger the spawn path. Verify by reading the underlying
-		// atomic before/after manual flips.
 		assert!(!manager
 			.management_listener_started
 			.swap(true, Ordering::SeqCst));
@@ -1587,7 +1355,6 @@ mod tests {
 		.await
 		.unwrap();
 
-		// Simulate another process taking over the same lockfile path.
 		let foreign_pid = std::process::id().wrapping_add(1);
 		write_agent_host_metadata(&lockfile, &AgentHostMetadata::new(foreign_pid, 9999)).unwrap();
 
@@ -1612,8 +1379,6 @@ mod tests {
 	fn classify_returns_spawn_fresh_for_stale_pid() {
 		let dir = tempfile::tempdir().unwrap();
 		let lockfile = dir.path().join("agent-host.lock");
-		// Use a PID that is extremely unlikely to exist (max u32 - 1).
-		// `process_exists` returns false for unknown PIDs.
 		let mut metadata = AgentHostMetadata::new(u32::MAX - 1, 1234);
 		metadata.connection_token = Some("ignored".to_string());
 		write_agent_host_metadata(&lockfile, &metadata).unwrap();
@@ -1649,9 +1414,6 @@ mod tests {
 
 	#[test]
 	fn classify_returns_reuse_for_live_newer_protocol() {
-		// The agent host server is downloaded on demand and may speak a
-		// newer protocol than the CLI is built with; we must still treat
-		// it as reusable rather than refusing to share it.
 		let dir = tempfile::tempdir().unwrap();
 		let lockfile = dir.path().join("agent-host.lock");
 		let pid = std::process::id();

@@ -23,11 +23,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 
 	protected abstract _createNew(replacements: readonly T[]): TEdit;
 
-	/**
-	 * Returns true if and only if this edit and the given edit are structurally equal.
-	 * Note that this does not mean that the edits have the same effect on a given input!
-	 * See `.normalize()` or `.normalizeOnBase(base)` for that.
-	*/
 	public equals(other: TEdit): boolean {
 		if (this.replacements.length !== other.replacements.length) {
 			return false;
@@ -45,22 +40,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		return `[${edits}]`;
 	}
 
-	/**
-	 * Normalizes the edit by removing empty replacements and joining touching replacements (if the replacements allow joining).
-	 * Two edits have an equal normalized edit if and only if they have the same effect on any input.
-	 *
-	 * ![](https://raw.githubusercontent.com/microsoft/vscode/refs/heads/main/src/vs/editor/common/core/edits/docs/BaseEdit_normalize.drawio.png)
-	 *
-	 * Invariant:
-	 * ```
-	 * (forall base: TEdit.apply(base).equals(other.apply(base))) <-> this.normalize().equals(other.normalize())
-	 * ```
-	 * and
-	 * ```
-	 * forall base: TEdit.apply(base).equals(this.normalize().apply(base))
-	 * ```
-	 *
-	 */
 	public normalize(): TEdit {
 		const newReplacements: T[] = [];
 		let lastReplacement: T | undefined;
@@ -88,16 +67,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		return this._createNew(newReplacements);
 	}
 
-	/**
-	 * Combines two edits into one with the same effect.
-	 *
-	 * ![](https://raw.githubusercontent.com/microsoft/vscode/refs/heads/main/src/vs/editor/common/core/edits/docs/BaseEdit_compose.drawio.png)
-	 *
-	 * Invariant:
-	 * ```
-	 * other.apply(this.apply(s0)) = this.compose(other).apply(s0)
-	 * ```
-	 */
 	public compose(other: TEdit): TEdit {
 		const edits1 = this.normalize();
 		const edits2 = other.normalize();
@@ -111,7 +80,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		let edit1ToEdit2 = 0;
 
 		for (const r2 of edits2.replacements) {
-			// Copy over edit1 unmodified until it touches edit2.
 			while (true) {
 				const r1 = edit1Queue[0];
 				if (!r1 || r1.replaceRange.start + edit1ToEdit2 + r1.getNewLength() >= r2.replaceRange.start) {
@@ -124,15 +92,14 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 			}
 
 			const firstEdit1ToEdit2 = edit1ToEdit2;
-			let firstIntersecting: T | undefined; // or touching
-			let lastIntersecting: T | undefined; // or touching
+			let firstIntersecting: T | undefined;
+			let lastIntersecting: T | undefined;
 
 			while (true) {
 				const r1 = edit1Queue[0];
 				if (!r1 || r1.replaceRange.start + edit1ToEdit2 > r2.replaceRange.endExclusive) {
 					break;
 				}
-				// else we intersect, because the new end of edit1 is after or equal to our start
 
 				if (!firstIntersecting) {
 					firstIntersecting = r1;
@@ -200,9 +167,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		return { e1: this._createNew(e1), e2: this._createNew(e2) };
 	}
 
-	/**
-	 * Returns the range of each replacement in the applied value.
-	*/
 	public getNewRanges(): OffsetRange[] {
 		const ranges: OffsetRange[] = [];
 		let offset = 0;
@@ -237,7 +201,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		for (const r of this.replacements) {
 			if (r.replaceRange.start <= originalOffset) {
 				if (originalOffset < r.replaceRange.endExclusive) {
-					// the offset is in the replaced range
 					return r.replaceRange.start + accumulatedDelta;
 				}
 				accumulatedDelta += r.getNewLength() - r.replaceRange.length;
@@ -261,7 +224,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 			const editLength = edit.getNewLength();
 			if (edit.replaceRange.start <= postEditsOffset - accumulatedDelta) {
 				if (postEditsOffset - accumulatedDelta < edit.replaceRange.start + editLength) {
-					// the offset is in the replaced range
 					return edit.replaceRange.start;
 				}
 				accumulatedDelta += editLength - edit.replaceRange.length;
@@ -272,15 +234,11 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		return postEditsOffset - accumulatedDelta;
 	}
 
-	/**
-	 * Return undefined if the originalOffset is within an edit
-	 */
 	public applyToOffsetOrUndefined(originalOffset: number): number | undefined {
 		let accumulatedDelta = 0;
 		for (const edit of this.replacements) {
 			if (edit.replaceRange.start <= originalOffset) {
 				if (originalOffset < edit.replaceRange.endExclusive) {
-					// the offset is in the replaced range
 					return undefined;
 				}
 				accumulatedDelta += edit.getNewLength() - edit.replaceRange.length;
@@ -291,9 +249,6 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 		return originalOffset + accumulatedDelta;
 	}
 
-	/**
-	 * Return undefined if the originalRange is within an edit
-	 */
 	public applyToOffsetRangeOrUndefined(originalRange: OffsetRange): OffsetRange | undefined {
 		const start = this.applyToOffsetOrUndefined(originalRange.start);
 		if (start === undefined) {
@@ -309,17 +264,11 @@ export abstract class BaseEdit<T extends BaseReplacement<T> = BaseReplacement<an
 
 export abstract class BaseReplacement<TSelf extends BaseReplacement<TSelf>> {
 	constructor(
-		/**
-		 * The range to be replaced.
-		*/
 		public readonly replaceRange: OffsetRange,
 	) { }
 
 	public abstract getNewLength(): number;
 
-	/**
-	 * Precondition: TEdit.range.endExclusive === other.range.start
-	*/
 	public abstract tryJoinTouching(other: TSelf): TSelf | undefined;
 
 	public abstract slice(newReplaceRange: OffsetRange, rangeInReplacement?: OffsetRange): TSelf;
@@ -351,10 +300,6 @@ export type AnyEdit = BaseEdit<AnyReplacement, AnyEdit>;
 export type AnyReplacement = BaseReplacement<AnyReplacement>;
 
 export class Edit<T extends BaseReplacement<T>> extends BaseEdit<T, Edit<T>> {
-	/**
-	 * Represents a set of edits to a string.
-	 * All these edits are applied at once.
-	*/
 	public static readonly empty = new Edit<never>([]);
 
 	public static create<T extends BaseReplacement<T>>(replacements: readonly T[]): Edit<T> {

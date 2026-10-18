@@ -18,7 +18,7 @@ function ensureDir() {
 function readPid() {
   try {
     if (fs.existsSync(PID_FILE)) return parseInt(fs.readFileSync(PID_FILE, "utf8"), 10);
-  } catch { /* ignore */ }
+  } catch { }
   return null;
 }
 
@@ -28,10 +28,9 @@ function writePid(pid) {
 }
 
 function clearPid() {
-  try { if (fs.existsSync(PID_FILE)) fs.unlinkSync(PID_FILE); } catch { /* ignore */ }
+  try { if (fs.existsSync(PID_FILE)) fs.unlinkSync(PID_FILE); } catch { }
 }
 
-// process.kill throws if pid is dead — use this to probe.
 export function isPidAlive(pid) {
   if (!pid || typeof pid !== "number") return false;
   try { process.kill(pid, 0); return true; } catch { return false; }
@@ -42,9 +41,6 @@ export function getManagedPid() {
   return pid && isPidAlive(pid) ? pid : null;
 }
 
-// Build proxy CLI flags for the active compression extras. `[code]` (AST
-// compression) is off by default in headroom → pass --code-aware to turn it on;
-// `[ml]` (Kompress) is on by default → pass --disable-kompress to turn it off.
 function extrasProxyArgs({ codeAware, kompress } = {}) {
   const args = [];
   if (codeAware) args.push("--code-aware");
@@ -65,7 +61,6 @@ export async function startHeadroomProxy({ port = DEFAULT_PORT, codeAware = fals
   if (existing) return { pid: existing, alreadyRunning: true };
 
   ensureDir();
-  // spawn stdio requires fd numbers, not WriteStream objects.
   const outFd = fs.openSync(LOG_FILE, "a");
 
   const args = ["proxy", "--port", String(safePort), ...extrasProxyArgs({ codeAware, kompress })];
@@ -86,7 +81,6 @@ export async function startHeadroomProxy({ port = DEFAULT_PORT, codeAware = fals
   child.unref();
   writePid(child.pid);
 
-  // Wait until the process either stays alive briefly (success) or exits fast (failure).
   await new Promise((resolve, reject) => {
     const startupTimer = setTimeout(() => {
       if (isPidAlive(child.pid)) resolve();
@@ -103,7 +97,6 @@ export async function startHeadroomProxy({ port = DEFAULT_PORT, codeAware = fals
     });
   });
 
-  // Close parent's copy of the fd; child retains its own after unref.
   fs.closeSync(outFd);
 
   return { pid: child.pid, alreadyRunning: false };
@@ -114,10 +107,9 @@ export function stopHeadroomProxy() {
   if (!pid) return { stopped: false, reason: "not_running" };
   try {
     process.kill(pid, "SIGTERM");
-    // Give it a moment, then force if still alive.
     setTimeout(() => {
       if (isPidAlive(pid)) {
-        try { process.kill(pid, "SIGKILL"); } catch { /* already gone */ }
+        try { process.kill(pid, "SIGKILL"); } catch { }
       }
     }, 2000);
     clearPid();
@@ -130,18 +122,15 @@ export function stopHeadroomProxy() {
   }
 }
 
-// Stop the managed proxy (if any), wait for the pid to die, then start again
-// with the given flags. Used when toggling active extras that require a restart.
 export async function restartHeadroomProxy(opts = {}) {
   const pid = getManagedPid();
   if (pid) {
-    try { process.kill(pid, "SIGTERM"); } catch { /* already gone */ }
-    // Wait up to ~3s for graceful exit, force-kill if still alive.
+    try { process.kill(pid, "SIGTERM"); } catch { }
     for (let i = 0; i < 30 && isPidAlive(pid); i++) {
       await new Promise((r) => setTimeout(r, 100));
     }
     if (isPidAlive(pid)) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* already gone */ }
+      try { process.kill(pid, "SIGKILL"); } catch { }
       await new Promise((r) => setTimeout(r, 300));
     }
     clearPid();
@@ -158,11 +147,6 @@ export function getHeadroomLogTail(maxLines = 200) {
   } catch { return ""; }
 }
 
-// Install (or upgrade) headroom-ai with the requested compression extras.
-// `extras` is a whitelist from HEADROOM_COMPRESSION_EXTRAS — anything else
-// is rejected to keep the install surface predictable. Always installs the
-// `proxy` base + whatever extras the user picked, regardless of what is
-// already present.
 export async function installHeadroomExtras(extras = []) {
   const requested = Array.isArray(extras) ? extras.filter((e) => HEADROOM_COMPRESSION_EXTRAS.includes(e)) : [];
   const py = findPython310();
@@ -176,15 +160,11 @@ export async function installHeadroomExtras(extras = []) {
     err.code = "NOT_INSTALLED";
     throw err;
   }
-  // pip install string is built from a closed set (HEADROOM_COMPRESSION_EXTRAS),
-  // so it cannot be poisoned by caller input — the comma-list is a fixed
-  // ['proxy', ...requested]. No shell interpolation.
   const extrasList = ["proxy", ...requested].join(",");
   const spec = `headroom-ai[${extrasList}]`;
   const args = ["-m", "pip", "install", "--upgrade", spec];
 
   ensureDir();
-  // Truncate ("w") so the log reflects only the current install for live progress.
   const outFd = fs.openSync(INSTALL_LOG_FILE, "w");
   const child = spawn(py, args, {
     stdio: ["ignore", outFd, outFd],
@@ -208,8 +188,6 @@ export async function installHeadroomExtras(extras = []) {
   });
 }
 
-// Uninstall the marker packages that back a single extra (e.g. `ml` → torch,
-// huggingface-hub). `headroom-ai` base and the `proxy` extra are never removed.
 export async function uninstallHeadroomExtras(extras = []) {
   const requested = Array.isArray(extras) ? extras.filter((e) => HEADROOM_COMPRESSION_EXTRAS.includes(e)) : [];
   const py = findPython310();
@@ -250,7 +228,6 @@ export async function uninstallHeadroomExtras(extras = []) {
   });
 }
 
-// Read the tail of the install/uninstall log for live progress in the UI.
 export function getInstallLogTail(maxLines = 15) {
   try {
     if (!fs.existsSync(INSTALL_LOG_FILE)) return "";

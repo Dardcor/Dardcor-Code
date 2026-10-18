@@ -179,7 +179,6 @@ type TestsInfoProps = {
 };
 
 const TestsInfo = mobxlite.observer(({ tests, displayedTests }: TestsInfoProps) => {
-	// TODO@ulugbekna: don't show "failing" if tests weren't run yet
 	return (
 		<Text size={400}>
 			# of tests: {tests.length} (<span>displayed:</span> {displayedTests.length})

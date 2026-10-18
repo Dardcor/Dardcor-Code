@@ -103,7 +103,6 @@ suite('Workbench - MCP - McpService', () => {
 		await timeout(0);
 		const stopStub = sinon.stub(server, 'stop').resolves();
 		store.add(toDisposable(() => stopStub.restore()));
-		// Populate the live definition's enumerable URI cache before publishing a fresh equivalent definition.
 		uri.toString();
 
 		setServerDefinition(registry, {

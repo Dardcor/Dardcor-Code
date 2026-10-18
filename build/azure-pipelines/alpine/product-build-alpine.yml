@@ -133,8 +133,8 @@ jobs:
       - script: |
           set -e
           mkdir -p .build/nodejs-musl
-          NODE_VERSION=$(grep '^target=' remote/.npmrc | cut -d '"' -f 2)
-          BUILD_ID=$(grep '^ms_build_id=' remote/.npmrc | cut -d '"' -f 2)
+          NODE_VERSION=$(node -p "require('./remote/package.json').dardcorBuild.nodeGyp.target")
+          BUILD_ID=$(node -p "require('./remote/package.json').dardcorBuild.nodeBuildId")
           az extension add --name azure-devops --upgrade --only-show-errors
           az artifacts universal download \
             --organization "https://dev.azure.com/monacotools" \
@@ -195,22 +195,12 @@ jobs:
         parameters:
           vscodePlatform: alpine
 
-      - script: npx deemon --detach --wait -- node build/azure-pipelines/common/downloadCopilotVsix.ts
-        env:
-          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-        displayName: Download Copilot VSIX (background)
-
       - template: ../common/mixin-vscode-capi.yml@self
 
       - script: npm run gulp core-ci
         env:
           GITHUB_TOKEN: "$(github-token-code-oss)"
         displayName: Compile
-
-      - script: npx deemon --attach -- node build/azure-pipelines/common/downloadCopilotVsix.ts
-        env:
-          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-        displayName: Download Copilot VSIX
 
       - script: |
           set -e

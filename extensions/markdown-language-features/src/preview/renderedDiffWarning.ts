@@ -34,12 +34,6 @@ export class RenderedDiffWarningManager extends Disposable {
 		super.dispose();
 	}
 
-	/**
-	 * Set whether a diff preview is currently the active editor.
-	 *
-	 * Drives the visibility of the status bar warning and triggers the one-time
-	 * notification the first time the user focuses a diff preview.
-	 */
 	public setActiveDiffPreview(active: boolean): void {
 		if (this.#isSuppressed() || this.#hasActiveDiffPreview === active) {
 			return;

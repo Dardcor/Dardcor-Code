@@ -41,11 +41,6 @@ import { AgentHostMapLegacySettingsToManagedSettingsSettingId } from '../../comm
 import { AgentHostConfigurationSyncScope, Extensions as ConfigurationExtensions, IConfigurationRegistry } from '../../../configuration/common/configurationRegistry.js';
 import { Registry } from '../../../registry/common/platform.js';
 
-// Settings used to exercise declarative agent-host mirroring. Registered by this
-// suite rather than pulling in a product configuration contribution: the
-// configuration registry is a process-wide singleton, so a side-effect import
-// here would leak its registrations (and their `managedSettings` policies) into
-// every other suite in the run.
 const SYNC_SETTING_A = 'test.agentHostProtocolClient.syncA';
 const SYNC_CONFIG_KEY_A = 'testSyncValueA';
 const SYNC_SETTING_B = 'test.agentHostProtocolClient.syncB';
@@ -118,12 +113,6 @@ function isPingRequest(msg: ProtocolTransportMessage): msg is JsonRpcRequest & {
 	return hasKey(msg, { method: true, id: true }) && msg.method === 'ping';
 }
 
-/**
- * Locate the `dispatchAction` notification that forwards a particular root
- * config key. The connect flow sends several `RootConfigChanged` notifications
- * (telemetry, session sync, terminal auto-approve), so matching on the config
- * key is more robust than indexing into `sentMessages` by position.
- */
 function findRootConfigNotification(messages: readonly ProtocolTransportMessage[], configKey: string): JsonRpcNotification {
 	const match = messages.find((msg): msg is JsonRpcNotification => {
 		if (!hasKey(msg, { method: true }) || msg.method !== 'dispatchAction') {
@@ -152,7 +141,6 @@ function findLastManagedSettingsNotification(messages: readonly ProtocolTranspor
 	return match;
 }
 
-/** The value forwarded for `configKey` in the first root-config notification carrying it. */
 function findRootConfigValue(messages: readonly ProtocolTransportMessage[], configKey: string): RootConfigValue {
 	return getRootConfig(findRootConfigNotification(messages, configKey))[configKey];
 }
@@ -192,7 +180,6 @@ class TestProtocolTransport extends Disposable implements IProtocolTransport {
 	}
 
 	fireExtensionRequest(id: number, method: string, params: Record<string, unknown>): void {
-		// VS Code-private reverse requests intentionally are not part of the public AHP ProtocolMessage union.
 		this._onMessage.fire({ jsonrpc: '2.0', id, method, params } as unknown as ProtocolMessage);
 	}
 
@@ -285,19 +272,11 @@ suite('AgentHostProtocolClient', () => {
 		granted?: (identity: AgentHostResourceIdentity, uri: URI, mode: AgentHostPermissionMode) => boolean;
 		onRequest?: (identity: AgentHostResourceIdentity, params: { uri: string; read?: boolean; write?: boolean }) => Promise<void>;
 		onGrantImplicitRead?: (identity: AgentHostResourceIdentity, uri: URI) => void;
-		/** Test hook that observes disposal of the implicit-read grant. */
 		onRevokeImplicitRead?: (identity: AgentHostResourceIdentity, uri: URI) => void;
 		onRead?: (identity: AgentHostResourceIdentity, uri: URI) => Promise<{ bytes: VSBuffer }>;
 		readBytes?: VSBuffer;
 	}
 
-	/**
-	 * Stub for {@link IAgentHostResourceService}: each FS method runs the
-	 * `granted` predicate and either throws {@link AgentHostResourcePermissionError}
-	 * (carrying the same `resourceRequest` payload the real service would
-	 * advertise) or resolves with a minimal placeholder result. Sufficient to
-	 * drive the protocol client's reverse-RPC permission-gating paths.
-	 */
 	function createResourceServiceStub(opts: IResourceServiceStubOpts = {}): IAgentHostResourceService {
 		const grant = opts.granted ?? (() => true);
 		const empty = observableValue<readonly never[]>('test', []);
@@ -432,7 +411,6 @@ suite('AgentHostProtocolClient', () => {
 	});
 
 	async function flushMicrotasks(): Promise<void> {
-		// `await Promise.resolve()` only advances one microtask; loop to drain chained handlers.
 		for (let i = 0; i < 10; i++) {
 			await Promise.resolve();
 		}
@@ -501,11 +479,6 @@ suite('AgentHostProtocolClient', () => {
 	});
 
 	test('listSessions carries the workspace-less marker and compatible working directories', async () => {
-		// Regression: the sessions provider resolves a session's kind (quick
-		// chat vs. workspace) from `_meta.workspaceless`, and after a window
-		// reload a listing is what materializes it.
-		// Dropping `_meta` on the way back made every restored quick chat look
-		// workspace-bound and leak the host's scratch cwd as a workspace folder.
 		const { client, transport } = createClient();
 		const resultPromise = client.listSessions();
 
@@ -983,8 +956,6 @@ suite('AgentHostProtocolClient', () => {
 			let closeCount = 0;
 			disposables.add(client.onDidClose(() => closeCount++));
 
-			// First idle tick (t=5s) sends a ping; that ping then ages out
-			// over the next ~20s and triggers a close at ~t=25s.
 			await timeout(30_000);
 
 			const pings = transport.sentMessages.filter(isPingRequest);
@@ -1001,7 +972,6 @@ suite('AgentHostProtocolClient', () => {
 			let closeCount = 0;
 			disposables.add(client.onDidClose(() => closeCount++));
 
-			// Auto-respond to every outgoing ping.
 			let answered = 0;
 			const dispose = mainWindow.setInterval(() => {
 				for (const msg of transport.sentMessages) {
@@ -1028,9 +998,6 @@ suite('AgentHostProtocolClient', () => {
 			let closeCount = 0;
 			disposables.add(client.onDidClose(() => closeCount++));
 
-			// 60s of silence — would normally trigger the timeout — but
-			// high local load means we attribute the silence to ourselves
-			// and stay quiet.
 			await timeout(60_000);
 
 			assert.strictEqual(closeCount, 0);
@@ -1067,13 +1034,11 @@ suite('AgentHostProtocolClient', () => {
 			let closeCount = 0;
 			disposables.add(client.onDidClose(() => closeCount++));
 
-			// Wait for the first force-close.
 			await timeout(30_000);
 			assert.strictEqual(closeCount, 1, 'should have force-closed once');
 
 			const pingsAtClose = transport.sentMessages.filter(isPingRequest).length;
 
-			// Wait much longer; no further pings, no further closes.
 			await timeout(60_000);
 			assert.strictEqual(closeCount, 1, 'should not fire again after close');
 			const pingsLater = transport.sentMessages.filter(isPingRequest).length;
@@ -1088,23 +1053,14 @@ suite('AgentHostProtocolClient', () => {
 			let actionCount = 0;
 			disposables.add(client.onDidAction(() => actionCount++));
 
-			// Issue a request, then force close via the watchdog timeout.
 			const pending = client.resourceList(URI.file('/workspace'));
 			const rejected = pending.catch(err => err);
 			await timeout(30_000);
 			const err = await rejected;
 			assert.ok(err instanceof ProtocolError);
 
-			// Late response for the same request id — the shared
-			// The SSH relay transport feeds both old and new clients for the
-			// same connectionId, so this can happen in production. The
-			// pending request was already rejected; if _handleMessage
-			// processed the response it would log a "unknown request id"
-			// warning at best, or settle a request the caller no longer
-			// owns at worst. Either way, after close it must be a no-op.
 			transport.fireMessage({ jsonrpc: '2.0', id: 1, result: { entries: [] } });
 
-			// Late notification — must not fan out as an action event.
 			const lateAction: SessionActiveClientRemovedAction = {
 				type: ActionType.SessionActiveClientRemoved,
 				clientId: 'c1',
@@ -1150,8 +1106,6 @@ suite('AgentHostProtocolClient', () => {
 		const connectPromise = client.connect();
 
 		transport.connectDeferred.complete();
-		// `connect()` chains through several awaits before posting the
-		// initialize request — yield until it shows up.
 		while (transport.sentMessages.length === 0) {
 			await Promise.resolve();
 		}
@@ -1165,8 +1119,6 @@ suite('AgentHostProtocolClient', () => {
 			clientInfo: params.clientInfo,
 			_meta: params._meta,
 		}, {
-			// Every compatible version is offered so an older host can negotiate down,
-			// newest first so a current host still picks it.
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS.filter(version => version !== '0.8.0'),
 			clientId: 'renderer-client-id',
 			clientInfo,
@@ -1180,8 +1132,6 @@ suite('AgentHostProtocolClient', () => {
 		assert.strictEqual(params.protocolVersions[0], PROTOCOL_VERSION);
 		assert.ok(!params.protocolVersions.includes('0.8.0'));
 
-		// Reply with a successful handshake so `connect()` resolves and the
-		// test can finish cleanly.
 		transport.fireMessage({
 			jsonrpc: '2.0',
 			id: sent.id,
@@ -1295,7 +1245,6 @@ suite('AgentHostProtocolClient', () => {
 		await configurationService.setUserConfiguration(SYNC_SETTING_A, false);
 		fireConfigurationChange(configurationService, SYNC_SETTING_A);
 
-		// Only the affected setting is re-forwarded.
 		assert.deepStrictEqual(getRootConfig(findLastRootConfigNotification(transport.sentMessages, SYNC_CONFIG_KEY_A)), {
 			[SYNC_CONFIG_KEY_A]: false,
 		});
@@ -2052,7 +2001,6 @@ suite('AgentHostProtocolClient', () => {
 			const uri = URI.file('/etc/foo').toString();
 			transport.fireMessage({ jsonrpc: '2.0', id: 11, method: 'resourceRequest', params: { channel: 'ahp-root://', uri, read: true } });
 
-			// Allow the awaited request promise to resolve.
 			await new Promise(resolve => setTimeout(resolve, 0));
 
 			assert.deepStrictEqual(lastRequest, { address: 'test.example:1234', params: { channel: 'ahp-root://', uri, read: true } });
@@ -2280,7 +2228,6 @@ suite('AgentHostProtocolClient', () => {
 				},
 			});
 
-			// Resolve the in-flight createSession request for cleanup.
 			const sent = transport.sentMessages.find(
 				(m): m is JsonRpcRequest => 'method' in m && m.method === 'createSession');
 			assert.ok(sent);
@@ -2299,7 +2246,6 @@ suite('AgentHostProtocolClient', () => {
 			return { type: ActionType.SessionWorkingDirectorySet as const, directory };
 		}
 
-		/** Connect `client`, subscribe to `sessionUri`, and answer the `subscribe` request with an empty session snapshot. */
 		async function subscribeToSession(client: AgentHostProtocolClient, transport: TestProtocolTransport, sessionUri: URI): Promise<void> {
 			client.getSubscription(StateComponents.Session, sessionUri, 'test');
 			let subscribeReq: JsonRpcRequest | undefined;
@@ -2397,7 +2343,6 @@ suite('AgentHostProtocolClient', () => {
 			);
 		}
 
-		/** Wait until the client transitions into the {@link AgentHostClientState.Reconnecting} state. */
 		async function waitForReconnecting(client: AgentHostProtocolClient): Promise<void> {
 			if (client.connectionState === AgentHostClientState.Reconnecting) {
 				return;
@@ -2405,7 +2350,6 @@ suite('AgentHostProtocolClient', () => {
 			await Event.toPromise(Event.filter(client.onDidChangeConnectionState, s => s === AgentHostClientState.Reconnecting));
 		}
 
-		/** Wait for the next time a method-named request appears in the transport's outbox. */
 		async function waitForRequest(transport: TestProtocolTransport, method: string): Promise<JsonRpcRequest> {
 			while (true) {
 				const req = findRequest(transport, method);
@@ -2428,12 +2372,6 @@ suite('AgentHostProtocolClient', () => {
 			}
 		}
 
-		/**
-		 * Like {@link waitForRequestAt}, but gives up instead of spinning forever.
-		 * Yields through the timer queue so a regression that never issues the
-		 * request fails with a readable assertion rather than starving Mocha's
-		 * own timeout.
-		 */
 		async function waitForRequestAtWithin(transport: TestProtocolTransport, method: string, index: number, timeoutMs = 8_000): Promise<JsonRpcRequest> {
 			const deadline = Date.now() + timeoutMs;
 			while (true) {
@@ -2451,7 +2389,6 @@ suite('AgentHostProtocolClient', () => {
 			}
 		}
 
-		/** Wait for the client to reach {@link AgentHostClientState.Connected}, bounded. */
 		async function waitForConnectedWithin(client: AgentHostProtocolClient, timeoutMs = 8_000): Promise<void> {
 			const deadline = Date.now() + timeoutMs;
 			while (client.connectionState !== AgentHostClientState.Connected) {
@@ -2462,7 +2399,6 @@ suite('AgentHostProtocolClient', () => {
 			}
 		}
 
-		/** Wait for the next time the new transport is created by the factory. */
 		async function waitForTransport(transports: TestClientProtocolTransport[], index: number): Promise<TestClientProtocolTransport> {
 			while (transports.length <= index) {
 				await new Promise<void>(r => setTimeout(r, 25));
@@ -2470,12 +2406,6 @@ suite('AgentHostProtocolClient', () => {
 			return transports[index];
 		}
 
-		/**
-		 * Build a client wired to a transport factory that hands out fresh
-		 * `TestClientProtocolTransport`s on each invocation. Returns the
-		 * client plus a `transports` array recording each transport handed
-		 * out, so tests can drive handshake/reconnect interactions.
-		 */
 		function createFactoryClient(permissionService = createPermissionService(), clientInfo?: Implementation, telemetryService: ITelemetryService = NullTelemetryService, reconnectPolicy?: IRemoteAgentHostReconnectPolicy, loadEstimator?: { hasHighLoad(): boolean }): { client: AgentHostProtocolClient; transports: TestClientProtocolTransport[] } {
 			const transports: TestClientProtocolTransport[] = [];
 			const factory = () => {
@@ -2657,8 +2587,6 @@ suite('AgentHostProtocolClient', () => {
 				const connectPromise = client.connect();
 				await completeHandshake(transports[0], connectPromise);
 				const reconnectDeadlines: (number | undefined)[] = [];
-				// The client stays `reconnecting` across rounds, so the schedule
-				// event — not the state event — reports each new deadline.
 				const stateListener = client.onDidScheduleReconnect(() => {
 					reconnectDeadlines.push(client.nextReconnectAt);
 				});
@@ -2780,8 +2708,6 @@ suite('AgentHostProtocolClient', () => {
 				await completeHandshake(transports[0], connectPromise);
 				const originalClientId = client.clientId;
 
-				// Drop the transport; the client should attach a fresh one and
-				// reconnect with the same clientId rather than restart from scratch.
 				transports[0].fireClose();
 				await waitForReconnecting(client);
 				const reconnectTransport = await waitForTransport(transports, 1);
@@ -3045,9 +2971,6 @@ suite('AgentHostProtocolClient', () => {
 				},
 			});
 
-			// The restarted host no longer accepts this cached third-party token.
-			// That must not abort the restart recovery: the session channel still
-			// holds pre-restart state and would otherwise never be reseated.
 			const restoredAuthenticate = await waitForRequestAt(reconnectTransport, 'authenticate', 0);
 			reconnectTransport.fireMessage({
 				jsonrpc: '2.0', id: restoredAuthenticate.id,
@@ -3114,8 +3037,6 @@ suite('AgentHostProtocolClient', () => {
 				},
 			});
 
-			// The session is reseated, then the transport drops before the chat
-			// channel gets its snapshot.
 			const restoredSessionSubscribe = await waitForRequestAtWithin(reconnectTransport, 'subscribe', 0);
 			reconnectTransport.fireMessage({
 				jsonrpc: '2.0', id: restoredSessionSubscribe.id,
@@ -3125,8 +3046,6 @@ suite('AgentHostProtocolClient', () => {
 			reconnectTransport.fireClose();
 			await waitForReconnecting(client);
 
-			// The host now remembers the client, so this reconnect resolves to a
-			// replay — which carries no snapshot for the chat channel.
 			const secondTransport = await waitForTransport(transports, 2);
 			secondTransport.connectDeferred.complete();
 			const secondReconnect = await waitForRequest(secondTransport, 'reconnect');
@@ -3194,9 +3113,6 @@ suite('AgentHostProtocolClient', () => {
 				},
 			});
 
-			// The channel is already live server-side, so an action newer than
-			// the snapshot being computed can reach the client first. It must
-			// survive the older snapshot that follows.
 			const restoreSubscribe = await waitForRequestAtWithin(reconnectTransport, 'subscribe', 0);
 			const completion: ChatTurnCompleteAction = { type: ActionType.ChatTurnComplete, turnId: 'turn-1', duration: 10 };
 			reconnectTransport.fireMessage({
@@ -3214,8 +3130,6 @@ suite('AgentHostProtocolClient', () => {
 				result: {
 					snapshot: {
 						resource: chatUri.toString(),
-						// An in-flight turn lives in `activeTurn`; this is exactly the
-						// stale shape that left the UI spinning forever.
 						state: {
 							turns: [],
 							activeTurn: {
@@ -3272,14 +3186,10 @@ suite('AgentHostProtocolClient', () => {
 				result: { protocolVersion: PROTOCOL_VERSION, serverSeq: 0, snapshots: [] },
 			});
 
-			// The transport dies after the authenticate frame goes out but before
-			// the host answers, so the credential may never have landed.
 			await waitForRequestAtWithin(reconnectTransport, 'authenticate', 0);
 			reconnectTransport.fireClose();
 			await waitForReconnecting(client);
 
-			// The host remembers the client now, so this reconnect is a replay —
-			// which historically never revisited authentication.
 			const secondTransport = await waitForTransport(transports, 2);
 			secondTransport.connectDeferred.complete();
 			const secondReconnect = await waitForRequest(secondTransport, 'reconnect');
@@ -3364,7 +3274,6 @@ suite('AgentHostProtocolClient', () => {
 				const connectPromise = client.connect();
 				await completeHandshake(transports[0], connectPromise);
 
-				// Establish a session subscription so dispatch() can apply optimistically.
 				const sessionUri = URI.parse('copilot:/test-session');
 				const subRef = client.getSubscription(StateComponents.Session, sessionUri, 'test');
 				const subscribeReq = await waitForRequest(transports[0], 'subscribe');
@@ -3374,7 +3283,6 @@ suite('AgentHostProtocolClient', () => {
 				});
 				await Promise.resolve();
 
-				// Dispatch an optimistic action right before the transport drops.
 				const action: SessionTitleChangedAction = {
 					type: ActionType.SessionTitleChanged,
 					title: 'Renamed by user',
@@ -3384,8 +3292,6 @@ suite('AgentHostProtocolClient', () => {
 				assert.ok(initialDispatch, 'optimistic dispatch should reach the original transport');
 				const initialSeq = (initialDispatch.params as { clientSeq: number }).clientSeq;
 
-				// Drop the transport mid-flight. The new transport receives a
-				// reconnect RPC plus a replay of the unconfirmed dispatch.
 				transports[0].fireClose();
 				await waitForReconnecting(client);
 				const reconnectTransport = await waitForTransport(transports, 1);
@@ -3503,8 +3409,6 @@ suite('AgentHostProtocolClient', () => {
 				const reconnectTransport = await waitForTransport(transports, 1);
 				reconnectTransport.connectDeferred.complete();
 				const reconnect = await waitForRequest(reconnectTransport, 'reconnect');
-				// Reply with a replay buffer that already contains our action,
-				// echoed back with origin = { clientId, clientSeq }.
 				reconnectTransport.fireMessage({
 					jsonrpc: '2.0', id: reconnect.id,
 					result: {
@@ -3536,13 +3440,9 @@ suite('AgentHostProtocolClient', () => {
 				const connectPromise = client.connect();
 				await completeHandshake(transports[0], connectPromise);
 
-				// Drop the transport, then issue a new request while the
-				// soft-reconnect is in flight. The request must land on the new
-				// transport rather than racing the dead one or being dropped.
 				transports[0].fireClose();
 				const inFlight = client.resourceList(URI.file('/workspace')).catch(err => err);
 
-				// Hold off the new transport's connect() so the request stays gated.
 				await waitForReconnecting(client);
 				const reconnectTransport = await waitForTransport(transports, 1);
 				assert.strictEqual(findRequest(reconnectTransport, 'resourceList'), undefined,
@@ -3593,8 +3493,6 @@ suite('AgentHostProtocolClient', () => {
 				const reconnectTransport = await waitForTransport(transports, 1);
 				reconnectTransport.connectDeferred.complete();
 				const reconnect = await waitForRequest(reconnectTransport, 'reconnect');
-				// Server echoes back the action with a rejectionReason — the
-				// confirmed state must NOT advance to 'Rejected change'.
 				reconnectTransport.fireMessage({
 					jsonrpc: '2.0', id: reconnect.id,
 					result: {
@@ -3677,15 +3575,11 @@ suite('AgentHostProtocolClient', () => {
 				});
 				assert.deepStrictEqual((subRef.object.value as { workingDirectories?: string[] }).workingDirectories, ['file:///ws2']);
 
-				// Drop the transport before the server ever echoes the action back.
 				transports[0].fireClose();
 				await waitForReconnecting(client);
 				const reconnectTransport = await waitForTransport(transports, 1);
 				reconnectTransport.connectDeferred.complete();
 				const reconnect = await waitForRequest(reconnectTransport, 'reconnect');
-				// Server reports the replay buffer no longer covers our gap, so it
-				// sends a fresh snapshot instead — rebasing confirmed state before
-				// the dispatched action's echo ever arrived.
 				reconnectTransport.fireMessage({
 					jsonrpc: '2.0', id: reconnect.id,
 					result: {
@@ -3730,8 +3624,6 @@ suite('AgentHostProtocolClient', () => {
 				const reconnectTransport = await waitForTransport(transports, 1);
 				reconnectTransport.connectDeferred.complete();
 				const reconnect = await waitForRequest(reconnectTransport, 'reconnect');
-				// Server replays with no actions but reports our session
-				// subscription as no-longer-resumable.
 				reconnectTransport.fireMessage({
 					jsonrpc: '2.0', id: reconnect.id,
 					result: { type: ReconnectResultType.Replay, actions: [], missing: [sessionUri.toString()] },
@@ -3760,9 +3652,6 @@ suite('AgentHostProtocolClient', () => {
 				attempt1.connectDeferred.complete();
 				await waitForRequest(attempt1, 'reconnect');
 
-				// Second drop mid-handshake. The attempt's pending RPC must be rejected
-				// so the retry path fires; without that the await stays pending and
-				// every subsequent request deadlocks on the reconnect gate.
 				attempt1.fireClose();
 
 				const attempt2 = await waitForTransport(transports, 2);
@@ -3787,22 +3676,15 @@ suite('AgentHostProtocolClient', () => {
 				const connectPromise = client.connect();
 				await completeHandshake(transports[0], connectPromise);
 
-				// Drop transport before any successful reconnect so the gate stays
-				// engaged across the failed attempt.
 				transports[0].fireClose();
 				await waitForReconnecting(client);
 
-				// A terminal action dispatched while reconnecting. There is no
-				// optimistic replay path for terminal/root actions; the only way
-				// these reach the server is via the notification gate.
 				const terminalUri = URI.parse('agenthost-terminal:/term-1');
 				client.dispatch(terminalUri.toString(), {
 					type: ActionType.TerminalInput,
 					data: 'echo hello\n',
 				});
 
-				// First attempt fails. The notification must NOT be dropped; the
-				// rejection handler should re-queue it onto the new gate.
 				const attempt1 = await waitForTransport(transports, 1);
 				attempt1.connectDeferred.error(new Error('connect failed'));
 
@@ -3831,10 +3713,6 @@ suite('AgentHostProtocolClient', () => {
 				transports[0].fireClose();
 				await waitForReconnecting(client);
 
-				// Issue a request while the gate is engaged. The first reconnect
-				// attempt will fail; the request must NOT surface the transient
-				// failure to its caller, it should stay gated until the next
-				// successful handshake.
 				const inFlight = client.resourceList(URI.file('/workspace')).catch(err => err);
 
 				const attempt1 = await waitForTransport(transports, 1);
@@ -3873,8 +3751,6 @@ suite('AgentHostProtocolClient', () => {
 				const shutdown = client.shutdown().catch(err => err);
 
 				const reconnectTransport = await waitForTransport(transports, 1);
-				// Extension requests must not race the dead transport — nothing
-				// should be on the wire yet.
 				assert.strictEqual(findRequest(reconnectTransport, 'shutdown'), undefined,
 					'shutdown extension request must NOT be sent before reconnect completes');
 
@@ -3895,16 +3771,10 @@ suite('AgentHostProtocolClient', () => {
 		test('watchdog dead-transport detection triggers soft reconnect', async function () {
 			this.timeout(60_000);
 			return runWithFakedTimers({ useFakeTimers: true, maxTaskCount: 10_000 }, async () => {
-				// Inject a no-load estimator: the shared LoadEstimator singleton
-				// installs a 1s interval that never drains under fake timers.
 				const { client, transports } = createFactoryClient(createPermissionService(), undefined, NullTelemetryService, undefined, { hasHighLoad: () => false });
 				const connectPromise = client.connect();
 				await completeHandshake(transports[0], connectPromise);
 
-				// Issue a request the server never answers. After WATCHDOG_TIMEOUT_MS
-				// of silence the watchdog must route through the soft-reconnect
-				// path — *not* rely on the transport's onClose firing (it never
-				// will for a silent dead socket, see WebSocketClientTransport.dispose).
 				const pending = client.resourceList(URI.file('/workspace')).catch(err => err);
 				await timeout(30_000);
 
@@ -3942,9 +3812,6 @@ suite('AgentHostProtocolClient', () => {
 					readDeferred.complete({ bytes: VSBuffer.fromString('{}') });
 					await flushMicrotasks();
 
-					// The window now runs from the moment the response was handed
-					// to the transport, so it expires at ~t+25s rather than at the
-					// next 5s poll plus 25s.
 					await timeout(20_000);
 					assert.strictEqual(client.connectionState, AgentHostClientState.Connected,
 						'watchdog must grant a full liveness window once the pending reverse request is answered');
@@ -3976,10 +3843,6 @@ suite('AgentHostProtocolClient', () => {
 						params: { channel: 'ahp-root://', uri: URI.file('/workspace/customization.json').toString() },
 					});
 
-					// Answer just before the close timer armed by the inbound
-					// request fires, so no deferral is ever observed. The peer is
-					// still owed the drain plus its own post-response work, so the
-					// close must not fire moments later.
 					await timeout(24_000);
 					readDeferred.complete({ bytes: VSBuffer.fromString('{}') });
 					await flushMicrotasks();
@@ -4027,8 +3890,6 @@ suite('AgentHostProtocolClient', () => {
 					secondRead.complete({ bytes: VSBuffer.fromString('{}') });
 					await flushMicrotasks();
 
-					// The window runs from the final response, so it expires ~25s
-					// after this point rather than after the next poll.
 					await timeout(20_000);
 					assert.strictEqual(client.connectionState, AgentHostClientState.Connected,
 						'watchdog must grant a fresh liveness window after the final reverse request completes');

@@ -82,10 +82,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 	get x(): number { return this._x; }
 	get y(): number { return this._y; }
 
-	/**
-	 * Whether the hover is "locked" by holding the alt/option key. When locked, the hover will not
-	 * hide and can be hovered regardless of whether the `hideOnHover` hover option is set.
-	 */
 	get isLocked(): boolean { return this._isLocked; }
 	set isLocked(value: boolean) {
 		if (this._isLocked === value) {
@@ -95,12 +91,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 		this._hoverContainer.classList.toggle('locked', this._isLocked);
 	}
 
-	/**
-	 * Adds an element to be tracked by this hover's mouse tracker. Mouse events on
-	 * this element will be considered as being "inside" the hover, preventing it
-	 * from closing. This is used for nested hovers where the child hover's container
-	 * should be treated as part of the parent hover.
-	 */
 	addMouseTrackingElement(element: HTMLElement): IDisposable {
 		return this._lockMouseTracker.addElement(element);
 	}
@@ -159,25 +149,20 @@ export class HoverWidget extends Widget implements IHoverWidget {
 			this._maxHeightRatioRelativeToWindow = maxHeightRatio;
 		}
 
-		// Default to position above when the position is unspecified or a mouse event
 		this._hoverPosition = options.position?.hoverPosition === undefined
 			? HoverPosition.ABOVE
 			: isNumber(options.position.hoverPosition)
 				? options.position.hoverPosition
 				: HoverPosition.BELOW;
 
-		// Don't allow mousedown out of the widget, otherwise preventDefault will call and text will
-		// not be selected.
 		this.onmousedown(this._hover.containerDomNode, e => e.stopPropagation());
 
-		// Hide hover on escape
 		this.onkeydown(this._hover.containerDomNode, e => {
 			if (e.equals(KeyCode.Escape)) {
 				this.dispose();
 			}
 		});
 
-		// Hide when the window loses focus
 		this._register(dom.addDisposableListener(this._targetWindow, 'blur', () => this.dispose()));
 
 		const rowElement = $('div.hover-row.markdown-hover');
@@ -190,7 +175,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 			contentsElement.appendChild(options.content);
 			contentsElement.classList.add('html-hover-contents');
 
-			// Watch for size changes from dynamic HTML content (e.g. collapsible regions).
 			const resizeObserver = new ResizeObserver(() => {
 				this.layout();
 				this._onRequestLayout.fire();
@@ -206,7 +190,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 				asyncRenderCallback: () => {
 					contentsElement.classList.add('code-hover-contents');
 					this.layout();
-					// This changes the dimensions of the hover so trigger a layout
 					this._onRequestLayout.fire();
 				}
 			}));
@@ -241,24 +224,18 @@ export class HoverWidget extends Widget implements IHoverWidget {
 		}
 		this._hoverContainer.appendChild(this._hover.containerDomNode);
 
-		// Determine whether to hide on hover
 		let hideOnHover: boolean;
 		if (options.actions && options.actions.length > 0) {
-			// If there are actions, require hover so they can be accessed
 			hideOnHover = false;
 		} else {
 			if (options.persistence?.hideOnHover === undefined) {
-				// When unset, will default to true when it's a string or when it's markdown that
-				// appears to have a link using a naive check for '](' and '</a>'
 				hideOnHover = typeof options.content === 'string' ||
 					isMarkdownString(options.content) && !options.content.value.includes('](') && !options.content.value.includes('</a>');
 			} else {
-				// It's set explicitly
 				hideOnHover = options.persistence.hideOnHover;
 			}
 		}
 
-		// Show the hover hint if needed
 		if (options.appearance?.showHoverHint) {
 			const statusBarElement = $('div.hover-row.status-bar');
 			const infoElement = $('div.info');
@@ -278,9 +255,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 			}
 		}));
 
-		// Setup another mouse tracker when hideOnHover is set in order to track the hover as well
-		// when it is locked. This ensures the hover will hide on mouseout after alt has been
-		// released to unlock the element.
 		if (hideOnHover) {
 			const mouseTracker2Targets = [...this._target.targetElements, this._hoverContainer];
 			this._lockMouseTracker = this._register(new CompositeMouseTracker(mouseTracker2Targets));
@@ -300,7 +274,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 		}
 		this._addedFocusTrap = true;
 
-		// Add a hover tab loop if the hover has at least one element with a valid tabIndex
 		const firstContainerFocusElement = this._hover.containerDomNode;
 		const lastContainerFocusElement = this.findLastFocusableChild(this._hover.containerDomNode);
 		if (lastContainerFocusElement) {
@@ -351,9 +324,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 	}
 
 	public layout() {
-		// Cancel any pending mouseout timers since the hover is being
-		// repositioned (e.g. due to content resize from collapsible sections).
-		// The mouse may end up back inside the hover after the layout.
 		this._mouseTracker?.suppressPendingMouseOut();
 		if (this._lockMouseTracker !== this._mouseTracker) {
 			this._lockMouseTracker?.suppressPendingMouseOut();
@@ -388,13 +358,10 @@ export class HoverWidget extends Widget implements IHoverWidget {
 			}
 		};
 
-		// These calls adjust the position depending on spacing.
 		this.adjustHorizontalHoverPosition(targetRect);
 		this.adjustVerticalHoverPosition(targetRect);
-		// This call limits the maximum height of the hover.
 		this.adjustHoverMaxHeight(targetRect);
 
-		// Offset the hover position if there is a pointer so it aligns with the target element
 		this._hoverContainer.style.padding = '';
 		this._hoverContainer.style.margin = '';
 		if (this._hoverPointer) {
@@ -433,7 +400,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 		this.computeYCordinate(targetRect);
 
 		if (this._hoverPointer) {
-			// reset
 			this._hoverPointer.classList.remove('top');
 			this._hoverPointer.classList.remove('left');
 			this._hoverPointer.classList.remove('right');
@@ -468,14 +434,12 @@ export class HoverWidget extends Widget implements IHoverWidget {
 				this._x = target.left;
 			}
 
-			// Hover is going beyond window towards right end
 			if (this._x + hoverWidth >= this._targetDocumentElement.clientWidth) {
 				this._hover.containerDomNode.classList.add('right-aligned');
 				this._x = Math.max(this._targetDocumentElement.clientWidth - hoverWidth - Constants.HoverWindowEdgeMargin, this._targetDocumentElement.clientLeft);
 			}
 		}
 
-		// Hover is going beyond window towards left end
 		if (this._x < this._targetDocumentElement.clientLeft) {
 			this._x = target.left + Constants.HoverWindowEdgeMargin;
 		}
@@ -503,14 +467,12 @@ export class HoverWidget extends Widget implements IHoverWidget {
 			}
 		}
 
-		// Hover on bottom is going beyond window
 		if (this._y > this._targetWindow.innerHeight) {
 			this._y = target.bottom;
 		}
 	}
 
 	private adjustHorizontalHoverPosition(target: TargetRect): void {
-		// Do not adjust horizontal hover position if x cordiante is provided
 		if (this._target.x !== undefined) {
 			return;
 		}
@@ -525,7 +487,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 
 		const hoverPointerOffset = (this._hoverPointer ? Constants.PointerSize : 0);
 
-		// When force position is enabled, restrict max width
 		if (this._forcePosition) {
 			const padding = hoverPointerOffset + Constants.HoverBorderWidth;
 			if (this._hoverPosition === HoverPosition.RIGHT) {
@@ -536,39 +497,30 @@ export class HoverWidget extends Widget implements IHoverWidget {
 			return;
 		}
 
-		// Position hover on right to target
 		if (this._hoverPosition === HoverPosition.RIGHT) {
 			const roomOnRight = this._targetDocumentElement.clientWidth - target.right;
-			// Hover on the right is going beyond window.
 			if (roomOnRight < this._hover.containerDomNode.clientWidth + hoverPointerOffset) {
 				const roomOnLeft = target.left;
-				// There's enough room on the left, flip the hover position
 				if (roomOnLeft >= this._hover.containerDomNode.clientWidth + hoverPointerOffset) {
 					this._hoverPosition = HoverPosition.LEFT;
 				}
-				// Hover on the left would go beyond window too
 				else {
 					this._hoverPosition = HoverPosition.BELOW;
 				}
 			}
 		}
-		// Position hover on left to target
 		else if (this._hoverPosition === HoverPosition.LEFT) {
 
 			const roomOnLeft = target.left;
-			// Hover on the left is going beyond window.
 			if (roomOnLeft < this._hover.containerDomNode.clientWidth + hoverPointerOffset) {
 				const roomOnRight = this._targetDocumentElement.clientWidth - target.right;
-				// There's enough room on the right, flip the hover position
 				if (roomOnRight >= this._hover.containerDomNode.clientWidth + hoverPointerOffset) {
 					this._hoverPosition = HoverPosition.RIGHT;
 				}
-				// Hover on the right would go beyond window too
 				else {
 					this._hoverPosition = HoverPosition.BELOW;
 				}
 			}
-			// Hover on the left is going beyond window.
 			if (target.left - this._hover.containerDomNode.clientWidth - hoverPointerOffset <= this._targetDocumentElement.clientLeft) {
 				this._hoverPosition = HoverPosition.RIGHT;
 			}
@@ -576,25 +528,19 @@ export class HoverWidget extends Widget implements IHoverWidget {
 	}
 
 	private adjustVerticalHoverPosition(target: TargetRect): void {
-		// Do not adjust vertical hover position if the y coordinate is provided
-		// or the position is forced
 		if (this._target.y !== undefined || this._forcePosition) {
 			return;
 		}
 
 		const hoverPointerOffset = (this._hoverPointer ? Constants.PointerSize : 0);
 
-		// Position hover on top of the target
 		if (this._hoverPosition === HoverPosition.ABOVE) {
-			// Hover on top is going beyond window
 			if (target.top - this._hover.containerDomNode.clientHeight - hoverPointerOffset < 0) {
 				this._hoverPosition = HoverPosition.BELOW;
 			}
 		}
 
-		// Position hover below the target
 		else if (this._hoverPosition === HoverPosition.BELOW) {
-			// Hover on bottom is going beyond window
 			if (target.bottom + this._hover.containerDomNode.offsetHeight + hoverPointerOffset > this._targetWindow.innerHeight) {
 				this._hoverPosition = HoverPosition.ABOVE;
 			}
@@ -604,7 +550,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 	private adjustHoverMaxHeight(target: TargetRect): void {
 		let maxHeight = this._targetWindow.innerHeight * this._maxHeightRatioRelativeToWindow;
 
-		// When force position is enabled, restrict max height
 		if (this._forcePosition) {
 			const padding = (this._hoverPointer ? Constants.PointerSize : 0) + Constants.HoverBorderWidth;
 			if (this._hoverPosition === HoverPosition.ABOVE) {
@@ -616,7 +561,6 @@ export class HoverWidget extends Widget implements IHoverWidget {
 
 		this._hover.containerDomNode.style.maxHeight = `${maxHeight}px`;
 		if (this._hover.contentsDomNode.clientHeight < this._hover.contentsDomNode.scrollHeight) {
-			// Add padding for a vertical scrollbar
 			const extraRightPadding = `${this._hover.scrollbar.options.verticalScrollbarSize}px`;
 			if (this._hover.contentsDomNode.style.paddingRight !== extraRightPadding) {
 				this._hover.contentsDomNode.style.paddingRight = extraRightPadding;
@@ -635,12 +579,10 @@ export class HoverWidget extends Widget implements IHoverWidget {
 				this._hoverPointer.classList.add(this._hoverPosition === HoverPosition.LEFT ? 'right' : 'left');
 				const hoverHeight = this._hover.containerDomNode.clientHeight;
 
-				// If hover is taller than target, then show the pointer at the center of target
 				if (hoverHeight > target.height) {
 					this._hoverPointer.style.top = `${target.center.y - (this._y - hoverHeight) - Constants.PointerSize}px`;
 				}
 
-				// Otherwise show the pointer at the center of hover
 				else {
 					this._hoverPointer.style.top = `${Math.round((hoverHeight / 2)) - Constants.PointerSize}px`;
 				}
@@ -652,10 +594,8 @@ export class HoverWidget extends Widget implements IHoverWidget {
 				this._hoverPointer.classList.add(this._hoverPosition === HoverPosition.ABOVE ? 'bottom' : 'top');
 				const hoverWidth = this._hover.containerDomNode.clientWidth;
 
-				// Position pointer at the center of the hover
 				let pointerLeftPosition = Math.round((hoverWidth / 2)) - Constants.PointerSize;
 
-				// If pointer goes beyond target then position it at the center of the target
 				const pointerX = this._x + pointerLeftPosition;
 				if (pointerX < target.left || pointerX > target.right) {
 					pointerLeftPosition = target.center.x - this._x - Constants.PointerSize;
@@ -697,12 +637,6 @@ class CompositeMouseTracker extends Widget {
 
 	get isMouseIn(): boolean { return this._isMouseIn; }
 
-	/**
-	 * @param _elements The target elements to track mouse in/out events on.
-	 * @param _eventDebounceDelay The delay in ms to debounce the event firing. This is used to
-	 * allow a short period for the mouse to move into the hover or a nearby target element. For
-	 * example hovering a scroll bar will not hide the hover immediately.
-	 */
 	constructor(
 		private _elements: HTMLElement[],
 		private _eventDebounceDelay: number = 200
@@ -723,8 +657,6 @@ class CompositeMouseTracker extends Widget {
 
 	private _onTargetMouseLeave(): void {
 		this._isMouseIn = false;
-		// Evaluate whether the mouse is still outside asynchronously such that other mouse targets
-		// have the opportunity to first their mouse in event.
 		this._mouseTimer.value = new TimeoutTimer(() => this._fireIfMouseOutside(), this._eventDebounceDelay);
 	}
 
@@ -734,22 +666,12 @@ class CompositeMouseTracker extends Widget {
 		}
 	}
 
-	/**
-	 * Suppresses the next pending mouseout dismissal. Call this when tracked
-	 * elements are being resized or repositioned to avoid spurious dismissals
-	 * caused by the element shrinking away from the cursor. The suppression
-	 * is cleared when the mouse next enters a tracked element.
-	 */
 	suppressPendingMouseOut(): void {
 		if (!this._isMouseIn) {
 			this._suppressNextMouseOut = true;
 		}
 	}
 
-	/**
-	 * Adds an element to be tracked by this mouse tracker. Mouse events on this
-	 * element will be considered as being "inside" the tracked area.
-	 */
 	addElement(element: HTMLElement): IDisposable {
 		if (this._elements.includes(element)) {
 			return Disposable.None;

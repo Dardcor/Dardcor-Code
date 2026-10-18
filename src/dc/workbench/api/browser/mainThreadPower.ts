@@ -20,7 +20,6 @@ export class MainThreadPower extends Disposable implements MainThreadPowerShape 
 		super();
 		this.proxy = extHostContext.getProxy(ExtHostContext.ExtHostPower);
 
-		// Forward power events to extension host
 		this._register(this.powerService.onDidSuspend(this.proxy.$onDidSuspend, this.proxy));
 		this._register(this.powerService.onDidResume(this.proxy.$onDidResume, this.proxy));
 		this._register(this.powerService.onDidChangeOnBatteryPower(this.proxy.$onDidChangeOnBatteryPower, this.proxy));

@@ -125,7 +125,6 @@ export abstract class PaneComposite<MementoType extends object = object> extends
 					menuActions = [viewsSubmenuAction, ...menuActions.slice(0, viewsSubmenuActionIndex), ...menuActions.slice(viewsSubmenuActionIndex + 1)];
 				}
 			} else {
-				// Remove views submenu if none of the actions are enabled
 				menuActions.splice(viewsSubmenuActionIndex, 1);
 			}
 		}
@@ -158,9 +157,6 @@ export abstract class PaneComposite<MementoType extends object = object> extends
 }
 
 
-/**
- * A Pane Composite descriptor is a lightweight descriptor of a Pane Composite in the workbench.
- */
 export class PaneCompositeDescriptor extends CompositeDescriptor<PaneComposite> {
 
 	static create<Services extends BrandedService[]>(
@@ -197,30 +193,18 @@ export const Extensions = {
 
 export class PaneCompositeRegistry extends CompositeRegistry<PaneComposite> {
 
-	/**
-	 * Registers a viewlet to the platform.
-	 */
 	registerPaneComposite(descriptor: PaneCompositeDescriptor): void {
 		super.registerComposite(descriptor);
 	}
 
-	/**
-	 * Deregisters a viewlet to the platform.
-	 */
 	deregisterPaneComposite(id: string): void {
 		super.deregisterComposite(id);
 	}
 
-	/**
-	 * Returns the viewlet descriptor for the given id or null if none.
-	 */
 	getPaneComposite(id: string): PaneCompositeDescriptor {
 		return this.getComposite(id) as PaneCompositeDescriptor;
 	}
 
-	/**
-	 * Returns an array of registered viewlets known to the platform.
-	 */
 	getPaneComposites(): PaneCompositeDescriptor[] {
 		return this.getComposites() as PaneCompositeDescriptor[];
 	}

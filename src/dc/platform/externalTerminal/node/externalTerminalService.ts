@@ -40,13 +40,10 @@ export class WindowsExternalTerminalService extends ExternalTerminalService impl
 	public spawnTerminal(spawner: typeof cp, configuration: IExternalTerminalSettings, command: string, cwd?: string): Promise<void> {
 		const exec = configuration.windowsExec || WindowsExternalTerminalService.getDefaultTerminalWindows();
 
-		// Make the drive letter uppercase on Windows (see #9448)
 		if (cwd && cwd[1] === ':') {
 			cwd = cwd[0].toUpperCase() + cwd.substr(1);
 		}
 
-		// cmder ignores the environment cwd and instead opts to always open in %USERPROFILE%
-		// unless otherwise specified
 		const basename = path.basename(exec, '.exe').toLowerCase();
 		if (basename === 'cmder') {
 			spawner.spawn(exec, cwd ? [cwd] : undefined);
@@ -55,13 +52,9 @@ export class WindowsExternalTerminalService extends ExternalTerminalService impl
 
 		const cmdArgs = ['/c', 'start', '/wait'];
 		if (exec.indexOf(' ') >= 0) {
-			// The "" argument is the window title. Without this, exec doesn't work when the path
-			// contains spaces. #6590
-			// Title is Execution Path. #220129
 			cmdArgs.push(exec);
 		}
 		cmdArgs.push(exec);
-		// Add starting directory parameter for Windows Terminal (see #90734)
 		if (basename === 'wt') {
 			cmdArgs.push('-d .');
 		}
@@ -81,12 +74,10 @@ export class WindowsExternalTerminalService extends ExternalTerminalService impl
 		return new Promise<number | undefined>((resolve, reject) => {
 
 			const title = `"${dir} - ${TERMINAL_TITLE}"`;
-			const command = `"${args.join('" "')}" & pause`; // use '|' to only pause on non-zero exit code
+			const command = `"${args.join('" "')}" & pause`;
 
-			// merge environment variables into a copy of the process.env
 			const env = Object.assign({}, getSanitizedEnvironment(process), envVars);
 
-			// delete environment variables that have a null value
 			Object.keys(env).filter(v => env[v] === null).forEach(key => delete env[key]);
 
 			const options = {
@@ -99,13 +90,9 @@ export class WindowsExternalTerminalService extends ExternalTerminalService impl
 			let cmdArgs: string[];
 
 			if (path.basename(exec, '.exe') === 'wt') {
-				// Handle Windows Terminal specially; -d to set the cwd and run a cmd.exe instance
-				// inside it
 				spawnExec = exec;
 				cmdArgs = ['-d', '.', WindowsExternalTerminalService.CMD, '/c', command];
 			} else if (wt) {
-				// prefer to use the window terminal to spawn if it's available instead
-				// of start, since that allows ctrl+c handling (#81322)
 				spawnExec = wt;
 				cmdArgs = ['-d', '.', exec, '/c', command];
 			} else {
@@ -142,7 +129,7 @@ export class WindowsExternalTerminalService extends ExternalTerminalService impl
 }
 
 export class MacExternalTerminalService extends ExternalTerminalService implements IExternalTerminalService {
-	private static readonly OSASCRIPT = '/usr/bin/osascript';	// osascript is the AppleScript interpreter on OS X
+	private static readonly OSASCRIPT = '/usr/bin/osascript';
 
 	public openTerminal(configuration: IExternalTerminalSettings, cwd?: string): Promise<void> {
 		return this.spawnTerminal(cp, configuration, cwd);
@@ -156,8 +143,6 @@ export class MacExternalTerminalService extends ExternalTerminalService implemen
 
 			if (terminalApp === DEFAULT_TERMINAL_OSX || terminalApp === 'iTerm.app') {
 
-				// On OS X we launch an AppleScript that creates (or reuses) a Terminal window
-				// and then launches the program inside that window.
 
 				const script = terminalApp === DEFAULT_TERMINAL_OSX ? 'TerminalHelper' : 'iTermHelper';
 				const scriptpath = FileAccess.asFileUri(`vs/workbench/contrib/externalTerminal/node/${script}.scpt`).fsPath;
@@ -174,7 +159,6 @@ export class MacExternalTerminalService extends ExternalTerminalService implemen
 				}
 
 				if (envVars) {
-					// merge environment variables into a copy of the process.env
 					const env = Object.assign({}, getSanitizedEnvironment(process), envVars);
 
 					for (const key in env) {
@@ -192,10 +176,6 @@ export class MacExternalTerminalService extends ExternalTerminalService implemen
 				const osa = cp.spawn(MacExternalTerminalService.OSASCRIPT, osaArgs);
 				setupSpawnErrorHandling(osa, resolve, reject, terminalApp);
 			} else if (terminalApp === 'Ghostty.app') {
-				// Ghostty uses CLI flags directly instead of AppleScript like Mac Terminal and iTerm
-				// Note: -na is required (not just -a) because we need to spawn a new instance that
-				// receives our --args. With just -a, if Ghostty is already running, open will
-				// activate the existing instance and ignore --args entirely.
 				const env = Object.assign({}, getSanitizedEnvironment(process), envVars);
 				const openArgs = ['-na', 'Ghostty.app', '--args'];
 				openArgs.push('--working-directory=' + dir);
@@ -255,8 +235,6 @@ export class LinuxExternalTerminalService extends ExternalTerminalService implem
 				}
 
 				const termArgs: string[] = [];
-				//termArgs.push('--title');
-				//termArgs.push(`"${TERMINAL_TITLE}"`);
 				if (exec.indexOf('gnome-terminal') >= 0) {
 					termArgs.push('-x');
 				} else {
@@ -266,7 +244,7 @@ export class LinuxExternalTerminalService extends ExternalTerminalService implem
 				termArgs.push('-c');
 
 				const bashCommand = `${quote(args)}; echo; read -p "${LinuxExternalTerminalService.WAIT_MESSAGE}" -n1;`;
-				termArgs.push(`''${bashCommand}''`);	// wrapping argument in two sets of ' because node is so "friendly" that it removes one set...
+				termArgs.push(`''${bashCommand}''`);
 
 
 				LinuxExternalTerminalService.spawnTerminalWithEnv(exec, termArgs, dir, envVars, resolve, reject);
@@ -284,7 +262,6 @@ export class LinuxExternalTerminalService extends ExternalTerminalService implem
 	): void {
 		const env = Object.assign({}, getSanitizedEnvironment(process), envVars);
 
-		// delete environment variables that have a null value
 		Object.keys(env).filter(v => env[v] === null).forEach(key => delete env[key]);
 
 		const cmd = cp.spawn(exec, args, { cwd: dir, env });
@@ -341,9 +318,6 @@ function getSanitizedEnvironment(process: NodeJS.Process) {
 	return env;
 }
 
-/**
- * tries to turn OS errors into more meaningful error messages
- */
 function improveError(err: Error & { errno?: string; path?: string }): Error {
 	if (err.errno === 'ENOENT' && err.path) {
 		return new Error(nls.localize('ext.term.app.not.found', "can't find terminal application '{0}'", err.path));
@@ -351,9 +325,6 @@ function improveError(err: Error & { errno?: string; path?: string }): Error {
 	return err;
 }
 
-/**
- * Attaches error handling to a spawned child process for terminal launching.
- */
 function setupSpawnErrorHandling(
 	cmd: cp.ChildProcess,
 	resolve: (value: number | PromiseLike<number | undefined> | undefined) => void,
@@ -382,9 +353,6 @@ function setupSpawnErrorHandling(
 	});
 }
 
-/**
- * Quote args if necessary and combine into a space separated string.
- */
 function quote(args: string[]): string {
 	let r = '';
 	for (const a of args) {

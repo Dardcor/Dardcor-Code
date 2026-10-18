@@ -105,17 +105,14 @@ ssuite({ title: '/tests', location: 'inline', language: 'js' }, () => {
 						assert.strictEqual(outcome.files.length, 1);
 						const file = outcome.files[0];
 
-						// Check if it's the old format (with kind and uri)
 						if ('kind' in file && 'uri' in file) {
 							assert.strictEqual(file.kind, 'qualifiedFile');
 							assert.strictEqual(file.uri.scheme, 'untitled');
 						}
-						// Otherwise if it's the new format (with srcUri)
 						else if ('srcUri' in file) {
 							assert.ok(file.srcUri.startsWith('untitled:'), 'URI should be untitled scheme');
 						}
 
-						// Use getFileContent to get the content regardless of format
 						const content = getFileContent(file);
 						assert.strictEqual(content.includes('// BEGIN:'), false);
 						assert.strictEqual(content.includes('// END:'), false);

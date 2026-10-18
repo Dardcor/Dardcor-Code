@@ -16,10 +16,6 @@ import { getThemeTypeSelector } from '../../../../platform/theme/common/themeSer
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { IMouseWheelEvent } from '../../../../base/browser/mouseEvent.js';
 
-/**
- * The editor scrollbar built on VS Code's scrollable element that sits beside
- * the minimap.
- */
 export class EditorScrollbar extends ViewPart {
 
 	private readonly scrollbar: SmoothScrollableElement;
@@ -72,9 +68,6 @@ export class EditorScrollbar extends ViewPart {
 		this.scrollbarDomNode.setPosition('absolute');
 		this._setLayout();
 
-		// When having a zone widget that calls .focus() on one of its dom elements,
-		// the browser will try desperately to reveal that dom node, unexpectedly
-		// changing the .scrollTop of this.linesContent
 
 		const onBrowserDesperateReveal = (domNode: HTMLElement, lookAtScrollTop: boolean, lookAtScrollLeft: boolean) => {
 			const newScrollPosition: INewScrollPosition = {};
@@ -98,7 +91,6 @@ export class EditorScrollbar extends ViewPart {
 			this._context.viewModel.viewLayout.setScrollPosition(newScrollPosition, ScrollType.Immediate);
 		};
 
-		// I've seen this happen both on the view dom node & on the lines content dom node.
 		this._register(dom.addDisposableListener(viewDomNode.domNode, 'scroll', (e: Event) => onBrowserDesperateReveal(viewDomNode.domNode, true, true)));
 		this._register(dom.addDisposableListener(linesContent.domNode, 'scroll', (e: Event) => onBrowserDesperateReveal(linesContent.domNode, true, false)));
 		this._register(dom.addDisposableListener(overflowGuardDomNode.domNode, 'scroll', (e: Event) => onBrowserDesperateReveal(overflowGuardDomNode.domNode, true, false)));
@@ -138,7 +130,6 @@ export class EditorScrollbar extends ViewPart {
 		this.scrollbar.delegateScrollFromMouseWheelEvent(browserEvent);
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		if (
@@ -177,10 +168,8 @@ export class EditorScrollbar extends ViewPart {
 		return true;
 	}
 
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to do
 	}
 
 	public render(ctx: RestrictedRenderingContext): void {

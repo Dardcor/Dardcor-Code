@@ -41,12 +41,10 @@ function isCreatedFile(file: ModifiedFileConfirmationEntry): boolean {
 	return file.editKind === 'create' || (file.editKind === undefined && !file.originalUri && !file.originalContentUri && !!file.modifiedContentUri);
 }
 
-/** Returns the pending file entry referenced by a confirmation-message link. */
 export function findModifiedFileConfirmationEntry(modifiedFiles: readonly ModifiedFileConfirmationEntry[], resource: URI): ModifiedFileConfirmationEntry | undefined {
 	return modifiedFiles.find(file => isEqual(URI.revive(file.uri), resource));
 }
 
-/** Returns the summary shown above pending file changes. */
 export function getModifiedFilesSummaryLabel(modifiedFiles: readonly ModifiedFileConfirmationEntry[]): string {
 	const allFilesCreated = modifiedFiles.length > 0 && modifiedFiles.every(isCreatedFile);
 	if (allFilesCreated) {
@@ -60,7 +58,6 @@ export function getModifiedFilesSummaryLabel(modifiedFiles: readonly ModifiedFil
 		: localize('manyFilesChanged', '{0} files changed', modifiedFiles.length);
 }
 
-/** Creates the editor input used to preview a pending file change. */
 export function createModifiedFilePreviewEditorInput(resource: URI, originalUri: URI | undefined, modifiedContentUri: URI | undefined, title: string | undefined, options: IEditorOptions | undefined): IUntypedEditorInput {
 	const modifiedUri = modifiedContentUri ?? resource;
 	if (originalUri) {

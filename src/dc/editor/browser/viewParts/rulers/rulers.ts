@@ -11,10 +11,6 @@ import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import { EditorOption, IRulerOption } from '../../../common/config/editorOptions.js';
 
-/**
- * Rulers are vertical lines that appear at certain columns in the editor. There can be >= 0 rulers
- * at a time.
- */
 export class Rulers extends ViewPart {
 
 	public domNode: FastDomNode<HTMLElement>;
@@ -35,7 +31,6 @@ export class Rulers extends ViewPart {
 	}
 
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -47,10 +42,8 @@ export class Rulers extends ViewPart {
 		return e.scrollHeightChanged;
 	}
 
-	// --- end event handlers
 
 	public prepareRender(ctx: RenderingContext): void {
-		// Nothing to read
 	}
 
 	private _ensureRulersCount(): void {
@@ -58,7 +51,6 @@ export class Rulers extends ViewPart {
 		const desiredCount = this._rulers.length;
 
 		if (currentCount === desiredCount) {
-			// Nothing to do
 			return;
 		}
 

@@ -216,11 +216,6 @@ export class RunInTerminalToolTelemetry {
 		});
 	}
 
-	/**
-	 * Reports the measurements produced by the terminal output compaction
-	 * {@link Report}, so the effectiveness of compaction (how much output was
-	 * removed and whether it was lossless) can be evaluated across sessions.
-	 */
 	logCompaction(report: Report): void {
 		type TelemetryEvent = {
 			commandKinds: TelemetryTrustedValue<string>;
@@ -254,7 +249,6 @@ export class RunInTerminalToolTelemetry {
 
 
 const commandAllowList: ReadonlySet<string> = new Set([
-	// Special chars/scripting
 	'!',
 	'@',
 	'#',
@@ -271,7 +265,6 @@ const commandAllowList: ReadonlySet<string> = new Set([
 	'<',
 	'>',
 
-	// Utils
 	'.',
 	'7z',
 	'alias',
@@ -480,7 +473,6 @@ const commandAllowList: ReadonlySet<string> = new Set([
 	'zless',
 	'zmore',
 
-	// SCM
 	'bitbucket',
 	'bzr',
 	'cvs',
@@ -492,7 +484,6 @@ const commandAllowList: ReadonlySet<string> = new Set([
 	'fossil',
 	'p4',
 
-	// Devtools, languages, package manager
 	'adb',
 	'ansible',
 	'apk',
@@ -572,7 +563,6 @@ const commandAllowList: ReadonlySet<string> = new Set([
 	'yum',
 	'zypper',
 
-	// AI tools
 	'aider',
 	'amp',
 	'claude',
@@ -582,11 +572,9 @@ const commandAllowList: ReadonlySet<string> = new Set([
 	'toad',
 	'q',
 
-	// Misc Windows executables
 	'taskkill',
 	'taskkill.exe',
 
-	// PowerShell
 	'add-content',
 	'compare-object',
 	'convertfrom-json',
@@ -631,7 +619,6 @@ const commandAllowList: ReadonlySet<string> = new Set([
 	'write-host',
 	'write-output',
 
-	// PowerShell aliases
 	'iex',
 	'irm',
 	'iwr',

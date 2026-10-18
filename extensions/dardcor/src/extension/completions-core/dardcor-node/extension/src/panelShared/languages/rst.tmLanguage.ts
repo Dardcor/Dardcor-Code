@@ -5,10 +5,6 @@
 /* eslint-disable local/code-no-unexternalized-strings */
 import { LanguageInput } from 'shiki/core';
 
-// This file has been converted from https://github.com/trond-snekvik/vscode-rst/blob/master/syntaxes/rst.tmLanguage.json
-// If you want to provide a fix or improvement, please create a pull request against the original repository.
-// Once accepted there, we are happy to receive an update request.
-// version: https://github.com/trond-snekvik/vscode-rst/commit/f0fe19ffde6509be52ad9267a57e1b3df665f072
 export const restructuredtext: LanguageInput = {
 	scopeName: 'source.rst',
 	name: 'restructuredtext',

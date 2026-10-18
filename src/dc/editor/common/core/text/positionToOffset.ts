@@ -18,7 +18,5 @@ _setPositionOffsetTransformerDependencies({
 	TextLength: TextLength,
 });
 
-// TODO@hediet this is dept and needs to go. See https://github.com/microsoft/vscode/issues/251126.
 export function ensureDependenciesAreSet(): void {
-	// Noop
 }

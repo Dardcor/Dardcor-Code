@@ -40,70 +40,26 @@ import { SelectionClipboardContributionID } from '../selectionClipboard.js';
 import { getSimpleEditorOptions, setupSimpleEditorSelectionStyling } from '../simpleEditorOptions.js';
 
 export interface SuggestResultsProvider {
-	/**
-	 * Provider function for suggestion results.
-	 *
-	 * @param query the full text of the input.
-	 */
 	provideResults: (query: string) => (Partial<languages.CompletionItem> & ({ label: string }) | string)[];
 
-	/**
-	 * Trigger characters for this input. Suggestions will appear when one of these is typed,
-	 * or upon `ctrl+space` triggering at a word boundary.
-	 *
-	 * Defaults to the empty array.
-	 */
 	triggerCharacters?: string[];
 
-	/**
-	 * Optional regular expression that describes what a word is
-	 *
-	 * Defaults to space separated words.
-	 */
 	wordDefinition?: RegExp;
 
-	/**
-	 * Show suggestions even if the trigger character is not present.
-	 *
-	 * Defaults to false.
-	 */
 	alwaysShowSuggestions?: boolean;
 
-	/**
-	 * Defines the sorting function used when showing results.
-	 *
-	 * Defaults to the identity function.
-	 */
 	sortKey?: (result: string) => string;
 }
 
 interface SuggestEnabledInputOptions {
-	/**
-	 * The text to show when no input is present.
-	 *
-	 * Defaults to the empty string.
-	 */
 	placeholderText?: string;
 
-	/**
-	 * Initial value to be shown
-	 */
 	value?: string;
 
-	/**
-	 * Context key tracking the focus state of this element
-	 */
 	focusContextKey?: IContextKey<boolean>;
 
-	/**
-	 * Place overflow widgets inside an external DOM node.
-	 * Defaults to an internal DOM node.
-	 */
 	overflowWidgetsDomNode?: HTMLElement;
 
-	/**
-	 * Override the default styling of the input.
-	 */
 	styleOverrides?: ISuggestEnabledInputStyleOverrides;
 }
 
@@ -197,7 +153,7 @@ export class SuggestEnabledInput extends Widget {
 		this._register(this.inputModel);
 		this.inputWidget.setModel(this.inputModel);
 
-		this._register(this.inputWidget.onDidPaste(() => this.setValue(this.getValue()))); // setter cleanses
+		this._register(this.inputWidget.onDidPaste(() => this.setValue(this.getValue())));
 
 		this._register((this.inputWidget.onDidFocusEditorText(() => {
 			if (options.focusContextKey) { options.focusContextKey.set(true); }
@@ -208,7 +164,7 @@ export class SuggestEnabledInput extends Widget {
 			this.stylingContainer.classList.remove('synthetic-focus');
 		})));
 
-		this._register(Event.chain(this.inputWidget.onKeyDown, $ => $.filter(e => e.keyCode === KeyCode.Enter))(e => { e.preventDefault(); /** Do nothing. Enter causes new line which is not expected. */ }, this));
+		this._register(Event.chain(this.inputWidget.onKeyDown, $ => $.filter(e => e.keyCode === KeyCode.Enter))(e => { e.preventDefault(); }, this));
 		this._register(Event.chain(this.inputWidget.onKeyDown, $ => $.filter(e => e.keyCode === KeyCode.DownArrow && (isMacintosh ? e.metaKey : e.ctrlKey)))(() => this._onShouldFocusResults.fire(), this));
 
 		let preexistingContent = this.getValue();
@@ -251,7 +207,6 @@ export class SuggestEnabledInput extends Widget {
 					alreadyTypedCount = zeroIndexedColumn - zeroIndexedWordStart;
 				}
 
-				// dont show suggestions if the user has typed something, but hasn't used the trigger character
 				if (!validatedSuggestProvider.alwaysShowSuggestions && alreadyTypedCount > 0 && validatedSuggestProvider.triggerCharacters?.indexOf(query[zeroIndexedWordStart]) === -1) {
 					return { suggestions: [] };
 				}
@@ -380,11 +335,6 @@ export class SuggestEnabledInputWithHistory extends SuggestEnabledInput implemen
 		return this.history.getHistory();
 	}
 
-	/**
-	 * Whether the input is currently showing a value from the history (as opposed to a freshly
-	 * typed query). While navigating, {@link showNextValue} advances toward more recent entries and,
-	 * once past the most recent one, clears the input back to an empty value.
-	 */
 	public isNavigatingHistory(): boolean {
 		return !this.history.isNowhere();
 	}

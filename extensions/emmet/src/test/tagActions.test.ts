@@ -67,9 +67,9 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(contents, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(3, 17, 3, 17), // cursor inside tags
-				new Selection(4, 5, 4, 5), // cursor inside opening tag
-				new Selection(5, 35, 5, 35), // cursor inside closing tag
+				new Selection(3, 17, 3, 17),
+				new Selection(4, 5, 4, 5),
+				new Selection(5, 35, 5, 35),
 			];
 
 			return updateTag('section')!.then(() => {
@@ -79,7 +79,6 @@ suite('Tests for Emmet actions on html tags', () => {
 		});
 	});
 
-	// #region update tag
 	test('update tag with entire node selected', () => {
 		const expectedContents = `
 	<div class="hello">
@@ -118,7 +117,7 @@ suite('Tests for Emmet actions on html tags', () => {
 
 		return withRandomFileEditor(contentsWithTemplate, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(2, 4, 2, 4), // cursor inside ul tag
+				new Selection(2, 4, 2, 4),
 			];
 
 			return updateTag('section')!.then(() => {
@@ -127,9 +126,7 @@ suite('Tests for Emmet actions on html tags', () => {
 			});
 		});
 	});
-	// #endregion
 
-	// #region remove tag
 	test('remove tag with multiple cursors', () => {
 		const expectedContents = `
 	<div class="hello">
@@ -143,9 +140,9 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(contents, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(3, 17, 3, 17), // cursor inside tags
-				new Selection(4, 5, 4, 5), // cursor inside opening tag
-				new Selection(5, 35, 5, 35), // cursor inside closing tag
+				new Selection(3, 17, 3, 17),
+				new Selection(4, 5, 4, 5),
+				new Selection(5, 35, 5, 35),
 			];
 
 			return removeTag()!.then(() => {
@@ -192,7 +189,7 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(contentsWithTemplate, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(2, 4, 2, 4), // cursor inside ul tag
+				new Selection(2, 4, 2, 4),
 			];
 
 			return removeTag()!.then(() => {
@@ -215,7 +212,7 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(spacedContents, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(2, 4, 2, 4), // cursor inside ul tag
+				new Selection(2, 4, 2, 4),
 			];
 
 			return removeTag()!.then(() => {
@@ -224,9 +221,7 @@ suite('Tests for Emmet actions on html tags', () => {
 			});
 		});
 	});
-	// #endregion
 
-	// #region split/join tag
 	test('split/join tag with multiple cursors', () => {
 		const expectedContents = `
 	<div class="hello">
@@ -240,8 +235,8 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(contents, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(3, 17, 3, 17), // join tag
-				new Selection(7, 5, 7, 5), // split tag
+				new Selection(3, 17, 3, 17),
+				new Selection(7, 5, 7, 5),
 			];
 
 			return splitJoinTag()!.then(() => {
@@ -264,8 +259,8 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(contents, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(3, 7, 3, 25), // join tag
-				new Selection(7, 2, 7, 9), // split tag
+				new Selection(3, 7, 3, 25),
+				new Selection(7, 2, 7, 9),
 			];
 
 			return splitJoinTag()!.then(() => {
@@ -288,8 +283,8 @@ suite('Tests for Emmet actions on html tags', () => {
 	`;
 		return withRandomFileEditor(contentsWithTemplate, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(3, 17, 3, 17), // join tag
-				new Selection(7, 5, 7, 5), // split tag
+				new Selection(3, 17, 3, 17),
+				new Selection(7, 5, 7, 5),
 			];
 
 			return splitJoinTag()!.then(() => {
@@ -314,8 +309,8 @@ suite('Tests for Emmet actions on html tags', () => {
 		return workspace.getConfiguration('emmet').update('syntaxProfiles', { jsx: { selfClosingStyle: 'xhtml' } }, ConfigurationTarget.Global).then(() => {
 			return withRandomFileEditor(contents, 'jsx', (editor, doc) => {
 				editor.selections = [
-					new Selection(3, 17, 3, 17), // join tag
-					new Selection(7, 5, 7, 5), // split tag
+					new Selection(3, 17, 3, 17),
+					new Selection(7, 5, 7, 5),
 				];
 
 				return splitJoinTag()!.then(() => {
@@ -325,18 +320,16 @@ suite('Tests for Emmet actions on html tags', () => {
 			});
 		});
 	});
-	// #endregion
 
-	// #region match tag
 	test('match tag with multiple cursors', () => {
 		return withRandomFileEditor(contents, 'html', (editor, _) => {
 			editor.selections = [
-				new Selection(1, 0, 1, 0), // just before tag starts, i.e before <
-				new Selection(1, 1, 1, 1), // just before tag name starts
-				new Selection(1, 2, 1, 2), // inside tag name
-				new Selection(1, 6, 1, 6), // after tag name but before opening tag ends
-				new Selection(1, 18, 1, 18), // just before opening tag ends
-				new Selection(1, 19, 1, 19), // just after opening tag ends
+				new Selection(1, 0, 1, 0),
+				new Selection(1, 1, 1, 1),
+				new Selection(1, 2, 1, 2),
+				new Selection(1, 6, 1, 6),
+				new Selection(1, 18, 1, 18),
+				new Selection(1, 19, 1, 19),
 			];
 
 			matchTag();
@@ -362,7 +355,7 @@ suite('Tests for Emmet actions on html tags', () => {
 
 		return withRandomFileEditor(templateScript, 'html', (editor, _) => {
 			editor.selections = [
-				new Selection(2, 2, 2, 2), // just before div tag starts, i.e before <
+				new Selection(2, 2, 2, 2),
 			];
 
 			matchTag();
@@ -378,9 +371,7 @@ suite('Tests for Emmet actions on html tags', () => {
 		});
 	});
 
-	// #endregion
 
-	// #region merge lines
 	test('merge lines of tag with children when empty selection', () => {
 		const expectedContents = `
 	<div class="hello">
@@ -422,9 +413,9 @@ suite('Tests for Emmet actions on html tags', () => {
 	test('merge lines is no-op when start and end nodes are on the same line', () => {
 		return withRandomFileEditor(contents, 'html', (editor, doc) => {
 			editor.selections = [
-				new Selection(3, 9, 3, 9), // cursor is inside the <span> in <li><span>Hello</span></li>
-				new Selection(4, 5, 4, 5), // cursor is inside the <li> in <li><span>Hello</span></li>
-				new Selection(5, 5, 5, 20) // selection spans multiple nodes in the same line
+				new Selection(3, 9, 3, 9),
+				new Selection(4, 5, 4, 5),
+				new Selection(5, 5, 5, 20)
 			];
 
 			return mergeLines()!.then(() => {
@@ -433,6 +424,5 @@ suite('Tests for Emmet actions on html tags', () => {
 			});
 		});
 	});
-	// #endregion
 });
 

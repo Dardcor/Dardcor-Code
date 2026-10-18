@@ -28,12 +28,11 @@ suite('Editor View - OverviewZoneManager', () => {
 			new OverviewRulerZone(50, 50, 0, '4'),
 		]);
 
-		// one line = 12, but cap is at 6
 		assert.deepStrictEqual(manager.resolveColorZones(), [
-			new ColorZone(12, 24, 1), //
-			new ColorZone(120, 132, 2), // 120 -> 132
-			new ColorZone(360, 384, 3), // 360 -> 372 [360 -> 384]
-			new ColorZone(588, 600, 4), // 588 -> 600
+			new ColorZone(12, 24, 1),
+			new ColorZone(120, 132, 2),
+			new ColorZone(360, 384, 3),
+			new ColorZone(588, 600, 4),
 		]);
 	});
 
@@ -54,12 +53,11 @@ suite('Editor View - OverviewZoneManager', () => {
 			new OverviewRulerZone(50, 50, 0, '4'),
 		]);
 
-		// one line = 6, cap is at 6
 		assert.deepStrictEqual(manager.resolveColorZones(), [
-			new ColorZone(6, 12, 1), //
-			new ColorZone(60, 66, 2), // 60 -> 66
-			new ColorZone(180, 192, 3), // 180 -> 192
-			new ColorZone(294, 300, 4), // 294 -> 300
+			new ColorZone(6, 12, 1),
+			new ColorZone(60, 66, 2),
+			new ColorZone(180, 192, 3),
+			new ColorZone(294, 300, 4),
 		]);
 	});
 
@@ -80,12 +78,11 @@ suite('Editor View - OverviewZoneManager', () => {
 			new OverviewRulerZone(50, 50, 0, '4'),
 		]);
 
-		// one line = 6, cap is at 12
 		assert.deepStrictEqual(manager.resolveColorZones(), [
-			new ColorZone(12, 24, 1), //
-			new ColorZone(120, 132, 2), // 120 -> 132
-			new ColorZone(360, 384, 3), // 360 -> 384
-			new ColorZone(588, 600, 4), // 588 -> 600
+			new ColorZone(12, 24, 1),
+			new ColorZone(120, 132, 2),
+			new ColorZone(360, 384, 3),
+			new ColorZone(588, 600, 4),
 		]);
 	});
 });

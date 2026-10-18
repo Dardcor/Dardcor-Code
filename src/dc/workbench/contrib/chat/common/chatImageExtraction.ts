@@ -31,11 +31,6 @@ export interface IChatExtractedImageCollection {
 	readonly images: IChatExtractedImage[];
 }
 
-/**
- * Extract all images from a chat response's tool invocations and inline references.
- * Tool invocation images are extracted from output details and message URIs.
- * Inline reference images (file URIs) are read via the provided {@link readFile} callback.
- */
 export async function extractImagesFromChatResponse(
 	response: IChatResponseViewModel,
 	readFile: (uri: URI) => Promise<VSBuffer>,
@@ -56,7 +51,6 @@ export async function extractImagesFromChatResponse(
 		}
 	}
 
-	// Use the corresponding user request as the carousel title
 	const request = response.session.getItems().find((item): item is IChatRequestViewModel => isRequestVM(item) && item.id === response.requestId);
 	const title = request ? request.messageText.trim() || getExplicitFileOrImageAttachmentSummary(request.variables) || localize('chatImageExtraction.defaultTitle', "Images") : localize('chatImageExtraction.defaultTitle', "Images");
 
@@ -113,9 +107,6 @@ export async function extractImagesFromToolInvocationMessages(
 	toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
 	readFile: (uri: URI) => Promise<VSBuffer>
 ): Promise<IChatExtractedImage[]> {
-	// Use pastTenseMessage if available, otherwise fall back to invocationMessage.
-	// When pastTenseMessage exists it visually replaces invocationMessage in the UI,
-	// so we only look at its URIs — we don't fall back to invocationMessage URIs.
 	const message = toolInvocation.pastTenseMessage ?? toolInvocation.invocationMessage;
 	if (!message || typeof message === 'string' || !message.uris || Object.keys(message.uris).length === 0) {
 		return [];
@@ -216,9 +207,6 @@ export function coerceImageBuffer(value: unknown): Uint8Array | undefined {
 	return result;
 }
 
-/**
- * Extract images from a chat request's variable attachments (user-attached images).
- */
 export function extractImagesFromChatRequest(
 	request: IChatRequestViewModel,
 ): IChatExtractedImage[] {

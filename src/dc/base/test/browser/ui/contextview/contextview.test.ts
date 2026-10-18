@@ -27,8 +27,6 @@ suite('ContextView', () => {
 				dispose: () => {
 					disposeCount++;
 					if (disposeCount === 1) {
-						// Simulate a re-entrant hide() call (e.g. via a blur event
-						// fired while removing the rendered DOM node from the document).
 						contextView.hide();
 					}
 				}

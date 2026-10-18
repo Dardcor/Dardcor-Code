@@ -24,7 +24,6 @@ import { IScreenReaderContent } from './screenReaderUtils.js';
 
 export class ScreenReaderSupport extends Disposable {
 
-	// Configuration values
 	private _contentLeft: number = 1;
 	private _contentWidth: number = 1;
 	private _contentHeight: number = 1;
@@ -128,7 +127,6 @@ export class ScreenReaderSupport extends Disposable {
 
 	public render(ctx: RestrictedRenderingContext): void {
 		if (!this._primaryCursorVisibleRange) {
-			// The primary cursor is outside the viewport => place textarea to the top left
 			this._renderAtTopLeft();
 			return;
 		}
@@ -136,7 +134,6 @@ export class ScreenReaderSupport extends Disposable {
 		const editorScrollLeft = this._context.viewLayout.getCurrentScrollLeft();
 		const left = this._contentLeft + this._primaryCursorVisibleRange.left - editorScrollLeft;
 		if (left < this._contentLeft || left > this._contentLeft + this._contentWidth) {
-			// cursor is outside the viewport
 			this._renderAtTopLeft();
 			return;
 		}
@@ -145,14 +142,10 @@ export class ScreenReaderSupport extends Disposable {
 		const positionLineNumber = this._primarySelection.positionLineNumber;
 		const top = this._context.viewLayout.getVerticalOffsetForLineNumber(positionLineNumber) - editorScrollTop;
 		if (top < 0 || top > this._contentHeight) {
-			// cursor is outside the viewport
 			this._renderAtTopLeft();
 			return;
 		}
 
-		// The <div> where we render the screen reader content does not support variable line heights,
-		// all the lines must have the same height. We use the line height of the cursor position as the
-		// line height for all lines.
 		const lineHeight = this._context.viewLayout.getLineHeightForLineNumber(positionLineNumber);
 		this._doRender(top, this._contentLeft, this._divWidth, lineHeight);
 		this._state.value?.updateScrollTop(this._primarySelection);
@@ -163,7 +156,6 @@ export class ScreenReaderSupport extends Disposable {
 	}
 
 	private _doRender(top: number, left: number, width: number, height: number): void {
-		// For correct alignment of the screen reader content, we need to apply the correct font
 		applyFontInfo(this._domNode, this._fontInfo);
 
 		this._domNode.setTop(top);

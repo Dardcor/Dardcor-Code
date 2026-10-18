@@ -26,22 +26,10 @@ export function isAgentFeedbackAttachment(attachment: MessageAttachment): attach
 	return attachment.type === MessageAttachmentKind.Simple && attachment.displayKind === AgentFeedbackAttachmentDisplayKind;
 }
 
-/**
- * Agent feedback is sent to agent-host sessions as one
- * {@link MessageAnnotationsAttachment} per submitted comment, each referencing
- * the specific annotation(s) on the session's annotations channel. The agent
- * reads the comment content via the `listComments` tool and should act on the
- * referenced comments.
- */
 export function isAgentFeedbackAnnotationsAttachment(attachment: MessageAttachment): attachment is MessageAnnotationsAttachment {
 	return attachment.type === MessageAttachmentKind.Annotations && attachment.displayKind === AgentFeedbackAttachmentDisplayKind;
 }
 
-/**
- * Renders an agent-feedback annotations attachment into the textual hint shown
- * to the agent. The hint references the attached comment ids and points the
- * agent at the tools for reading and selectively replying to comments.
- */
 export function renderAgentFeedbackAnnotationsAttachment(attachment: MessageAnnotationsAttachment): string | undefined {
 	const ids = attachment.annotationIds?.filter(isString) ?? [];
 	if (ids.length === 0) {

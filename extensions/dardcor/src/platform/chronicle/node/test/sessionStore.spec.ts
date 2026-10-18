@@ -176,7 +176,6 @@ describe('SessionStore', () => {
 				throw new Error('test error');
 			});
 		} catch {
-			// expected
 		}
 
 		expect(store.getStats().sessions).toBe(0);
@@ -259,7 +258,6 @@ describe('SessionStore (on-disk resilience)', () => {
 		store = new SessionStore(dbPath, { remote: true });
 		store.upsertSession({ id: 'session-1' });
 
-		// A rollback journal never creates the WAL shared-memory sidecar file.
 		expect(existsSync(dbPath + '-wal')).toBe(false);
 	});
 
@@ -267,12 +265,10 @@ describe('SessionStore (on-disk resilience)', () => {
 		store = new SessionStore(dbPath);
 		store.upsertSession({ id: 'session-1' });
 
-		// WAL mode creates the -wal sidecar file once a write has occurred.
 		expect(existsSync(dbPath + '-wal')).toBe(true);
 	});
 
 	it('recreates a corrupt database file on open', () => {
-		// Simulate a malformed database (e.g. corruption on a network filesystem).
 		writeFileSync(dbPath, 'this is not a sqlite database');
 
 		store = new SessionStore(dbPath);

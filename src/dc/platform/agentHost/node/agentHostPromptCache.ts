@@ -10,24 +10,11 @@ import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateM
 
 export const IAgentHostPromptCache = createDecorator<IAgentHostPromptCache>('agentHostPromptCache');
 
-/**
- * Read/write seam over the host-owned prompt-cache slot of a session's `_meta`,
- * so a provider tracking prompt-cache warmth need not inject the whole
- * {@link AgentHostStateManager}.
- */
 export interface IAgentHostPromptCache {
 	readonly _serviceBrand: undefined;
 
-	/** Persisted prompt-cache state for `session`, or `undefined` if unknown/unset. */
 	read(session: URI): ISessionPromptCacheState | undefined;
 
-	/**
-	 * Persists `promptCache` for `session` and returns the effective state.
-	 * Persisted metadata is authoritative since multiple live provider sessions
-	 * can share one session URI: re-reads current value, no-ops if unchanged,
-	 * otherwise merges into existing `_meta`. No-ops (returning `promptCache`
-	 * unchanged) if the session is unknown to the host.
-	 */
 	write(session: URI, promptCache: ISessionPromptCacheState | undefined): ISessionPromptCacheState | undefined;
 }
 

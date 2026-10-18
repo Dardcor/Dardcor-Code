@@ -15,11 +15,6 @@ function stubMcpCustomization(): McpServerCustomization {
 	return { type: CustomizationType.McpServer, id: 'stub', uri: 'file:///test', name: 'test', state: { kind: McpServerStatus.Starting } };
 }
 
-/**
- * Wraps the production {@link convertBareEnvVarsToVsCodeSyntaxRaw} so tests
- * don't have to spell out the protocol-level `customization` projection on
- * every fixture — the env-var conversion never touches it.
- */
 function convertBareEnvVarsToVsCodeSyntax(def: Omit<IMcpServerDefinition, 'customization'>) {
 	return convertBareEnvVarsToVsCodeSyntaxRaw({ ...def, customization: stubMcpCustomization() });
 }
@@ -27,13 +22,11 @@ function convertBareEnvVarsToVsCodeSyntax(def: Omit<IMcpServerDefinition, 'custo
 suite('convertBareEnvVarsToVsCodeSyntax', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** Helper to narrow the result configuration to a stdio server. */
 	function asStdio(result: ReturnType<typeof convertBareEnvVarsToVsCodeSyntax>): IMcpStdioServerConfiguration {
 		assert.strictEqual(result.configuration.type, McpServerType.LOCAL);
 		return result.configuration as IMcpStdioServerConfiguration;
 	}
 
-	/** Helper to narrow the result configuration to a remote server. */
 	function asRemote(result: ReturnType<typeof convertBareEnvVarsToVsCodeSyntax>): IMcpRemoteServerConfiguration {
 		assert.strictEqual(result.configuration.type, McpServerType.REMOTE);
 		return result.configuration as IMcpRemoteServerConfiguration;

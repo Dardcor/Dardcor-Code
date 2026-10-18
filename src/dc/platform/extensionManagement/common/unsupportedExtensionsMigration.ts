@@ -12,13 +12,6 @@ import { ILogService } from '../../log/common/log.js';
 import * as semver from '../../../base/common/semver/semver.js';
 import { IUserDataProfile } from '../../userDataProfile/common/userDataProfile.js';
 
-/**
- * Migrates the installed unsupported nightly extension to a supported pre-release extension. It includes following:
- * 	- Uninstall the Unsupported extension
- * 	- Install (with optional storage migration) the Pre-release extension only if
- * 		- the extension is not installed
- * 		- or it is a release version and the unsupported extension is enabled.
- */
 export async function migrateUnsupportedExtensions(profile: IUserDataProfile | undefined, extensionManagementService: IExtensionManagementService, galleryService: IExtensionGalleryService, extensionStorageService: IExtensionStorageService, extensionEnablementService: IGlobalExtensionEnablementService, logService: ILogService): Promise<void> {
 	try {
 		const extensionsControlManifest = await extensionManagementService.getExtensionsControlManifest();
@@ -35,7 +28,6 @@ export async function migrateUnsupportedExtensions(profile: IUserDataProfile | u
 				continue;
 			}
 			const unsupportedExtension = installed.find(i => areSameExtensions(i.identifier, { id: unsupportedExtensionId }));
-			// Unsupported Extension is not installed
 			if (!unsupportedExtension) {
 				continue;
 			}

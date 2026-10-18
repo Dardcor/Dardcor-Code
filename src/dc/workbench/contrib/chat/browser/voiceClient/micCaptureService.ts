@@ -22,42 +22,12 @@ export function getMediaCaptureWindow(targetWindow: Window & typeof globalThis):
 	return targetWindow === mainWindow ? targetWindow : mainWindow;
 }
 
-/** Number of samples buffered per 32 ms voice capture chunk at 16 kHz, matching one Silero VAD frame. */
 export const MIC_CAPTURE_CHUNK_SIZE = 512;
 
 export function isMicrophonePermissionDeniedError(error: unknown): boolean {
 	return (error instanceof DOMException || error instanceof Error) && error.name === 'NotAllowedError';
 }
 
-/**
- * Per-PTT-press diagnostic emitted after `pttUp` once the diagnostic
- * window closes. Logged + sent to backend so we can correlate frontend
- * audio bookkeeping with backend ASR results via `turnId`.
- *
- * Drain model: after `pttUp` the service keeps streaming audio chunks
- * for a fixed "drain window" (~500ms by default). The drain ends as
- * soon as it has shipped enough samples to cover the window (or a
- * fallback timer trips if `onaudioprocess` stops firing). Only AFTER
- * the drain has closed does `_onPttEnd` fire. The diagnostic window is
- * intentionally LONGER than the drain window so any audio still
- * produced after drain end (within the diagnostic window) is counted
- * as `postReleaseCallbacks` -- a direct signal that the drain window
- * is too short for this device/load and the fix needs to extend it.
- *
- * Field interpretation:
- *  - `drainChunks` / `drainSamples` => audio captured during the drain
- *    window and shipped to the backend. Non-zero in normal operation.
- *  - `postReleaseCallbacks > 0` => the WebAudio pipeline produced more
- *    audio AFTER the drain window closed but before the diagnostic
- *    window. This audio was DROPPED; if it happens often the drain
- *    window needs to grow.
- *  - `drainSkippedBy*` > 0 => the drain was muted or AEC-suppressed.
- *    Tail audio for that press was lost; investigate the mute / AEC
- *    suppression path rather than the drain window.
- *  - `pttUpWithoutCapture` => pttUp arrived while mic was not capturing.
- *  - `releasedDuringAcquire` => user released while mic was still being
- *    acquired; no audio was ever recorded for this press.
- */
 export interface IPttDiagnostic {
 	readonly turnId: string;
 	readonly msHeld: number;
@@ -81,80 +51,32 @@ export interface IPttDiagnostic {
 export interface IMicCaptureService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Store a window reference for later lazy mic acquisition without actually
-	 * acquiring the microphone. The mic is acquired on `pttDown()` and released
-	 * on `pttUp()`.
-	 */
 	prepare(window: Window & typeof globalThis): void;
 
-	/** Start capturing audio from the microphone. */
 	startCapture(window: Window & typeof globalThis): Promise<void>;
 
-	/** Stop capturing and release mic resources. */
 	stopCapture(): void;
 
 	readonly isCapturing: boolean;
 
-	/**
-	 * Fired when a PTT segment begins (mic ready). The boolean payload is the
-	 * `passive` flag captured at the corresponding `pttDown` call (see there).
-	 */
 	readonly onPttStart: Event<boolean>;
 
-	/** Fired during PTT hold with base64-encoded raw PCM16 chunks. */
 	readonly onPttAudioChunk: Event<string>;
 
-	/** Fired when a PTT segment ends. All chunks have been sent before this fires. */
 	readonly onPttEnd: Event<void>;
 
-	/**
-	 * Fired after the diagnostic window closes (~1s after `pttUp`) with
-	 * per-press telemetry. Always fires AFTER `onPttEnd` for normal
-	 * presses. Used for tail-loss diagnosis; safe to ignore for normal
-	 * operation.
-	 */
 	readonly onPttDiagnostic: Event<IPttDiagnostic>;
 
-	/** The AnalyserNode for visualisation, available while capturing. */
 	readonly analyserNode: AnalyserNode | undefined;
 
-	// --- PTT ---
-	/**
-	 * Begin a PTT segment. Lazily acquires the microphone if not already
-	 * capturing. Returns a promise that resolves once the mic is ready to
-	 * record (or rejects if acquisition fails).
-	 *
-	 * `turnId` is an opaque per-press identifier propagated into the
-	 * eventual `onPttDiagnostic` payload for correlation with backend logs.
-	 * Pass empty string when no correlation is needed.
-	 *
-	 * `passive` marks this press as a hands-free barge-in listen (mic opened
-	 * during assistant playback, not a real user press). It is captured
-	 * immutably at call time and carried on the `onPttStart` emission. This
-	 * stays correct even if the caller's own state changes during the async
-	 * mic acquire.
-	 */
 	pttDown(turnId: string, passive?: boolean): Promise<void>;
 
-	/**
-	 * End a PTT segment. Sends any remaining audio chunks, then fires pttEnd.
-	 */
 	pttUp(): void;
 
-	/**
-	 * Abort the current PTT segment WITHOUT firing ``onPttEnd`` and WITHOUT
-	 * tearing down the warm mic. Used when the backend ends the turn itself
-	 * (server VAD silence / stop phrase): streaming stops immediately for this
-	 * press so no further audio is shipped, but no client ``ptt_end`` is
-	 * emitted for the turn. Safe to call when no press is active.
-	 */
 	abortPtt(): void;
 
-	// --- Mute / AEC suppression ---
 	isMuted: boolean;
 
-	/** Suppress mic output until the given timestamp (AEC gating). */
 	suppressUntil(timestamp: number): void;
 }
 
@@ -185,26 +107,14 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 	private _pttAcquiring = false;
 	private _pttReleasedDuringAcquire = false;
 
-	// --- Hardware mute detection. ---
-	// A hardware microphone kill switch (e.g. on Framework laptops) leaves
-	// `getUserMedia` succeeding with a track whose `muted` flag is set, so no
-	// acquisition error surfaces. Track the mute state to warn the user.
 	private readonly _micTrackListeners = this._register(new DisposableStore());
 	private _micMutedNotified = false;
 
-	// --- Drain state (post-release continued streaming). ---
-	// Drain length is enforced primarily by counting samples shipped
-	// since `pttUp` (immune to main-thread jitter that would skew a
-	// pure wall-clock timer). The fallback timer guards against the
-	// `onaudioprocess` callback being throttled or stopping entirely.
 	private static readonly _PTT_DRAIN_WINDOW_MS = 500;
 	private _pttDrainTargetSamples = 0;
 	private _pttDrainSamplesSent = 0;
 	private _pttDrainFallbackTimer: ReturnType<typeof setTimeout> | undefined;
 
-	// --- Per-press diagnostic counters (reset on pttDown). ---
-	// Diagnostic window MUST be > drain window so any audio still
-	// produced after drain end is observable as `postReleaseCallbacks`.
 	private static readonly _DIAG_POST_RELEASE_WINDOW_MS = 1000;
 	private _diagTurnId = '';
 	private _diagPttDownTs = 0;
@@ -257,22 +167,7 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 	async pttDown(turnId: string, passive: boolean = false): Promise<void> {
 		if (this._pttHeld) { return; }
 		const pttGeneration = ++this._pttGeneration;
-		// If a previous press is still in its drain window, finish it
-		// now: cancel the fallback timer, mark streaming closed, fire
-		// `_onPttEnd`. Otherwise the backend would keep the prior turn
-		// open and our new turn would race against it.
-		//
-		// This is also a required ordering guarantee: flushing the
-		// drain (and its `_onPttEnd`) before this turn's `_onPttStart`
-		// fires below keeps the wire order `ptt_end`(prev) then
-		// `ptt_start`(next). `ptt_end` carries no turn_id, so the backend
-		// relies on that order to end the correct turn and never the
-		// freshly opened one. Keep `_finishDrain()` ahead of every
-		// `_onPttStart.fire()` path if this method is refactored.
 		this._finishDrain();
-		// If a previous press's diagnostic hasn't fired yet (back-to-back
-		// presses inside the diagnostic window), emit it now so it
-		// isn't overwritten by this press's reset.
 		this._flushPendingDiagnostic();
 		this._resetDiagnosticCounters(turnId);
 		this._pttHeld = true;
@@ -341,10 +236,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 
 		this._pttHeld = false;
 		this._diagPttUpTs = Date.now();
-		// Start drain: keep `_pttStreaming` true so subsequent
-		// `onaudioprocess` callbacks continue to ship audio. End the
-		// drain once we've shipped a full window of samples, OR after
-		// the fallback timer trips if `onaudioprocess` stops firing.
 		const sampleRate = this._micCtx?.sampleRate ?? 16000;
 		this._pttDrainTargetSamples = Math.ceil(
 			sampleRate * MicCaptureService._PTT_DRAIN_WINDOW_MS / 1000
@@ -359,11 +250,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 
 	abortPtt(): void {
 		if (!this._pttHeld && !this._pttStreaming) { return; }
-		// Cancel any in-flight drain and stop streaming immediately. Unlike
-		// `pttUp()` this runs NO post-release drain and fires NO `_onPttEnd`:
-		// the backend already ended the turn, so we must not ship more audio
-		// for it nor emit our own ptt_end. The mic/AudioContext stays warm for
-		// the next press.
 		if (this._pttDrainFallbackTimer) {
 			clearTimeout(this._pttDrainFallbackTimer);
 			this._pttDrainFallbackTimer = undefined;
@@ -375,7 +261,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 		this._pttHeld = false;
 		this._pttStreaming = false;
 		this._pttReleasedDuringAcquire = false;
-		// Still emit the per-press diagnostic (keyed by turnId), matching pttUp.
 		this._diagPttUpTs = Date.now();
 		this._scheduleDiagnosticFire();
 	}
@@ -417,8 +302,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 				audio: audioConstraints,
 			});
 		} catch (err) {
-			// If the stored device is unavailable (unplugged/stale ID), fall back
-			// to system default. Only retry on device-specific errors.
 			const isDeviceError = deviceId && err instanceof DOMException &&
 				(err.name === 'OverconstrainedError' || err.name === 'NotFoundError');
 			if (isDeviceError) {
@@ -454,9 +337,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 		let ctx: AudioContext;
 		let source: MediaStreamAudioSourceNode;
 		try {
-			// Detect a hardware-muted microphone (e.g. a physical kill switch).
-			// `getUserMedia` succeeds in this case but the track produces silence,
-			// so without this check PTT would appear to work while capturing nothing.
 			this._micTrackListeners.clear();
 			this._micMutedNotified = false;
 			const audioTrack = micStream.getAudioTracks()[0];
@@ -486,15 +366,7 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 		const captureNodePromise = createPcmCaptureNode(window, ctx, MIC_CAPTURE_CHUNK_SIZE, samples => {
 			const nowTs = Date.now();
 			const ptUpTs = this._diagPttUpTs;
-			// A callback is a "drain" callback while we're still in the
-			// drain window after release: _pttStreaming is true (drain
-			// hasn't finished) AND _pttHeld is false (user released).
 			const isDrainCallback = this._pttStreaming && !this._pttHeld;
-			// A callback is "post-release" once drain has finished
-			// (_pttStreaming flipped to false in _finishDrain) but we're
-			// still inside the wider diagnostic window. Audio in this
-			// window is currently DROPPED; the count is our signal that
-			// the drain window is too short.
 			const inDiagWindow =
 				ptUpTs > 0 &&
 				!this._pttHeld &&
@@ -532,9 +404,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 			}
 			this._onPttAudioChunk.fire(b64);
 
-			// End the drain as soon as we've shipped a full window of
-			// audio. Doing this AFTER firing the chunk guarantees the
-			// final drain chunk reaches the backend before `_onPttEnd`.
 			if (isDrainCallback && this._pttDrainSamplesSent >= this._pttDrainTargetSamples) {
 				this._finishDrain();
 			}
@@ -548,9 +417,8 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 			throw err;
 		}
 
-		// stopCapture() may have run while the worklet module was loading.
 		if (this._micCtx !== ctx) {
-			try { node.disconnect(); } catch { /* ignore */ }
+			try { node.disconnect(); } catch { }
 			return;
 		}
 
@@ -591,7 +459,7 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 		this._capturePromise = undefined;
 		if (this._workletNode) {
 			this._workletNode.port.onmessage = null;
-			try { this._workletNode.disconnect(); } catch { /* ignore */ }
+			try { this._workletNode.disconnect(); } catch { }
 			this._workletNode = undefined;
 		}
 		this._analyserNode = undefined;
@@ -610,10 +478,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 		this._stopCaptureResources();
 		this._pttGeneration++;
 		this._pttAcquiring = false;
-		// Cancel any in-flight drain; do NOT fire `_onPttEnd` here
-		// because callers (reconnect / disconnect / dispose) have
-		// already torn down or are about to tear down the backend
-		// connection.
 		if (this._pttDrainFallbackTimer) {
 			clearTimeout(this._pttDrainFallbackTimer);
 			this._pttDrainFallbackTimer = undefined;
@@ -638,11 +502,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 		super.dispose();
 	}
 
-	/**
-	 * End the post-release drain phase: stop accepting more audio for
-	 * this turn and fire `_onPttEnd`. Idempotent. Safe to call when no
-	 * drain is in progress.
-	 */
 	private _finishDrain(): void {
 		if (this._pttDrainFallbackTimer) {
 			clearTimeout(this._pttDrainFallbackTimer);
@@ -719,9 +578,6 @@ export class MicCaptureService extends Disposable implements IMicCaptureService 
 	}
 }
 
-/**
- * Encode PCM Float32 samples into base64-encoded raw PCM16 (no WAV header).
- */
 function encodeRawPcm16Base64(samples: Float32Array, win: Window & typeof globalThis): string {
 	const buf = new ArrayBuffer(samples.length * 2);
 	const view = new DataView(buf);

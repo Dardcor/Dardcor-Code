@@ -44,16 +44,6 @@ export async function fetchWithFallbacks(availableFetchers: readonly IFetcher[],
 					return { response: retry.response };
 				}
 				logService.info(`FetcherService: using ${fetcher.getUserAgentLibrary()} from now on`);
-				/* __GDPR__
-					"fetcherFallback" : {
-						"owner": "chrmarti",
-						"comment": "Sent when the fetcher service switches to a fallback fetcher due to the primary fetcher failing",
-						"newFetcher": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The name of the fetcher that is now being used" },
-						"knownBadFetchers": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Comma-separated list of fetchers that are known to be failing" },
-						"knownBadFetchersCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Number of fetchers that are known to be failing" },
-						"lastError": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The last error encountered, containing fetcher ID, status code and error message" }
-					}
-				*/
 				telemetryService?.sendTelemetryEvent('fetcherFallback', { github: true, microsoft: true }, {
 					newFetcher: fetcher.getUserAgentLibrary(),
 					knownBadFetchers: Array.from(updatedKnownBadFetchers).join(','),
@@ -95,7 +85,6 @@ export async function fetchWithFallbacks(availableFetchers: readonly IFetcher[],
 	try {
 		return { response: await fetcher.fetch(url, options) };
 	} catch (err) {
-		// For net::ERR_FAILED from network process crash, disconnect and retry once.
 		if (fetcher.isNetworkProcessCrashedError(err)) {
 			const fetcherId = fetcher.getUserAgentLibrary();
 			logService.info(`FetcherService: ${fetcherId} hit network process crash error (${(err as Error)?.message}), retrying after disconnect...`);
@@ -103,15 +92,6 @@ export async function fetchWithFallbacks(availableFetchers: readonly IFetcher[],
 				await fetcher.disconnectAll();
 				const response = await fetcher.fetch(url, options);
 				logService.info(`FetcherService: ${fetcherId} retry after crash succeeded.`);
-				/* __GDPR__
-					"fetcherCrashRetry" : {
-						"owner": "deepak1556",
-						"comment": "Sent when a fetcher retries after a network process crash error",
-						"fetcher": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The fetcher that crashed" },
-						"outcome": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the retry recovered or failed" },
-						"error": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The error message" }
-					}
-				*/
 				telemetryService?.sendTelemetryEvent('fetcherCrashRetry', { github: true, microsoft: true }, {
 					fetcher: fetcherId,
 					outcome: 'recovered',
@@ -129,10 +109,6 @@ export async function fetchWithFallbacks(availableFetchers: readonly IFetcher[],
 			}
 		}
 
-		// When Electron's network process crashes, it's permanently dead until the extension host restarts.
-		// Above, we retry the current request once after disconnecting all connections if this is a crash error.
-		// If that retry still fails and crash fallback is enabled, demote the crashed fetcher so future requests use a healthy one.
-		// After demotion, the caller is responsible for deciding whether to retry or surface the error.
 		const enableCrashFallback = experimentationService
 			? configurationService.getExperimentBasedConfig(ConfigKey.TeamInternal.FallbackNodeFetchOnNetworkProcessCrash, experimentationService)
 			: false;
@@ -146,7 +122,6 @@ export async function fetchWithFallbacks(availableFetchers: readonly IFetcher[],
 				updatedFetchers.push(fetcher);
 				logService.info(`FetcherService: now using ${updatedFetchers[0].getUserAgentLibrary()} as primary fetcher.`);
 			}
-			// Attach demotion info to the error so the caller can apply it
 			(err as any)._fetcherDemotion = { updatedFetchers: updatedFetchers.length > 0 ? updatedFetchers : undefined, updatedKnownBadFetchers };
 		}
 		throw err;
@@ -166,7 +141,7 @@ async function tryFetch(fetcher: IFetcher, url: string, options: FetchOptions, l
 		}
 		const text = await response.text();
 		try {
-			JSON.parse(text); // Verify JSON
+			JSON.parse(text);
 			logService.debug(`FetcherService: ${fetcher.getUserAgentLibrary()} succeeded (JSON)`);
 			return { ok: true, response: Response.fromText(response.status, response.statusText, response.headers, text, response.fetcher) };
 		} catch (err) {

@@ -16,7 +16,6 @@ import { CHAT_INPUT_WINDOW_ACCEPT_VOICE_COMMAND_ID, CHAT_INPUT_WINDOW_TOGGLE_COM
 import { OmniChatEnabledSettingId } from '../../common/sessionRouter.js';
 import { ChatViewId } from '../chat.js';
 
-// Registers the singleton implementation (side-effect import).
 import './chatInputWindowService.js';
 
 const inputWindowEnabled = ContextKeyExpr.and(

@@ -29,13 +29,6 @@ import { NullExperimentationService } from '../../../telemetry/common/nullExperi
 const localSessionResource = URI.parse(`local://test`);
 const remoteSessionResource = URI.parse(`remote://test`);
 
-/**
- * Build a `ChatPromptReference` representing an attached file.
- *
- * Mirrors the shape produced by core's `toFileVariableEntry` — anything
- * with a URI value whose id does not start with `InstructionFileIdPrefix`
- * is treated as an attached file by `collectAttachedContext`.
- */
 function toAttachedFileReference(uri: URI): ChatPromptReference {
 	return {
 		id: `vscode.attachment.file__${uri.toString()}`,
@@ -44,10 +37,6 @@ function toAttachedFileReference(uri: URI): ChatPromptReference {
 	};
 }
 
-/**
- * Telemetry double that records `sendMSFTTelemetryEvent` calls so tests
- * can assert on the emitted events.
- */
 class RecordingTelemetryService extends NullTelemetryService {
 	readonly events: { eventName: string; properties: TelemetryEventProperties; measurements: TelemetryEventMeasurements }[] = [];
 
@@ -56,15 +45,10 @@ class RecordingTelemetryService extends NullTelemetryService {
 	}
 }
 
-/**
- * Construct a tool-information stub. Only the `name` is consulted by the
- * collector when deciding which tools are available.
- */
 function tool(name: string): LanguageModelToolInformation {
 	return { name, description: '', inputSchema: undefined, tags: [], source: undefined, fullReferenceName: name };
 }
 
-/** Extract everything inside `<tag>…</tag>` (non-greedy, multi-instance). */
 function xmlContents(text: string, tag: string): string[] {
 	const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'g');
 	const matches: string[] = [];
@@ -95,7 +79,6 @@ suite('AutomaticInstructionsCollector', () => {
 		extensionsService = new TestExtensionsService();
 		telemetry = new RecordingTelemetryService();
 
-		// Defaults that mirror what the migrated `chatServiceImpl` would set.
 		configService.setNonExtensionConfig(PromptConfig.INCLUDE_APPLYING_INSTRUCTIONS, true);
 		configService.setNonExtensionConfig(PromptConfig.INCLUDE_REFERENCED_INSTRUCTIONS, true);
 
@@ -116,11 +99,6 @@ suite('AutomaticInstructionsCollector', () => {
 		promptsService.dispose();
 	});
 
-	/**
-	 * Invoke the collector with a flat options bag. Wraps `tools` into the
-	 * `Map<tool, enabled>` shape and `allowedSubagents` into a minimal
-	 * `ChatRequestModeInstructions` value.
-	 */
 	function callCollect(opts: {
 		tools?: readonly LanguageModelToolInformation[];
 		allowedSubagents?: readonly string[];
@@ -140,7 +118,6 @@ suite('AutomaticInstructionsCollector', () => {
 		}, token);
 	}
 
-	/** Returns the measurements payload of the single `instructionsCollected` event. */
 	function instructionsCollectedMeasurements(): TelemetryEventMeasurements {
 		const events = telemetry.events.filter(e => e.eventName === 'instructionsCollected');
 		expect(events).toHaveLength(1);
@@ -267,7 +244,6 @@ suite('AutomaticInstructionsCollector', () => {
 			const dardcor: IAgentInstructionFile = { uri: URI.joinPath(rootFolderUri, '.github/dardcor-instructions.md'), type: AgentInstructionFileType.dardcorInstructionsMd };
 			promptsService.setAgentInstructions([dardcor]);
 
-			// Pre-attach the same URI as an instruction-file reference.
 			const preAttached: ChatPromptReference = {
 				id: `${InstructionFileIdPrefix}.root__${dardcor.uri.toString()}`,
 				name: 'pre-attached',
@@ -292,7 +268,6 @@ suite('AutomaticInstructionsCollector', () => {
 			promptsService.setFileContent(dardcorUri, 'Be helpful #file:./referenced.instructions.md');
 			promptsService.setFileContent(referencedUri, 'Referenced content');
 
-			// `_addReferencedInstructions` confirms each candidate exists by stat.
 			await mockFiles(fileSystem, [
 				{ path: referencedUri.path, contents: ['Referenced content'] },
 			]);
@@ -542,9 +517,7 @@ suite('AutomaticInstructionsCollector', () => {
 			const agent3Uri = URI.joinPath(rootFolderUri, '.github/agents/test-agent-3.agent.md');
 			promptsService.setCustomAgents([
 				{ uri: agent1Uri, name: 'test-agent-1', source: 'local', description: 'Test agent 1', userInvocable: true, disableModelInvocation: false, enabled: true } as ChatCustomAgent,
-				// Excluded: disableModelInvocation: true
 				{ uri: agent2Uri, name: 'test-agent-2', source: 'local', description: 'Test agent 2', userInvocable: true, disableModelInvocation: true, enabled: true } as ChatCustomAgent,
-				// Included: userInvocable=false but model invocation is allowed
 				{ uri: agent3Uri, name: 'test-agent-3', source: 'local', description: 'Test agent 3', userInvocable: false, disableModelInvocation: false, enabled: true } as ChatCustomAgent,
 			]);
 
@@ -552,7 +525,6 @@ suite('AutomaticInstructionsCollector', () => {
 
 			const indexEntry = result.find(isCustomizationsIndex)!;
 			const agents = xmlContents(xmlContents(indexEntry.value, 'agents')[0], 'agent');
-			// `disableModelInvocation` excludes an agent regardless of `allowedSubagents`.
 			expect(agents).toHaveLength(2);
 			expect(xmlContents(agents[0], 'name')[0]).toBe('test-agent-1');
 			expect(xmlContents(agents[1], 'name')[0]).toBe('test-agent-3');
@@ -735,8 +707,6 @@ suite('AutomaticInstructionsCollector', () => {
 				references: [toAttachedFileReference(URI.joinPath(rootFolderUri, 'src/file.ts'))],
 			}, cancelled);
 
-			// Collection returns before building any entries when cancellation has
-			// already been requested.
 			expect(result).toHaveLength(0);
 		});
 	});

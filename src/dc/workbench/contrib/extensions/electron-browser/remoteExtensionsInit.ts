@@ -137,35 +137,28 @@ export class RemoteExtensionsInitializerContribution implements IWorkbenchContri
 		const connection = this.remoteAgentService.getConnection();
 		const localExtensionManagementServer = this.extensionManagementServerService.localExtensionManagementServer;
 		const remoteExtensionManagementServer = this.extensionManagementServerService.remoteExtensionManagementServer;
-		// Skip: Not a remote window
 		if (!connection || !remoteExtensionManagementServer) {
 			return;
 		}
-		// Skip: Not a native window
 		if (!localExtensionManagementServer) {
 			return;
 		}
-		// Skip: No UserdataSyncStore is configured
 		if (!this.userDataSyncStoreManagementService.userDataSyncStore) {
 			return;
 		}
 		const newRemoteConnectionKey = `${IS_NEW_KEY}.${connection.remoteAuthority}`;
-		// Skip: Not a new remote connection
 		if (!this.storageService.getBoolean(newRemoteConnectionKey, StorageScope.APPLICATION, true)) {
 			this.logService.trace(`Skipping initializing remote extensions because the window with this remote authority was opened before.`);
 			return;
 		}
 		this.storageService.store(newRemoteConnectionKey, false, StorageScope.APPLICATION, StorageTarget.MACHINE);
-		// Skip: Not a new workspace
 		if (!this.storageService.isNew(StorageScope.WORKSPACE)) {
 			this.logService.trace(`Skipping initializing remote extensions because this workspace was opened before.`);
 			return;
 		}
-		// Skip: Settings Sync is disabled
 		if (!this.userDataSyncEnablementService.isEnabled()) {
 			return;
 		}
-		// Skip: No account is provided to initialize
 		const resolvedAuthority = await this.remoteAuthorityResolverService.resolveAuthority(connection.remoteAuthority);
 		if (!resolvedAuthority.options?.authenticationSession) {
 			return;
@@ -173,7 +166,6 @@ export class RemoteExtensionsInitializerContribution implements IWorkbenchContri
 
 		const sessions = await this.authenticationService.getSessions(resolvedAuthority.options?.authenticationSession.providerId);
 		const session = sessions.find(s => s.id === resolvedAuthority.options?.authenticationSession?.id);
-		// Skip: Session is not found
 		if (!session) {
 			this.logService.info('Skipping initializing remote extensions because the account with given session id is not found', resolvedAuthority.options.authenticationSession.id);
 			return;

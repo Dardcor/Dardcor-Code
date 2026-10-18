@@ -27,7 +27,6 @@ suite('Command Tests', function () {
 		const command1 = function () { };
 		const command2 = function () { };
 
-		// dispose overriding command
 		let reg1 = CommandsRegistry.registerCommand('foo', command1);
 		assert.ok(CommandsRegistry.getCommand('foo')!.handler === command1);
 
@@ -39,7 +38,6 @@ suite('Command Tests', function () {
 		reg1.dispose();
 		assert.ok(CommandsRegistry.getCommand('foo') === undefined);
 
-		// dispose override command first
 		reg1 = CommandsRegistry.registerCommand('foo', command1);
 		reg2 = CommandsRegistry.registerCommand('foo', command2);
 		assert.ok(CommandsRegistry.getCommand('foo')!.handler === command2);

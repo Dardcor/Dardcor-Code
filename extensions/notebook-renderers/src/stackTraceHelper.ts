@@ -5,19 +5,12 @@
 
 export function formatStackTrace(stack: string, trustHtml: boolean): { formattedStack: string; errorLocation?: string } {
 	let cleaned: string;
-	// Ansi colors are described here:
-	// https://en.wikipedia.org/wiki/ANSI_escape_code under the SGR section
 
-	// Remove background colors. The ones from IPython don't work well with
-	// themes 40-49 sets background color
 	cleaned = stack.replace(/\u001b\[4\dm/g, '');
 	cleaned = cleaned.replace(/(?<=\u001b\[[\d;]*?);4\d(?=m)/g, '');
 
-	// Also remove specific foreground colors (38 is the ascii code for picking one) (they don't translate either)
-	// Turn them into default foreground
 	cleaned = cleaned.replace(/\u001b\[38;.*?\d+m/g, '\u001b[39m');
 
-	// Turn all foreground colors after the --> to default foreground
 	cleaned = cleaned.replace(/(;32m[ ->]*?)(\d+)(.*)\n/g, (_s, prefix, num, suffix) => {
 		suffix = suffix.replace(/\u001b\[3\d+m/g, '\u001b[39m');
 		return `${prefix}${num}${suffix}\n`;
@@ -32,11 +25,8 @@ export function formatStackTrace(stack: string, trustHtml: boolean): { formatted
 
 const formatSequence = /\u001b\[.+?m/g;
 const fileRegex = /File\s+(?:\u001b\[.+?m)?(.+):(\d+)/;
-// look for the "--->" before a line number
 const lineNumberRegex = /(-+>(?:\u001b\[[\d;]*m|\s)*)(\d+)(.*)/;
-// just capturing parts of "Cell In[3], line 2" with lots of formatting in between
 const cellRegex = /^(?<prefix>(?:\u001b\[[\d;]*m|\s)*Cell(?:\u001b\[[\d;]*m|\s)*In(?:\u001b\[[\d;]*m|\s)*\[(?<executionCount>\d+)\](?:\u001b\[[\d;]*m|\s|,)+)(?<lineLabel>line (?<lineNumber>\d+))[^\n]*$/m;
-// older versions of IPython ~8.3.0
 const inputRegex = /(?<prefix>Input\s+?(?:\u001b\[.+?m)(?<cellLabel>In\s*\[(?<executionCount>\d+)\]))(?<postfix>.*)/;
 
 function isIpythonStackTrace(stack: string) {
@@ -86,7 +76,6 @@ function linkifyStack(stack: string): { formattedStack: string; errorLocation?: 
 
 			continue;
 		} else if (!fileOrCell || original.trim() === '') {
-			// we don't have a location, so don't linkify anything
 			fileOrCell = undefined;
 
 			continue;

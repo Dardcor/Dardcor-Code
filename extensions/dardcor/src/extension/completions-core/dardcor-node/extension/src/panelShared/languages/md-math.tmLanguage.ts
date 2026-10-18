@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import { LanguageInput } from 'shiki/core';
 
-// This file includes some grammar rules copied from https://github.com/James-Yu/LaTeX-Workshop/blob/master/syntax/TeX.tmLanguage.json',
 export const markdownMath: LanguageInput = {
 	name: 'markdown-math',
 	scopeName: 'text.html.markdown.math',

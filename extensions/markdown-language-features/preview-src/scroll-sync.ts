@@ -57,18 +57,12 @@ const getCodeLineElements = (() => {
 				}
 
 				if (element.tagName === 'CODE' && element.parentElement && element.parentElement.tagName === 'PRE') {
-					// Fenced code blocks are a special case since the `code-line` can only be marked on
-					// the `<code>` element and not the parent `<pre>` element.
-					// Calculate the end line by counting newlines in the code block
 					const text = element.textContent || '';
 					const lineCount = (text.match(/\n/g) || []).length + 1;
 					const endLine = line + lineCount - 1;
 					cachedElements.push(new CodeLineElement(element.parentElement, line, element, endLine));
 				} else if (element.tagName === 'PRE') {
-					// Skip PRE elements as they will be handled via their CODE children
-					// This prevents duplicate entries for the same line number
 				} else if (element.tagName === 'UL' || element.tagName === 'OL') {
-					// Skip adding list elements since the first child has the same code line (and should be preferred)
 				} else {
 					cachedElements.push(new CodeLineElement(element, line));
 				}
@@ -78,12 +72,6 @@ const getCodeLineElements = (() => {
 	};
 })();
 
-/**
- * Find the html elements that map to a specific target line in the editor.
- *
- * If an exact match, returns a single element. If the line is between elements,
- * returns the element prior to and the element after the given line.
- */
 export function getElementsForSourceLine(targetLine: number, documentVersion: number): { previous: CodeLineElement; next?: CodeLineElement } {
 	const lineNumber = Math.floor(targetLine);
 	const lines = getCodeLineElements(documentVersion);
@@ -122,9 +110,6 @@ function rangesIntersect(startA: number, endA: number, startB: number, endB: num
 	return startA < endB && startB < endA;
 }
 
-/**
- * Find the html elements that are at a specific pixel offset on the page.
- */
 export function getLineElementsAtPageOffset(offset: number, documentVersion: number): { previous: CodeLineElement; next?: CodeLineElement } {
 	const lines = getCodeLineElements(documentVersion).filter(x => x.isVisible);
 	const position = offset - window.scrollY;
@@ -157,14 +142,10 @@ function getElementBounds(codeLineElement: CodeLineElement): { top: number; heig
 	const { element, codeElement } = codeLineElement;
 	const myBounds = element.getBoundingClientRect();
 
-	// For fenced code blocks (PRE elements containing CODE), use the full height
-	// Don't look for children as the CODE element itself would be found as a child
 	if (codeElement) {
 		return myBounds;
 	}
 
-	// Some code line elements may contain other code line elements.
-	// In those cases, only take the height up to that child.
 	const codeLineChild = element.querySelector(`.${codeLineClass}`);
 	if (codeLineChild) {
 		const childBounds = codeLineChild.getBoundingClientRect();
@@ -178,11 +159,6 @@ function getElementBounds(codeLineElement: CodeLineElement): { top: number; heig
 	return myBounds;
 }
 
-/**
- * Get the content bounds for a code line element, accounting for padding.
- * For code blocks, returns the bounds of the content area (excluding padding).
- * For other elements, returns the same as getElementBounds.
- */
 function getContentBounds(codeLineElement: CodeLineElement): {
 	top: number;
 	height: number;
@@ -192,7 +168,6 @@ function getContentBounds(codeLineElement: CodeLineElement): {
 	const { element, codeElement } = codeLineElement;
 	const bounds = getElementBounds(codeLineElement);
 
-	// For code blocks (PRE elements), account for padding
 	if (codeElement) {
 		const computedStyle = window.getComputedStyle(element);
 		const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
@@ -206,7 +181,6 @@ function getContentBounds(codeLineElement: CodeLineElement): {
 		};
 	}
 
-	// For non-code elements, no padding adjustment needed
 	return {
 		top: bounds.top,
 		height: bounds.height,
@@ -215,9 +189,6 @@ function getContentBounds(codeLineElement: CodeLineElement): {
 	};
 }
 
-/**
- * Attempt to reveal the element for a source line in the editor.
- */
 export function scrollToRevealSourceLine(line: number, documentVersion: number, settingsManager: SettingsManager) {
 	if (!settingsManager.settings?.scrollPreviewWithEditor) {
 		return;
@@ -237,32 +208,26 @@ export function scrollToRevealSourceLine(line: number, documentVersion: number, 
 	const previousTop = rect.top;
 
 
-	// Check if previous is a multi-line code block
 	if (previous.endLine && previous.endLine > previous.line) {
 		if (line < previous.endLine) {
-			// We're inside the code block - scroll proportionally through its content height (excluding padding)
 			const contentBounds = getContentBounds(previous);
 			const progressInCodeBlock = (line - previous.line) / (previous.endLine - previous.line);
 
 
-			// Calculate absolute position to content area
 			const contentAbsoluteTop = window.scrollY + contentBounds.top;
 			const targetAbsoluteY = contentAbsoluteTop + (contentBounds.height * progressInCodeBlock);
 			scrollTo = targetAbsoluteY;
 
 		} else if (next && next.line !== previous.line) {
-			// We're after the code block but before the next element
 			const betweenProgress = (line - previous.endLine) / (next.line - previous.endLine);
 			const elementAbsoluteEnd = window.scrollY + previousTop + rect.height;
 			const nextAbsoluteTop = window.scrollY + next.element.getBoundingClientRect().top;
 			const betweenHeight = nextAbsoluteTop - elementAbsoluteEnd;
 			scrollTo = elementAbsoluteEnd + betweenProgress * betweenHeight;
 		} else {
-			// Shouldn't happen, but fall back to end of element
 			scrollTo = window.scrollY + previousTop + rect.height;
 		}
 	} else if (next && next.line !== previous.line) {
-		// Original logic: Between two elements. Go to percentage offset between them.
 		const betweenProgress = (line - previous.line) / (next.line - previous.line);
 		const elementAbsoluteEnd = window.scrollY + previousTop + rect.height;
 		const nextAbsoluteTop = window.scrollY + next.element.getBoundingClientRect().top;
@@ -286,20 +251,16 @@ export function getEditorLineNumberForPageOffset(offset: number, documentVersion
 		const offsetFromPrevious = (offset - window.scrollY - previousBounds.top);
 
 
-		// Check if previous is a multi-line code block
 		if (previous.endLine && previous.endLine > previous.line) {
-			// Use content bounds to exclude padding from the calculation
 			const contentBounds = getContentBounds(previous);
 			const offsetFromContent = offset - window.scrollY - contentBounds.top;
 
 
-			// Check if we're within the code block's content area (excluding padding)
 			if (offsetFromContent >= 0 && offsetFromContent <= contentBounds.height) {
 				const progressWithinCodeBlock = offsetFromContent / contentBounds.height;
 				const calculatedLine = previous.line + progressWithinCodeBlock * (previous.endLine - previous.line);
 				return calculatedLine;
 			} else if (next && offsetFromContent > contentBounds.height) {
-				// We're in the gap after the code block content (including bottom padding)
 				const gapOffset = offsetFromContent - contentBounds.height;
 				const nextBounds = getElementBounds(next);
 				const contentEnd = contentBounds.top + contentBounds.height;
@@ -308,12 +269,9 @@ export function getEditorLineNumberForPageOffset(offset: number, documentVersion
 				const calculatedLine = previous.endLine + progressInGap * (next.line - previous.endLine);
 				return calculatedLine;
 			} else if (offsetFromContent < 0) {
-				// We're in the top padding area
-				// Fall through to original logic
 			}
 		}
 
-		// Original logic
 		if (next) {
 			const progressBetweenElements = offsetFromPrevious / (getElementBounds(next).top - previousBounds.top);
 			const calculatedLine = previous.line + progressBetweenElements * (next.line - previous.line);
@@ -327,9 +285,6 @@ export function getEditorLineNumberForPageOffset(offset: number, documentVersion
 	return null;
 }
 
-/**
- * Try to find the html element by using a fragment id
- */
 export function getLineElementForFragment(fragment: string, documentVersion: number): CodeLineElement | undefined {
 	return getCodeLineElements(documentVersion).find((element) => {
 		return element.element.id === fragment;

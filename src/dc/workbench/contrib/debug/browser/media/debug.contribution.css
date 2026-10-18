@@ -48,7 +48,7 @@
 	-moz-osx-font-smoothing: grayscale;
 	margin-left: 0;
 	margin-right: 4px;
-	margin-top: -1px; /* TODO @misolori: figure out a way to not use negative margin for alignment */
+	margin-top: -1px;
 	align-items: center;
 	width: 0.9em;
 	display: inline-flex;
@@ -63,12 +63,11 @@
 	display: inline !important;
 }
 
-/* Do not push text with inline decoration when decoration on start of line */
 .monaco-editor .debug-top-stack-frame-column.start-of-line {
 	position: absolute;
 	top: 50%;
 	transform: translate(-17px, -50%);
-	margin-top: 0px; /* TODO @misolori: figure out a way to not use negative margin for alignment */
+	margin-top: 0px;
 }
 
 .monaco-editor .inline-breakpoint-widget {
@@ -80,7 +79,6 @@
 	text-overflow: ellipsis;
 }
 
-/* Expressions */
 
 
 .monaco-workbench .monaco-list-row .expression {
@@ -116,7 +114,6 @@
 	display: inline;
 }
 
-/* Links */
 
 .monaco-workbench .monaco-list-row .expression .value a.link:hover {
 	text-decoration: underline;
@@ -126,7 +123,6 @@
 	cursor: pointer;
 }
 
-/* White color when element is selected and list is focused. White looks better on blue selection background. */
 .monaco-workbench .monaco-list:focus .monaco-list-row.selected .expression .name,
 .monaco-workbench .monaco-list:focus .monaco-list-row.selected .expression .value {
 	color: inherit;

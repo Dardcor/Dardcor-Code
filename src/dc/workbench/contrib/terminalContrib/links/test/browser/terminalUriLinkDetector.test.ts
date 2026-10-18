@@ -69,10 +69,10 @@ suite('Workbench - TerminalUriLinkDetector', () => {
 	}
 
 	const linkComputerCases: [
-		/* Link type      */ TerminalBuiltinLinkType,
-		/* Line text      */ string,
-		/* Link and range */ { uri: URI; range: [number, number][] }[],
-		/* Stat resource  */ URI?
+		TerminalBuiltinLinkType,
+		string,
+		{ uri: URI; range: [number, number][] }[],
+		URI?
 	][] = [
 			[TerminalBuiltinLinkType.Url, 'x = "http://foo.bar";', [{ range: [[6, 1], [19, 1]], uri: URI.parse('http://foo.bar') }]],
 			[TerminalBuiltinLinkType.Url, 'x = (http://foo.bar);', [{ range: [[6, 1], [19, 1]], uri: URI.parse('http://foo.bar') }]],
@@ -132,22 +132,18 @@ suite('Workbench - TerminalUriLinkDetector', () => {
 		]);
 	});
 	test('should filter out https:// link that exceed 4096 characters', async () => {
-		// 8 + 200 * 10 = 2008 characters
 		await assertLink(TerminalBuiltinLinkType.Url, `https://${'foobarbaz/'.repeat(200)}`, [{
 			range: [[1, 1], [8, 26]],
 			uri: URI.parse(`https://${'foobarbaz/'.repeat(200)}`)
 		}]);
-		// 8 + 450 * 10 = 4508 characters
 		await assertLink(TerminalBuiltinLinkType.Url, `https://${'foobarbaz/'.repeat(450)}`, []);
 	});
 	test('should filter out file:// links that exceed 4096 characters', async () => {
-		// 8 + 200 * 10 = 2008 characters
 		validResources = [URI.file(`/${'foobarbaz/'.repeat(200)}`)];
 		await assertLink(TerminalBuiltinLinkType.LocalFile, `file:///${'foobarbaz/'.repeat(200)}`, [{
 			uri: URI.parse(`file:///${'foobarbaz/'.repeat(200)}`),
 			range: [[1, 1], [8, 26]]
 		}]);
-		// 8 + 450 * 10 = 4508 characters
 		validResources = [URI.file(`/${'foobarbaz/'.repeat(450)}`)];
 		await assertLink(TerminalBuiltinLinkType.LocalFile, `file:///${'foobarbaz/'.repeat(450)}`, []);
 	});

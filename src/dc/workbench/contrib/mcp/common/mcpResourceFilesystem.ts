@@ -37,15 +37,8 @@ export class McpResourceFilesystem extends Disposable implements IWorkbenchContr
 	IFileSystemProviderWithFileReadWriteCapability,
 	IFileSystemProviderWithFileAtomicReadCapability,
 	IFileSystemProviderWithFileReadStreamCapability {
-	/** Defer getting the MCP service since this is a BlockRestore and no need to make it unnecessarily. */
 	private readonly _mcpServiceLazy = new Lazy(() => this._instantiationService.invokeFunction(a => a.get(IMcpService)));
 
-	/**
-	 * For many file operations we re-read the resources quickly (e.g. stat
-	 * before reading the file) and would prefer to avoid spamming the MCP
-	 * with multiple reads. This is a very short-duration cache
-	 * to solve that.
-	 */
 	private readonly _momentaryCache = new ResourceMap<{ pool: CancellationTokenPool; promise: Promise<IReadData> }>();
 
 	private get _mcpService() {
@@ -73,7 +66,6 @@ export class McpResourceFilesystem extends Disposable implements IWorkbenchContr
 		this._register(this._fileService.registerProvider(McpResourceURI.scheme, this));
 	}
 
-	//#region Filesystem API
 
 	public async readFile(resource: URI): Promise<Uint8Array> {
 		return this._readFile(resource);
@@ -174,18 +166,15 @@ export class McpResourceFilesystem extends Disposable implements IWorkbenchContr
 			const contentURI = URI.parse(content.uri);
 			const contentPathParts = contentURI.path.split('/');
 
-			// Skip contents that are not in the same directory
 			if (contentPathParts.length <= resourcePathParts.length || !resourcePathParts.every((part, index) => equalsIgnoreCase(part, contentPathParts[index]))) {
 				continue;
 			}
 
-			// nested resource in a directory, just emit a directory to output
 			else if (contentPathParts.length > resourcePathParts.length + 1) {
 				output.set(contentPathParts[resourcePathParts.length], FileType.Directory);
 			}
 
 			else {
-				// resource in the same directory, emit the file
 				const name = contentPathParts[contentPathParts.length - 1];
 				output.set(name, contentToBuffer(content).byteLength > 0 ? FileType.File : FileType.Directory);
 			}
@@ -207,13 +196,10 @@ export class McpResourceFilesystem extends Disposable implements IWorkbenchContr
 		throw createFileSystemProviderError('rename is not supported', FileSystemProviderErrorCode.NoPermissions);
 	}
 
-	//#endregion
 
 	private async _readFile(resource: URI, token?: CancellationToken): Promise<Uint8Array> {
 		const { forSameURI, contents } = await this._readURI(resource);
 
-		// MCP does not distinguish between files and directories, and says that
-		// servers should just return multiple when 'reading' a directory.
 		if (!forSameURI.length) {
 			if (!contents.length) {
 				throw createFileSystemProviderError(`File not found`, FileSystemProviderErrorCode.FileNotFound);
@@ -277,7 +263,6 @@ export class McpResourceFilesystem extends Disposable implements IWorkbenchContr
 		const { resourceURI, server } = this._decodeURI(uri);
 		const matchedServer = this._mcpService.servers.get().find(s => s.definition.id === server.definition.id);
 
-		//check for http/https resources and use web content extractor service to fetch the contents.
 		if (canLoadMcpNetworkResourceDirectly(resourceURI, matchedServer)) {
 			const extractURI = URI.parse(resourceURI.toString());
 			const result = (await this._webContentExtractorService.extract([extractURI], { followRedirects: false })).at(0);
@@ -300,8 +285,6 @@ export class McpResourceFilesystem extends Disposable implements IWorkbenchContr
 }
 
 function equalsUrlPath(a: string, b: URL): boolean {
-	// MCP doesn't specify either way, but underlying systems may can be case-sensitive.
-	// It's better to treat case-sensitive paths as case-insensitive than vise-versa.
 	return equalsIgnoreCase(new URL(a).pathname, b.pathname);
 }
 

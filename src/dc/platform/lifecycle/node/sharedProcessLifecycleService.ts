@@ -14,9 +14,6 @@ export interface ISharedProcessLifecycleService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * An event for when the application will shutdown
-	 */
 	readonly onWillShutdown: Event<void>;
 }
 

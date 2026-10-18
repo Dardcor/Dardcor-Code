@@ -617,7 +617,6 @@ export class AcceptAllCombination extends MergeEditorAction2 {
 	}
 }
 
-// this is an API command
 export class AcceptMerge extends MergeEditorAction2 {
 	constructor() {
 		super({
@@ -674,7 +673,6 @@ export class ToggleBetweenInputs extends MergeEditorAction2 {
 			keybinding: [
 				{
 					primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyT,
-					// Override reopen closed editor
 					weight: KeybindingWeight.WorkbenchContrib + 10,
 					when: ctxIsMergeEditor,
 				}
@@ -685,7 +683,6 @@ export class ToggleBetweenInputs extends MergeEditorAction2 {
 	override runWithMergeEditor({ viewModel }: MergeEditorAction2Args, accessor: ServicesAccessor) {
 		const input1IsFocused = viewModel.inputCodeEditorView1.editor.hasWidgetFocus();
 
-		// Toggle focus between inputs
 		if (input1IsFocused) {
 			viewModel.inputCodeEditorView2.editor.focus();
 		} else {

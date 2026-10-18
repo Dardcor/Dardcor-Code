@@ -8,7 +8,6 @@ import { GenAiAttr, GenAiOperationName } from '../common/genAiAttributes';
 import type { OTelConfig } from '../common/otelConfig';
 import { type ICompletedSpanData, type IOTelService, type ISpanEventData, type ISpanEventRecord, type ISpanHandle, SpanKind, type SpanOptions, SpanStatusCode, type TraceContext } from '../common/otelService';
 
-// Type-only imports — erased by esbuild, zero bundle impact
 import type { Attributes, Context, Meter, MetricOptions, Span, SpanContext, Tracer } from '@opentelemetry/api';
 import type { AnyValueMap, Logger } from '@opentelemetry/api-logs';
 import type { ExportResult } from '@opentelemetry/core';
@@ -33,15 +32,8 @@ const noopSpanHandle: ISpanHandle = {
 	end() { },
 };
 
-/**
- * Callback for routing OTel service log messages to the extension's output channel.
- */
 export type OTelLogFn = (level: 'info' | 'warn' | 'error', message: string) => void;
 
-/**
- * Real OTel service implementation, only instantiated when OTel is enabled.
- * Uses dynamic imports so the OTel SDK is not loaded when disabled.
- */
 export class NodeOTelService implements IOTelService {
 	declare readonly _serviceBrand: undefined;
 	readonly config: OTelConfig;
@@ -52,7 +44,6 @@ export class NodeOTelService implements IOTelService {
 	private _spanProcessors: BatchSpanProcessor[] = [];
 	private _logProcessor: BatchLogRecordProcessor | undefined;
 	private _metricReader: PeriodicExportingMetricReader | undefined;
-	// OTel API reference for context propagation (stored after dynamic import)
 	private _otelApi: typeof import('@opentelemetry/api') | undefined;
 	private _initialized = false;
 	private _initFailed = false;
@@ -60,24 +51,21 @@ export class NodeOTelService implements IOTelService {
 	private readonly _log: OTelLogFn;
 	private readonly _sqliteStore: OTelSqliteStore | undefined;
 
-	// Event emitters for span lifecycle
 	private readonly _onDidCompleteSpan = new Emitter<ICompletedSpanData>();
 	readonly onDidCompleteSpan: Event<ICompletedSpanData> = this._onDidCompleteSpan.event;
 	private readonly _onDidEmitSpanEvent = new Emitter<ISpanEventData>();
 	readonly onDidEmitSpanEvent: Event<ISpanEventData> = this._onDidEmitSpanEvent.event;
 
 	injectCompletedSpan(span: ICompletedSpanData): void {
-		try { this._onDidCompleteSpan.fire(span); } catch { /* emitter may be disposed */ }
+		try { this._onDidCompleteSpan.fire(span); } catch { }
 	}
 
-	// Buffer events until SDK is ready
 	private readonly _buffer: Array<() => void> = [];
 
 	constructor(config: OTelConfig, logFn?: OTelLogFn, sqliteStore?: OTelSqliteStore) {
 		this.config = config;
-		this._log = logFn ?? ((_level, _msg) => { /* silent when no logger wired */ });
+		this._log = logFn ?? ((_level, _msg) => { });
 		this._sqliteStore = sqliteStore;
-		// Start async initialization immediately
 		void this._initialize();
 	}
 
@@ -87,7 +75,6 @@ export class NodeOTelService implements IOTelService {
 		}
 
 		try {
-			// Dynamic imports — only loaded when OTel is enabled
 			const [
 				api,
 				apiLogs,
@@ -111,7 +98,6 @@ export class NodeOTelService implements IOTelService {
 			const MeterProvider = metricsSDK.MeterProvider;
 			const LoggerProvider = logsSDK.LoggerProvider;
 
-			// Use resourceFromAttributes (available in @opentelemetry/resources v2+)
 			const resource = resourcesMod.resourceFromAttributes({
 				'service.name': this.config.serviceName,
 				'service.version': this.config.serviceVersion,
@@ -119,37 +105,27 @@ export class NodeOTelService implements IOTelService {
 				...this.config.resourceAttributes,
 			});
 
-			// Create exporters based on config
 			const { spanExporter, logExporter, metricExporter } = await this._createExporters();
 
-			// Primary span processor: filters debug-panel-only spans for the user's exporter
 			const diagnosticSpanExporter = new DiagnosticSpanExporter(spanExporter, this.config.exporterType, this._log);
 			this._spanProcessors.push(new BSP(diagnosticSpanExporter));
 
-			// SQLite DB span processor: standard GenAI spans only (same filter as primary).
-			// Registered as a separate processor so it works in parallel with any user exporter.
 			if (this.config.dbSpanExporter && this._sqliteStore) {
 				const { SqliteSpanExporter } = await import('./sqlite/sqliteSpanExporter');
 				const sqliteExporter = new FilteredSpanExporter(new SqliteSpanExporter(this._sqliteStore));
 				this._spanProcessors.push(new BSP(sqliteExporter));
 			}
 
-			// Trace provider — pass spanProcessors in constructor (SDK v2 API)
 			const tracerProvider = new NodeTracerProvider({
 				resource,
 				spanProcessors: this._spanProcessors,
 			});
-			// Mark this provider so consumers (e.g. the Copilot CLI span bridge) can detect when the
 			// global OTel provider is the extension's own provider. Attaching extra span processors to
-			// it would re-forward spans the extension already emits and produce duplicate debug entries.
-			// Defined as a non-enumerable, non-writable marker so it does not surface in logs/inspection
-			// output or get accidentally mutated.
 			Object.defineProperty(tracerProvider, '__dardcorChatOwnProvider', { value: true });
 			tracerProvider.register();
 			this._tracer = api.trace.getTracer(this.config.serviceName, this.config.serviceVersion);
 			this._otelApi = api;
 
-			// Log provider — pass processors in constructor (SDK v2 uses 'processors' key)
 			this._logProcessor = new BLRP(logExporter, {
 				scheduledDelayMillis: 1000,
 				maxExportBatchSize: 512,
@@ -161,7 +137,6 @@ export class NodeOTelService implements IOTelService {
 			apiLogs.logs.setGlobalLoggerProvider(loggerProvider);
 			this._logger = apiLogs.logs.getLogger(this.config.serviceName, this.config.serviceVersion);
 
-			// Metric provider
 			this._metricReader = new PEMR({
 				exporter: metricExporter,
 				exportIntervalMillis: 10000,
@@ -175,24 +150,21 @@ export class NodeOTelService implements IOTelService {
 
 			this._initialized = true;
 
-			// Flush buffered events in batches to avoid blocking the event loop
 			const batch = this._buffer.splice(0);
 			const BATCH_SIZE = 50;
 			for (let i = 0; i < batch.length; i += BATCH_SIZE) {
 				const chunk = batch.slice(i, i + BATCH_SIZE);
 				for (const fn of chunk) {
-					try { fn(); } catch { /* swallow */ }
+					try { fn(); } catch { }
 				}
 				if (i + BATCH_SIZE < batch.length) {
-					// Yield to event loop between batches
 					await new Promise<void>(resolve => setTimeout(resolve, 0));
 				}
 			}
 
 		} catch (err) {
-			// OTel init failure should never break the extension
 			this._initFailed = true;
-			this._buffer.length = 0; // Discard buffered events on failure
+			this._buffer.length = 0;
 			this._log('error', `[OTel] Failed to initialize: ${err}`);
 		}
 	}
@@ -200,10 +172,6 @@ export class NodeOTelService implements IOTelService {
 	private async _createExporters(): Promise<ExporterSet> {
 		const { config } = this;
 
-		// When OTel is enabled only for dbSpanExporter (no OTLP endpoint/file/console configured),
-		// use a noop exporter as the primary span exporter so the pipeline still runs.
-		// If the user also explicitly enabled OTel (via setting or env var), honour their
-		// exporter config and don't switch to noop.
 		const dbOnlyMode = config.dbSpanExporter
 			&& !config.enabledExplicitly
 			&& !config.fileExporterPath
@@ -249,7 +217,6 @@ export class NodeOTelService implements IOTelService {
 			};
 		}
 
-		// otlp-http with protobuf wire encoding
 		if (config.otlpProtocol === 'http/protobuf' && !dbOnlyMode) {
 			const [
 				{ OTLPTraceExporter },
@@ -268,7 +235,6 @@ export class NodeOTelService implements IOTelService {
 			};
 		}
 
-		// Default: otlp-http (or noop when in db-only mode)
 		if (dbOnlyMode) {
 			const metricsSDK = await import('@opentelemetry/sdk-metrics');
 			const logsSDK = await import('@opentelemetry/sdk-logs');
@@ -295,7 +261,6 @@ export class NodeOTelService implements IOTelService {
 		};
 	}
 
-	// ── Span API ──
 
 	startSpan(name: string, options?: SpanOptions): ISpanHandle {
 		if (!this._tracer) {
@@ -324,7 +289,6 @@ export class NodeOTelService implements IOTelService {
 
 		const spanOpts = { kind: toOTelSpanKind(options?.kind), attributes: options?.attributes as Attributes };
 
-		// If a parent trace context is provided, create a remote context and start span within it
 		if (options.parentTraceContext && this._otelApi) {
 			const parentCtx = this._createRemoteContext(options.parentTraceContext);
 			return this._tracer.startActiveSpan(
@@ -372,14 +336,12 @@ export class NodeOTelService implements IOTelService {
 		return { traceId: ctx.traceId, spanId: ctx.spanId, traceFlags: ctx.traceFlags, traceState: ctx.traceState?.serialize() };
 	}
 
-	// ── Trace Context Store ── (for cross-boundary propagation)
 
 	private static readonly _MAX_TRACE_CONTEXT_STORE_SIZE = 100;
 	private readonly _traceContextStore = new Map<string, TraceContext>();
 	private readonly _traceContextTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 	storeTraceContext(key: string, context: TraceContext): void {
-		// Evict oldest entry if at capacity
 		if (this._traceContextStore.size >= NodeOTelService._MAX_TRACE_CONTEXT_STORE_SIZE) {
 			const oldestKey = this._traceContextStore.keys().next().value;
 			if (oldestKey !== undefined) {
@@ -387,7 +349,6 @@ export class NodeOTelService implements IOTelService {
 			}
 		}
 		this._traceContextStore.set(key, context);
-		// Auto-cleanup after 5 minutes; tracked for proper disposal
 		const timer = setTimeout(() => this._clearStoredTraceContext(key), 5 * 60 * 1000);
 		this._traceContextTimers.set(key, timer);
 	}
@@ -409,16 +370,12 @@ export class NodeOTelService implements IOTelService {
 		}
 	}
 
-	/**
-	 * Creates an OTel Context with a remote span context as parent,
-	 * allowing spans created within it to be children of the remote span.
-	 */
 	private _createRemoteContext(tc: TraceContext): Context {
 		const api = this._otelApi!;
 		const remoteSpanContext: SpanContext = {
 			traceId: tc.traceId,
 			spanId: tc.spanId,
-			traceFlags: 1, // SAMPLED
+			traceFlags: 1,
 			isRemote: true,
 		};
 		const remoteCtx = api.trace.setSpanContext(api.context.active(), remoteSpanContext);
@@ -436,9 +393,6 @@ export class NodeOTelService implements IOTelService {
 	private _createSpan(name: string, options?: SpanOptions): ISpanHandle {
 		const spanOpts = { kind: toOTelSpanKind(options?.kind), attributes: options?.attributes as Attributes };
 
-		// If an explicit parent trace context is provided, create the span as its child.
-		// This ensures correct parent-child hierarchy even when async context propagation
-		// doesn't carry the active span (common in the VS Code extension host).
 		if (options?.parentTraceContext && this._otelApi) {
 			const parentCtx = this._createRemoteContext(options.parentTraceContext);
 			const span = this._tracer!.startSpan(name, spanOpts, parentCtx);
@@ -458,12 +412,7 @@ export class NodeOTelService implements IOTelService {
 		return ctx.spanId || undefined;
 	}
 
-	// ── Metric API ──
 
-	/**
-	 * Explicit bucket boundaries per the OTel GenAI semantic conventions.
-	 * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-metrics/
-	 */
 	private static readonly _histogramOptions: ReadonlyMap<string, MetricOptions> = new Map([
 		['gen_ai.client.operation.duration', { advice: { explicitBucketBoundaries: [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92] } }],
 		['gen_ai.client.token.usage', { advice: { explicitBucketBoundaries: [1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216, 67108864] } }],
@@ -502,7 +451,6 @@ export class NodeOTelService implements IOTelService {
 		counter.add(value, attributes);
 	}
 
-	// ── Log API ──
 
 	private _logEmitCount = 0;
 
@@ -513,9 +461,6 @@ export class NodeOTelService implements IOTelService {
 			}
 			return;
 		}
-		// Pass the active context so the log record inherits the trace ID from
-		// the current span (if any). Without this, logs emitted inside a span
-		// created via startSpan() (rather than startActiveSpan()) lack trace context.
 		const ctx = this._otelApi?.context.active();
 		this._logger.emit({ body, attributes: attributes as AnyValueMap, ...(ctx ? { context: ctx } : {}) });
 		this._logEmitCount++;
@@ -524,7 +469,6 @@ export class NodeOTelService implements IOTelService {
 		}
 	}
 
-	// ── Lifecycle ──
 
 	async flush(): Promise<void> {
 		await Promise.all([
@@ -536,7 +480,6 @@ export class NodeOTelService implements IOTelService {
 
 	async shutdown(): Promise<void> {
 		try {
-			// Clear all trace context timers
 			for (const timer of this._traceContextTimers.values()) {
 				clearTimeout(timer);
 			}
@@ -555,7 +498,6 @@ export class NodeOTelService implements IOTelService {
 			api.metrics.disable();
 			apiLogs.logs.disable();
 		} catch {
-			// Swallow shutdown errors
 		} finally {
 			this._onDidCompleteSpan.dispose();
 			this._onDidEmitSpanEvent.dispose();
@@ -563,7 +505,6 @@ export class NodeOTelService implements IOTelService {
 	}
 }
 
-// ── Span Handle Implementations ──
 
 class RealSpanHandle implements ISpanHandle {
 	private readonly _attributes: Record<string, string | number | boolean | string[]> = {};
@@ -629,7 +570,6 @@ class RealSpanHandle implements ISpanHandle {
 		this._events.push(record);
 		this._span.addEvent(name, attributes);
 
-		// Fire real-time span event notification (guard against disposed emitter)
 		try {
 			const ctx = this._span.spanContext();
 			this._onDidEmitSpanEvent.fire({
@@ -640,7 +580,7 @@ class RealSpanHandle implements ISpanHandle {
 				attributes: attributes ?? {},
 				timestamp,
 			});
-		} catch { /* emitter may be disposed after shutdown */ }
+		} catch { }
 	}
 
 	getSpanContext(): TraceContext | undefined {
@@ -670,13 +610,10 @@ class RealSpanHandle implements ISpanHandle {
 				attributes: { ...this._attributes },
 				events: [...this._events],
 			});
-		} catch { /* emitter may be disposed after shutdown */ }
+		} catch { }
 	}
 }
 
-/**
- * Buffers span operations until the SDK is initialized, then replays them.
- */
 class BufferedSpanHandle implements ISpanHandle {
 	private static readonly _MAX_OPS = 200;
 	private readonly _ops: Array<(span: ISpanHandle) => void> = [];
@@ -723,7 +660,6 @@ class BufferedSpanHandle implements ISpanHandle {
 
 	end(): void {
 		if (this._real) { this._real.end(); return; }
-		// Always buffer end() regardless of cap — it's critical for span lifecycle
 		this._ops.push(s => s.end());
 	}
 
@@ -738,9 +674,9 @@ class BufferedSpanHandle implements ISpanHandle {
 
 function toOTelSpanKind(kind: SpanKind | undefined): number {
 	switch (kind) {
-		case SpanKind.CLIENT: return 2; // OTel SpanKind.CLIENT
-		case SpanKind.INTERNAL: return 0; // OTel SpanKind.INTERNAL
-		default: return 0; // INTERNAL
+		case SpanKind.CLIENT: return 2;
+		case SpanKind.INTERNAL: return 0;
+		default: return 0;
 	}
 }
 
@@ -758,14 +694,6 @@ const EXPORTABLE_OPERATION_NAMES: ReadonlySet<string> = new Set([
 	GenAiOperationName.EXECUTE_HOOK,
 ]);
 
-/**
- * Wraps a SpanExporter to log diagnostic info about export results.
- * Logs once on first successful export (info), and on every failure (warn).
- *
- * Also filters out debug-panel-only spans (those with non-standard
- * `gen_ai.operation.name` values) so they don't appear in the user's
- * configured OTel collector.
- */
 class DiagnosticSpanExporter implements SpanExporter {
 	private _firstSuccessLogged = false;
 	private _lastFailureLogTime = 0;
@@ -781,28 +709,24 @@ class DiagnosticSpanExporter implements SpanExporter {
 	}
 
 	export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
-		// Filter out debug-panel-only spans — only export standard GenAI operations
 		const exportable = spans.filter(span => {
 			const opName = span.attributes[GenAiAttr.OPERATION_NAME];
-			// If no operation name set, export it (safety: don't drop unknown spans)
 			if (opName === undefined) {
 				return true;
 			}
 			return EXPORTABLE_OPERATION_NAMES.has(String(opName));
 		});
 		if (exportable.length === 0) {
-			resultCallback({ code: 0 }); // ExportResultCode.SUCCESS
+			resultCallback({ code: 0 });
 			return;
 		}
 		this._inner.export(exportable, result => {
-			// ExportResultCode.SUCCESS === 0
 			if (result.code === 0) {
 				if (!this._firstSuccessLogged) {
 					this._firstSuccessLogged = true;
 					this._log('info', `[OTel] First span batch exported successfully via ${this._exporterType} (${exportable.length} spans)`);
 				}
 			} else {
-				// Rate-limit failure logging to avoid flooding stdout
 				const now = Date.now();
 				if (now - this._lastFailureLogTime >= DiagnosticSpanExporter._FAILURE_LOG_INTERVAL_MS) {
 					this._lastFailureLogTime = now;
@@ -822,10 +746,6 @@ class DiagnosticSpanExporter implements SpanExporter {
 	}
 }
 
-/**
- * Wraps a SpanExporter to filter out debug-panel-only spans,
- * passing only standard GenAI operations through to the inner exporter.
- */
 class FilteredSpanExporter implements SpanExporter {
 	constructor(private readonly _inner: SpanExporter) { }
 
@@ -845,13 +765,9 @@ class FilteredSpanExporter implements SpanExporter {
 	forceFlush(): Promise<void> { return this._inner.forceFlush?.() ?? Promise.resolve(); }
 }
 
-/**
- * No-op span exporter for db-only mode — the SQLite exporter handles persistence,
- * this satisfies the OTel pipeline requirement for a primary exporter.
- */
 class NoopSpanExporter implements SpanExporter {
 	export(_spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
-		resultCallback({ code: 0 }); // ExportResultCode.SUCCESS
+		resultCallback({ code: 0 });
 	}
 	shutdown(): Promise<void> { return Promise.resolve(); }
 	forceFlush(): Promise<void> { return Promise.resolve(); }

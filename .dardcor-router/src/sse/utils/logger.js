@@ -1,4 +1,3 @@
-// Logger utility for cloud
 
 const LOG_LEVELS = {
   DEBUG: 0,
@@ -13,18 +12,15 @@ function formatTime() {
   return new Date().toLocaleTimeString("en-US", { hour12: false });
 }
 
-// Colored-dot tags to correlate request lines by session (same session → same color)
 const REQ_TAGS = ["🟢", "🔵", "🟣", "🟡", "🟠", "🔴", "⚪", "🟤"];
 let tagCursor = 0;
 
-// Allocate next rotating tag (fallback when no session seed available)
 export function nextTag() {
   const tag = REQ_TAGS[tagCursor % REQ_TAGS.length];
   tagCursor++;
   return tag;
 }
 
-// Stable tag derived from a session/connection seed: same seed always maps to the same color
 export function tagForSession(seed) {
   if (!seed) return nextTag();
   let h = 0;
@@ -32,19 +28,16 @@ export function tagForSession(seed) {
   return REQ_TAGS[Math.abs(h) % REQ_TAGS.length];
 }
 
-// Print one correlated line: [time] tag symbol message (muted to avoid log spam and save memory)
 export function line(tag, symbol, message) {
   if (process.env.ENABLE_VERBOSE_ROUTER_LOGS === 'true') {
     console.log(`[${formatTime()}] ${tag} ${symbol} ${message}`);
   }
 }
 
-// Like line() but always printed regardless of LOG_LEVEL (errors must never be hidden)
 export function errorLine(tag, symbol, message) {
   console.log(`[${formatTime()}] ${tag} ${symbol} ${message}`);
 }
 
-// Format thinking intent for the request line ("high(10k)" / "off" / "auto")
 export function fmtThink(intent) {
   if (!intent || !intent.mode) return null;
   if (intent.mode === "none") return "off";
@@ -111,7 +104,6 @@ export function stream(event, data) {
   console.log(`[${formatTime()}] 🌊 [STREAM] ${event}${dataStr}`);
 }
 
-// Mask sensitive data
 export function maskKey(key) {
   if (!key || key.length < 8) return "***";
   return `${key.slice(0, 4)}...${key.slice(-4)}`;

@@ -56,8 +56,6 @@ suite('TextEditorPane', () => {
 			}
 		}));
 
-		// Changing model reports selection change
-		// of EDIT kind
 
 		const model = disposables.add(await accessor.textFileService.files.resolve(resource) as IResolvedTextFileEditorModel);
 		model.textEditorModel.setValue('Hello World');
@@ -65,11 +63,6 @@ suite('TextEditorPane', () => {
 		const event = await onDidFireSelectionEventOfEditType.p;
 		assert.strictEqual(event.reason, EditorPaneSelectionChangeReason.EDIT);
 
-		// getSelection() works and can be restored
-		//
-		// Note: this is a bit bogus because in tests our code editors have
-		//       no view and no cursor can be set as such. So the selection
-		//       will always report for the first line and column.
 
 		pane.setSelection(new Selection(1, 1, 1, 1), EditorPaneSelectionChangeReason.USER);
 		const selection = pane.getSelection();

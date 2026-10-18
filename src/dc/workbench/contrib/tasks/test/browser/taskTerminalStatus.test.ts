@@ -144,7 +144,7 @@ async function poll<T>(
 	acceptFn: (result: T) => boolean,
 	timeoutMessage: string,
 	retryCount: number = 200,
-	retryInterval: number = 10 // millis
+	retryInterval: number = 10
 ): Promise<T> {
 	let trial = 1;
 	let lastError: string = '';

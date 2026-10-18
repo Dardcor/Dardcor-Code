@@ -17,44 +17,20 @@ export const IUntitledTextEditorService = createDecorator<IUntitledTextEditorSer
 
 export interface INewUntitledTextEditorOptions {
 
-	/**
-	 * Initial value of the untitled editor. An untitled editor with initial
-	 * value is dirty right from the beginning.
-	 */
 	initialValue?: string;
 
-	/**
-	 * Preferred language id to use when saving the untitled editor.
-	 */
 	languageId?: string;
 
-	/**
-	 * Preferred encoding to use when saving the untitled editor.
-	 */
 	encoding?: string;
 }
 
 export interface IExistingUntitledTextEditorOptions extends INewUntitledTextEditorOptions {
 
-	/**
-	 * A resource to identify the untitled editor to create or return
-	 * if already existing.
-	 *
-	 * Note: the resource will not be used unless the scheme is `untitled`.
-	 */
 	untitledResource?: URI;
 }
 
 export interface INewUntitledTextEditorWithAssociatedResourceOptions extends INewUntitledTextEditorOptions {
 
-	/**
-	 * Resource components to associate with the untitled editor. When saving
-	 * the untitled editor, the associated components will be used and the user
-	 * is not being asked to provide a file path.
-	 *
-	 * Note: currently it is not possible to specify the `scheme` to use. The
-	 * untitled editor will saved to the default local or remote resource.
-	 */
 	associatedResource?: { authority: string; path: string; query: string; fragment: string };
 }
 
@@ -62,14 +38,8 @@ type IInternalUntitledTextEditorOptions = IExistingUntitledTextEditorOptions & I
 
 export interface IUntitledTextEditorModelSaveEvent {
 
-	/**
-	 * The source untitled file that was saved. It is disposed at this point.
-	 */
 	readonly source: URI;
 
-	/**
-	 * The target file the untitled was saved to. Is never untitled.
-	 */
 	readonly target: URI;
 }
 
@@ -77,86 +47,37 @@ export interface IUntitledTextEditorService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * An event for when an untitled editor model was saved to disk.
-	 * At the point the event fires, the untitled editor model is
-	 * disposed.
-	 */
 	readonly onDidSave: Event<IUntitledTextEditorModelSaveEvent>;
 
-	/**
-	 * Events for when untitled text editors change (e.g. getting dirty, saved or reverted).
-	 */
 	readonly onDidChangeDirty: Event<IUntitledTextEditorModel>;
 
-	/**
-	 * Events for when untitled text editor encodings change.
-	 */
 	readonly onDidChangeEncoding: Event<IUntitledTextEditorModel>;
 
-	/**
-	 * Events for when untitled text editor labels change.
-	 */
 	readonly onDidChangeLabel: Event<IUntitledTextEditorModel>;
 
-	/**
-	 * Events for when untitled text editor models are created.
-	 */
 	readonly onDidCreate: Event<IUntitledTextEditorModel>;
 
-	/**
-	 * Events for when untitled text editors are about to be disposed.
-	 */
 	readonly onWillDispose: Event<IUntitledTextEditorModel>;
 
-	/**
-	 * Creates a new untitled editor model with the provided options. If the `untitledResource`
-	 * property is provided and the untitled editor exists, it will return that existing
-	 * instance instead of creating a new one.
-	 */
 	create(options?: INewUntitledTextEditorOptions): IUntitledTextEditorModel;
 	create(options?: INewUntitledTextEditorWithAssociatedResourceOptions): IUntitledTextEditorModel;
 	create(options?: IExistingUntitledTextEditorOptions): IUntitledTextEditorModel;
 
-	/**
-	 * Returns an existing untitled editor model if already created before.
-	 */
 	get(resource: URI): IUntitledTextEditorModel | undefined;
 
-	/**
-	 * Returns the value of the untitled editor, undefined if none exists
-	 * @param resource The URI of the untitled file
-	 * @returns The content, or undefined
-	 */
 	getValue(resource: URI): string | undefined;
 
-	/**
-	 * Resolves an untitled editor model from the provided options. If the `untitledResource`
-	 * property is provided and the untitled editor exists, it will return that existing
-	 * instance instead of creating a new one.
-	 */
 	resolve(options?: INewUntitledTextEditorOptions): Promise<IUntitledTextEditorModel>;
 	resolve(options?: INewUntitledTextEditorWithAssociatedResourceOptions): Promise<IUntitledTextEditorModel>;
 	resolve(options?: IExistingUntitledTextEditorOptions): Promise<IUntitledTextEditorModel>;
 
-	/**
-	 * Figures out if the given resource has an associated resource or not.
-	 */
 	isUntitledWithAssociatedResource(resource: URI): boolean;
 
-	/**
-	 * Waits for the model to be ready to be disposed. There may be conditions
-	 * under which the model cannot be disposed, e.g. when it is dirty. Once the
-	 * promise is settled, it is safe to dispose the model.
-	 */
 	canDispose(model: IUntitledTextEditorModel): true | Promise<true>;
 }
 
 export interface IUntitledTextEditorModelManager extends IUntitledTextEditorService {
 
-	/**
-	 * Internal method: triggers the onDidSave event.
-	 */
 	notifyDidSave(source: URI, target: URI): void;
 }
 
@@ -215,19 +136,16 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 	private doCreateOrGet(options: IInternalUntitledTextEditorOptions = Object.create(null)): UntitledTextEditorModel {
 		const massagedOptions = this.massageOptions(options);
 
-		// Return existing instance if asked for it
 		if (massagedOptions.untitledResource && this.mapResourceToModel.has(massagedOptions.untitledResource)) {
 			return this.mapResourceToModel.get(massagedOptions.untitledResource)!;
 		}
 
-		// Create new instance otherwise
 		return this.doCreate(massagedOptions);
 	}
 
 	private massageOptions(options: IInternalUntitledTextEditorOptions): IInternalUntitledTextEditorOptions {
 		const massagedOptions: IInternalUntitledTextEditorOptions = Object.create(null);
 
-		// Figure out associated and untitled resource
 		if (options.associatedResource) {
 			massagedOptions.untitledResource = URI.from({
 				scheme: Schemas.untitled,
@@ -243,7 +161,6 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 			}
 		}
 
-		// Language id
 		if (options.languageId) {
 			massagedOptions.languageId = options.languageId;
 		} else if (!massagedOptions.associatedResource) {
@@ -253,7 +170,6 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 			}
 		}
 
-		// Take over encoding and initial value
 		massagedOptions.encoding = options.encoding;
 		massagedOptions.initialValue = options.initialValue;
 
@@ -262,7 +178,6 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 
 	private doCreate(options: IInternalUntitledTextEditorOptions): UntitledTextEditorModel {
 
-		// Create a new untitled resource if none is provided
 		let untitledResource = options.untitledResource;
 		if (!untitledResource) {
 			let counter = 1;
@@ -272,7 +187,6 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 			} while (this.mapResourceToModel.has(untitledResource));
 		}
 
-		// Create new model with provided options
 		const model = this.instantiationService.createInstance(UntitledTextEditorModel, untitledResource, !!options.associatedResource, options.initialValue, options.languageId, options.encoding);
 
 		this.registerModel(model);
@@ -282,31 +196,23 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 
 	private registerModel(model: UntitledTextEditorModel): void {
 
-		// Install model listeners
 		const modelListeners = new DisposableStore();
 		modelListeners.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire(model)));
 		modelListeners.add(model.onDidChangeName(() => this._onDidChangeLabel.fire(model)));
 		modelListeners.add(model.onDidChangeEncoding(() => this._onDidChangeEncoding.fire(model)));
 		modelListeners.add(model.onWillDispose(() => this._onWillDispose.fire(model)));
 
-		// Remove from cache on dispose
 		Event.once(model.onWillDispose)(() => {
 
-			// Registry
-			this.mapResourceToModel.deleteAndLeak(model.resource); // model is being disposed in this callback already
+			this.mapResourceToModel.deleteAndLeak(model.resource);
 
-			// Listeners
 			modelListeners.dispose();
 		});
 
-		// Add to cache
 		this.mapResourceToModel.set(model.resource, model);
 
-		// Emit as event
 		this._onDidCreate.fire(model);
 
-		// If the model is dirty right from the beginning,
-		// make sure to emit this as an event
 		if (model.isDirty()) {
 			this._onDidChangeDirty.fire(model);
 		}
@@ -318,18 +224,14 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 
 	canDispose(model: UntitledTextEditorModel): true | Promise<true> {
 		if (model.isDisposed()) {
-			return true; // quick return if model already disposed
+			return true;
 		}
 
-		// promise based return in all other cases
 		return this.doCanDispose(model);
 	}
 
 	private async doCanDispose(model: UntitledTextEditorModel): Promise<true> {
 
-		// dirty model: we do not allow to dispose dirty models to prevent
-		// data loss cases. dirty models can only be disposed when they are
-		// either saved or reverted
 		if (model.isDirty()) {
 			await Event.toPromise(model.onDidChangeDirty);
 

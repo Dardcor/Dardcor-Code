@@ -74,7 +74,7 @@ suite('ChatExpNotification', () => {
 		test('normalizes a switch target the same way a match selector is normalized', () => {
 			const model: ILanguageModelChatMetadataAndIdentifier = {
 				identifier: 'copilot/claude-sonnet-4.5',
-				metadata: { id: 'claude-sonnet-4.5', family: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', vendor: 'copilot' } as ILanguageModelChatMetadata,
+				metadata: { id: 'claude-sonnet-4.5', family: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', vendor: 'dardcor' } as ILanguageModelChatMetadata,
 			};
 			const parsed = parseOne({
 				...validNotification,
@@ -154,14 +154,11 @@ suite('ChatExpNotification', () => {
 			});
 
 			test('"local" selects the session type real in-editor chat resources produce', () => {
-				// Pins the authored selector against the resource schemes chat actually uses, so
-				// `local` cannot silently stop selecting normal chat.
 				const sessionTypeOf = (resource: URI) => getChatSessionType(resource);
 				assert.deepStrictEqual([
 					sessionTypeOf(URI.from({ scheme: Schemas.vscodeChatEditor, authority: 'x', path: '/untitled-1' })),
 					sessionTypeOf(LocalChatSessionUri.forSession('untitled-1')),
 					matches({ sessionTypes: ['local'] }, { sessionType: sessionTypeOf(LocalChatSessionUri.forSession('untitled-1')), harness: undefined }),
-					// Before any session exists there is nothing to match against.
 					matches({ sessionTypes: ['local'] }, { sessionType: undefined, harness: undefined }),
 				], ['local', 'local', true, false]);
 			});
@@ -343,8 +340,6 @@ suite('ChatExpNotification', () => {
 
 			await test.configurationService.setUserConfiguration(ChatAIDisabledSettingId, true);
 
-			// Still registered, so the service keeps the in-memory dismissal it holds for
-			// `autoDismissOnMessage`, but the notification no longer matches any input.
 			assert.deepStrictEqual({ beforeDisable, afterDisable: registered?.when?.(context()), ids: test.ids() }, {
 				beforeDisable: true,
 				afterDisable: false,

@@ -58,7 +58,6 @@ export class MainThreadNotebooks implements MainThreadNotebookShape {
 				const sw = new StopWatch();
 				let result: NotebookData;
 				if (data.byteLength === 0 && viewType === 'interactive') {
-					// we don't want any starting cells for an empty interactive window.
 					result = NotebookDto.fromNotebookDataDto({ cells: [], metadata: {} });
 				} else {
 					const dto = await this._proxy.$dataToNotebook(handle, data, CancellationToken.None);

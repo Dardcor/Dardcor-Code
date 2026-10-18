@@ -18,7 +18,6 @@ import { IChatFindController, IChatWidget, IChatWidgetService } from '../chat.js
 import { ChatFindCommandId } from '../widget/chatFind/chatFindCommandIds.js';
 import { CHAT_CATEGORY } from './chatActions.js';
 
-/** Returns the focused chat widget, falling back to the most recently focused widget. */
 export function resolveFocusedChatWidget(widgets: readonly IChatWidget[], lastFocusedWidget: IChatWidget | undefined, isFocusAncestor: (element: HTMLElement) => boolean): IChatWidget | undefined {
 	return widgets.find(w => w.getFindController() && isFocusAncestor(w.domNode)) ?? lastFocusedWidget;
 }

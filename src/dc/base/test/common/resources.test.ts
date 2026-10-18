@@ -17,7 +17,6 @@ suite('Resources', () => {
 
 	test('distinctParents', () => {
 
-		// Basic
 		let resources = [
 			URI.file('/some/folderA/file.txt'),
 			URI.file('/some/folderB/file.txt'),
@@ -30,7 +29,6 @@ suite('Resources', () => {
 		assert.strictEqual(distinct[1].toString(), resources[1].toString());
 		assert.strictEqual(distinct[2].toString(), resources[2].toString());
 
-		// Parent / Child
 		resources = [
 			URI.file('/some/folderA'),
 			URI.file('/some/folderA/file.txt'),
@@ -66,7 +64,6 @@ suite('Resources', () => {
 		assert.strictEqual(dirname(URI.parse('foo://a/')).toString(), 'foo://a/');
 		assert.strictEqual(dirname(URI.parse('foo://a')).toString(), 'foo://a');
 
-		// does not explode (https://github.com/microsoft/vscode/issues/41987)
 		dirname(URI.from({ scheme: 'file', authority: '/users/someone/portal.h' }));
 
 		assert.strictEqual(dirname(URI.parse('foo://a/b/c?q')).toString(), 'foo://a/b?q');
@@ -167,10 +164,10 @@ suite('Resources', () => {
 		if (isWindows) {
 			assert.strictEqual(isAbsolutePath(URI.file('c:\\foo\\')), true);
 			assert.strictEqual(isAbsolutePath(URI.file('C:\\foo\\')), true);
-			assert.strictEqual(isAbsolutePath(URI.file('bar')), true); // URI normalizes all file URIs to be absolute
+			assert.strictEqual(isAbsolutePath(URI.file('bar')), true);
 		} else {
 			assert.strictEqual(isAbsolutePath(URI.file('/foo/bar')), true);
-			assert.strictEqual(isAbsolutePath(URI.file('bar')), true); // URI normalizes all file URIs to be absolute
+			assert.strictEqual(isAbsolutePath(URI.file('bar')), true);
 		}
 		assert.strictEqual(isAbsolutePath(URI.parse('foo:foo')), false);
 		assert.strictEqual(isAbsolutePath(URI.parse('foo://a/foo/.')), true);
@@ -285,7 +282,7 @@ suite('Resources', () => {
 			assertRelativePath(URI.file('c:\\foo\\bar\\'), URI.file('c:\\foo\\bar\\a1\\a2\\'), 'a1/a2');
 			assertRelativePath(URI.file('c:\\'), URI.file('c:\\foo\\bar'), 'foo/bar');
 			assertRelativePath(URI.file('\\\\server\\share\\some\\'), URI.file('\\\\server\\share\\some\\path'), 'path');
-			assertRelativePath(URI.file('\\\\server\\share\\some\\'), URI.file('\\\\server\\share2\\some\\path'), '../../share2/some/path', true); // ignore joinPath assert: path.join is not root aware
+			assertRelativePath(URI.file('\\\\server\\share\\some\\'), URI.file('\\\\server\\share2\\some\\path'), '../../share2/some/path', true);
 		} else {
 			assertRelativePath(URI.file('/a/foo'), URI.file('/a/foo/bar'), 'bar');
 			assertRelativePath(URI.file('/a/foo'), URI.file('/a/foo/bar/'), 'bar');
@@ -386,7 +383,7 @@ suite('Resources', () => {
 
 		assertIsEqual(URI.parse('file://server'), URI.parse('file://server/'), true, true);
 		assertIsEqual(URI.parse('http://server'), URI.parse('http://server/'), true, true);
-		assertIsEqual(URI.parse('foo://server'), URI.parse('foo://server/'), true, false); // only selected scheme have / as the default path
+		assertIsEqual(URI.parse('foo://server'), URI.parse('foo://server/'), true, false);
 		assertIsEqual(URI.parse('foo://server/foo'), URI.parse('foo://server/foo/'), true, false);
 		assertIsEqual(URI.parse('foo://server/foo'), URI.parse('foo://server/foo?'), true, true);
 

@@ -3,7 +3,6 @@ import fs from "node:fs";
 import { getSyncState, syncModelCatalog } from "@/lib/modelCatalog/sync.js";
 import { CATALOG_FILE } from "open-sse/providers/catalogOverride.js";
 
-// GET /api/models/catalog-sync - Sync status and what the catalog currently holds
 export async function GET() {
   const state = getSyncState();
   let catalog = null;
@@ -21,7 +20,6 @@ export async function GET() {
   return NextResponse.json({ ...state, catalog });
 }
 
-// POST /api/models/catalog-sync - Run a sync now instead of waiting for the timer
 export async function POST() {
   const result = await syncModelCatalog();
   if (!result) {

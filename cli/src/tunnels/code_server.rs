@@ -50,14 +50,12 @@ pub struct CodeServerArgs {
 	pub port: Option<u16>,
 	pub socket_path: Option<String>,
 
-	// common argument
 	pub telemetry_level: Option<TelemetryLevel>,
 	pub log: Option<log::Level>,
 	pub accept_server_license_terms: bool,
 	pub verbose: bool,
 	pub server_data_dir: Option<String>,
 	pub extensions_dir: Option<String>,
-	// extension management
 	pub install_extensions: Vec<String>,
 	pub uninstall_extensions: Vec<String>,
 	pub update_extensions: bool,
@@ -68,17 +66,10 @@ pub struct CodeServerArgs {
 	pub donot_include_pack_and_dependencies: bool,
 	pub force: bool,
 	pub start_server: bool,
-	// connection tokens
 	pub connection_token: Option<String>,
 	pub connection_token_file: Option<String>,
 	pub without_connection_token: bool,
-	// reconnection
 	pub reconnection_grace_time: Option<u32>,
-	// agent-host bridge: tells the spawned VS Code server where the
-	// canonical agent host is listening so it can register the
-	// `agentHostProxy` IPC channel and let renderers reach the agent
-	// host over the remote-agent connection. The server does NOT spawn
-	// an agent host of its own when these are set.
 	pub agent_host_bridge_host: Option<String>,
 	pub agent_host_bridge_port: Option<u16>,
 	pub agent_host_bridge_connection_token: Option<String>,
@@ -180,9 +171,6 @@ impl CodeServerArgs {
 	}
 }
 
-/// Base server params that can be `resolve()`d to a `ResolvedServerParams`.
-/// Doing so fetches additional information like a commit ID if previously
-/// unspecified.
 pub struct ServerParamsRaw {
 	pub commit_id: Option<String>,
 	pub quality: Quality,
@@ -191,7 +179,6 @@ pub struct ServerParamsRaw {
 	pub platform: Platform,
 }
 
-/// Server params that can be used to start a VS Code server.
 pub struct ResolvedServerParams {
 	pub release: Release,
 	pub code_server_args: CodeServerArgs,
@@ -255,7 +242,6 @@ struct UpdateServerVersion {
 	pub timestamp: i64,
 }
 
-/// Code server listening on a port address.
 #[derive(Clone)]
 pub struct SocketCodeServer {
 	pub commit_id: String,
@@ -263,7 +249,6 @@ pub struct SocketCodeServer {
 	pub origin: Arc<CodeServerOrigin>,
 }
 
-/// Code server listening on a socket address.
 #[derive(Clone)]
 pub struct PortCodeServer {
 	pub commit_id: String,
@@ -271,16 +256,13 @@ pub struct PortCodeServer {
 	pub origin: Arc<CodeServerOrigin>,
 }
 
-/// A server listening on any address/location.
 pub enum AnyCodeServer {
 	Socket(SocketCodeServer),
 	Port(PortCodeServer),
 }
 
 pub enum CodeServerOrigin {
-	/// A new code server, that opens the barrier when it exits.
 	New(Box<Child>),
-	/// An existing code server with a PID.
 	Existing(u32),
 }
 
@@ -311,7 +293,6 @@ impl CodeServerOrigin {
 	}
 }
 
-/// Ensures the given list of extensions are installed on the running server.
 async fn do_extension_install_on_running_server(
 	start_script_path: &Path,
 	extensions: &[String],
@@ -350,10 +331,6 @@ pub struct ServerBuilder<'a> {
 	http: BoxedHttp,
 }
 
-/// Ensures the given path has execute permissions on Unix.
-/// This is a self-healing measure for cases where the binary was extracted
-/// without execute permissions or where permissions were lost (e.g. on
-/// network filesystems or after interrupted downloads).
 #[cfg(unix)]
 fn ensure_executable(path: &std::path::Path) -> Result<(), std::io::Error> {
 	use std::os::unix::fs::PermissionsExt;
@@ -390,7 +367,6 @@ impl<'a> ServerBuilder<'a> {
 		}
 	}
 
-	/// Gets any already-running server from this directory.
 	pub async fn get_running(&self) -> Result<Option<AnyCodeServer>, AnyError> {
 		info!(
 			self.logger,
@@ -437,7 +413,6 @@ impl<'a> ServerBuilder<'a> {
 		}
 	}
 
-	/// Removes a cached server.
 	pub async fn evict(&self) -> Result<(), WrappedError> {
 		let name = get_server_folder_name(
 			self.server_params.release.quality,
@@ -447,7 +422,6 @@ impl<'a> ServerBuilder<'a> {
 		self.launcher_paths.server_cache.delete(&name)
 	}
 
-	/// Ensures the server is set up in the configured directory.
 	pub async fn setup(&self) -> Result<(), AnyError> {
 		debug!(
 			self.logger,
@@ -560,9 +534,7 @@ impl<'a> ServerBuilder<'a> {
 		})
 	}
 
-	/// Runs the command that just installs extensions and exits.
 	pub async fn install_extensions(&self) -> Result<(), AnyError> {
-		// cmd already has --install-extensions from base
 		let mut cmd = self.get_base_command();
 		let cmd_str = || {
 			self.server_params
@@ -592,7 +564,7 @@ impl<'a> ServerBuilder<'a> {
 	}
 
 	async fn _listen_on_socket(&self, socket: &Path) -> Result<SocketCodeServer, AnyError> {
-		remove_file(&socket).await.ok(); // ignore any error if it doesn't exist
+		remove_file(&socket).await.ok();
 
 		let mut cmd = self.get_base_command();
 		cmd.arg("--start-server")
@@ -632,12 +604,6 @@ impl<'a> ServerBuilder<'a> {
 
 		debug!(self.logger, "Starting server with command... {:?}", cmd);
 
-		// On Windows spawning a code-server binary will run cmd.exe /c C:\path\to\code-server.cmd...
-		// This spawns a cmd.exe window for the user, which if they close will kill the code-server process
-		// and disconnect the tunnel. To prevent this, pass the CREATE_NO_WINDOW flag to the Command
-		// only on Windows.
-		// Original issue: https://github.com/microsoft/vscode/issues/184058
-		// Partial fix: https://github.com/microsoft/vscode/pull/184621
 		#[cfg(target_os = "windows")]
 		let cmd = cmd.creation_flags(
 			winapi::um::winbase::CREATE_NO_WINDOW
@@ -649,10 +615,6 @@ impl<'a> ServerBuilder<'a> {
 				},
 		);
 
-		// Self-heal: if the server binary lost execute permissions (e.g. on a
-		// network filesystem or after a partial extraction), try to restore them
-		// before attempting to spawn. If this fails, report it clearly so that
-		// the UI does not treat it as generic "corruption" and loop re-downloading.
 		if let Err(e) = ensure_executable(&self.server_paths.executable) {
 			return Err(CodeError::ServerNotExecutable(format!(
 				"{} is not executable and permissions could not be restored: {}",
@@ -716,8 +678,6 @@ where
 
 	let (listen_tx, listen_rx) = tokio::sync::oneshot::channel();
 
-	// Handle stderr and stdout in a separate task. Initially scan lines looking
-	// for the listening port. Afterwards, just scan and write out to the file.
 	tokio::spawn(async move {
 		let mut stdout_reader = BufReader::new(stdout).lines();
 		let mut stderr_reader = BufReader::new(stderr).lines();
@@ -785,8 +745,6 @@ fn get_extensions_flag(extension_id: &str) -> String {
 	format!("--install-extension={extension_id}")
 }
 
-/// A type that can be used to scan stdout from the VS Code server. Returns
-/// some other type that, in turn, is returned from starting the server.
 pub trait ServerOutputMatcher<R>
 where
 	R: Send,
@@ -794,7 +752,6 @@ where
 	fn match_line(line: &str) -> Option<R>;
 }
 
-/// Parses a line like "Extension host agent listening on /tmp/foo.sock"
 struct SocketMatcher();
 
 impl ServerOutputMatcher<PathBuf> for SocketMatcher {
@@ -803,7 +760,6 @@ impl ServerOutputMatcher<PathBuf> for SocketMatcher {
 	}
 }
 
-/// Parses a line like "Extension host agent listening on 9000"
 pub struct PortMatcher();
 
 impl ServerOutputMatcher<u16> for PortMatcher {
@@ -812,7 +768,6 @@ impl ServerOutputMatcher<u16> for PortMatcher {
 	}
 }
 
-/// Parses a line like "Web UI available at http://localhost:9000/?tkn=..."
 pub struct WebUiMatcher();
 
 impl ServerOutputMatcher<reqwest::Url> for WebUiMatcher {
@@ -824,7 +779,6 @@ impl ServerOutputMatcher<reqwest::Url> for WebUiMatcher {
 	}
 }
 
-/// Does not do any parsing and just immediately returns an empty result.
 pub struct NoOpMatcher();
 
 impl ServerOutputMatcher<()> for NoOpMatcher {

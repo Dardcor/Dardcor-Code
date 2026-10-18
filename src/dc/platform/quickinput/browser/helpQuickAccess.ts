@@ -30,7 +30,6 @@ export class HelpQuickAccessProvider implements IQuickAccessProvider {
 	provide(picker: IQuickPick<IHelpQuickAccessPickItem, { useSeparators: true }>): IDisposable {
 		const disposables = new DisposableStore();
 
-		// Open a picker with the selected value if picked
 		disposables.add(picker.onDidAccept(() => {
 			const [item] = picker.selectedItems;
 			if (item) {
@@ -38,8 +37,6 @@ export class HelpQuickAccessProvider implements IQuickAccessProvider {
 			}
 		}));
 
-		// Also open a picker when we detect the user typed the exact
-		// name of a provider (e.g. `?term` for terminals)
 		disposables.add(picker.onDidChangeValue(value => {
 			const providerDescriptor = this.registry.getQuickAccessProvider(value.substr(HelpQuickAccessProvider.PREFIX.length), this.contextKeyService);
 			if (providerDescriptor?.prefix && providerDescriptor.prefix !== HelpQuickAccessProvider.PREFIX) {
@@ -47,7 +44,6 @@ export class HelpQuickAccessProvider implements IQuickAccessProvider {
 			}
 		}));
 
-		// Fill in all providers
 		picker.items = this.getQuickAccessProviders().filter(p => p.prefix !== HelpQuickAccessProvider.PREFIX);
 
 		return disposables;
@@ -65,7 +61,7 @@ export class HelpQuickAccessProvider implements IQuickAccessProvider {
 	private createPicks(provider: IQuickAccessProviderDescriptor): IHelpQuickAccessPickItem[] {
 		return provider.helpEntries.map(helpEntry => {
 			const prefix = helpEntry.prefix || provider.prefix;
-			const label = prefix || '\u2026' /* ... */;
+			const label = prefix || '\u2026' ;
 
 			return {
 				prefix,

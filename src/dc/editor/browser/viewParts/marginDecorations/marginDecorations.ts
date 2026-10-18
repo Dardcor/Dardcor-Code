@@ -26,7 +26,6 @@ export class MarginViewLineDecorationsOverlay extends DedupOverlay {
 		super.dispose();
 	}
 
-	// --- begin event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		return true;
@@ -53,7 +52,6 @@ export class MarginViewLineDecorationsOverlay extends DedupOverlay {
 		return true;
 	}
 
-	// --- end event handlers
 
 	protected _getDecorations(ctx: RenderingContext): DecorationToRender[] {
 		const decorations = ctx.getDecorationsInViewport();

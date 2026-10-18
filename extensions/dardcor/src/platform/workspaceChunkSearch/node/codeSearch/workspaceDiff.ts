@@ -41,7 +41,7 @@ interface CodeSearchRepoTracker {
 
 export class CodeSearchWorkspaceDiffTracker extends Disposable {
 
-	private static readonly _diffRefreshInterval = 1000 * 60 * 2; // 2 minutes
+	private static readonly _diffRefreshInterval = 1000 * 60 * 2;
 
 	private static readonly _maxDiffFiles = 10000;
 
@@ -49,9 +49,6 @@ export class CodeSearchWorkspaceDiffTracker extends Disposable {
 
 	private readonly _repoTracker: CodeSearchRepoTracker;
 
-	/**
-	 * Tracks all files that have been changed in the workspace during this session.
-	 */
 	private readonly _locallyChangedFiles = new ResourceSet();
 
 	private readonly _onDidChangeDiffFiles = this._register(new Emitter<readonly URI[]>());
@@ -120,11 +117,6 @@ export class CodeSearchWorkspaceDiffTracker extends Disposable {
 		}
 	}
 
-	/**
-	 * Get a list of files that have changed in the workspace.
-	 *
-	 * @returns A list of URIs for files that have changed vs our indexed commit. Return undefined if we don't know that status of the workspace.
-	 */
 	getDiffFiles(): Iterable<URI> | undefined {
 		if (!this._repos.size) {
 			return undefined;
@@ -150,9 +142,6 @@ export class CodeSearchWorkspaceDiffTracker extends Disposable {
 		return seenFiles;
 	}
 
-	/**
-	 * Get the diff file count per tracked repo.
-	 */
 	getRepoDiffCounts(): ReadonlyMap<URI, { state: string; diffFileCount: number }> {
 		const result = new ResourceMap<{ state: string; diffFileCount: number }>();
 		for (const [uri, repoEntry] of this._repos) {
@@ -213,7 +202,6 @@ export class CodeSearchWorkspaceDiffTracker extends Disposable {
 		this._logService.trace(`CodeSearchWorkspaceDiff: refreshing diff for ${repo.info.info.rootUri}`);
 
 		if (this._simulationTestContext.isInSimulationTests) {
-			// In simulation tests, we don't want to refresh the diff
 			this._logService.trace(`CodeSearchWorkspaceDiff: Skipping diff refresh for ${repo.info.info.rootUri} in simulation tests`);
 			repo.state = RepoState.Ready;
 			return;
@@ -222,7 +210,6 @@ export class CodeSearchWorkspaceDiffTracker extends Disposable {
 		try {
 			const diff = await this.tryGetDiffedIndexedFiles(repo.info);
 			if (diff) {
-				// Update initial changes for repo
 				repo.initialChanges.clear();
 				for (const changedFile of diff) {
 					repo.initialChanges.add(changedFile);
@@ -230,13 +217,10 @@ export class CodeSearchWorkspaceDiffTracker extends Disposable {
 
 				this._logService.trace(`CodeSearchWorkspaceDiff: Refreshed diff for ${repo.info.info.rootUri}. New diff count: ${repo.initialChanges.size}`);
 
-				// Delete any local changes that have no longer changed
 				for (const locallyChangedFile of this._locallyChangedFiles) {
 					if (isEqualOrParent(locallyChangedFile, repo.info.info.rootUri)) {
 						const file = this._workspaceFileIndex.get(locallyChangedFile);
 						if (file) {
-							// The diff git returns to use only includes the files from disk.
-							// Any dirty files still have to be considered changed.
 							if (!file.isDirty()) {
 								this._locallyChangedFiles.delete(locallyChangedFile);
 							}

@@ -14,7 +14,7 @@ import { IAiRelatedInformationService, IAiRelatedInformationProvider, RelatedInf
 export class AiRelatedInformationService implements IAiRelatedInformationService {
 	readonly _serviceBrand: undefined;
 
-	static readonly DEFAULT_TIMEOUT = 1000 * 10; // 10 seconds
+	static readonly DEFAULT_TIMEOUT = 1000 * 10;
 
 	private readonly _providers: Map<RelatedInformationType, IAiRelatedInformationProvider[]> = new Map();
 
@@ -49,7 +49,6 @@ export class AiRelatedInformationService implements IAiRelatedInformationService
 			throw new Error('No related information providers registered');
 		}
 
-		// get providers for each type
 		const providers: IAiRelatedInformationProvider[] = [];
 		for (const type of types) {
 			const typeProviders = this._providers.get(type);
@@ -68,10 +67,8 @@ export class AiRelatedInformationService implements IAiRelatedInformationService
 			return createCancelablePromise(async t => {
 				try {
 					const result = await provider.provideAiRelatedInformation(query, t);
-					// double filter just in case
 					return result.filter(r => types.includes(r.type));
 				} catch (e) {
-					// logged in extension host
 				}
 				return [];
 			});

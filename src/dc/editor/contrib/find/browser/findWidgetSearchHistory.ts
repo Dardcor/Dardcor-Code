@@ -54,7 +54,6 @@ export class FindWidgetSearchHistory implements IHistory<string> {
 	}
 
 	forEach(callbackfn: (value: string, value2: string, set: Set<string>) => void, thisArg?: unknown): void {
-		// fetch latest from storage
 		this.load();
 		return this.inMemoryValues.forEach(callbackfn);
 	}
@@ -74,14 +73,12 @@ export class FindWidgetSearchHistory implements IHistory<string> {
 			try {
 				result = JSON.parse(raw);
 			} catch (e) {
-				// Invalid data
 			}
 		}
 
 		this.inMemoryValues = new Set(result || []);
 	}
 
-	// Run saves async
 	save(): Promise<void> {
 		const elements: string[] = [];
 		this.inMemoryValues.forEach(e => elements.push(e));

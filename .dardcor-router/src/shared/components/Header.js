@@ -18,7 +18,6 @@ import { translate } from "@/i18n/runtime";
 const getPageInfo = (pathname) => {
   if (!pathname) return { title: "", description: "", breadcrumbs: [] };
 
-  // Media provider detail: /dashboard/media-providers/[kind]/[id]
   const mediaDetailMatch = pathname.match(/\/media-providers\/([^/]+)\/([^/]+)$/);
   if (mediaDetailMatch) {
     const kindId = mediaDetailMatch[1];
@@ -36,7 +35,6 @@ const getPageInfo = (pathname) => {
     };
   }
 
-  // Media provider kind: /dashboard/media-providers/[kind]
   const mediaKindMatch = pathname.match(/\/media-providers\/([^/]+)$/);
   if (mediaKindMatch) {
     const kindId = mediaKindMatch[1];
@@ -49,7 +47,6 @@ const getPageInfo = (pathname) => {
     };
   }
 
-  // Provider detail page: /dashboard/providers/[id]
   const providerMatch = pathname.match(/\/providers\/([^/]+)$/);
   if (providerMatch) {
     const providerId = providerMatch[1];
@@ -185,7 +182,6 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
   const [loginMethod, setLoginMethod] = useState("");
   const [donateOpen, setDonateOpen] = useState(false);
 
-  // Memoize page info to prevent unnecessary recalculations
   const pageInfo = useMemo(() => getPageInfo(pathname), [pathname]);
   const { title, description, icon, breadcrumbs } = pageInfo;
 
@@ -228,7 +224,7 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
 
   return (
     <header className="shrink-0 flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 lg:px-8 pt-3 pb-2 border-b border-border-subtle bg-surface/80 backdrop-blur-xl lg:bg-transparent lg:backdrop-blur-none z-20">
-      {/* Mobile menu button */}
+      {}
       <div className="flex items-center gap-2 lg:hidden shrink-0">
         {showMenuButton && (
           <button
@@ -241,7 +237,7 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
         )}
       </div>
 
-      {/* Page title with breadcrumbs */}
+      {}
       <div className="flex flex-col min-w-0 flex-1">
         {breadcrumbs.length > 0 ? (
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
@@ -302,7 +298,7 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
         ) : null}
       </div>
 
-      {/* Right actions */}
+      {}
       <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
           <div

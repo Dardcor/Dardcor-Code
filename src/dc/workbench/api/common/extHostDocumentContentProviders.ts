@@ -31,8 +31,6 @@ export class ExtHostDocumentContentProvider implements ExtHostDocumentContentPro
 	}
 
 	registerTextDocumentContentProvider(scheme: string, provider: vscode.TextDocumentContentProvider): vscode.Disposable {
-		// todo@remote
-		// check with scheme from fs-providers!
 		if (Object.keys(Schemas).indexOf(scheme) >= 0) {
 			throw new Error(`scheme '${scheme}' already registered`);
 		}
@@ -53,7 +51,6 @@ export class ExtHostDocumentContentProvider implements ExtHostDocumentContentPro
 					return;
 				}
 				if (!this._documentsAndEditors.getDocument(uri)) {
-					// ignore event if document isn't open
 					return;
 				}
 
@@ -69,14 +66,11 @@ export class ExtHostDocumentContentProvider implements ExtHostDocumentContentPro
 
 						const document = this._documentsAndEditors.getDocument(uri);
 						if (!document) {
-							// disposed in the meantime
 							return;
 						}
 
-						// create lines and compare
 						const lines = splitLines(value);
 
-						// broadcast event when content changed
 						if (!document.equalLines(lines)) {
 							return this._proxy.$onVirtualDocumentChange(uri, value);
 						}

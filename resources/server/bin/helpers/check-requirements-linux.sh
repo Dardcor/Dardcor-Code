@@ -1,22 +1,9 @@
 #!/usr/bin/env sh
-#
 # Copyright (c) Dardcor Corporation. All rights reserved.
-#
 
 set -e
 
-# The script checks necessary server requirements for the classic server
-# scenarios. Currently, the script can exit with any of the following
-# 2 exit codes and should be handled accordingly on the extension side.
-#
-# 0: All requirements are met, use the default server.
-# 99: Unsupported OS, abort server startup with appropriate error message.
-#
 
-# Do not remove this check.
-# Provides a way to skip the server requirements check from
-# outside the install flow. A system process can create this
-# file before the server is downloaded and installed.
 if [ -f "/tmp/vscode-skip-server-requirements-check" ] || [ -n "$VSCODE_SERVER_CUSTOM_GLIBC_LINKER" ]; then
     echo "!!! WARNING: Skipping server pre-requisite check !!!"
     echo "!!! Server stability is not guaranteed. Proceed at your own risk. !!!"
@@ -28,7 +15,6 @@ found_required_glibc=0
 found_required_glibcxx=0
 MIN_GLIBCXX_VERSION="3.4.25"
 
-# Extract the ID value from /etc/os-release
 if [ -f /etc/os-release ]; then
     OS_ID="$(cat /etc/os-release | grep -Eo 'ID=([^"]+)' | sed -n '1s/ID=//p')"
     if [ "$OS_ID" = "nixos" ]; then
@@ -107,7 +93,7 @@ if [ "$OS_ID" = "alpine" ]; then
         fi
     done
     if [ "$(printf '%s\n' "1.2.3" "$musl_version" | sort -V | head -n1)" != "1.2.3" ]; then
-        echo "Error: Unsupported alpine distribution. Please refer to our supported distro section https://aka.ms/vscode-remote/linux for additional information."
+        echo "Error: Unsupported alpine distribution. Please refer to our supported distro section https://www.dardcor-code.web.id/docs/remote/overview for additional information."
         exit 99
     fi
     found_required_glibc=1
@@ -155,7 +141,7 @@ else
 fi
 
 if [ "$found_required_glibc" = "0" ] || [ "$found_required_glibcxx" = "0" ]; then
-	echo "Error: Missing required dependencies. Please refer to our FAQ https://aka.ms/vscode-remote/faq/old-linux for additional information."
+	echo "Error: Missing required dependencies. Please refer to our FAQ https://www.dardcor-code.web.id/docs/remote/troubleshooting/linux for additional information."
 	# Custom exit code based on https://tldp.org/LDP/abs/html/exitcodes.html
 	exit 99
 fi

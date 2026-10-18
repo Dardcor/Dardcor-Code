@@ -23,10 +23,6 @@ interface IAgentPluginCandidate {
 	readonly canonicalKey: string;
 }
 
-/**
- * Path fragment that identifies a Copilot-CLI-installed plugin. Mirrored by
- * `ConfiguredAgentPluginDiscovery._resolveEnterprisePluginId`.
- */
 const COPILOT_CLI_INSTALL_PATH_FRAGMENT = '/.copilot/installed-plugins/';
 
 export class AgentPluginCollisionEnablementModel extends CollisionEnablementModel {
@@ -68,15 +64,6 @@ export function getCanonicalAgentPluginCollisionGroups(discoveries: readonly IDi
 	return groups;
 }
 
-/**
- * Whether the `ChatEnabledPlugins` enterprise policy explicitly blocks this plugin.
- *
- * The policy is a **deny list**, not an allowlist: enterprise-managed `enabledPlugins` entries
- * add to (never replace) the plugins a user has installed. A plugin is blocked only when its
- * policy id is mapped to `false`; entries mapped to `true` enable the plugin, and a plugin the
- * policy never mentions is left to the user's own enablement. This keeps a customer's existing
- * plugins working when their enterprise deploys `enabledPlugins` for a different plugin.
- */
 export function isAgentPluginBlockedByPolicy(
 	plugin: IAgentPlugin,
 	enabledPluginsPolicy: Record<string, boolean> | undefined,

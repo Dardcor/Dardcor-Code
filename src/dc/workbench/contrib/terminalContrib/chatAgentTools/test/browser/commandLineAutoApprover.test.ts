@@ -338,7 +338,6 @@ suite('CommandLineAutoApprover', () => {
 				'/^git(\\s+(-C\\s+\\S+|--no-pager))*\\s+branch\\b.*-(d|D|m|M|-delete|-force)\\b/': false,
 			});
 
-			// Basic commands
 			ok(await isAutoApproved('git status'));
 			ok(await isAutoApproved('git log'));
 			ok(await isAutoApproved('git show HEAD'));
@@ -347,28 +346,23 @@ suite('CommandLineAutoApprover', () => {
 			ok(await isAutoApproved('git grep pattern'));
 			ok(await isAutoApproved('git branch'));
 
-			// ls-files with options
 			ok(await isAutoApproved('git ls-files --cached'));
 			ok(await isAutoApproved('git -C /path ls-files'));
 			ok(await isAutoApproved('git --no-pager ls-files'));
 
-			// With -C path
 			ok(await isAutoApproved('git -C /some/path status'));
 			ok(await isAutoApproved('git -C ../relative log'));
 			ok(await isAutoApproved('git -C . diff'));
 
-			// With --no-pager
 			ok(await isAutoApproved('git --no-pager status'));
 			ok(await isAutoApproved('git --no-pager log'));
 			ok(await isAutoApproved('git --no-pager diff HEAD~1'));
 
-			// With both -C and --no-pager
 			ok(await isAutoApproved('git -C /path --no-pager status'));
 			ok(await isAutoApproved('git --no-pager -C /path log'));
 			ok(await isAutoApproved('git -C /path1 -C /path2 status'));
 			ok(await isAutoApproved('git --no-pager --no-pager log'));
 
-			// Branch deletion should be denied
 			ok(!await isAutoApproved('git branch -d feature'));
 			ok(!await isAutoApproved('git branch -D feature'));
 			ok(!await isAutoApproved('git branch --delete feature'));
@@ -376,7 +370,6 @@ suite('CommandLineAutoApprover', () => {
 			ok(!await isAutoApproved('git --no-pager branch -D feature'));
 			ok(!await isAutoApproved('git -C /path --no-pager branch --force'));
 
-			// Branch rename should be denied
 			ok(!await isAutoApproved('git branch -m old new'));
 			ok(!await isAutoApproved('git branch -M old new'));
 			ok(!await isAutoApproved('git -C /path branch -m old new'));
@@ -417,8 +410,8 @@ suite('CommandLineAutoApprover', () => {
 
 			test('should handle various regex flags', async () => {
 				setAutoApprove({
-					'/^echo.*/s': true,  // dotall flag
-					'/^git\\s+/i': true, // case-insensitive flag
+					'/^echo.*/s': true,
+					'/^git\\s+/i': true,
 					'/rm|del/g': false   // global flag
 				});
 
@@ -479,7 +472,6 @@ suite('CommandLineAutoApprover', () => {
 			ok(!await isAutoApproved('Echo hello'));
 		});
 
-		// https://github.com/microsoft/vscode/issues/252411
 		test('should handle string-based values with special regex characters', async () => {
 			setAutoApprove({
 				'pwsh.exe -File D:\\foo.bar\\a-script.ps1': true
@@ -501,12 +493,10 @@ suite('CommandLineAutoApprover', () => {
 			setAutoApprove({
 				'//': true,
 				'/(?:)/': true,
-				'/*/': true,            // Invalid regex pattern
-				'/.**/': true           // Invalid regex pattern
+				'/*/': true,
+				'/.**/': true
 			});
 
-			// These patterns should not cause endless loops and should not match any commands
-			// Invalid patterns should be handled gracefully and not match anything
 			ok(!await isAutoApproved('echo hello'));
 			ok(!await isAutoApproved('ls'));
 			ok(!await isAutoApproved(''));
@@ -520,7 +510,6 @@ suite('CommandLineAutoApprover', () => {
 				'/(?:)*/': true
 			});
 
-			// Commands should still work normally, endless loop patterns should be safely handled
 			ok(!await isAutoApproved('echo hello'));
 			ok(!await isAutoApproved('ls'));
 			ok(!await isAutoApproved('a'));
@@ -529,11 +518,11 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should handle mixed valid and problematic regex patterns', async () => {
 			setAutoApprove({
-				'/^echo/': true,        // Valid pattern
-				'//': true,             // Empty pattern
-				'/^ls/': true,          // Valid pattern
-				'/a*/': true,           // Potential endless loop
-				'pwd': true             // Valid string pattern
+				'/^echo/': true,
+				'//': true,
+				'/^ls/': true,
+				'/a*/': true,
+				'pwd': true
 			});
 
 			ok(await isAutoApproved('echo hello'));
@@ -544,17 +533,15 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should handle invalid regex patterns gracefully', async () => {
 			setAutoApprove({
-				'/*/': true,                    // Invalid regex - nothing to repeat
-				'/(?:+/': true,                 // Invalid regex - incomplete quantifier
-				'/[/': true,                    // Invalid regex - unclosed character class
-				'/^echo/': true,                // Valid pattern
-				'ls': true                      // Valid string pattern
+				'/*/': true,
+				'/(?:+/': true,
+				'/[/': true,
+				'/^echo/': true,
+				'ls': true
 			});
 
-			// Valid patterns should still work
 			ok(await isAutoApproved('echo hello'));
 			ok(await isAutoApproved('ls -la'));
-			// Invalid patterns should not match anything and not cause crashes
 			ok(!await isAutoApproved('random command'));
 		});
 	});
@@ -565,21 +552,17 @@ suite('CommandLineAutoApprover', () => {
 				'bin/foo': true
 			});
 
-			// Should approve the exact match
 			ok(await isAutoApproved('bin/foo'));
 			ok(await isAutoApproved('bin/foo --arg'));
 
-			// Should approve with Windows backslashes
 			ok(await isAutoApproved('bin\\foo'));
 			ok(await isAutoApproved('bin\\foo --arg'));
 
-			// Should approve with current directory prefixes
 			ok(await isAutoApproved('./bin/foo'));
 			ok(await isAutoApproved('.\\bin/foo'));
 			ok(await isAutoApproved('./bin\\foo'));
 			ok(await isAutoApproved('.\\bin\\foo'));
 
-			// Should not approve partial matches
 			ok(!await isAutoApproved('bin/foobar'));
 			ok(!await isAutoApproved('notbin/foo'));
 		});
@@ -589,15 +572,12 @@ suite('CommandLineAutoApprover', () => {
 				'bin\\script.bat': true
 			});
 
-			// Should approve the exact match
 			ok(await isAutoApproved('bin\\script.bat'));
 			ok(await isAutoApproved('bin\\script.bat --help'));
 
-			// Should approve with forward slashes
 			ok(await isAutoApproved('bin/script.bat'));
 			ok(await isAutoApproved('bin/script.bat --help'));
 
-			// Should approve with current directory prefixes
 			ok(await isAutoApproved('./bin\\script.bat'));
 			ok(await isAutoApproved('.\\bin\\script.bat'));
 			ok(await isAutoApproved('./bin/script.bat'));
@@ -619,24 +599,22 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should not treat non-paths as paths', async () => {
 			setAutoApprove({
-				'echo': true,  // Not a path
-				'ls': true,    // Not a path
-				'git': true    // Not a path
+				'echo': true,
+				'ls': true,
+				'git': true
 			});
 
-			// These should work as normal command matching, not path matching
 			ok(await isAutoApproved('echo'));
 			ok(await isAutoApproved('ls'));
 			ok(await isAutoApproved('git'));
 
-			// Should not be treated as paths, so these prefixes shouldn't work
 			ok(!await isAutoApproved('./echo'));
 			ok(!await isAutoApproved('.\\ls'));
 		});
 
 		test('should handle paths with mixed separators in config', async () => {
 			setAutoApprove({
-				'bin/foo\\bar': true  // Mixed separators in config
+				'bin/foo\\bar': true
 			});
 
 			ok(await isAutoApproved('bin/foo\\bar'));
@@ -740,7 +718,6 @@ suite('CommandLineAutoApprover', () => {
 				'del': false
 			});
 
-			// Test case-insensitive matching for aliases
 			ok(await isAutoApproved('ls'));
 			ok(await isAutoApproved('LS'));
 			ok(await isAutoApproved('Ls'));
@@ -807,7 +784,6 @@ suite('CommandLineAutoApprover', () => {
 				'echo': true
 			});
 
-			// Regular patterns should not be matched by isCommandLineAutoApproved
 			ok(!isCommandLineAutoApproved('echo hello'));
 		});
 
@@ -853,12 +829,11 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should handle mixed configuration with matchCommandLine entries', async () => {
 			setAutoApproveWithCommandLine({
-				'echo': true,  // Regular pattern
-				'ls': { approve: true, matchCommandLine: true },  // Command line pattern
-				'rm': { approve: true, matchCommandLine: false }  // Explicit regular pattern
+				'echo': true,
+				'ls': { approve: true, matchCommandLine: true },
+				'rm': { approve: true, matchCommandLine: false }
 			});
 
-			// Only the matchCommandLine: true entry should work with isCommandLineAutoApproved
 			ok(isCommandLineAutoApproved('ls -la'));
 			ok(!isCommandLineAutoApproved('echo hello'));
 			ok(!isCommandLineAutoApproved('rm file.txt'));
@@ -902,12 +877,10 @@ suite('CommandLineAutoApprover', () => {
 			setAutoApproveWithCommandLine({
 				'//': { approve: true, matchCommandLine: true },
 				'/(?:)/': { approve: true, matchCommandLine: true },
-				'/*/': { approve: true, matchCommandLine: true },            // Invalid regex pattern
-				'/.**/': { approve: true, matchCommandLine: true }           // Invalid regex pattern
+				'/*/': { approve: true, matchCommandLine: true },
+				'/.**/': { approve: true, matchCommandLine: true }
 			});
 
-			// These patterns should not cause endless loops and should not match any commands
-			// Invalid patterns should be handled gracefully and not match anything
 			ok(!isCommandLineAutoApproved('echo hello'));
 			ok(!isCommandLineAutoApproved('ls'));
 			ok(!isCommandLineAutoApproved(''));
@@ -921,7 +894,6 @@ suite('CommandLineAutoApprover', () => {
 				'/(?:)*/': { approve: true, matchCommandLine: true }
 			});
 
-			// Commands should still work normally, endless loop patterns should be safely handled
 			ok(!isCommandLineAutoApproved('echo hello'));
 			ok(!isCommandLineAutoApproved('ls'));
 			ok(!isCommandLineAutoApproved('a'));
@@ -930,11 +902,11 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should handle mixed valid and problematic regex patterns with matchCommandLine', async () => {
 			setAutoApproveWithCommandLine({
-				'/^echo/': { approve: true, matchCommandLine: true },        // Valid pattern
-				'//': { approve: true, matchCommandLine: true },             // Empty pattern
-				'/^ls/': { approve: true, matchCommandLine: true },          // Valid pattern
-				'/a*/': { approve: true, matchCommandLine: true },           // Potential endless loop
-				'pwd': { approve: true, matchCommandLine: true }             // Valid string pattern
+				'/^echo/': { approve: true, matchCommandLine: true },
+				'//': { approve: true, matchCommandLine: true },
+				'/^ls/': { approve: true, matchCommandLine: true },
+				'/a*/': { approve: true, matchCommandLine: true },
+				'pwd': { approve: true, matchCommandLine: true }
 			});
 
 			ok(isCommandLineAutoApproved('echo hello'));
@@ -945,17 +917,15 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should handle invalid regex patterns with matchCommandLine gracefully', async () => {
 			setAutoApproveWithCommandLine({
-				'/*/': { approve: true, matchCommandLine: true },                    // Invalid regex - nothing to repeat
-				'/(?:+/': { approve: true, matchCommandLine: true },                 // Invalid regex - incomplete quantifier
-				'/[/': { approve: true, matchCommandLine: true },                    // Invalid regex - unclosed character class
-				'/^echo/': { approve: true, matchCommandLine: true },                // Valid pattern
-				'ls': { approve: true, matchCommandLine: true }                      // Valid string pattern
+				'/*/': { approve: true, matchCommandLine: true },
+				'/(?:+/': { approve: true, matchCommandLine: true },
+				'/[/': { approve: true, matchCommandLine: true },
+				'/^echo/': { approve: true, matchCommandLine: true },
+				'ls': { approve: true, matchCommandLine: true }
 			});
 
-			// Valid patterns should still work
 			ok(isCommandLineAutoApproved('echo hello'));
 			ok(isCommandLineAutoApproved('ls -la'));
-			// Invalid patterns should not match anything and not cause crashes
 			ok(!isCommandLineAutoApproved('random command'));
 		});
 	});
@@ -1012,10 +982,8 @@ suite('CommandLineAutoApprover', () => {
 		}
 
 		function setAutoApproveWithDefaults(userConfig: { [key: string]: boolean }, defaultConfig: { [key: string]: boolean }) {
-			// Set up mock configuration with default values
 			configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.AutoApprove, userConfig);
 
-			// Mock the inspect method to return default values
 			const originalInspect = configurationService.inspect;
 			const originalGetValue = configurationService.getValue;
 
@@ -1042,7 +1010,6 @@ suite('CommandLineAutoApprover', () => {
 				return originalGetValue.call(configurationService, key);
 			};
 
-			// Trigger configuration update
 			configurationService.onDidChangeConfigurationEmitter.fire({
 				affectsConfiguration: () => true,
 				affectedKeys: new Set([TerminalChatAgentToolsSettingId.AutoApprove]),
@@ -1055,10 +1022,8 @@ suite('CommandLineAutoApprover', () => {
 			userConfig: { [key: string]: { approve: boolean; matchCommandLine?: boolean } | boolean },
 			defaultConfig: { [key: string]: { approve: boolean; matchCommandLine?: boolean } | boolean }
 		) {
-			// Set up mock configuration with default values for command line rules
 			configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.AutoApprove, userConfig);
 
-			// Mock the inspect method to return default values
 			const originalInspect = configurationService.inspect;
 			const originalGetValue = configurationService.getValue;
 
@@ -1085,7 +1050,6 @@ suite('CommandLineAutoApprover', () => {
 				return originalGetValue.call(configurationService, key);
 			};
 
-			// Trigger configuration update
 			configurationService.onDidChangeConfigurationEmitter.fire({
 				affectsConfiguration: () => true,
 				affectedKeys: new Set([TerminalChatAgentToolsSettingId.AutoApprove]),
@@ -1108,19 +1072,16 @@ suite('CommandLineAutoApprover', () => {
 
 		test('should mark as default when command is only in default config but not in user config', async () => {
 			setAutoApproveWithDefaults(
-				{ 'echo': true, 'ls': true },  // User config (cat is NOT here)
-				{ 'echo': true, 'cat': true }  // Default config (cat IS here)
+				{ 'echo': true, 'ls': true },
+				{ 'echo': true, 'cat': true }
 			);
 
-			// Test that merged config includes all commands
 			strictEqual((await commandLineAutoApprover.isCommandAutoApproved('echo', shell, os, undefined)).result, 'approved', 'echo should be approved');
 			strictEqual((await commandLineAutoApprover.isCommandAutoApproved('ls', shell, os, undefined)).result, 'approved', 'ls should be approved');
 
-			// cat should be approved because it's in the merged config
 			const catResult = await commandLineAutoApprover.isCommandAutoApproved('cat', shell, os, undefined);
 			strictEqual(catResult.result, 'approved', 'cat should be approved from default config');
 
-			// cat should be marked as default rule since it comes from default config only
 			strictEqual(isAutoApproveRule(catResult.rule) ? catResult.rule.isDefaultRule : undefined, true, 'cat is only in default config, not in user config - should be marked as default');
 		});
 
@@ -1263,7 +1224,6 @@ suite('CommandLineAutoApprover', () => {
 		});
 
 		test('should use structural equality for object comparison', async () => {
-			// Test that objects with same content but different instances are treated as equal
 			const userConfig = { 'test': { approve: true, matchCommandLine: true } };
 			const defaultConfig = { 'test': { approve: true, matchCommandLine: true } };
 
@@ -1300,10 +1260,8 @@ suite('CommandLineAutoApprover', () => {
 
 	suite('ignoreDefaultAutoApproveRules', () => {
 		function setAutoApproveWithDefaults(userConfig: { [key: string]: boolean }, defaultConfig: { [key: string]: boolean }) {
-			// Set up mock configuration with default values
 			configurationService.setUserConfiguration(TerminalChatAgentToolsSettingId.AutoApprove, userConfig);
 
-			// Mock the inspect method to return default values
 			const originalInspect = configurationService.inspect;
 			const originalGetValue = configurationService.getValue;
 
@@ -1330,7 +1288,6 @@ suite('CommandLineAutoApprover', () => {
 				return originalGetValue.call(configurationService, key);
 			};
 
-			// Trigger configuration update
 			configurationService.onDidChangeConfigurationEmitter.fire({
 				affectsConfiguration: () => true,
 				affectedKeys: new Set([TerminalChatAgentToolsSettingId.AutoApprove]),

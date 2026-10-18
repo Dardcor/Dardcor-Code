@@ -96,7 +96,6 @@ describe('ClaudePluginService', () => {
 		expect(await service.getPluginLocations(CancellationToken.None)).toEqual([]);
 	});
 
-	// #region Config-based skill locations (walks one level up)
 
 	it('walks one level up from config skill locations to get plugin roots', async () => {
 		const service = createService({
@@ -128,9 +127,7 @@ describe('ClaudePluginService', () => {
 		expect(locations[1].path).toBe('/workspace2');
 	});
 
-	// #endregion
 
-	// #region Skills from prompts service (walks three levels up from SKILL.md)
 
 	it('derives plugin roots from SKILL.md URIs by walking three levels up', async () => {
 		const service = createService({
@@ -169,9 +166,7 @@ describe('ClaudePluginService', () => {
 		expect(locations).toHaveLength(0);
 	});
 
-	// #endregion
 
-	// #region Plugin roots from prompts service
 
 	it('includes plugin roots from prompts service', async () => {
 		const service = createService({
@@ -198,9 +193,7 @@ describe('ClaudePluginService', () => {
 		expect(locations).toHaveLength(0);
 	});
 
-	// #endregion
 
-	// #region Deduplication across all sources
 
 	it('deduplicates across config locations, skills, and plugins', async () => {
 		const service = createService({
@@ -227,5 +220,4 @@ describe('ClaudePluginService', () => {
 		expect(locations).toHaveLength(3);
 	});
 
-	// #endregion
 });

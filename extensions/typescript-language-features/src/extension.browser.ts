@@ -33,7 +33,6 @@ class StaticVersionProvider implements ITypeScriptVersionProvider {
 	) { }
 
 	updateConfiguration(_configuration: TypeScriptServiceConfiguration): void {
-		// noop
 	}
 
 	get defaultVersion() { return this._version; }
@@ -91,7 +90,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
 
 	registerBaseCommands(commandManager, lazyClientHost, pluginManager, activeJsTsEditorTracker);
 
-	// context.subscriptions.push(task.register(lazyClientHost.map(x => x.serviceClient)));
 
 	import('./languageFeatures/tsconfig').then(module => {
 		context.subscriptions.push(module.register());

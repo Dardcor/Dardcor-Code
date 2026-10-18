@@ -12,24 +12,14 @@ import './switch.css';
 
 export interface ISwitchOptions {
 	readonly checked?: boolean;
-	/** Accessible name. Also used as the hover title unless {@link title} is given. */
 	readonly ariaLabel: string;
-	/** Hover title. Defaults to {@link ariaLabel}. */
 	readonly title?: string;
 	readonly disabled?: boolean;
 }
 
-/**
- * A pill switch for a setting that takes effect as soon as it is flipped, e.g. enabling
- * a plugin or letting a model be chosen automatically.
- *
- * Use this rather than a `Checkbox` when the control commits immediately; a checkbox
- * reads as part of a form that is submitted later.
- */
 export class Switch extends Disposable {
 
 	private readonly _onChange = this._register(new Emitter<boolean>());
-	/** Fires with the new state when the user flips the switch, not when it is set in code. */
 	readonly onChange: Event<boolean> = this._onChange.event;
 
 	readonly domNode: HTMLButtonElement;
@@ -71,7 +61,6 @@ export class Switch extends Disposable {
 		return this._checked;
 	}
 
-	/** Sets the state without firing {@link onChange}. */
 	set checked(checked: boolean) {
 		if (this._checked !== checked) {
 			this._checked = checked;

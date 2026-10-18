@@ -24,22 +24,14 @@ type Part =
 
 function partsLength(parts: readonly Part[]): number {
 	const len = parts.reduce((p, c) => p + c.value.length, 0);
-	return len + Math.max(0, parts.length - 1); // Account for new lines between parts
+	return len + Math.max(0, parts.length - 1);
 }
 
 export interface IFileTreeData {
-	/** Files and directories mentioned in the tree */
 	files: URI[];
-	/** Tree as a string */
 	tree: string;
 }
 
-/**
- * Converts a file tree into a nicely formatted multi-line string representation.
- *
- * This attempts to smartly truncate the string to fit within `maxLength` characters. It does this by doing
- * breadth-first expansion of the file nodes and adding in `...` when we run out of space.
- */
 export async function visualFileTree(files: FileList, maxLength = Infinity, token?: CancellationToken): Promise<IFileTreeData> {
 	let parts = toParts(0, files, maxLength);
 	let remainingSpace = maxLength - partsLength(parts);
@@ -89,15 +81,12 @@ function toParts(level: number, files: FileList, maxLength: number): Part[] {
 		const item = files[i];
 		const str = indent + item.name + (item.type === FileType.Directory ? '/' : '');
 		if (str.length > remainingSpace) {
-			// Not enough space for item. Try adding `...` as a placeholder
 			const placeholder = indent + '...';
 
-			// Remove previous segments until there's space for the placeholder
 			while (placeholder.length > remainingSpace && parts.length > 0) {
-				remainingSpace += parts.pop()!.value.length + 1; // Account for newline
+				remainingSpace += parts.pop()!.value.length + 1;
 			}
 
-			// Finally check to see if there's space for our placeholder
 			if (placeholder.length <= remainingSpace) {
 				parts.push({ type: 'text', uri: undefined, value: placeholder });
 			}
@@ -113,7 +102,7 @@ function toParts(level: number, files: FileList, maxLength: number): Part[] {
 
 		remainingSpace -= str.length;
 		if (i !== files.length - 1) {
-			remainingSpace -= 1; // Account for newline
+			remainingSpace -= 1;
 		}
 	}
 	return parts;
@@ -139,7 +128,6 @@ export async function workspaceVisualFileTree(accessor: ServicesAccessor, root: 
 			return [];
 		}
 
-		// Ensure files are listed in a consistent order across platforms
 		rootNodes.sort((a, b) => {
 			if (a[1] === b[1]) {
 				return a[0].localeCompare(b[0]);
@@ -150,7 +138,7 @@ export async function workspaceVisualFileTree(accessor: ServicesAccessor, root: 
 		return Promise.all(
 			rootNodes.map(async x => {
 				const uri = URI.joinPath(root, x[0]);
-				return !(options.excludeDotFiles && x[0].startsWith('.')) && !shouldAlwaysIgnoreFile(uri) && !await ignoreService.isCopilotIgnored(uri) ? x : null;
+				return !(options.excludeDotFiles && x[0].startsWith('.')) && !shouldAlwaysIgnoreFile(uri) && !await ignoreService.isIgnored(uri) ? x : null;
 			})
 		).then(entries =>
 			entries.filter((entry): entry is [string, FileType] => !!entry)

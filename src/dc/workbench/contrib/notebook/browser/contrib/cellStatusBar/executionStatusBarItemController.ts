@@ -94,9 +94,6 @@ export class ExecutionStateCellStatusBarContrib extends Disposable implements IN
 }
 registerNotebookContribution(ExecutionStateCellStatusBarContrib.id, ExecutionStateCellStatusBarContrib);
 
-/**
- * Shows the cell's execution state in the cell status bar. When the "executing" state is shown, it will be shown for a minimum brief time.
- */
 class ExecutionStateCellStatusBarItem extends Disposable {
 	private static readonly MIN_SPINNER_TIME = 500;
 
@@ -128,13 +125,9 @@ class ExecutionStateCellStatusBarItem extends Disposable {
 		}
 	}
 
-	/**
-	 *	Returns undefined if there should be no change, and an empty array if all items should be removed.
-	 */
 	private _getItemsForCell(): INotebookCellStatusBarItem[] | undefined {
 		const runState = this._executionStateService.getCellExecution(this._cell.uri);
 
-		// Show the execution spinner for a minimum time
 		if (runState?.state === NotebookCellExecutionState.Executing && typeof this._showedExecutingStateTime !== 'number') {
 			this._showedExecutingStateTime = Date.now();
 		} else if (runState?.state !== NotebookCellExecutionState.Executing && typeof this._showedExecutingStateTime === 'number') {
@@ -320,7 +313,6 @@ class TimerCellStatusBarItem extends Disposable {
 						`Renderer Duration: ${formatCellDuration(renderDuration[key])}\n`
 				}));
 
-				// Show a link to create an issue if the renderer was slow compared to the execution duration, or just exceptionally slow on its own
 				const renderIssueLink = (renderDuration[key] > 200 && executionDuration < 2000) || renderDuration[key] > 1000;
 				const linkText = rendererInfo?.displayName ?? key;
 				const rendererTitle = renderIssueLink ? `[${linkText}](command:workbench.action.openIssueReporter?${args})` : `**${linkText}**`;

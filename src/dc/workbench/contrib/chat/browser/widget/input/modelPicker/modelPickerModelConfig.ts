@@ -8,24 +8,17 @@ import { ILanguageModelChatMetadataAndIdentifier, ILanguageModelConfigurationSch
 
 export type { IModelConfigurationAccess } from '../../../../common/languageModels.js';
 
-/** The thinking effort group, or the routing tier for the Auto model. */
 export const MODEL_CONFIG_GROUP_EFFORT = 'navigation';
-/** The context window group: how much context the model is given. */
 export const MODEL_CONFIG_GROUP_CONTEXT = 'tokens';
 
 export type IModelConfigPropertySchema = NonNullable<ILanguageModelConfigurationSchema['properties']>[string];
 
-/** One configurable property of a model, with the value currently in effect. */
 export interface IModelConfigProperty {
 	readonly key: string;
 	readonly value: unknown;
 	readonly schema: IModelConfigPropertySchema;
 }
 
-/**
- * The first property of a model's configuration schema belonging to `group` that
- * offers a choice, with the user's value or the schema default.
- */
 export function getModelConfigProperty(
 	model: ILanguageModelChatMetadataAndIdentifier | undefined,
 	configurationAccess: IModelConfigurationAccess,
@@ -45,30 +38,17 @@ export function getModelConfigProperty(
 	return undefined;
 }
 
-/** The label an enum value is shown with, falling back to a formatted raw value. */
 export function getModelConfigValueLabel(schema: IModelConfigPropertySchema, value: unknown): string {
 	const index = schema.enum?.indexOf(value) ?? -1;
 	const label = index >= 0 ? schema.enumItemLabels?.[index] : undefined;
 	return label ?? (typeof value === 'number' ? formatTokenCount(value) : String(value));
 }
 
-/**
- * Whether the context property is set to its largest value. Producers order the
- * context enum from smallest window to largest, so the last entry is the
- * extended one.
- */
 export function isExtendedContext(property: IModelConfigProperty): boolean {
 	const values = property.schema.enum ?? [];
 	return values.length > 1 && property.value === values[values.length - 1];
 }
 
-/**
- * A short read-out of the model settings the user changed, e.g. "Extra high · 1M".
- *
- * Only values that differ from the model's own defaults are named: a model left alone
- * has nothing to report, so the read-out marks the models that were deliberately tuned
- * rather than restating a default on every row.
- */
 export function getModelConfigSummary(
 	model: ILanguageModelChatMetadataAndIdentifier | undefined,
 	configurationAccess: IModelConfigurationAccess,

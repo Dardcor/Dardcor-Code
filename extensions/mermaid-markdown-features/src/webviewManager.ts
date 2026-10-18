@@ -18,18 +18,11 @@ export interface MermaidCommandContext {
 	readonly title?: string;
 }
 
-/**
- * Manages all mermaid webviews (both chat output renderers and editor previews).
- * Tracks the active webview and provides methods for interacting with webviews.
- */
 export class MermaidWebviewManager {
 
 	private _activeWebviewId: string | undefined;
 	private readonly _webviews = new Map<string, MermaidWebviewInfo>();
 
-	/**
-	 * Gets the currently active webview info.
-	 */
 	public get activeWebview(): MermaidWebviewInfo | undefined {
 		return this._activeWebviewId ? this._webviews.get(this._activeWebviewId) : undefined;
 	}
@@ -53,7 +46,6 @@ export class MermaidWebviewManager {
 	private unregisterWebview(id: string): void {
 		this._webviews.delete(id);
 
-		// Clear active if this was the active webview
 		if (this._activeWebviewId === id) {
 			this._activeWebviewId = undefined;
 		}
@@ -69,9 +61,6 @@ export class MermaidWebviewManager {
 		return this._webviews.get(id);
 	}
 
-	/**
-	 * Sends a reset pan/zoom message to a specific webview by ID.
-	 */
 	public resetPanZoom(id: string | undefined): void {
 		const target = id ? this._webviews.get(id) : this.activeWebview;
 		target?.webview.postMessage({ type: 'resetPanZoom' });

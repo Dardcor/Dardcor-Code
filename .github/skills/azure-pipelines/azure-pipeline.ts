@@ -3,37 +3,18 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Azure DevOps Pipeline CLI
- *
- * A unified command-line tool for managing Azure Pipeline builds.
- *
- * Usage:
- *   node azure-pipeline.ts <command> [options]
- *
- * Commands:
- *   queue   - Queue a new pipeline build
- *   status  - Check build status and download logs/artifacts
- *   cancel  - Cancel a running build
- *
- * Run with --help for detailed usage of each command.
- */
 
 import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-// ============================================================================
-// Constants
-// ============================================================================
 
 const ORGANIZATION = 'https://dev.azure.com/monacotools';
 const PROJECT = 'Monaco';
 const DEFAULT_DEFINITION_ID = '111';
 const DEFAULT_WATCH_INTERVAL = 30;
 
-// Validation patterns
 const NUMERIC_ID_PATTERN = /^\d+$/;
 const MAX_ID_LENGTH = 15;
 const BRANCH_PATTERN = /^[a-zA-Z0-9_\-./]+$/;
@@ -45,9 +26,6 @@ const MAX_ARTIFACT_NAME_LENGTH = 256;
 const MIN_WATCH_INTERVAL = 5;
 const MAX_WATCH_INTERVAL = 3600;
 
-// ============================================================================
-// Types
-// ============================================================================
 
 interface Build {
 	id: number;
@@ -113,9 +91,6 @@ interface CancelArgs {
 	help: boolean;
 }
 
-// ============================================================================
-// Colors
-// ============================================================================
 
 const colors = {
 	red: (text: string) => `\x1b[0;31m${text}\x1b[0m`,
@@ -126,9 +101,6 @@ const colors = {
 	gray: (text: string) => `\x1b[0;90m${text}\x1b[0m`,
 };
 
-// ============================================================================
-// Validation Functions
-// ============================================================================
 
 function validateNumericId(value: string, name: string): void {
 	if (!value) {
@@ -202,9 +174,6 @@ function validateWatchInterval(value: number): void {
 	}
 }
 
-// ============================================================================
-// CLI Helpers
-// ============================================================================
 
 function commandExists(command: string): boolean {
 	try {
@@ -259,9 +228,6 @@ function clearScreen(): void {
 	process.stdout.write('\x1Bc');
 }
 
-// ============================================================================
-// Display Utilities
-// ============================================================================
 
 function formatStatus(status: string): string {
 	switch (status) {
@@ -541,9 +507,6 @@ function displayNextSteps(buildId: string): void {
 	console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 
-// ============================================================================
-// Azure DevOps Client
-// ============================================================================
 
 class AzureDevOpsClient {
 	protected readonly organization: string;
@@ -556,9 +519,6 @@ class AzureDevOpsClient {
 
 	protected runAzCommand(args: string[]): Promise<string> {
 		return new Promise((resolve, reject) => {
-			// Use shell: false so that argument values with spaces are passed verbatim
-			// to the process without shell word-splitting. On Windows, az is a .cmd
-			// file and cannot be executed directly, so we must use az.cmd.
 			const azBin = process.platform === 'win32' ? 'az.cmd' : 'az';
 			const proc = spawn(azBin, args, { shell: false });
 			let stdout = '';
@@ -606,7 +566,6 @@ class AzureDevOpsClient {
 				try {
 					fs.unlinkSync(bodyFile);
 				} catch {
-					// Ignore cleanup errors
 				}
 			}
 		}
@@ -769,9 +728,6 @@ class AzureDevOpsClient {
 	}
 }
 
-// ============================================================================
-// Queue Command
-// ============================================================================
 
 function printQueueUsage(): void {
 	const scriptName = 'node .github/skills/azure-pipelines/azure-pipeline.ts queue';
@@ -929,9 +885,6 @@ async function runQueueCommand(args: string[]): Promise<void> {
 	}
 }
 
-// ============================================================================
-// Status Command
-// ============================================================================
 
 function printStatusUsage(): void {
 	const scriptName = 'node .github/skills/azure-pipelines/azure-pipeline.ts status';
@@ -1040,7 +993,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 
 	const client = new AzureDevOpsClient(ORGANIZATION, PROJECT);
 
-	// If no build ID specified, show list of recent builds
 	let buildId = parsedArgs.buildId;
 	if (!buildId && !parsedArgs.downloadLog && !parsedArgs.downloadArtifact && !parsedArgs.watch) {
 		const builds = await client.listBuilds(parsedArgs.definitionId, {
@@ -1067,7 +1019,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 		return;
 	}
 
-	// For watch mode or download operations without a build ID, find the most recent build on current branch
 	if (!buildId) {
 		const branch = getCurrentBranch();
 		if (!branch) {
@@ -1086,7 +1037,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 		}
 	}
 
-	// Download specific log
 	if (parsedArgs.downloadLog) {
 		try {
 			const outputPath = await client.downloadLog(buildId, parsedArgs.downloadLog);
@@ -1098,7 +1048,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 		return;
 	}
 
-	// Download artifact
 	if (parsedArgs.downloadArtifact) {
 		try {
 			const outputPath = await client.downloadArtifact(buildId, parsedArgs.downloadArtifact);
@@ -1110,7 +1059,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 		return;
 	}
 
-	// Watch mode
 	if (parsedArgs.watch) {
 		console.log(colors.blue(`Watching build ${buildId} (Ctrl+C to stop)`));
 		console.log('');
@@ -1148,7 +1096,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 			await sleep(parsedArgs.watchInterval);
 		}
 	} else {
-		// Single status check
 		const build = await client.getBuild(buildId);
 
 		if (!build) {
@@ -1170,9 +1117,6 @@ async function runStatusCommand(args: string[]): Promise<void> {
 	}
 }
 
-// ============================================================================
-// Cancel Command
-// ============================================================================
 
 function printCancelUsage(): void {
 	const scriptName = 'node .github/skills/azure-pipelines/azure-pipeline.ts cancel';
@@ -1310,14 +1254,7 @@ async function runCancelCommand(args: string[]): Promise<void> {
 	}
 }
 
-// ============================================================================
-// Testable Azure DevOps Client
-// ============================================================================
 
-/**
- * A testable version of AzureDevOpsClient that captures az command calls
- * instead of executing them.
- */
 class TestableAzureDevOpsClient extends AzureDevOpsClient {
 	public capturedCommands: string[][] = [];
 	private mockResponses: Map<string, unknown> = new Map();
@@ -1333,7 +1270,6 @@ class TestableAzureDevOpsClient extends AzureDevOpsClient {
 	protected override runAzCommand(args: string[]): Promise<string> {
 		this.capturedCommands.push(args);
 
-		// Find a matching mock response
 		const commandKey = args.join(' ');
 		for (const [pattern, response] of this.mockResponses) {
 			if (commandKey.includes(pattern)) {
@@ -1341,7 +1277,6 @@ class TestableAzureDevOpsClient extends AzureDevOpsClient {
 			}
 		}
 
-		// Default mock responses based on command type
 		if (args.includes('pipelines') && args.includes('run')) {
 			return Promise.resolve(JSON.stringify({ id: 12345, buildNumber: '20260218.1' }));
 		}
@@ -1372,9 +1307,6 @@ class TestableAzureDevOpsClient extends AzureDevOpsClient {
 	}
 }
 
-// ============================================================================
-// Tests (using Node.js built-in test runner)
-// ============================================================================
 
 async function runAllTests(): Promise<void> {
 	const { describe, it } = await import('node:test');
@@ -1662,7 +1594,6 @@ async function runAllTests(): Promise<void> {
 		it('downloadLog constructs correct REST API call', async () => {
 			const client = new TestableAzureDevOpsClient(ORGANIZATION, PROJECT);
 
-			// Capture console output to avoid noise
 			const originalLog = console.log;
 			console.log = () => { };
 			try {
@@ -1819,9 +1750,6 @@ async function runAllTests(): Promise<void> {
 	});
 }
 
-// ============================================================================
-// Main Entry Point
-// ============================================================================
 
 function printMainUsage(): void {
 	const scriptName = 'node .github/skills/azure-pipelines/azure-pipeline.ts';

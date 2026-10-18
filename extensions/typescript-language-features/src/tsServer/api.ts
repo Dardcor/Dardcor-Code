@@ -38,7 +38,6 @@ export class API {
 			return new API(vscode.l10n.t("invalid version"), '1.0.0', '1.0.0');
 		}
 
-		// Cut off any prerelease tag since we sometimes consume those on purpose.
 		const index = versionString.indexOf('-');
 		if (index >= 0) {
 			version = version.substr(0, index);
@@ -47,19 +46,10 @@ export class API {
 	}
 
 	private constructor(
-		/**
-		 * Human readable string for the current version. Displayed in the UI
-		 */
 		public readonly displayName: string,
 
-		/**
-		 * Semver version, e.g. '3.9.0'
-		 */
 		public readonly version: string,
 
-		/**
-		 * Full version string including pre-release tags, e.g. '3.9.0-beta'
-		 */
 		public readonly fullVersionString: string,
 	) { }
 

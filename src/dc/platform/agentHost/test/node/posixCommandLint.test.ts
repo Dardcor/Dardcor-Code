@@ -17,8 +17,6 @@ suite('posixCommandLint', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('flags the POSIX commands models actually reach for', () => {
-		// Every one of these was recorded into a real fixture by a provider and
-		// disabled its test on Windows.
 		const flagged = [
 			`wc -l < lines.txt`,
 			`printf '%s\\n' "SHELL_VALUE_73"`,
@@ -51,8 +49,6 @@ suite('posixCommandLint', () => {
 	});
 
 	test('accepts the portable forms the suite standardizes on', () => {
-		// A false positive is worse than no lint: it would block a correct
-		// recording and push authors toward disabling the check.
 		assert.deepStrictEqual(check([
 			`echo SHELL_VALUE_73`,
 			`echo "hello from test"`,
@@ -63,14 +59,11 @@ suite('posixCommandLint', () => {
 			`node -e "console.log(require('fs').readdirSync('.').join(' '))"`,
 			`node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/report.txt','X')"`,
 			`node script.js`,
-			// PowerShell defines `pwd` as an alias for `Get-Location`.
 			`pwd`,
 		]), []);
 	});
 
 	test('does not flag POSIX command names appearing as arguments', () => {
-		// The patterns are anchored to a command position, so a coreutil name
-		// inside a quoted string or as part of a longer word is not a command.
 		assert.deepStrictEqual(check([
 			`node -e "console.log('ls')"`,
 			`echo cat`,
@@ -81,8 +74,6 @@ suite('posixCommandLint', () => {
 	});
 
 	test('ignores recorder placeholders that look like variable expansions', () => {
-		// `${workdir}` and friends are substituted back before replay, so they
-		// are not POSIX expansions even though they look like them.
 		assert.deepStrictEqual(check([
 			`node -e "console.log(1)" \${workdir}`,
 			`echo \${homedir}`,

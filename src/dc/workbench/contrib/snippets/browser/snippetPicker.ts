@@ -96,7 +96,6 @@ export async function pickSnippet(accessor: ServicesAccessor, languageIdOrSnippe
 	}
 	picker.show();
 
-	// wait for an item to be picked or the picker to become hidden
 	await Promise.race([Event.toPromise(picker.onDidAccept), Event.toPromise(picker.onDidHide)]);
 	const result = picker.selectedItems[0]?.snippet;
 	disposables.dispose();

@@ -9,12 +9,8 @@ import { IInstantiationService } from '../../../../util/dardcor/platform/instant
 import { CHAT_MODEL } from '../../../configuration/common/configurationService';
 import { IChatModelInformation } from '../../common/endpointProvider';
 import { IModelMetadataFetcher } from '../../node/modelMetadataFetcher';
-import { CopilotUtilityChatEndpoint, CopilotUtilitySmallChatEndpoint } from '../../node/dardcorChatEndpoint';
+import { DardcorUtilityChatEndpoint, DardcorUtilitySmallChatEndpoint } from '../../node/dardcorChatEndpoint';
 
-/**
- * Builds a minimal valid chat model record as it would appear in the
- * hydrated CAPI `/models` response.
- */
 function chatModel(id: string, family: string, isChatFallback = false): IChatModelInformation {
 	return {
 		id,
@@ -34,11 +30,6 @@ function chatModel(id: string, family: string, isChatFallback = false): IChatMod
 	};
 }
 
-/**
- * A fake `IModelMetadataFetcher` that mimics the real one's lookup semantics
- * against an in-memory set of models, including the same error message as the
- * real implementation when a CAPI family is absent.
- */
 class FakeModelMetadataFetcher implements IModelMetadataFetcher {
 	private readonly _byFamily = new Map<string, IChatModelInformation[]>();
 	private _utilityModel: IChatModelInformation | undefined;
@@ -55,7 +46,7 @@ class FakeModelMetadataFetcher implements IModelMetadataFetcher {
 		}
 	}
 
-	onDidModelsRefresh = (() => { /* noop */ }) as any;
+	onDidModelsRefresh = (() => { }) as any;
 
 	async getAllCompletionModels(): Promise<any> { return []; }
 	async getAllChatModels(): Promise<IChatModelInformation[]> {
@@ -64,27 +55,22 @@ class FakeModelMetadataFetcher implements IModelMetadataFetcher {
 	async getChatModelFromApiModel(_model: LanguageModelChat): Promise<IChatModelInformation | undefined> { return undefined; }
 	async getEmbeddingsModel(): Promise<any> { throw new Error('not implemented'); }
 
-	async getCopilotUtilityModel(): Promise<IChatModelInformation> {
+	async getDardcorUtilityModel(): Promise<IChatModelInformation> {
 		if (!this._utilityModel) {
-			throw new Error('Unable to resolve Copilot utility chat model (server did not mark a chat fallback model)');
+			throw new Error('Unable to resolve the Dardcor Router utility model.');
 		}
 		return this._utilityModel;
 	}
 
-	async getChatModelFromCapiFamily(family: string): Promise<IChatModelInformation> {
+	async getChatModelFromRouterModel(family: string): Promise<IChatModelInformation> {
 		const resolved = this._byFamily.get(family)?.[0];
 		if (!resolved) {
-			throw new Error(`Unable to resolve chat model with CAPI family selection: ${family}`);
+			throw new Error(`Unable to resolve Dardcor Router model: ${family}`);
 		}
 		return resolved;
 	}
 }
 
-/**
- * A fake instantiation service whose `createInstance` records the model
- * metadata it was handed, so the test can assert which model the resolver
- * ultimately selected without building the full `CopilotChatEndpoint`.
- */
 function fakeInstantiationService(): { service: IInstantiationService; lastModel: () => IChatModelInformation | undefined } {
 	let last: IChatModelInformation | undefined;
 	const service = {
@@ -96,24 +82,18 @@ function fakeInstantiationService(): { service: IInstantiationService; lastModel
 	return { service, lastModel: () => last };
 }
 
-describe('CopilotUtilitySmallChatEndpoint.resolve (issue #321184)', () => {
-	test('falls back to the base utility model when the gpt-4o-mini family is absent from /models', async () => {
-		// CAPI `/models` for this user contains a base chat-fallback model, but
-		// no model in the client-selected small family (gpt-4o-mini). This mirrors
-		// the plan/region/rollout differences reported in issue #321184.
+describe('DardcorUtilitySmallChatEndpoint.resolve (issue #321184)', () => {
+	test('falls back to the base utility model when the gpt-4o-mini model is absent from /v1/models', async () => {
 		const fetcher = new FakeModelMetadataFetcher([
-			chatModel('gpt-4.1', 'gpt-4.1', /* isChatFallback */ true),
+			chatModel('gpt-4.1', 'gpt-4.1', true),
 		]);
 		const { service, lastModel } = fakeInstantiationService();
 
-		// Sanity: the small family really is unresolvable for this user.
-		await expect(fetcher.getChatModelFromCapiFamily(CHAT_MODEL.GPT4OMINI)).rejects.toThrow(
-			'Unable to resolve chat model with CAPI family selection: gpt-4o-mini'
+		await expect(fetcher.getChatModelFromRouterModel(CHAT_MODEL.GPT4OMINI)).rejects.toThrow(
+			'Unable to resolve Dardcor Router model: gpt-4o-mini'
 		);
 
-		// The resolver must degrade gracefully to the base utility model rather
-		// than letting the lookup throw through every dardcor-utility-small caller.
-		await CopilotUtilitySmallChatEndpoint.resolve(fetcher, service);
+		await DardcorUtilitySmallChatEndpoint.resolve(fetcher, service);
 
 		expect(lastModel()?.id).toBe('gpt-4.1');
 	});
@@ -121,23 +101,22 @@ describe('CopilotUtilitySmallChatEndpoint.resolve (issue #321184)', () => {
 	test('uses the gpt-4o-mini family when it is present', async () => {
 		const fetcher = new FakeModelMetadataFetcher([
 			chatModel('gpt-4o-mini', CHAT_MODEL.GPT4OMINI),
-			chatModel('gpt-4.1', 'gpt-4.1', /* isChatFallback */ true),
+			chatModel('gpt-4.1', 'gpt-4.1', true),
 		]);
 		const { service, lastModel } = fakeInstantiationService();
 
-		await CopilotUtilitySmallChatEndpoint.resolve(fetcher, service);
+		await DardcorUtilitySmallChatEndpoint.resolve(fetcher, service);
 
 		expect(lastModel()?.id).toBe('gpt-4o-mini');
 	});
 
-	test('sibling CopilotUtilityChatEndpoint.resolve already degrades gracefully', async () => {
-		// The sibling resolver is unaffected because it uses getCopilotUtilityModel().
+	test('sibling DardcorUtilityChatEndpoint.resolve already degrades gracefully', async () => {
 		const fetcher = new FakeModelMetadataFetcher([
-			chatModel('gpt-4.1', 'gpt-4.1', /* isChatFallback */ true),
+			chatModel('gpt-4.1', 'gpt-4.1', true),
 		]);
 		const { service, lastModel } = fakeInstantiationService();
 
-		await CopilotUtilityChatEndpoint.resolve(fetcher, service);
+		await DardcorUtilityChatEndpoint.resolve(fetcher, service);
 
 		expect(lastModel()?.id).toBe('gpt-4.1');
 	});

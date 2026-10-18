@@ -57,42 +57,19 @@ export interface AgentPromptProps extends GenericBasePromptElementProps {
 
 	readonly triggerSummarize?: boolean;
 
-	/**
-	 * Routes history rendering through SummarizedConversationHistory (which can
-	 * compact when the budget is exceeded). Independent from cache breakpoints
-	 * — Anthropic Messages API endpoints suppress cache breakpoints but still
-	 * need summarization for long conversations.
-	 */
 	readonly enableSummarization?: boolean;
 
-	/**
-	 * Emits prompt-tsx <cacheBreakpoint> markers in the rendered prompt.
-	 */
 	readonly enableCacheBreakpoints?: boolean;
 
-	/**
-	 * Codesearch mode, aka agentic Ask mode
-	 */
 	readonly codesearchMode?: boolean;
 
-	/**
-	 * All resolved customizations from the prompt registry.
-	 */
 	readonly customizations?: AgentPromptCustomizations;
 
-	/**
-	 * Prefer Simple mode for summarization, typically for the budget-exceeded recovery path.
-	 * An explicit summarization mode configuration can still force Full mode.
-	 */
 	readonly forceSimpleSummary?: boolean;
 }
 
-/** Proportion of the prompt token budget any singular textual tool result is allowed to use. */
 const MAX_TOOL_RESPONSE_PCT = 0.5;
 
-/**
- * The agent mode prompt, rendered on each request
- */
 export class AgentPrompt extends PromptElement<AgentPromptProps> {
 	constructor(
 		props: AgentPromptProps,
@@ -211,7 +188,7 @@ export class AgentPrompt extends PromptElement<AgentPromptProps> {
 				customizationsIndexOverride={frozenCustomizationsIndex?.value}
 				customizationsIndexToolReferencesOverride={frozenCustomizationsIndex?.toolReferences}
 				includeSystemMessageConflictWarning={!putCustomInstructionsInSystemMessage}
-				customIntroduction={putCustomInstructionsInSystemMessage ? '' : undefined} // If in system message, skip the "follow these user-provided coding instructions" intro
+				customIntroduction={putCustomInstructionsInSystemMessage ? '' : undefined}
 			/>
 		);
 		if (this.props.promptContext.modeInstructions) {
@@ -231,28 +208,6 @@ export class AgentPrompt extends PromptElement<AgentPromptProps> {
 			<UserMessage>{customInstructionsBodyParts}</UserMessage>;
 	}
 
-	/**
-	 * Snapshot the customizations-index variable on the first turn of the
-	 * conversation and reuse it for every subsequent turn. Stops per-turn
-	 * churn in the bundled `<instructions>`/`<skills>`/`<agents>` text (e.g.
-	 * the active mode swapping which subagent entry is listed in `<agents>`)
-	 * from invalidating the system prompt cache.
-	 *
-	 * Returns:
-	 * - `frozen`: the value (and matching tool-reference offsets) to substitute
-	 *   in the system prompt. Always present once a variable is available.
-	 * - `drift`: the live current-turn value (and offsets) when it differs from
-	 *   `frozen`. Rendered in the latest user message so the model sees the
-	 *   up-to-date listing without busting the system prompt cache. Only
-	 *   surfaced when the variable was present this turn; an absent variable
-	 *   (e.g. on a request path without `instructionContext` such as terminal
-	 *   steering, or when collection ran but produced no listings) leaves the
-	 *   frozen system-prompt listing standing rather than emitting an empty
-	 *   update that would falsely signal removal.
-	 *
-	 * Returns `undefined` overall if no override should apply (no first turn
-	 * available, or no snapshot yet and the variable is absent on this turn).
-	 */
 	private getOrFreezeCustomizationsIndex(): {
 		frozen: { value: string; toolReferences: readonly ChatLanguageModelToolReference[] | undefined };
 		drift?: { value: string; toolReferences: readonly ChatLanguageModelToolReference[] | undefined };
@@ -269,15 +224,6 @@ export class AgentPrompt extends PromptElement<AgentPromptProps> {
 		const existing = firstTurn.getMetadata(CustomizationsIndexMetadata);
 		if (existing && existing.cacheKey === currentCacheKey) {
 			const frozen = { value: existing.value, toolReferences: existing.toolReferences };
-			// Only surface drift when the variable was present this turn AND
-			// differs from the snapshot. An absent variable can mean either
-			// "collection didn't run" (e.g. terminal steering requests omit
-			// `instructionContext`) or "collection ran but produced no listings".
-			// In either case we keep the frozen system-prompt listing standing
-			// rather than emit an empty `<customizationsUpdate>` block, which
-			// would falsely tell the model that all customizations were removed
-			// (its rendered text says it "supersedes" the system prompt) and
-			// would needlessly churn the cache tail.
 			if (currentValue !== undefined && currentValue !== existing.value) {
 				return { frozen, drift: { value: currentValue, toolReferences: currentToolReferences } };
 			}
@@ -293,7 +239,6 @@ export class AgentPrompt extends PromptElement<AgentPromptProps> {
 	private async getOrCreateGlobalAgentContext(endpoint: IChatEndpoint): Promise<PromptPieceChild[]> {
 		const globalContext = await this.getOrCreateGlobalAgentContextContent(endpoint);
 		const isNewChat = this.props.promptContext.history?.length === 0;
-		// TODO:@bhavyau find a better way to extract session resource
 		const sessionResource = (this.props.promptContext.tools?.toolInvocationToken as any)?.sessionResource as string | undefined;
 		const workingDirectory = (this.props.promptContext.tools?.toolInvocationToken as any)?.workingDirectory as URI | undefined;
 		const workingDir = this.instantiationService.createInstance(WorkingDirectory, workingDirectory);
@@ -317,7 +262,6 @@ export class AgentPrompt extends PromptElement<AgentPromptProps> {
 		}
 
 		const isNewChat = this.props.promptContext.history?.length === 0;
-		// TODO:@bhavyau find a better way to extract session resource
 		const sessionResource = (this.props.promptContext.tools?.toolInvocationToken as any)?.sessionResource as string | undefined;
 		const workingDirectory = (this.props.promptContext.tools?.toolInvocationToken as any)?.workingDirectory as URI | undefined;
 		const workingDir = this.instantiationService.createInstance(WorkingDirectory, workingDirectory);
@@ -365,11 +309,8 @@ class GlobalAgentContext extends PromptElement<GlobalAgentContextProps> {
 }
 
 export interface AgentUserMessageCustomizations {
-	/** Tag name used to wrap the user query (e.g., 'userRequest' or 'user_query') */
 	readonly userQueryTagName?: string;
-	/** Custom reminder instructions component class */
 	readonly ReminderInstructionsClass?: ReminderInstructionsConstructor;
-	/** Custom tool references hint component class */
 	readonly ToolReferencesHintClass?: ToolReferencesHintConstructor;
 }
 
@@ -385,29 +326,9 @@ export interface AgentUserMessageProps extends BasePromptElementProps, AgentUser
 	readonly editedFileEvents?: readonly ChatRequestEditedFileEvent[];
 	readonly sessionId?: string;
 	readonly sessionResource?: string;
-	/** When true, indicates this is a stop hook continuation where the stop hook query is rendered as a separate message. */
 	readonly hasStopHookQuery?: boolean;
-	/** Additional context provided by SubagentStart hooks. */
 	readonly additionalHookContext?: string;
-	/** When true, this request was system-initiated (e.g. terminal completion notification) and should skip context/wrapping. */
 	readonly isSystemInitiated?: boolean;
-	/**
-	 * Live customizations-index text rendered into the latest user message
-	 * when it has drifted from the frozen snapshot in the system prompt.
-	 * Lets the model see mid-conversation updates (new skill, mode swap, etc.)
-	 * without invalidating the system prompt cache.
-	 *
-	 * Rendered inside this message's `<Tag name='context'>` (rather than as a
-	 * sibling `UserMessage`) so it becomes part of the captured
-	 * `RenderedUserMessageMetadata`. Emitting it as a separate UserMessage
-	 * would cause `result.messages.at(-1)` in `agentIntent.runOne` to point
-	 * at the drift block instead of the user query — the metadata would then
-	 * store just the drift block and historical replays on later turns would
-	 * lose the actual user query, busting cross-turn cache continuity.
-	 *
-	 * Only set when the current value differs from the snapshot captured on
-	 * the first turn.
-	 */
 	readonly customizationsIndexUpdate?: { value: string; toolReferences: readonly ChatLanguageModelToolReference[] | undefined };
 }
 
@@ -420,7 +341,7 @@ export function getUserMessagePropsFromTurn(turn: Turn, endpoint: IChatEndpoint,
 		toolReferences: turn.toolReferences,
 		chatVariables: turn.promptVariables ?? new ChatVariablesCollection(),
 		editedFileEvents: turn.editedFileEvents,
-		enableCacheBreakpoints: false, // Should only be added to the current turn - some user messages may get them in Agent post-processing
+		enableCacheBreakpoints: false,
 		...customizations,
 	};
 }
@@ -428,7 +349,6 @@ export function getUserMessagePropsFromTurn(turn: Turn, endpoint: IChatEndpoint,
 export function getUserMessagePropsFromAgentProps(agentProps: AgentPromptProps, customizations?: AgentUserMessageCustomizations): AgentUserMessageProps {
 	return {
 		request: agentProps.promptContext.query,
-		// Will pull frozenContent off the Turn if available
 		turn: agentProps.promptContext.conversation?.getLatestTurn(),
 		endpoint: agentProps.endpoint,
 		toolReferences: agentProps.promptContext.tools?.toolReferences ?? [],
@@ -439,17 +359,12 @@ export function getUserMessagePropsFromAgentProps(agentProps: AgentPromptProps, 
 		hasStopHookQuery: agentProps.promptContext.hasStopHookQuery,
 		additionalHookContext: agentProps.promptContext.additionalHookContext,
 		isSystemInitiated: agentProps.promptContext.request?.isSystemInitiated,
-		// TODO:@roblourens
 		sessionId: (agentProps.promptContext.tools?.toolInvocationToken as any)?.sessionId,
 		sessionResource: (agentProps.promptContext.tools?.toolInvocationToken as any)?.sessionResource,
 		...customizations,
 	};
 }
 
-/**
- * Is sent with each user message. Includes the user message and also any ambient context that we want to update with each request.
- * Uses frozen content if available, for prompt caching and to avoid being updated by any agent action below this point in the conversation.
- */
 export class AgentUserMessage extends PromptElement<AgentUserMessageProps> {
 	constructor(
 		props: AgentUserMessageProps,
@@ -466,21 +381,11 @@ export class AgentUserMessage extends PromptElement<AgentUserMessageProps> {
 			return <FrozenContentUserMessage frozenContent={frozenContent} enableCacheBreakpoints={this.props.enableCacheBreakpoints} />;
 		}
 
-		// Historical turn without frozen content — this can happen when a session was
-		// persisted before RenderedUserMessageMetadata existed, when the freeze in
-		// agentIntent.runOne didn't fire (e.g. last message wasn't User), or after a
-		// re-render path that bypasses the freeze. Re-rendering the live user message
-		// body here would embed current workspace state (<editorContext>, terminal
-		// state, todos, reminders) into a *historical* user message and break the
-		// prompt cache for every preceding turn. Render the same minimal,
-		// cache-stable body that AgentUserMessageInHistory uses instead.
 		if (this.props.isHistorical && this.props.turn) {
 			this.logService.trace('Re-rendering historical user message without frozen content; using minimal body');
 			return <AgentUserMessageInHistory turn={this.props.turn} userQueryTagName={this.props.userQueryTagName} />;
 		}
 
-		// System-initiated messages (e.g. terminal completion notifications) are
-		// self-contained and should not be wrapped in <userRequest> or have context re-added.
 		if (this.props.isSystemInitiated) {
 			return <UserMessage>{this.props.request}</UserMessage>;
 		}
@@ -531,7 +436,7 @@ export class AgentUserMessage extends PromptElement<AgentUserMessageProps> {
 					</Tag>
 					<CurrentEditorContext endpoint={this.props.endpoint} />
 					<Tag name='reminderInstructions'>
-						{/* Critical reminders that are effective when repeated right next to the user message */}
+						{}
 						<ReminderInstructionsClass {...reminderProps} />
 						<NotebookReminderInstructions chatVariables={this.props.chatVariables} query={this.props.request} />
 						{this.configurationService.getNonExtensionConfig<boolean>(USE_SKILL_ADHERENCE_PROMPT_SETTING) && <SkillAdherenceReminder chatVariables={this.props.chatVariables} />}
@@ -555,7 +460,7 @@ class FrozenContentUserMessage extends PromptElement<FrozenMessageContentProps> 
 	async render(state: void, sizing: PromptSizing) {
 		return <UserMessage priority={this.props.priority}>
 			<Chunk>
-				{/* Have to move <cacheBreakpoint> out of the Chunk */}
+				{}
 				{renderedMessageToTsxChildren(this.props.frozenContent, false)}
 			</Chunk>
 			{this.props.enableCacheBreakpoints && <cacheBreakpoint type={CacheType} />}
@@ -602,10 +507,8 @@ class CurrentDatePrompt extends PromptElement<BasePromptElementProps> {
 	}
 
 	async render(state: void, sizing: PromptSizing) {
-		// Use the local date in ISO 8601 format (no localized words) so the prompt is not affected by the user's system language (issue #309008)
 		const now = new Date();
 		const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-		// Only include current date when not running simulations, since if we generate cache entries with the current date, the cache will be invalidated every day
 		return (
 			!this.envService.isSimulation() && <>The current date is {dateStr}.</>
 		);
@@ -616,9 +519,6 @@ interface AdditionalHookContextPromptProps extends BasePromptElementProps {
 	readonly context: string;
 }
 
-/**
- * Renders additional context provided by hooks.
- */
 class AdditionalHookContextPrompt extends PromptElement<AdditionalHookContextPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		return <>Additional instructions from hooks: {this.props.context}</>;
@@ -629,22 +529,6 @@ interface CustomizationsIndexUpdateProps extends BasePromptElementProps {
 	readonly update: { value: string; toolReferences: readonly ChatLanguageModelToolReference[] | undefined };
 }
 
-/**
- * Surfaces drift between the frozen customizations-index snapshot (in the
- * system prompt) and the current turn's listing. Rendered inside
- * `AgentUserMessage`'s `<Tag name='context'>` alongside `EditedFileEvents`,
- * `TerminalStatePromptElement`, etc., so it becomes part of the same
- * `UserMessage` and is captured into `RenderedUserMessageMetadata` together
- * with the user query. Replays verbatim on subsequent turns as the
- * historical user message, preserving cross-turn cache continuity. Emitting
- * it as a sibling `UserMessage` would make `result.messages.at(-1)` point at
- * the drift block in `agentIntent.runOne`, so the metadata would store just
- * the drift block and historical replays on later turns would lose the
- * actual user query.
- *
- * Used only when the live index differs from the snapshot captured on the
- * first turn.
- */
 class CustomizationsIndexUpdate extends PromptElement<CustomizationsIndexUpdateProps> {
 	constructor(
 		props: CustomizationsIndexUpdateProps,
@@ -670,11 +554,6 @@ interface SkillAdherenceReminderProps extends BasePromptElementProps {
 	readonly chatVariables: ChatVariablesCollection;
 }
 
-/**
- * Skill adherence reminder that prompts the model to read SKILL.md files when skills are available
- * in the instruction index.
- * Shown whenever the instruction index variable contains at least one skill or skill folder entry.
- */
 class SkillAdherenceReminder extends PromptElement<SkillAdherenceReminderProps> {
 	constructor(
 		props: SkillAdherenceReminderProps,
@@ -686,7 +565,6 @@ class SkillAdherenceReminder extends PromptElement<SkillAdherenceReminderProps> 
 	}
 
 	async render() {
-		// Check if any skills are available from the instruction index
 		const indexVariable = this.props.chatVariables.find(p => isCustomizationsIndex(p.reference));
 		if (!indexVariable || !isString(indexVariable.value)) {
 			return undefined;
@@ -715,9 +593,6 @@ interface CurrentEditorContextProps extends BasePromptElementProps {
 	readonly endpoint: IChatEndpoint;
 }
 
-/**
- * Include the user's open editor and cursor position, but not content. This is independent of the "implicit context" attachment.
- */
 class CurrentEditorContext extends PromptElement<CurrentEditorContextProps> {
 	constructor(
 		props: CurrentEditorContextProps,
@@ -755,9 +630,7 @@ class CurrentEditorContext extends PromptElement<CurrentEditorContextProps> {
 	}
 
 	private renderActiveTextEditor(activeEditor: TextEditor) {
-		// Should this include column numbers too? This confused gpt-4.1 and it read the wrong line numbers, need to find the right format.
 		const selection = activeEditor.selection;
-		// Found that selection is not always defined, so check for it.
 		const selectionText = (selection && !selection.isEmpty) ?
 			<>The current selection is from line {selection.start.line + 1} to line {selection.end.line + 1}.</> : undefined;
 		return <>The user's current file is {this.promptPathRepresentationService.getFilePath(activeEditor.document.uri)}. {selectionText}</>;
@@ -766,9 +639,7 @@ class CurrentEditorContext extends PromptElement<CurrentEditorContextProps> {
 	private renderActiveNotebookEditor(activeNotebookEditor: NotebookEditor) {
 		const altDocument = this.alternativeNotebookContent.create(this.alternativeNotebookContent.getFormat(this.props.endpoint)).getAlternativeDocument(activeNotebookEditor.notebook);
 		let selectionText = '';
-		// Found that selection is not always defined, so check for it.
 		if (activeNotebookEditor.selection && !activeNotebookEditor.selection.isEmpty && activeNotebookEditor.notebook.cellCount > 0) {
-			// Compute a list of all cells that fall in the range of selection.start and selection.end
 			const { start, end } = activeNotebookEditor.selection;
 			const cellsInRange = [];
 			for (let i = start; i < end; i++) {
@@ -839,7 +710,7 @@ export class AgentTasksInstructions extends PromptElement<AgentTasksInstructions
 		const taskGroupsRaw = this._tasksService.getTasks();
 		const taskGroups = (await Promise.all(taskGroupsRaw.map(async ([folder, tasks]) => {
 			const tasksFile = URI.joinPath(folder, '.vscode', 'tasks.json');
-			if (await this._ignoreService.isCopilotIgnored(tasksFile)) {
+			if (await this._ignoreService.isIgnored(tasksFile)) {
 				return undefined;
 			}
 			const visibleTasks = tasks.filter(task => (!!task.type || task.dependsOn) && !task.hide);
@@ -867,7 +738,6 @@ export class AgentTasksInstructions extends PromptElement<AgentTasksInstructions
 		</>;
 	}
 
-	/** Makes a simplified JSON presentation of the task definition for the model to reference. */
 	private makeTaskPresentation(task: TaskDefinition) {
 		const enum PlatformAttr {
 			Windows = 'windows',
@@ -900,9 +770,6 @@ export interface EditedFileEventsProps extends BasePromptElementProps {
 	readonly editedFileEvents: readonly ChatRequestEditedFileEvent[] | undefined;
 }
 
-/**
- * Context about manual edits made to files that the agent previously edited.
- */
 export class EditedFileEvents extends PromptElement<EditedFileEventsProps> {
 	constructor(
 		props: EditedFileEventsProps,
@@ -918,7 +785,6 @@ export class EditedFileEvents extends PromptElement<EditedFileEventsProps> {
 			return undefined;
 		}
 
-		// Group by event kind and collect file paths
 		const undoFiles: string[] = [];
 		const modFiles: string[] = [];
 		const seenUndo = new Set<string>();

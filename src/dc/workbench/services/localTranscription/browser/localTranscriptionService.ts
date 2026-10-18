@@ -8,11 +8,6 @@ import { VSBuffer } from '../../../../base/common/buffer.js';
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
 import { ILocalTranscriptionModelStatus, ILocalTranscriptionResult, ILocalTranscriptionService, LocalTranscriptionModelState } from '../../../../platform/localTranscription/common/localTranscription.js';
 
-/**
- * Web/no-op implementation: on-device transcription requires a utility process,
- * which is not available on web. `isSupported` is false, so dictation is simply
- * unavailable there — there is no cloud fallback (that transport was removed).
- */
 export class NullLocalTranscriptionService implements ILocalTranscriptionService {
 
 	declare readonly _serviceBrand: undefined;

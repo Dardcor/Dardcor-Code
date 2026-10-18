@@ -19,7 +19,6 @@ export class AutoRepliesPtyServiceContribution implements IPtyServiceContributio
 
 	async installAutoReply(match: string, reply: string) {
 		this._autoReplies.set(match, reply);
-		// If the auto reply exists on any existing terminals it will be overridden
 		for (const persistentProcessId of this._autoResponders.keys()) {
 			const process = this._terminalProcesses.get(persistentProcessId);
 			if (!process) {

@@ -54,7 +54,7 @@ export class ChatAgentResponseStream {
 		private readonly _proxy: IChatAgentProgressShape,
 		private readonly _commandsConverter: CommandsConverter,
 		private readonly _sessionDisposables: DisposableStore,
-		private readonly _pendingCarouselResolvers: Map</* requestId */string, Map</* resolveId */ string, DeferredPromise<Record<string, unknown> | undefined>>>,
+		private readonly _pendingCarouselResolvers: Map< string, Map< string, DeferredPromise<Record<string, unknown> | undefined>>>,
 		private readonly _token: CancellationToken
 	) { }
 
@@ -95,8 +95,6 @@ export class ChatAgentResponseStream {
 			function send(chunk: IChatProgressDto): void;
 			function send(chunk: IChatProgressDto, handle: number): Promise<void>;
 			function send(chunk: IChatProgressDto, handle?: number) {
-				// push data into send queue. the first entry schedules the micro task which
-				// does the actual send to the main thread
 				const newLen = sendQueue.push(handle !== undefined ? [chunk, handle] : chunk);
 				if (newLen === 1) {
 					queueMicrotask(() => {
@@ -115,7 +113,6 @@ export class ChatAgentResponseStream {
 			}
 
 			const _report = (progress: IChatProgressDto, task?: (progress: vscode.Progress<vscode.ChatResponseWarningPart | vscode.ChatResponseReferencePart>) => Thenable<string | void>) => {
-				// Measure the time to the first progress update with real markdown content
 				if (typeof this._firstProgress === 'undefined' && (progress.kind === 'markdownContent' || progress.kind === 'markdownVuln' || progress.kind === 'beginToolInvocation')) {
 					this._firstProgress = this._stopWatch.elapsed();
 				}
@@ -252,7 +249,6 @@ export class ChatAgentResponseStream {
 					}
 
 					if (typeof value === 'object' && 'variableName' in value && !value.value) {
-						// The participant used this variable. Does that variable have any references to pull in?
 						const matchingVarData = that._request.variables.variables.find(v => v.name === value.variableName);
 						if (matchingVarData) {
 							let references: Dto<IChatContentReference>[] | undefined;
@@ -262,7 +258,6 @@ export class ChatAgentResponseStream {
 									reference: { variableName: value.variableName, value: r.reference as URI | Location }
 								} satisfies IChatContentReference));
 							} else {
-								// Participant sent a variableName reference but the variable produced no references. Show variable reference with no value
 								const part = new extHostTypes.ChatResponseReferencePart(value, iconPath, options);
 								const dto = typeConvert.ChatResponseReferencePart.from(part);
 								references = [dto];
@@ -271,7 +266,6 @@ export class ChatAgentResponseStream {
 							references.forEach(r => _report(r));
 							return this;
 						} else {
-							// Something went wrong- that variable doesn't actually exist
 						}
 					} else {
 						const part = new extHostTypes.ChatResponseReferencePart(value, iconPath, options);
@@ -348,10 +342,8 @@ export class ChatAgentResponseStream {
 					const dto = typeConvert.ChatResponseQuestionCarouselPart.from(part);
 					dto.resolveId = resolveId;
 
-					// Create a deferred promise to wait for the answer
 					const deferred = new DeferredPromise<Record<string, unknown> | undefined>();
 
-					// Store the deferred promise for later resolution
 					if (!that._pendingCarouselResolvers.has(that._request.requestId)) {
 						that._pendingCarouselResolvers.set(that._request.requestId, new Map());
 					}
@@ -359,7 +351,6 @@ export class ChatAgentResponseStream {
 
 					_report(dto);
 
-					// Wait for the user to submit answers, but respect cancellation
 					return raceCancellation(deferred.p, that._token);
 				},
 				beginToolInvocation(toolCallId, toolName, streamData) {
@@ -415,7 +406,6 @@ export class ChatAgentResponseStream {
 					}
 
 					if (part instanceof extHostTypes.ChatResponseReferencePart) {
-						// Ensure variable reference values get fixed up
 						this.reference2(part.value, part.iconPath, part.options);
 					} else if (part instanceof extHostTypes.ChatResponseProgressPart2) {
 						const dto = part.task ? typeConvert.ChatTask.from(part) : typeConvert.ChatResponseProgressPart.from(part);
@@ -508,7 +498,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 
 	private readonly _inFlightRequests = new Set<InFlightChatRequest>();
 
-	// Map of requestId -> resolveId -> deferred promise for question carousel answers
 	private readonly _pendingCarouselResolvers = new Map<string, Map<string, DeferredPromise<Record<string, unknown> | undefined>>>();
 
 	private readonly _onDidChangeChatRequestTools = this._register(new Emitter<vscode.ChatRequest>());
@@ -690,7 +679,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 
 		_commands.registerArgumentProcessor({
 			processArgument: (arg) => {
-				// Don't send this argument to extension commands
 				if (isChatViewTitleActionContext(arg)) {
 					return null;
 				}
@@ -732,10 +720,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 		});
 	}
 
-	/**
-	 * Internal method that handles all prompt file provider types.
-	 * Routes custom agents, instructions, prompt files, and skills to the unified internal implementation.
-	 */
 	registerPromptFileProvider(extension: IExtensionDescription, type: PromptsType, provider: vscode.ChatCustomAgentProvider | vscode.ChatInstructionsProvider | vscode.ChatPromptFileProvider | vscode.ChatSkillProvider | vscode.ChatHookProvider): vscode.Disposable {
 		const handle = ExtHostChatAgents2._contributionsProviderIdPool++;
 		this._promptFileProviders.set(handle, { extension, provider });
@@ -743,8 +727,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 
 		const disposables = new DisposableStore();
 
-		// Listen to provider change events and notify main thread
-		// Check for the appropriate event based on the provider type
 		let changeEvent: vscode.Event<void> | undefined;
 		switch (type) {
 			case PromptsType.agent:
@@ -841,9 +823,7 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			return undefined;
 		}
 
-		// The proposed API requires a real session URI; bail out when the
 		// internal caller (e.g. the management UI populating a global list)
-		// has nothing scoped to forward.
 		if (!sessionResource) {
 			return undefined;
 		}
@@ -927,21 +907,17 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 		const request = revive<IChatAgentRequest>(requestDto);
 		const convertedHistory = await this.prepareHistoryTurns(extension, request.agentId, context);
 
-		// in-place converting for location-data
 		let location: vscode.ChatRequestEditorData | vscode.ChatRequestNotebookData | undefined;
 		if (request.locationData?.type === ChatAgentLocation.EditorInline) {
-			// editor data
 			const document = this._documents.getDocument(request.locationData.document);
 			const editor = this._editorsAndDocuments.getEditor(request.locationData.id)!;
 			location = new extHostTypes.ChatRequestEditorData(editor.value, document, typeConvert.Selection.to(request.locationData.selection), typeConvert.Range.to(request.locationData.wholeRange));
 
 		} else if (request.locationData?.type === ChatAgentLocation.Notebook) {
-			// notebook data
 			const cell = this._documents.getDocument(request.locationData.sessionInputUri);
 			location = new extHostTypes.ChatRequestNotebookData(cell);
 
 		} else if (request.locationData?.type === ChatAgentLocation.Terminal) {
-			// TBD
 		}
 
 		return { request, location, history: convertedHistory };
@@ -996,7 +972,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 		try {
 			const { request, location, history } = await this._createRequest(requestDto, context, agent.extension);
 
-			// Init session disposables
 			let sessionDisposables = this._sessionDisposables.get(request.sessionResource);
 			if (!sessionDisposables) {
 				sessionDisposables = new DisposableStore();
@@ -1021,7 +996,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			this._inFlightRequests.add(inFlightRequest);
 
 
-			// If this request originates from a contributed chat session editor, attempt to resolve the ChatSession API object
 			let chatSessionContext: vscode.ChatSessionContext | undefined;
 			if (context.chatSessionContext) {
 				const sessionResource = URI.revive(context.chatSessionContext.chatSessionResource);
@@ -1094,7 +1068,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			if (inFlightRequest) {
 				this._inFlightRequests.delete(inFlightRequest);
 			}
-			// Clean up any pending carousel resolvers for this request
 			const pendingResolvers = this._pendingCarouselResolvers.get(requestDto.requestId);
 			if (pendingResolvers) {
 				for (const deferred of pendingResolvers.values()) {
@@ -1135,7 +1108,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 				ehResult :
 				{ ...ehResult, metadata: undefined };
 
-			// REQUEST turn
 			const varsWithoutTools: vscode.ChatPromptReference[] = [];
 			const toolReferences: vscode.ChatLanguageModelToolReference[] = [];
 			for (const v of h.request.variables.variables) {
@@ -1153,7 +1125,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			const turn = new extHostTypes.ChatRequestTurn(h.request.message, h.request.command, varsWithoutTools, h.request.agentId, toolReferences, editedFileEvents, h.request.requestId, undefined, modeInstructions2);
 			res.push(turn);
 
-			// RESPONSE turn
 			const parts = coalesce(h.response.map(r => typeConvert.ChatResponsePart.toContent(r, this._commands.converter)));
 			res.push(new extHostTypes.ChatResponseTurn(parts, result, h.request.agentId, h.request.command));
 		}
@@ -1192,7 +1163,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 		const ehResult = typeConvert.ChatAgentResult.to(result);
 		return (await agent.provideFollowups(ehResult, { history: convertedHistory, yieldRequested: false }, token))
 			.filter(f => {
-				// The followup must refer to a participant that exists from the same extension
 				const isValid = !f.participant || Iterable.some(
 					this._agents.values(),
 					a => a.id === f.participant && ExtensionIdentifier.equals(a.extension.identifier, agent.extension.identifier));
@@ -1240,7 +1210,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			requestResolvers.delete(resolveId);
 		}
 
-		// Clean up if no more resolvers for this request
 		if (requestResolvers.size === 0) {
 			this._pendingCarouselResolvers.delete(requestId);
 		}
@@ -1252,7 +1221,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 			return;
 		}
 		if (event.action.kind === 'vote') {
-			// handled by $acceptFeedback
 			return;
 		}
 
@@ -1270,7 +1238,6 @@ export class ExtHostChatAgents2 extends Disposable implements ExtHostChatAgentsS
 
 		let disposables = this._completionDisposables.get(handle);
 		if (disposables) {
-			// Clear any disposables from the last invocation of this completion provider
 			disposables.clear();
 		} else {
 			disposables = new DisposableStore();
@@ -1365,9 +1332,7 @@ class ExtHostChatAgent {
 			return [];
 		}
 		return followups
-			// Filter out "command followups" from older providers
 			.filter(f => !(f && 'commandId' in f))
-			// Filter out followups from older providers before 'message' changed to 'prompt'
 			.filter(f => !(f && 'message' in f));
 	}
 
@@ -1541,9 +1506,6 @@ class ExtHostChatAgent {
 	}
 }
 
-/**
- * raceCancellation, but give the promise a little time to complete to see if we can get a real result quickly.
- */
 function raceCancellationWithTimeout<T>(cancelWait: number, promise: Promise<T>, token: CancellationToken): Promise<T | undefined> {
 	return new Promise((resolve, reject) => {
 		const ref = token.onCancellationRequested(async () => {
@@ -1555,10 +1517,6 @@ function raceCancellationWithTimeout<T>(cancelWait: number, promise: Promise<T>,
 	});
 }
 
-/**
- * Lazily computes and caches a promise result until explicitly cleared.
- * Failed computations are not retained so later callers can retry.
- */
 class CachedPromise<T> {
 
 	private cachedPromise: Promise<readonly T[]> | undefined;
@@ -1576,8 +1534,6 @@ class CachedPromise<T> {
 			this.cachedPromise = promise;
 		}
 
-		// Each caller observes the shared computation through its own token so that
-		// one caller cancelling does not affect concurrent callers.
 		return raceCancellationError(this.cachedPromise, token);
 	}
 

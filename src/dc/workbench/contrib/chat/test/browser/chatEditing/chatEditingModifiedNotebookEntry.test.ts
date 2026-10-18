@@ -1192,7 +1192,6 @@ suite('ChatEditingModifiedNotebookEntry', function () {
 			];
 
 			const result = adjustCellDiffAndOriginalModelBasedOnCellAddDelete([1, 1, [
-				// createICell(CellKind.Code, 'print("Hello World")')
 			]],
 				cellsDiffInfo, 4, 6, applyEdits, createModifiedCellDiffInfo);
 

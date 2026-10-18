@@ -130,7 +130,6 @@ suite('ExtHostAuthentication', () => {
 	let mainInstantiationService: TestInstantiationService;
 
 	setup(async () => {
-		// services
 		const services = new ServiceCollection();
 		services.set(ILogService, new SyncDescriptor(NullLogService));
 		services.set(IDialogService, new SyncDescriptor(TestDialogService, [{ confirmed: true }]));
@@ -150,7 +149,6 @@ suite('ExtHostAuthentication', () => {
 		services.set(IAuthenticationExtensionsService, new SyncDescriptor(AuthenticationExtensionsService));
 		mainInstantiationService = disposables.add(new TestInstantiationService(services, undefined, undefined, true));
 
-		// stubs
 		// eslint-disable-next-line local/code-no-dangerous-type-assertions
 		mainInstantiationService.stub(IOpenerService, {} as Partial<IOpenerService>);
 		mainInstantiationService.stub(ITelemetryService, NullTelemetryService);
@@ -214,7 +212,6 @@ suite('ExtHostAuthentication', () => {
 			{});
 		assert.strictEqual(nosession, undefined);
 
-		// Now create the session
 		const session = await extHostAuthentication.getSession(
 			extensionDescription,
 			'test',
@@ -237,7 +234,6 @@ suite('ExtHostAuthentication', () => {
 		assert.strictEqual(session2?.accessToken, session.accessToken);
 	});
 
-	// should behave the same as createIfNone: false
 	test('silent - true', async () => {
 		const scopes = ['foo'];
 		const nosession = await extHostAuthentication.getSession(
@@ -249,7 +245,6 @@ suite('ExtHostAuthentication', () => {
 			});
 		assert.strictEqual(nosession, undefined);
 
-		// Now create the session
 		const session = await extHostAuthentication.getSession(
 			extensionDescription,
 			'test',
@@ -283,7 +278,6 @@ suite('ExtHostAuthentication', () => {
 				createIfNone: true
 			});
 
-		// Now create the session
 		const session2 = await extHostAuthentication.getSession(
 			extensionDescription,
 			'test',
@@ -297,7 +291,6 @@ suite('ExtHostAuthentication', () => {
 		assert.notStrictEqual(session1.accessToken, session2?.accessToken);
 	});
 
-	// Should behave like createIfNone: true
 	test('forceNewSession - true - no existing session', async () => {
 		const scopes = ['foo'];
 		const session = await extHostAuthentication.getSession(
@@ -321,7 +314,6 @@ suite('ExtHostAuthentication', () => {
 				createIfNone: true
 			});
 
-		// Now create the session
 		const session2 = await extHostAuthentication.getSession(
 			extensionDescription,
 			'test',
@@ -335,11 +327,9 @@ suite('ExtHostAuthentication', () => {
 		assert.notStrictEqual(session1.accessToken, session2?.accessToken);
 	});
 
-	//#region Multi-Account AuthProvider
 
 	test('clearSessionPreference - true', async () => {
 		const scopes = ['foo'];
-		// Now create the session
 		const session = await extHostAuthentication.getSession(
 			extensionDescription,
 			'test-multiple',
@@ -371,8 +361,6 @@ suite('ExtHostAuthentication', () => {
 				createIfNone: true
 			});
 
-		// clearing session preference causes us to get the first session
-		// because it would normally show a quick pick for the user to choose
 		assert.strictEqual(session3?.id, session.id);
 		assert.strictEqual(session3?.scopes[0], session.scopes[0]);
 		assert.strictEqual(session3?.accessToken, session.accessToken);
@@ -380,7 +368,6 @@ suite('ExtHostAuthentication', () => {
 
 	test('silently getting session should return a session (if any) regardless of preference - fixes #137819', async () => {
 		const scopes = ['foo'];
-		// Now create the session
 		const session = await extHostAuthentication.getSession(
 			extensionDescription,
 			'test-multiple',
@@ -422,9 +409,7 @@ suite('ExtHostAuthentication', () => {
 		assert.strictEqual(shouldBeSession2?.accessToken, session2.accessToken);
 	});
 
-	//#endregion
 
-	//#region error cases
 
 	test('createIfNone and forceNewSession', async () => {
 		try {
@@ -561,21 +546,18 @@ suite('ExtHostAuthentication', () => {
 	});
 
 
-	//#endregion
 
-	//#region Race Condition and Sequencing Tests
 
 	test('concurrent operations on same provider are serialized', async () => {
 		const provider = new TestAuthProvider('concurrent-test');
 		const operationOrder: string[] = [];
 
-		// Mock the provider methods to track operation order
 		const originalCreateSession = provider.createSession.bind(provider);
 		const originalGetSessions = provider.getSessions.bind(provider);
 
 		provider.createSession = async (scopes) => {
 			operationOrder.push(`create-start-${scopes[0]}`);
-			await new Promise(resolve => setTimeout(resolve, 20)); // Simulate async work
+			await new Promise(resolve => setTimeout(resolve, 20));
 			const result = await originalCreateSession(scopes);
 			operationOrder.push(`create-end-${scopes[0]}`);
 			return result;
@@ -584,7 +566,7 @@ suite('ExtHostAuthentication', () => {
 		provider.getSessions = async (scopes) => {
 			const scopeKey = scopes ? scopes[0] : 'all';
 			operationOrder.push(`get-start-${scopeKey}`);
-			await new Promise(resolve => setTimeout(resolve, 10)); // Simulate async work
+			await new Promise(resolve => setTimeout(resolve, 10));
 			const result = await originalGetSessions(scopes);
 			operationOrder.push(`get-end-${scopeKey}`);
 			return result;
@@ -593,17 +575,14 @@ suite('ExtHostAuthentication', () => {
 		const disposable = extHostAuthentication.registerAuthenticationProvider('concurrent-test', 'Concurrent Test', provider);
 		disposables.add(disposable);
 
-		// Start multiple operations simultaneously on the same provider
 		const promises = [
 			extHostAuthentication.getSession(extensionDescription, 'concurrent-test', ['scope1'], { createIfNone: true }),
 			extHostAuthentication.getSession(extensionDescription, 'concurrent-test', ['scope2'], { createIfNone: true }),
-			extHostAuthentication.getSession(extensionDescription, 'concurrent-test', ['scope1'], {}) // This should get the existing session
+			extHostAuthentication.getSession(extensionDescription, 'concurrent-test', ['scope1'], {})
 		];
 
 		await Promise.all(promises);
 
-		// Verify that operations were serialized - no overlapping operations
-		// Build a map of operation starts to their corresponding ends
 		const operationPairs: Array<{ start: number; end: number; operation: string }> = [];
 
 		for (let i = 0; i < operationOrder.length; i++) {
@@ -624,13 +603,11 @@ suite('ExtHostAuthentication', () => {
 			}
 		}
 
-		// Verify no operations overlap (serialization)
 		for (let i = 0; i < operationPairs.length; i++) {
 			for (let j = i + 1; j < operationPairs.length; j++) {
 				const op1 = operationPairs[i];
 				const op2 = operationPairs[j];
 
-				// Operations should not overlap - one should completely finish before the other starts
 				const op1EndsBeforeOp2Starts = op1.end < op2.start;
 				const op2EndsBeforeOp1Starts = op2.end < op1.start;
 
@@ -641,13 +618,11 @@ suite('ExtHostAuthentication', () => {
 			}
 		}
 
-		// Verify we have the expected operations
 		assert.ok(operationOrder.includes('create-start-scope1'), 'Should have created session for scope1');
 		assert.ok(operationOrder.includes('create-end-scope1'), 'Should have completed creating session for scope1');
 		assert.ok(operationOrder.includes('create-start-scope2'), 'Should have created session for scope2');
 		assert.ok(operationOrder.includes('create-end-scope2'), 'Should have completed creating session for scope2');
 
-		// The third call should use getSessions to find the existing scope1 session
 		assert.ok(operationOrder.includes('get-start-scope1'), 'Should have called getSessions for existing scope1 session');
 		assert.ok(operationOrder.includes('get-end-scope1'), 'Should have completed getSessions for existing scope1 session');
 	});
@@ -655,16 +630,13 @@ suite('ExtHostAuthentication', () => {
 	test('provider registration and immediate disposal race condition', async () => {
 		const provider = new TestAuthProvider('race-test');
 
-		// Register and immediately dispose
 		const disposable = extHostAuthentication.registerAuthenticationProvider('race-test', 'Race Test', provider);
 		disposable.dispose();
 
-		// Try to use the provider after disposal - should fail gracefully
 		try {
 			await extHostAuthentication.getSession(extensionDescription, 'race-test', ['scope'], { createIfNone: true });
 			assert.fail('Should have thrown an error for non-existent provider');
 		} catch (error) {
-			// Expected - provider should be unavailable
 			assert.ok(error);
 		}
 	});
@@ -673,21 +645,16 @@ suite('ExtHostAuthentication', () => {
 		const provider1 = new TestAuthProvider('reregister-test-1');
 		const provider2 = new TestAuthProvider('reregister-test-2');
 
-		// First registration
 		const disposable1 = extHostAuthentication.registerAuthenticationProvider('reregister-test', 'Provider 1', provider1);
 
-		// Create a session with first provider
 		const session1 = await extHostAuthentication.getSession(extensionDescription, 'reregister-test', ['scope'], { createIfNone: true });
 		assert.strictEqual(session1?.account.label, 'reregister-test-1');
 
-		// Dispose first provider
 		disposable1.dispose();
 
-		// Re-register with different provider
 		const disposable2 = extHostAuthentication.registerAuthenticationProvider('reregister-test', 'Provider 2', provider2);
 		disposables.add(disposable2);
 
-		// Create session with second provider
 		const session2 = await extHostAuthentication.getSession(extensionDescription, 'reregister-test', ['scope'], { createIfNone: true });
 		assert.strictEqual(session2?.account.label, 'reregister-test-2');
 		assert.notStrictEqual(session1?.accessToken, session2?.accessToken);
@@ -703,7 +670,6 @@ suite('ExtHostAuthentication', () => {
 		let provider2Finished = false;
 		let concurrencyVerified = false;
 
-		// Override createSession to track timing
 		const originalCreate1 = provider1.createSession.bind(provider1);
 		const originalCreate2 = provider2.createSession.bind(provider2);
 
@@ -717,7 +683,6 @@ suite('ExtHostAuthentication', () => {
 
 		provider2.createSession = async (scopes) => {
 			provider2Started = true;
-			// Provider 2 should start before provider 1 finishes (concurrent execution)
 			if (provider1Started && !provider1Finished) {
 				concurrencyVerified = true;
 			}
@@ -732,13 +697,11 @@ suite('ExtHostAuthentication', () => {
 		disposables.add(disposable1);
 		disposables.add(disposable2);
 
-		// Start operations on both providers simultaneously
 		const [session1, session2] = await Promise.all([
 			extHostAuthentication.getSession(extensionDescription, 'concurrent-1', ['scope'], { createIfNone: true }),
 			extHostAuthentication.getSession(extensionDescription, 'concurrent-2', ['scope'], { createIfNone: true })
 		]);
 
-		// Verify both operations completed successfully
 		assert.ok(session1);
 		assert.ok(session2);
 		assert.ok(provider1Started, 'Provider 1 should have started');
@@ -748,9 +711,7 @@ suite('ExtHostAuthentication', () => {
 		assert.strictEqual(session1.account.label, 'concurrent-1');
 		assert.strictEqual(session2.account.label, 'concurrent-2');
 
-		// Verify that operations ran concurrently (provider 2 started while provider 1 was still running)
 		assert.ok(concurrencyVerified, 'Operations should have run concurrently - provider 2 should start while provider 1 is still running');
 	});
 
-	//#endregion
 });

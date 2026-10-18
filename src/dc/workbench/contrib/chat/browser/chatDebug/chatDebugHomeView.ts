@@ -19,7 +19,7 @@ import { IChatService } from '../../common/chatService/chatService.js';
 import { AgentHostAgentDebugLogEnabledSettingId, AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING } from '../../common/promptSyntax/promptTypes.js';
 import { getChatSessionType, isUntitledChatSession, LocalChatSessionUri } from '../../common/model/chatUri.js';
 import { IChatWidgetService } from '../chat.js';
-import { IAgentSessionsService } from '../agentSessions/agentSessionsService.js';
+
 import { IPreferencesService } from '../../../../services/preferences/common/preferences.js';
 
 const $ = DOM.$;
@@ -35,13 +35,10 @@ export class ChatDebugHomeView extends Disposable {
 	private readonly scrollContent: HTMLElement;
 	private readonly renderDisposables = this._register(new DisposableStore());
 
-	/** Number of sessions currently visible (grows on "Show More"). */
 	private _visibleCount = PAGE_SIZE;
 
-	/** Session resource that the user last navigated to from the home view. */
 	private _lastOpenedSessionResource: URI | undefined;
 
-	/** Tracks the number of known sessions so we can detect new ones. */
 	private _lastKnownSessionCount = 0;
 
 	constructor(
@@ -49,7 +46,6 @@ export class ChatDebugHomeView extends Disposable {
 		@IChatService private readonly chatService: IChatService,
 		@IChatDebugService private readonly chatDebugService: IChatDebugService,
 		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService,
-		@IAgentSessionsService private readonly agentSessionsService: IAgentSessionsService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IPreferencesService private readonly preferencesService: IPreferencesService,
 	) {
@@ -63,7 +59,6 @@ export class ChatDebugHomeView extends Disposable {
 			}
 		}));
 
-		// Re-render when a new session appears so it surfaces at the top.
 		this._register(this.chatDebugService.onDidAddEvent(e => {
 			const currentCount = this.chatDebugService.getSessionResources().length;
 			if (currentCount !== this._lastKnownSessionCount) {
@@ -74,7 +69,6 @@ export class ChatDebugHomeView extends Disposable {
 			}
 		}));
 
-		// Re-render when historical sessions are discovered from disk.
 		this._register(this.chatDebugService.onDidChangeAvailableSessionResources(() => {
 			if (this.container.style.display !== 'none') {
 				this.render();
@@ -101,11 +95,6 @@ export class ChatDebugHomeView extends Disposable {
 		this._renderWithSessions(sessionResources);
 	}
 
-	/**
-	 * The panel is enabled when either local file logging or agent-host (Copilot
-	 * CLI) debug logging is on; each provider self-gates on its own setting, so
-	 * the aggregated session list only contains the sources that are enabled.
-	 */
 	private _isDebugEnabled(): boolean {
 		return this.configurationService.getValue<boolean>(AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING)
 			|| this.configurationService.getValue<boolean>(AgentHostAgentDebugLogEnabledSettingId);
@@ -138,11 +127,9 @@ export class ChatDebugHomeView extends Disposable {
 			return;
 		}
 
-		// Determine the active session resource
 		const activeWidget = this.chatWidgetService.lastFocusedWidget;
 		const activeSessionResource = activeWidget?.viewModel?.sessionResource;
 
-		// Bubble active sessions to top
 		const bubbleToTop = (resource: URI | undefined) => {
 			if (!resource) {
 				return;
@@ -172,9 +159,7 @@ export class ChatDebugHomeView extends Disposable {
 			const items: HTMLButtonElement[] = [];
 
 			for (const sessionResource of visibleSessions) {
-				// Resolve title: agent sessions model (same as sidebar) → chat service → historical from JSONL → fallback
-				const agentSession = this.agentSessionsService.model.getSession(sessionResource);
-				const rawTitle = agentSession?.label ?? this.chatService.getSessionTitle(sessionResource);
+				const rawTitle = this.chatService.getSessionTitle(sessionResource);
 				const importedTitle = this.chatDebugService.getImportedSessionTitle(sessionResource);
 				const historicalTitle = this.chatDebugService.getHistoricalSessionTitle(sessionResource);
 				let sessionTitle: string;
@@ -222,7 +207,6 @@ export class ChatDebugHomeView extends Disposable {
 				items.push(item);
 			}
 
-			// "Show More" button when there are more sessions to display
 			if (sessionResources.length > this._visibleCount) {
 				const remaining = sessionResources.length - this._visibleCount;
 				const showMoreButton = this.renderDisposables.add(new Button(this.scrollContent, { ...defaultButtonStyles, secondary: true }));
@@ -234,7 +218,6 @@ export class ChatDebugHomeView extends Disposable {
 				}));
 			}
 
-			// Arrow key navigation between session items
 			this.renderDisposables.add(DOM.addDisposableListener(sessionList, DOM.EventType.KEY_DOWN, (e: KeyboardEvent) => {
 				if (items.length === 0) {
 					return;

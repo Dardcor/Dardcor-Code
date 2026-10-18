@@ -23,11 +23,6 @@ export interface IExtensionDefinition {
 	repo: string;
 	platforms?: string[];
 	vsix?: string;
-	/**
-	 * Per-target checksums for a platform-specific extension published to a GitHub release.
-	 * Keyed by marketplace target platform (e.g. `win32-x64`, `linux-armhf`, `alpine-x64`).
-	 * The matching release asset is resolved by convention as `<name>-<osAlias>-<arch>.vsix`.
-	 */
 	platformSpecific?: { [target: string]: string };
 	metadata: {
 		id: string;
@@ -85,9 +80,6 @@ function getExtensionDownloadStream(extension: IExtensionDefinition) {
 	if (extension.vsix) {
 		input = ext.fromVsix(path.join(root, extension.vsix), extension);
 	} else if (extension.platformSpecific) {
-		// A platform-specific extension publishes its VSIX assets on a GitHub release using a
-		// specific asset naming convention, so it is always downloaded from GitHub and never falls
-		// back to the Marketplace (which does not serve those assets) even when a gallery is configured.
 		const asset = resolvePlatformSpecificAsset(extension);
 		if (!asset) {
 			return es.readArray([]);
@@ -105,16 +97,12 @@ function getExtensionDownloadStream(extension: IExtensionDefinition) {
 function resolvePlatformSpecificAsset(extension: IExtensionDefinition): { assetName: string; sha256: string } | undefined {
 	const target = getCurrentExtensionTarget();
 	if (!target) {
-		// Unsupported build platform (e.g. FreeBSD): no platform-specific asset can apply, so skip
-		// this extension gracefully instead of failing the whole build.
 		log(ansiColors.yellow('[skip]'), `${extension.name}: no platform-specific asset for unsupported platform '${process.platform}-${process.env['VSCODE_ARCH'] ?? process.arch}'`);
 		return undefined;
 	}
 
 	const sha256 = extension.platformSpecific![target];
 	if (!sha256) {
-		// The extension declares platform-specific assets but is missing one for this known target.
-		// This is a configuration error, so fail loudly.
 		throw new Error(`Built-in extension '${extension.name}' is platform-specific but has no asset for target '${target}'. Available targets: [${Object.keys(extension.platformSpecific!)}]`);
 	}
 
@@ -122,7 +110,6 @@ function resolvePlatformSpecificAsset(extension: IExtensionDefinition): { assetN
 }
 
 export function getExtensionStream(extension: IExtensionDefinition) {
-	// if the extension exists on disk, use those files instead of downloading anew
 	if (isUpToDate(extension)) {
 		log('[extensions]', `${extension.name}@${extension.version} up to date`, ansiColors.green('✔︎'));
 		return vfs.src(['**'], { cwd: getExtensionPath(extension), dot: true })

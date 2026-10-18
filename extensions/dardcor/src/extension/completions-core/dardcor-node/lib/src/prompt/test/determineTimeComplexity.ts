@@ -21,7 +21,6 @@ export interface ComplexityResult {
 	coefficient: number;
 }
 
-// Candidate basis functions
 const models: ComplexityModel[] = [
 	{ name: 'O(1)', type: 'sublinear', basis: _n => 1 },
 	{ name: 'O(log n)', type: 'sublinear', basis: n => Math.log(n) },
@@ -47,7 +46,6 @@ export function determineTimeComplexity(data: ComplexityData[]): ComplexityResul
 	let bestC = 0;
 
 	for (const model of models) {
-		// Find best-fit coefficient C = sum(t_i Â· f_i) / sum(f_i^2)
 		let num = 0;
 		let den = 0;
 		for (const { n, time } of data) {
@@ -57,7 +55,6 @@ export function determineTimeComplexity(data: ComplexityData[]): ComplexityResul
 		}
 		const C = den > 0 ? num / den : 0;
 
-		// Compute sum of squared errors
 		let sse = 0;
 		for (const { n, time } of data) {
 			const pred = C * model.basis(n);

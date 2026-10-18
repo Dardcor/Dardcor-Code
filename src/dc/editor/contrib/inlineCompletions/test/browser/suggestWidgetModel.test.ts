@@ -49,7 +49,6 @@ suite('Suggest Widget Model', () => {
 		});
 	});
 
-	// This test is skipped because the fix for this causes https://github.com/microsoft/vscode/issues/166023
 	test.skip('Active', async () => {
 		await withAsyncTestCodeEditorAndInlineCompletionsModel('',
 			{ fakeClock: true, provider, },
@@ -57,7 +56,6 @@ suite('Suggest Widget Model', () => {
 				let last: boolean | undefined = undefined;
 				const history = new Array<boolean>();
 				const d = autorun(reader => {
-					/** @description debug */
 					const selectedSuggestItem = !!model.debugGetSelectedSuggestItem().read(reader);
 					if (last !== selectedSuggestItem) {
 						last = selectedSuggestItem;
@@ -74,7 +72,6 @@ suite('Suggest Widget Model', () => {
 				context.keyboardType('.');
 				await timeout(1000);
 
-				// No flicker here
 				assert.deepStrictEqual(history.splice(0), []);
 				suggestController.cancelSuggestWidget();
 				await timeout(1000);
@@ -109,7 +106,6 @@ suite('Suggest Widget Model', () => {
 	});
 
 	test('offWhenInlineCompletions: conflicting inline completion does not render over the suggest widget', async () => {
-		// An inline completion that does not augment the suggest item ("hello") => a conflict.
 		const inlineProvider: InlineCompletionsProvider = {
 			provideInlineCompletions: () => ({ items: [{ insertText: 'hi there', range: new Range(1, 1, 1, 2) }] }),
 			disposeInlineCompletions: () => { },
@@ -128,11 +124,7 @@ suite('Suggest Widget Model', () => {
 				model.triggerExplicitly();
 				await timeout(1000);
 
-				// Regression guard: the focused suggest item must be exposed to the inline model
-				// even when quickSuggestions is offWhenInlineCompletions...
 				assert.strictEqual(!!model.debugGetSelectedSuggestItem().get(), true);
-				// ...so the conflicting inline completion is suppressed instead of rendered over the
-				// widget: no ghost text ever shows, so the view stays at its initial empty state.
 				assert.deepStrictEqual(context.getAndClearViewStates(), ['']);
 			}
 		);

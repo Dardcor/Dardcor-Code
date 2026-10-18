@@ -29,7 +29,6 @@ export class LanguageModelStatsService extends Disposable implements ILanguageMo
 		@IStorageService storageService: IStorageService,
 	) {
 		super();
-		// TODO: @sandy081 - remove this code after a while
 		for (const key in storageService.keys(StorageScope.APPLICATION, StorageTarget.USER)) {
 			if (key.startsWith('languageModelStats.') || key.startsWith('languageModelAccess.')) {
 				storageService.remove(key, StorageScope.APPLICATION);
@@ -38,17 +37,17 @@ export class LanguageModelStatsService extends Disposable implements ILanguageMo
 	}
 
 	async update(model: string, extensionId: ExtensionIdentifier, agent: string | undefined, tokenCount: number | undefined): Promise<void> {
-		await this.extensionFeaturesManagementService.getAccess(extensionId, CopilotUsageExtensionFeatureId);
+		await this.extensionFeaturesManagementService.getAccess(extensionId, DardcorAiUsageExtensionFeatureId);
 	}
 
 }
 
-export const CopilotUsageExtensionFeatureId = 'copilot';
+export const DardcorAiUsageExtensionFeatureId = 'dardcor-ai';
 Registry.as<IExtensionFeaturesRegistry>(Extensions.ExtensionFeaturesRegistry).registerExtensionFeature({
-	id: CopilotUsageExtensionFeatureId,
+	id: DardcorAiUsageExtensionFeatureId,
 	label: localize('Language Models', "Dardcor AI"),
 	description: localize('languageModels', "Language models usage statistics of this extension."),
-	icon: Codicon.copilot,
+	icon: Codicon.sparkle,
 	access: {
 		canToggle: false
 	},

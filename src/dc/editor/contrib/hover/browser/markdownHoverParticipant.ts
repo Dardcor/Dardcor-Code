@@ -488,7 +488,6 @@ export function renderMarkdownHovers(
 	markdownRendererService: IMarkdownRendererService,
 ): IRenderedHoverParts<MarkdownHover> {
 
-	// Sort hover parts to keep them stable since they might come in async, out-of-order
 	markdownHovers.sort(compareBy(hover => hover.ordinal, numberComparator));
 	const renderedHoverParts: IRenderedHoverPart<MarkdownHover>[] = [];
 	for (const markdownHover of markdownHovers) {

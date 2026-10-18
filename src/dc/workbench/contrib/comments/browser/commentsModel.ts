@@ -67,31 +67,26 @@ export class CommentsModel extends Disposable implements ICommentsModel {
 		const threadsForOwner = this.commentThreadsMap.get(uniqueOwner)?.resourceWithCommentThreads || [];
 
 		removed.forEach(thread => {
-			// Find resource that has the comment thread
 			const matchingResourceIndex = threadsForOwner.findIndex((resourceData) => resourceData.id === thread.resource);
 			const matchingResourceData = matchingResourceIndex >= 0 ? threadsForOwner[matchingResourceIndex] : undefined;
 
-			// Find comment node on resource that is that thread and remove it
 			const index = matchingResourceData?.commentThreads.findIndex((commentThread) => commentThread.threadId === thread.threadId) ?? 0;
 			if (index >= 0) {
 				matchingResourceData?.commentThreads.splice(index, 1);
 			}
 
-			// If the comment thread was the last thread for a resource, remove that resource from the list
 			if (matchingResourceData?.commentThreads.length === 0) {
 				threadsForOwner.splice(matchingResourceIndex, 1);
 			}
 		});
 
 		changed.forEach(thread => {
-			// Find resource that has the comment thread
 			const matchingResourceIndex = threadsForOwner.findIndex((resourceData) => resourceData.id === thread.resource);
 			const matchingResourceData = matchingResourceIndex >= 0 ? threadsForOwner[matchingResourceIndex] : undefined;
 			if (!matchingResourceData) {
 				return;
 			}
 
-			// Find comment node on resource that is that thread and replace it
 			const index = matchingResourceData.commentThreads.findIndex((commentThread) => commentThread.threadId === thread.threadId);
 			if (index >= 0) {
 				matchingResourceData.commentThreads[index] = ResourceWithCommentThreads.createCommentNode(uniqueOwner, owner, URI.parse(matchingResourceData.id), thread);
@@ -119,11 +114,8 @@ export class CommentsModel extends Disposable implements ICommentsModel {
 	}
 
 	public hasCommentThreads(): boolean {
-		// There's a resource with at least one thread
 		return !!this._resourceCommentThreads.length && this._resourceCommentThreads.some(resource => {
-			// At least one of the threads in the resource has comments
 			return (resource.commentThreads.length > 0) && resource.commentThreads.some(thread => {
-				// At least one of the comments in the thread is not empty
 				return threadHasMeaningfulComments(thread.thread);
 			});
 		});

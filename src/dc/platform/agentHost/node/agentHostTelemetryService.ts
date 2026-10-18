@@ -5,8 +5,6 @@
 
 import { hostname, release } from 'os';
 import { Disposable, isDisposable, toDisposable, type DisposableStore } from '../../../base/common/lifecycle.js';
-import { joinPath } from '../../../base/common/resources.js';
-import { URI } from '../../../base/common/uri.js';
 import { getDevDeviceId, getMachineId, getSqmMachineId } from '../../../base/node/id.js';
 import { INativeEnvironmentService } from '../../environment/common/environment.js';
 import { IFileService } from '../../files/common/files.js';
@@ -47,21 +45,14 @@ export class AgentHostTelemetryService extends Disposable implements IAgentHostT
 
 	private _telemetryLevel: TelemetryLevel;
 
-	/**
-	 * Whether `/copilot_internal/user` enables enhanced/restricted telemetry. Defaults to `false`
-	 * so nothing restricted is sent until the authenticated account confirms the opt-in.
-	 */
 	private _restrictedTelemetryEnabled = false;
 	private _internalTelemetryEnabled = false;
 
-	/** Whether the machine itself is internal, captured before any account can override it. */
 	private readonly _internalMachine: boolean;
 
 	constructor(
 		private readonly _delegate: ITelemetryService,
 		private readonly _restricted?: IAgentHostRestrictedTelemetry,
-		copilotSdkVersion?: string,
-		copilotRuntimeVersion?: string,
 		initialTelemetryLevel: TelemetryLevel = TelemetryLevel.USAGE,
 	) {
 		super();
@@ -69,14 +60,6 @@ export class AgentHostTelemetryService extends Disposable implements IAgentHostT
 		this._internalMachine = _delegate.msftInternal === true;
 		if (isDisposable(_delegate)) {
 			this._register(_delegate);
-		}
-		if (copilotSdkVersion) {
-			// __GDPR__COMMON__ "common.copilotSdkVersion" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The version of the Copilot SDK used by the Agent Host process." }
-			this._delegate.setCommonProperty('common.copilotSdkVersion', copilotSdkVersion);
-		}
-		if (copilotRuntimeVersion) {
-			// __GDPR__COMMON__ "common.copilotRuntimeVersion" : { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "The version of the Copilot runtime used by the Agent Host process." }
-			this._delegate.setCommonProperty('common.copilotRuntimeVersion', copilotRuntimeVersion);
 		}
 	}
 
@@ -185,15 +168,12 @@ export class AgentHostTelemetryService extends Disposable implements IAgentHostT
 
 	setRestrictedTelemetryEnabled(enabled: boolean): void {
 		this._restrictedTelemetryEnabled = enabled;
-		// Mirror onto the sender so the restricted-table writer enforces the same `rt` gate
-		// independently (defense in depth), matching the extension's opted-in-only reporter.
 		this._restricted?.setRestrictedTelemetryEnabled(enabled);
 	}
 
 	setInternalTelemetryContext(context: IAgentHostInternalTelemetryContext | undefined): void {
 		this._internalTelemetryEnabled = context?.isInternal === true;
 		if (context) {
-			// Signing in to an external account has to clear the account half of the signal again.
 			this._delegate.setCommonProperty('common.msftInternal', this._internalMachine || this._internalTelemetryEnabled);
 		}
 		this._restricted?.setInternalTelemetryContext(context);
@@ -226,21 +206,8 @@ export function isAgentHostTelemetryService(telemetryService: ITelemetryService)
 	return typeof (telemetryService as IAgentHostTelemetryService).updateTelemetryLevel === 'function';
 }
 
-async function resolveCopilotExtensionVersion(environmentService: INativeEnvironmentService, fileService: IFileService, logService: ILogService): Promise<string | undefined> {
-	if (!environmentService.builtinExtensionsPath) {
-		return undefined;
-	}
-	try {
-		const manifest = JSON.parse((await fileService.readFile(joinPath(URI.file(environmentService.builtinExtensionsPath), 'copilot', 'package.json'))).value.toString()) as { version?: unknown };
-		return typeof manifest.version === 'string' ? manifest.version : undefined;
-	} catch (error) {
-		logService.debug(`[agentHostTelemetry] Failed to resolve Copilot extension version: ${error instanceof Error ? error.message : String(error)}`);
-		return undefined;
-	}
-}
-
 export async function createAgentHostTelemetryService(options: IAgentHostTelemetryServiceOptions): Promise<IAgentHostTelemetryService> {
-	const { environmentService, productService, fileService, loggerService, logService, disposables } = options;
+	const { environmentService, productService, loggerService, logService, disposables } = options;
 	if (options.disableTelemetry || !loggerService || !supportsTelemetry(productService, environmentService)) {
 		return disposables.add(new AgentHostTelemetryService(NullTelemetryService));
 	}
@@ -261,10 +228,6 @@ export async function createAgentHostTelemetryService(options: IAgentHostTelemet
 		appenders.push(collectorAppender);
 	}
 
-	// Prefer the host-forwarded identifiers (see `agentHostTelemetryEnv`) so the
-	// agent host reports the same persisted machineId/sqmId/devDeviceId as the
-	// workbench. Fall back to computing them live when not provided (e.g. the
-	// remote/server agent host, which does not forward them).
 	const [machineId, sqmId, devDeviceId] = await Promise.all([
 		process.env[AgentHostMachineIdEnvKey] || getMachineId(error => logService.error(error)),
 		process.env[AgentHostSqmIdEnvKey] || getSqmMachineId(error => logService.error(error)),
@@ -289,11 +252,10 @@ export async function createAgentHostTelemetryService(options: IAgentHostTelemet
 		onDidChangeConfiguration: () => ({ dispose: () => { } })
 	} as any, productService);
 
-	const extensionVersion = loggingOnly ? undefined : await resolveCopilotExtensionVersion(environmentService, fileService, logService);
-	const internalSender = loggingOnly ? undefined : disposables.add(new AgentHostInternalTelemetrySender({ requestService: options.requestService, commonProperties, extensionVersion }));
+	const internalSender = loggingOnly ? undefined : disposables.add(new AgentHostInternalTelemetrySender({ requestService: options.requestService, commonProperties }));
 	const restricted = loggingOnly ? undefined : new AgentHostRestrictedTelemetrySender(commonProperties, logService, undefined, internalSender, options.fetchFn);
 
-	return disposables.add(new AgentHostTelemetryService(telemetryService, restricted, productService.copilotVersions?.sdk, productService.copilotVersions?.runtime, initialTelemetryLevel));
+	return disposables.add(new AgentHostTelemetryService(telemetryService, restricted, initialTelemetryLevel));
 }
 
 function parseLaunchTelemetryLevel(value: string | undefined): TelemetryLevel {

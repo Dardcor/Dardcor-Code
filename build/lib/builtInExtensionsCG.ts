@@ -26,13 +26,6 @@ async function downloadExtensionDetails(extension: IExtensionDefinition): Promis
 	}
 
 	const repository = new URL(extension.repo).pathname.slice(1);
-	// Do NOT embed a token in the URL userinfo (`https://<token>@host/...`):
-	// Node's native fetch() throws "Request cannot be constructed from a URL that
-	// includes credentials" on such URLs, which silently emptied extensionsCG/ in
-	// CI for ~2y (the throw was swallowed by getContent's try/catch). The built-in
-	// extension repos are public, so the request is unauthenticated — that also
-	// avoids the failure mode where an invalid token makes raw.githubusercontent
-	// return 404 for content that is otherwise reachable.
 	const repositoryContentBaseUrl = `https://${contentBasePath}/${repository}/v${extension.version}`;
 
 	async function getContent(fileName: string): Promise<{ fileName: string; body: Buffer | undefined | null }> {
@@ -67,7 +60,6 @@ async function downloadExtensionDetails(extension: IExtensionDefinition): Promis
 		}
 	}
 
-	// Validation
 	if (!results.find(r => r.fileName === 'package.json')?.body) {
 		console.warn(`WARN: The "package.json" file could not be found for the built-in extension - ${extensionLabel}`);
 	}

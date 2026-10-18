@@ -51,10 +51,8 @@ export abstract class AbstractLifecycleService extends Disposable implements ILi
 	) {
 		super();
 
-		// Resolve startup kind
 		this._startupKind = this.resolveStartupKind();
 
-		// Save shutdown reason to retrieve on next startup
 		this._register(this.storageService.onWillSaveState(e => {
 			if (e.reason === WillSaveStateReason.SHUTDOWN) {
 				this.storageService.store(AbstractLifecycleService.LAST_SHUTDOWN_REASON_KEY, this.shutdownReason, StorageScope.WORKSPACE, StorageTarget.MACHINE);
@@ -71,11 +69,9 @@ export abstract class AbstractLifecycleService extends Disposable implements ILi
 
 	protected doResolveStartupKind(): StartupKind | undefined {
 
-		// Retrieve and reset last shutdown reason
 		const lastShutdownReason = this.storageService.getNumber(AbstractLifecycleService.LAST_SHUTDOWN_REASON_KEY, StorageScope.WORKSPACE);
 		this.storageService.remove(AbstractLifecycleService.LAST_SHUTDOWN_REASON_KEY, StorageScope.WORKSPACE);
 
-		// Convert into startup kind
 		let startupKind: StartupKind | undefined = undefined;
 		switch (lastShutdownReason) {
 			case ShutdownReason.RELOAD:
@@ -124,8 +120,5 @@ export abstract class AbstractLifecycleService extends Disposable implements ILi
 		await barrier.wait();
 	}
 
-	/**
-	 * Subclasses to implement the explicit shutdown method.
-	 */
 	abstract shutdown(): Promise<void>;
 }

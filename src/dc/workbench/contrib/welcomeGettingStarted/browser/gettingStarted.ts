@@ -128,8 +128,6 @@ export class GettingStartedPage extends EditorPane {
 	private readonly detailsPageDisposables: DisposableStore = new DisposableStore();
 	private readonly mediaDisposables: DisposableStore = new DisposableStore();
 
-	// Ensure that the these are initialized before use.
-	// Currently initialized before use in buildCategoriesSlide and scrollToCategory
 	private recentlyOpened!: Promise<IRecentlyOpened>;
 	private gettingStartedCategories!: IResolvedWalkthrough[];
 
@@ -321,7 +319,6 @@ export class GettingStartedPage extends EditorPane {
 				return;
 			}
 
-			// Save the state of the walkthrough so we can restore it on reload
 			const restoreData: RestoreWalkthroughsConfigurationValue = { folder: UNKNOWN_EMPTY_WINDOW_WORKSPACE.id, category: this.editorInput.selectedCategory, step: this.editorInput.selectedStep };
 			this.storageService.store(
 				restoreWalkthroughsConfigurationKey,
@@ -330,7 +327,6 @@ export class GettingStartedPage extends EditorPane {
 		}));
 	}
 
-	// remove when 'workbench.welcomePage.preferReducedMotion' deprecated
 	private shouldAnimate() {
 		if (this.configurationService.getValue(REDUCED_MOTION_KEY)) {
 			return false;
@@ -469,7 +465,6 @@ export class GettingStartedPage extends EditorPane {
 				this.hideCategory(argument);
 				break;
 			}
-			// Use selectTask over selectStep to keep telemetry consistant:https://github.com/microsoft/vscode/issues/122256
 			case 'selectTask': {
 				this.selectStep(argument);
 				break;
@@ -640,9 +635,8 @@ export class GettingStartedPage extends EditorPane {
 			this.stepDisposables.add(toDisposable(() => { isDisposed = true; }));
 
 			this.stepDisposables.add(this.themeService.onDidColorThemeChange(async () => {
-				// Render again since color vars change
 				const body = await this.detailsRenderer.renderSVG(media.path);
-				if (!isDisposed) { // Make sure we weren't disposed of in the meantime
+				if (!isDisposed) {
 					this.webview.setHtml(body);
 				}
 			}));
@@ -713,10 +707,9 @@ export class GettingStartedPage extends EditorPane {
 			}));
 
 			if (rawHTML.indexOf('<code>') >= 0) {
-				// Render again when Theme changes since syntax highlighting of code blocks may have changed
 				this.stepDisposables.add(this.themeService.onDidColorThemeChange(async () => {
 					const body = await this.detailsRenderer.renderMarkdown(media.path, media.base);
-					if (!isDisposed) { // Make sure we weren't disposed of in the meantime
+					if (!isDisposed) {
 						this.webview.setHtml(body);
 						postTrueKeysMessage();
 					}
@@ -769,13 +762,12 @@ export class GettingStartedPage extends EditorPane {
 			this.stepDisposables.add(toDisposable(() => { isDisposed = true; }));
 
 			this.stepDisposables.add(this.themeService.onDidColorThemeChange(async () => {
-				// Render again since color vars change
 				const themeType = this.themeService.getColorTheme().type;
 				const videoPath = media.path[themeType];
 				const videoPoster = media.poster ? media.poster[themeType] : undefined;
 				const body = await this.detailsRenderer.renderVideo(videoPath, videoPoster, altText);
 
-				if (!isDisposed) { // Make sure we weren't disposed of in the meantime
+				if (!isDisposed) {
 					this.webview.setHtml(body);
 				}
 			}));
@@ -786,7 +778,6 @@ export class GettingStartedPage extends EditorPane {
 		if (!this.editorInput) {
 			return;
 		}
-		// Allow passing in id with a category appended or with just the id of the step
 		if (id.startsWith(`${this.editorInput.selectedCategory}#`)) {
 			this.selectStep(id);
 		} else {
@@ -811,11 +802,9 @@ export class GettingStartedPage extends EditorPane {
 			// eslint-disable-next-line no-restricted-syntax
 			let stepElement = this.container.querySelector<HTMLDivElement>(`[data-step-id="${id}"]`);
 			if (!stepElement) {
-				// Selected an element that is not in-context, just fallback to whatever.
 				// eslint-disable-next-line no-restricted-syntax
 				stepElement = this.container.querySelector<HTMLDivElement>(`[data-step-id]`);
 				if (!stepElement) {
-					// No steps around... just ignore.
 					return;
 				}
 				id = assertReturnsDefined(stepElement.getAttribute('data-step-id'));
@@ -1006,7 +995,7 @@ export class GettingStartedPage extends EditorPane {
 					this.editorInput.selectedCategory = this.currentWalkthrough?.id;
 					this.editorInput.walkthroughPageTitle = this.currentWalkthrough.walkthroughPageTitle;
 					this.buildCategorySlide(this.editorInput.selectedCategory, undefined, preserveFocus);
-					this.setSlide('details', true /* firstLaunch */);
+					this.setSlide('details', true );
 					return;
 				}
 			}
@@ -1042,7 +1031,7 @@ export class GettingStartedPage extends EditorPane {
 				this.telemetryService.publicLog2<GettingStartedActionEvent, GettingStartedActionClassification>('gettingStarted.ActionExecuted', { command: 'openRecent', argument: undefined, walkthroughId: this.currentWalkthrough?.id });
 				this.hostService.openWindow([windowOpenable], {
 					forceNewWindow: e.ctrlKey || e.metaKey,
-					remoteAuthority: recent.remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+					remoteAuthority: recent.remoteAuthority || null
 				});
 				e.preventDefault();
 				e.stopPropagation();
@@ -1359,36 +1348,30 @@ export class GettingStartedPage extends EditorPane {
 		if (isCommand) {
 			const commandURI = URI.parse(command);
 
-			// execute as command
 			let args = [];
 			try {
 				args = parse(decodeURIComponent(commandURI.query));
 			} catch {
-				// ignore and retry
 				try {
 					args = parse(commandURI.query);
 				} catch {
-					// ignore error
 				}
 			}
 			if (!Array.isArray(args)) {
 				args = [args];
 			}
 
-			// If a step is requesting the OpenFolder action to be executed in an empty workspace...
 			if ((commandURI.path === OpenFileFolderAction.ID.toString() ||
 				commandURI.path === OpenFolderAction.ID.toString()) &&
 				this.workspaceContextService.getWorkspace().folders.length === 0) {
 
 				const selectedStepIndex = this.currentWalkthrough?.steps.findIndex(step => step.id === this.editorInput?.selectedStep);
 
-				// and there are a few more steps after this step which are yet to be completed...
 				if (selectedStepIndex !== undefined &&
 					selectedStepIndex > -1 &&
 					this.currentWalkthrough?.steps.slice(selectedStepIndex + 1).some(step => !step.done)) {
 					const restoreData: RestoreWalkthroughsConfigurationValue = { folder: UNKNOWN_EMPTY_WINDOW_WORKSPACE.id, category: this.editorInput?.selectedCategory, step: this.editorInput?.selectedStep };
 
-					// save state to restore after reload
 					this.storageService.store(
 						restoreWalkthroughsConfigurationKey,
 						JSON.stringify(restoreData),
@@ -1486,7 +1469,6 @@ export class GettingStartedPage extends EditorPane {
 
 
 		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
-			// Remove internal extension id specifier from exposed id's
 			this.extensionService.activateByEvent(`onWalkthrough:${categoryID.replace(/[^#]+#/, '')}`);
 		});
 
@@ -1668,7 +1650,6 @@ export class GettingStartedPage extends EditorPane {
 				this.prevWalkthrough = undefined;
 				this.makeCategoryVisibleWhenAvailable(this.currentWalkthrough.id);
 			} else if (this.editorInput?.returnToCommand) {
-				// Execute the specified command to return to the origin page
 				this.commandService.executeCommand(this.editorInput.returnToCommand);
 			} else {
 				this.currentWalkthrough = undefined;
@@ -1680,8 +1661,6 @@ export class GettingStartedPage extends EditorPane {
 				}
 
 				if (this.gettingStartedCategories.length !== this.gettingStartedList.value?.itemCount) {
-					// extensions may have changed in the time since we last displayed the walkthrough list
-					// rebuild the list
 					this.buildCategoriesSlide();
 				}
 
@@ -1748,8 +1727,6 @@ export class GettingStartedPage extends EditorPane {
 		}
 
 		if (parent) {
-			// Only set focus if there is no other focued element outside this chain.
-			// This prevents us from stealing back focus from other focused elements such as quick pick due to delayed load.
 			this.container.focus();
 		}
 	}

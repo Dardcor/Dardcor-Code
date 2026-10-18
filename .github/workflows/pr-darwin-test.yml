@@ -167,7 +167,7 @@ jobs:
         run: npm run compile
         continue-on-error: true
         if: ${{ inputs.smoke_tests }}
-        working-directory: extensions/copilot
+        working-directory: extensions/dardcor
         run: npm run compile
         continue-on-error: true
         if: ${{ inputs.smoke_tests && always() }}

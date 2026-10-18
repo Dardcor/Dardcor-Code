@@ -50,16 +50,13 @@ export class OriginalNotebookModelReferenceCollection extends ReferenceCollectio
 				const model = await modelPromise;
 
 				if (!this.modelsToDispose.has(key)) {
-					// return if model has been acquired again meanwhile
 					return;
 				}
 
-				// Finally we can dispose the model
 				model.dispose();
 			} catch (error) {
-				// ignore
 			} finally {
-				this.modelsToDispose.delete(key); // Untrack as being disposed
+				this.modelsToDispose.delete(key);
 			}
 		})();
 	}
@@ -67,7 +64,7 @@ export class OriginalNotebookModelReferenceCollection extends ReferenceCollectio
 
 export class NotebookOriginalModelReferenceFactory implements INotebookOriginalModelReferenceFactory {
 	readonly _serviceBrand: undefined;
-	private _resourceModelCollection: OriginalNotebookModelReferenceCollection & ReferenceCollection<Promise<NotebookTextModel>> /* TS Fail */ | undefined = undefined;
+	private _resourceModelCollection: OriginalNotebookModelReferenceCollection & ReferenceCollection<Promise<NotebookTextModel>> | undefined = undefined;
 	private get resourceModelCollection() {
 		if (!this._resourceModelCollection) {
 			this._resourceModelCollection = this.instantiationService.createInstance(OriginalNotebookModelReferenceCollection);

@@ -6,16 +6,11 @@ const ROUTER_BASE = String(process.env.MITM_ROUTER_BASE || DEFAULT_LOCAL_ROUTER)
   .replace(/\/+$/, "") || DEFAULT_LOCAL_ROUTER;
 const API_KEY = process.env.ROUTER_API_KEY;
 
-// Headers that must not be forwarded to Dardcor Router
 const STRIP_HEADERS = new Set([
   "host", "content-length", "connection", "transfer-encoding",
   "content-type", "authorization"
 ]);
 
-/**
- * Send body to Dardcor Router at the given path and return the fetch Response object.
- * Optionally forwards client headers (stripped of hop-by-hop / overridden keys).
- */
 async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHeaders = {}) {
   const forwarded = {};
   for (const [k, v] of Object.entries(clientHeaders)) {
@@ -32,14 +27,9 @@ async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHead
     body: JSON.stringify(openaiBody)
   });
 
-  // Forward response as-is (status + body). pipeSSE will propagate status.
   return response;
 }
 
-/**
- * Pipe SSE stream from router directly to client response.
- * Optional dumper tees the stream into a debug file.
- */
 async function pipeSSE(routerRes, res, dumper) {
   const ct = routerRes.headers.get("content-type") || "application/json";
   const status = routerRes.status || 200;
@@ -65,16 +55,6 @@ async function pipeSSE(routerRes, res, dumper) {
   }
 }
 
-/**
- * Pipe SSE stream from router, transforming each chunk through a user function.
- * Reads SSE data: lines, parses JSON, calls transformFn(parsed, state),
- * and writes returned SSE strings to the client response.
- *
- * @param {Response} routerRes - Fetch Response from Dardcor Router
- * @param {http.ServerResponse} res - Client response
- * @param {Function} transformFn - (parsedChunk, state) => string|string[]|null
- * @param {object} state - Mutable state object shared across chunks and flush
- */
 async function pipeTransformedSSE(routerRes, res, transformFn, state) {
   const ct = routerRes.headers.get("content-type") || "application/json";
   const resHeaders = { "Content-Type": ct, "Cache-Control": "no-cache", "Connection": "keep-alive" };
@@ -123,12 +103,10 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
           }
         }
       } catch {
-        // Skip unparseable lines
       }
     }
   }
 
-  // Flush: pass null to signal stream end
   try {
     const flushed = transformFn(null, state);
     if (flushed != null) {
@@ -137,23 +115,11 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
         res.write(output);
       }
     }
-  } catch { /* ignore flush errors */ }
+  } catch { }
 
   res.end();
 }
 
-/**
- * Pipe SSE stream from router, transforming each chunk through a user function,
- * and writing binary EventStream frames to the client.
- *
- * Reads SSE data: lines, parses JSON, calls transformFn(parsed, state),
- * and writes returned Uint8Array frames to the client response.
- *
- * @param {Response} routerRes - Fetch Response from Dardcor Router
- * @param {http.ServerResponse} res - Client response
- * @param {Function} transformFn - (parsedChunk, state) => Uint8Array|Uint8Array[]|null
- * @param {object} state - Mutable state object shared across chunks and flush
- */
 async function pipeTransformedEventStream(routerRes, res, transformFn, state) {
   const resHeaders = {
     "Content-Type": "application/vnd.amazon.eventstream",
@@ -204,12 +170,10 @@ async function pipeTransformedEventStream(routerRes, res, transformFn, state) {
           }
         }
       } catch {
-        // Skip unparseable lines
       }
     }
   }
 
-  // Flush: pass null to signal stream end
   try {
     const flushed = transformFn(null, state);
     if (flushed != null) {
@@ -218,7 +182,7 @@ async function pipeTransformedEventStream(routerRes, res, transformFn, state) {
         res.write(output);
       }
     }
-  } catch { /* ignore flush errors */ }
+  } catch { }
 
   res.end();
 }

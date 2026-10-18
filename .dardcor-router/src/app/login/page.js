@@ -30,7 +30,6 @@ export default function LoginPage() {
         if (!mounted) return;
         if (res.ok) {
           const data = await res.json();
-          // Fresh install or login not required -> redirect straight to dashboard
           if (!data.requireLogin || data.authenticated) {
             router.replace("/dashboard");
             return;

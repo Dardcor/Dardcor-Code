@@ -107,7 +107,6 @@ export const SimilarFiles = (props: SimilarFilesProps, context: ComponentContext
 	return <>{...similarFiles.map((file, index) => <SimilarFile snippet={file} />)}</>;
 };
 
-// TODO: change Chunk for KeepTogether
 const SimilarFile = (props: { snippet: SimilarFileSnippet }, context: ComponentContext) => {
 	return (
 		<Chunk>

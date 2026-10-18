@@ -4,85 +4,62 @@
  *--------------------------------------------------------------------------------------------*/
 
 export enum NamingConvention {
-	/** example: camelCase */
 	CamelCase = 'camelCase',
 
-	/** example: PascalCase */
 	PascalCase = 'PascalCase',
 
-	/** example: snake_case */
 	SnakeCase = 'snake_case',
 
-	/** example: SCREAMING_SNAKE_CASE */
 	ScreamingSnakeCase = 'SCREAMING_SNAKE_CASE',
 
-	/** example: Capital_snake_case */
 	CapitalSnakeCase = 'Capital_snake_case',
 
-	/** example: kebab-case */
 	KebabCase = 'kebab-case',
 
-	/** example: Capitalized */
 	Capitalized = 'Capitalized',
 
-	/** example: ALLCAPS */
 	Uppercase = 'Uppercase',
 
-	/**
-	 * example: lowercase
-	 *
-	 * @remark could also be camel case, snake case, kebab case, e.g., `foo`
-	 */
 	LowerCase = 'lowercase',
 
 	Unknown = 'Unknown',
 }
 
-// Regular expressions for each naming convention
 
 export function guessNamingConvention(ident: string): NamingConvention {
 
-	// lowercase
 	if (/^[a-z][a-z0-9]*$/.test(ident)) {
 		return NamingConvention.LowerCase;
 	}
 
-	// camelCase
 	if (/^[a-z][a-zA-Z0-9]*$/.test(ident)) {
 		return NamingConvention.CamelCase;
 	}
 
-	// snake_case
 	if (/^[a-z]+(_[a-z0-9]+)*$/.test(ident)) {
 		return NamingConvention.SnakeCase;
 	}
 
-	// kebab-case
 	if (/^[a-z]+(-[a-z0-9]+)*$/.test(ident)) {
 		return NamingConvention.KebabCase;
 	}
 
-	// Capitalized
 	if (/^[A-Z][a-z0-9]*$/.test(ident)) {
 		return NamingConvention.Capitalized;
 	}
 
-	// SCREAMING_SNAKE_CASE
 	if (/^[A-Z0-9]+(_[A-Z0-9]+)+$/.test(ident)) {
 		return NamingConvention.ScreamingSnakeCase;
 	}
 
-	// UPPERCASE
 	if (/^[A-Z]+$/.test(ident)) {
 		return NamingConvention.Uppercase;
 	}
 
-	// PascalCase
 	if (/^[A-Z][a-zA-Z0-9]*$/.test(ident)) {
 		return NamingConvention.PascalCase;
 	}
 
-	// Capital_snake_case
 	if (/^[A-Z][a-z0-9]*(_[a-z0-9]+)*$/.test(ident)) {
 		return NamingConvention.CapitalSnakeCase;
 	}

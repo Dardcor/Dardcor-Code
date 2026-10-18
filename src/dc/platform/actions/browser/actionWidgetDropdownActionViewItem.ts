@@ -16,10 +16,6 @@ import { IContextKeyService } from '../../contextkey/common/contextkey.js';
 import { IKeybindingService } from '../../keybinding/common/keybinding.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 
-/**
- * Action view item for the custom action widget dropdown widget.
- * Very closely based off of `DropdownMenuActionViewItem`, would be good to have some code re-use in the future
- */
 export class ActionWidgetDropdownActionViewItem extends BaseActionViewItem {
 	private actionWidgetDropdown: ActionWidgetDropdown | undefined;
 	private actionItem: HTMLElement | null = null;
@@ -52,7 +48,6 @@ export class ActionWidgetDropdownActionViewItem extends BaseActionViewItem {
 	}
 
 	protected renderLabel(element: HTMLElement): IDisposable | null {
-		// todo@aeschli: remove codicon, should come through `this.options.classNames`
 		element.classList.add('codicon');
 
 		if (this._action.label) {

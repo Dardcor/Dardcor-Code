@@ -15,7 +15,7 @@ import {
   coerceResponsesOutput,
 } from "../translator/formats/responsesApi.js";
 
-const OPENCODE_UA = "opencode/1.18.31";
+const OPENCODE_UA = "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14";
 const MAX_SESSION_LENGTH = 256;
 const MAX_TOOL_NAME_LEN = 128;
 const SESSION_HEADER = "x-opencode-session";
@@ -69,7 +69,13 @@ export function generateSessionId(timestamp = Date.now()) {
 }
 
 export function generateRequestId(timestamp = Date.now()) {
-  const current = BigInt(timestamp) * 0x1000n + 1n;
+  if (timestamp !== lastTimestamp) {
+    lastTimestamp = timestamp;
+    counter = 0;
+  }
+  counter++;
+
+  const current = BigInt(timestamp) * 0x1000n + BigInt(counter);
   const value = current;
   const time = Array.from({ length: 6 }, (_, index) =>
     Number((value >> BigInt(40 - 8 * index)) & 0xffn)
@@ -83,16 +89,24 @@ export function translateSessionId(sessionId, clientTool = "") {
   if (typeof sessionId === "string" && OPENCODE_SESSION_RE.test(sessionId.trim())) {
     return sessionId.trim();
   }
+  const timestamp = Date.now();
+  const current = BigInt(timestamp) * 0x1000n + 1n;
+  const value = ~current;
+  const time = Array.from({ length: 6 }, (_, index) =>
+    Number((value >> BigInt(40 - 8 * index)) & 0xffn)
+      .toString(16)
+      .padStart(2, "0")
+  ).join("");
+
   const digest = crypto
     .createHash("sha256")
     .update(`opencode\0${clientTool || "generic"}\0${sessionId || ""}`)
     .digest();
-  const timeHex = digest.subarray(0, 6).toString("hex");
   let randomPart = "";
-  for (let i = 6; i < 20; i++) {
+  for (let i = 0; i < 14; i++) {
     randomPart += BASE62_CHARS[digest[i] % 62];
   }
-  return `ses_${timeHex}${randomPart}`;
+  return `ses_${time}${randomPart}`;
 }
 
 function normalizeSession(value) {
@@ -188,16 +202,22 @@ function lastUserText(body) {
 export function deriveRequestId(sessionId, body) {
   const text = lastUserText(body);
   if (!text) return generateRequestId();
+  const timestamp = Date.now();
+  const current = BigInt(timestamp) * 0x1000n + 1n;
+  const time = Array.from({ length: 6 }, (_, index) =>
+    Number((current >> BigInt(40 - 8 * index)) & 0xffn)
+      .toString(16)
+      .padStart(2, "0")
+  ).join("");
   const digest = crypto
     .createHash("sha256")
     .update(`opencode-req\0${sessionId || ""}\0${text}`)
     .digest();
-  const timeHex = digest.subarray(0, 6).toString("hex");
   let randomPart = "";
-  for (let i = 6; i < 20; i++) {
+  for (let i = 0; i < 14; i++) {
     randomPart += BASE62_CHARS[digest[i] % 62];
   }
-  const id = `msg_${timeHex}${randomPart}`;
+  const id = `msg_${time}${randomPart}`;
   return OPENCODE_REQUEST_RE.test(id) ? id : generateRequestId();
 }
 
@@ -296,7 +316,7 @@ function resolveOpencodeRequestId(body, credentials, sessionId) {
       break;
     }
   }
-  return deriveRequestId(sessionId, body);
+  return generateRequestId();
 }
 
 function normalizeResponsesTools(body) {
@@ -393,12 +413,15 @@ export class OpenCodeExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
-    if (body && typeof body === "object" && model && !body.model) body.model = model;
-    // Zen rejects non-streaming requests on free models with 403 FreeTierError.
-    if (body && typeof body === "object") body.stream = true;
-    if (isResponsesModel(model || body?.model) && body && typeof body === "object") {
+    const cleanModel = baseModelId(model || body?.model).replace(/^(?:opencode|oc)\//i, "").trim();
+    if (body && typeof body === "object") {
+      body.model = cleanModel;
+      // Zen rejects non-streaming requests on free models with 403 FreeTierError.
+      body.stream = true;
+    }
+    if (isResponsesModel(cleanModel) && body && typeof body === "object") {
       if ("tool_choice" in body && body.tool_choice !== "auto"
-        && this.config.quirks?.forceAutoToolChoiceModels?.includes(baseModelId(model))) {
+        && this.config.quirks?.forceAutoToolChoiceModels?.includes(cleanModel)) {
         body.tool_choice = "auto";
       }
       const normalized = normalizeResponsesInput(body.input);
@@ -412,7 +435,7 @@ export class OpenCodeExecutor extends BaseExecutor {
       }
       delete body.max_tokens;
       delete body.max_completion_tokens;
-      normalizeOpencodeReasoning(model, body);
+      normalizeOpencodeReasoning(cleanModel, body);
       body.stream = true;
       body.store = false;
       normalizeResponsesTools(body);
@@ -421,17 +444,43 @@ export class OpenCodeExecutor extends BaseExecutor {
     } else if (body && typeof body === "object") {
       applyFingerprintTools(body, false);
     }
-    return injectReasoningContent({ provider: this.provider, model, body });
+    return injectReasoningContent({ provider: this.provider, model: cleanModel, body });
   }
 
   async execute(args) {
-    return super.execute({ ...args, credentials: this.prepareRequestCredentials(args) });
+    const creds = this.prepareRequestCredentials(args);
+    const result = await super.execute({ ...args, credentials: creds });
+    if ((result?.response?.status === 401 || result?.response?.status === 402 || result?.response?.status === 403) && creds.accessToken && creds.accessToken !== "public") {
+      const publicCreds = { ...creds, accessToken: "public" };
+      const fallbackResult = await super.execute({ ...args, credentials: publicCreds });
+      if (fallbackResult?.response?.status < 400) {
+        return fallbackResult;
+      }
+    }
+    if ((result?.response?.status === 429 || result?.response?.status === 503) && !args?.isRetry) {
+      await new Promise(r => setTimeout(r, 600));
+      const freshSession = generateSessionId();
+      const retryCreds = {
+        ...creds,
+        [SESSION_FIELD]: freshSession,
+        [REQ_FIELD]: generateRequestId(),
+      };
+      const retryResult = await super.execute({ ...args, credentials: retryCreds, isRetry: true });
+      if (retryResult?.response?.status && retryResult.response.status < 400) {
+        return retryResult;
+      }
+    }
+    return result;
   }
 
   buildUrl(model) {
+    const cleanModel = baseModelId(model).replace(/^(?:opencode|oc)\//i, "").trim();
+    if (cleanModel.startsWith("jev")) {
+      throw new Error("Jev is a System One decision model, not an LLM chat completions model. It requires the /systemone endpoint.");
+    }
     const base = this.config.baseUrl;
-    if (isResponsesModel(model)) return `${base}/zen/v1/responses`;
-    if (isMessagesModel(model)) return `${base}/zen/v1/messages`;
+    if (isResponsesModel(cleanModel)) return `${base}/zen/v1/responses`;
+    if (isMessagesModel(cleanModel)) return `${base}/zen/v1/messages`;
     return `${base}/zen/v1/chat/completions`;
   }
 
@@ -447,16 +496,37 @@ export class OpenCodeExecutor extends BaseExecutor {
     const downstreamReq = normalizeRequestId(lower["x-opencode-request"]);
     const requestId = credentials?.[REQ_FIELD] || downstreamReq || generateRequestId();
 
+    const token =
+      credentials?.accessToken ||
+      credentials?.apiKey ||
+      process.env.OPENCODE_ACCESS_TOKEN ||
+      process.env.OPENCODE_API_KEY ||
+      "";
+
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": "Bearer public",
       "User-Agent": isOpencodeDownstream ? downstreamUa : OPENCODE_UA,
       "x-opencode-client": lower["x-opencode-client"] || "desktop",
       "x-opencode-session": session,
+      "x-opencode-session-id": session,
+      "x-session-affinity": session,
+      "X-Session-Id": session,
       "x-opencode-request": requestId,
+      "x-opencode-request-id": requestId,
       "x-opencode-project": lower["x-opencode-project"] || "global",
       "Accept": stream ? "text/event-stream" : "*/*",
     };
+
+    const orgId = credentials?.providerSpecificData?.orgId || credentials?.orgId || lower["x-opencode-org-id"];
+    if (orgId) {
+      headers["x-opencode-org-id"] = orgId;
+    }
+
+    if (token && token !== "public") {
+      headers["Authorization"] = `Bearer ${token}`;
+    } else {
+      headers["Authorization"] = "Bearer public";
+    }
     if (url.endsWith("/messages")) headers["anthropic-version"] = ANTHROPIC_API_VERSION;
     return headers;
   }

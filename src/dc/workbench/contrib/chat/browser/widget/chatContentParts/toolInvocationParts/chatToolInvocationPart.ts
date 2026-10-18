@@ -39,13 +39,6 @@ import { ChatToolProgressSubPart } from './chatToolProgressPart.js';
 import { ChatToolStreamingSubPart } from './chatToolStreamingSubPart.js';
 import { ChatOtherClientToolProgressPart } from './chatOtherClientToolProgressPart.js';
 
-/**
- * Value equality for {@link IMcpAppRenderData}, used so the App's derived
- * render data stays stable across state ticks that don't actually change what
- * the webview renders — otherwise re-reading `state` (to react to in-place
- * `toolSpecificData` mutations) would recreate the webview on every progress
- * update.
- */
 function mcpAppRenderDataEquals(a: IMcpAppRenderData | undefined, b: IMcpAppRenderData | undefined): boolean {
 	if (a === b) {
 		return true;
@@ -129,7 +122,6 @@ export class ChatToolInvocationPart extends Disposable implements IChatContentPa
 			return;
 		}
 
-		// Update the todo list service if this tool invocation contains todo data
 		if (toolInvocation.toolSpecificData?.kind === 'todoList') {
 			const sessionResource = context.element.sessionResource;
 			const todos = toolInvocation.toolSpecificData.todoList.map((todo, index) => {
@@ -171,13 +163,6 @@ export class ChatToolInvocationPart extends Disposable implements IChatContentPa
 				owner: this,
 				equalsFn: mcpAppRenderDataEquals,
 			}, reader => {
-				// Read `state` alongside `toolSpecificDataKind` so the App
-				// re-derives when `toolSpecificData` is mutated in place — e.g.
-				// `mcpAppData` attached on the confirmation -> running
-				// transition, which bumps `state` via
-				// `notifyToolSpecificDataChanged()` but leaves the kind (`input`)
-				// unchanged. `equalsFn` keeps the webview stable across state
-				// ticks that don't change the render data.
 				reader.readObservable(toolInvocation.state);
 				reader.readObservable(toolInvocation.toolSpecificDataKind);
 				const data = this.getMcpAppRenderData();
@@ -196,10 +181,6 @@ export class ChatToolInvocationPart extends Disposable implements IChatContentPa
 			}
 		}
 
-		// This part is a bit different, since IChatToolInvocation is not an immutable model object. So this part is able to rerender itself.
-		// If this turns out to be a typical pattern, we could come up with a more reusable pattern, like telling the list to rerender an element
-		// when the model changes, or trying to make the model immutable and swap out one content part for a new one based on user actions in the view.
-		// Note that `node.replaceWith` is used to ensure order is preserved when an mpc app is present.
 		const partStore = this._register(new DisposableStore());
 		let subPartDomNode: HTMLElement = document.createElement('div');
 		this.domNode.appendChild(subPartDomNode);
@@ -217,7 +198,6 @@ export class ChatToolInvocationPart extends Disposable implements IChatContentPa
 			subPartDomNode.replaceWith(this.subPart.domNode);
 			subPartDomNode = this.subPart.domNode;
 
-			// Add class when displaying a confirmation widget
 			const isConfirmation = this.subPart instanceof ToolConfirmationSubPart ||
 				this.subPart instanceof ChatTerminalToolConfirmationSubPart ||
 				this.subPart instanceof ChatModifiedFilesConfirmationSubPart ||
@@ -269,7 +249,6 @@ export class ChatToolInvocationPart extends Disposable implements IChatContentPa
 			}
 			const state = this.toolInvocation.state.get();
 
-			// Handle streaming state - show streaming progress
 			if (state.type === IChatToolInvocation.StateKind.Streaming) {
 				return this.instantiationService.createInstance(ChatToolStreamingSubPart, this.toolInvocation, this.context, this.renderer);
 			}
@@ -371,12 +350,6 @@ export class ChatToolInvocationPart extends Disposable implements IChatContentPa
 		return this.instantiationService.createInstance(ChatToolProgressSubPart, this.toolInvocation, this.context, this.renderer, this.announcedToolProgressKeys);
 	}
 
-	/**
-	 * Gets MCP App render data if this tool invocation has MCP App UI.
-	 * Returns data from either:
-	 * - toolSpecificData.mcpAppData (for in-progress tools)
-	 * - result details mcpOutput (for completed tools)
-	 */
 	private getMcpAppRenderData(): IMcpAppRenderData | undefined {
 		const toolSpecificData = this.toolInvocation.toolSpecificData;
 		if (toolSpecificData?.kind === 'input' && toolSpecificData.mcpAppData) {

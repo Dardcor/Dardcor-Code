@@ -12,14 +12,9 @@ import { IEditorOptions } from '../../../../../platform/editor/common/editor.js'
 
 const $ = DOM.$;
 
-/**
- * Options passed to the chat debug editor pane to control
- * which session and view to navigate to.
- */
 export interface IChatDebugEditorOptions extends IEditorOptions {
 	readonly sessionResource?: URI;
 	readonly viewHint?: 'home' | 'overview' | 'logs' | 'flowchart' | 'cache' | 'wirelog';
-	/** When set, automatically applies this text as the log filter. */
 	readonly filter?: string;
 }
 
@@ -43,7 +38,6 @@ export const CHAT_DEBUG_KIND_MODEL_TURN = new RawContextKey<boolean>('chatDebug.
 export const CHAT_DEBUG_KIND_PROMPT_DISCOVERY = new RawContextKey<boolean>('chatDebug.kindPromptDiscovery', true);
 export const CHAT_DEBUG_KIND_SUBAGENT = new RawContextKey<boolean>('chatDebug.kindSubagent', true);
 
-// Filter toggle command IDs
 export const CHAT_DEBUG_CMD_TOGGLE_TOOL_CALL = 'chatDebug.filter.toggleToolCall';
 export const CHAT_DEBUG_CMD_TOGGLE_MODEL_TURN = 'chatDebug.filter.toggleModelTurn';
 export const CHAT_DEBUG_CMD_TOGGLE_PROMPT_DISCOVERY = 'chatDebug.filter.togglePromptDiscovery';
@@ -62,7 +56,6 @@ export class TextBreadcrumbItem extends BreadcrumbsItem {
 	}
 
 	dispose(): void {
-		// Nothing to dispose
 	}
 
 	render(container: HTMLElement): void {
@@ -74,10 +67,6 @@ export class TextBreadcrumbItem extends BreadcrumbsItem {
 	}
 }
 
-/**
- * Wire up Left/Right arrow, Home/End, and Enter keyboard navigation
- * on a BreadcrumbsWidget container.
- */
 export function setupBreadcrumbKeyboardNavigation(container: HTMLElement, widget: BreadcrumbsWidget): IDisposable {
 	return DOM.addDisposableListener(container, DOM.EventType.KEY_DOWN, (e: KeyboardEvent) => {
 		switch (e.key) {

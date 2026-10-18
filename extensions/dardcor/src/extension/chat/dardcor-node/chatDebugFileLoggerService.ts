@@ -11,7 +11,7 @@ import { IEnvService } from '../../../platform/env/common/envService';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
 import { createDirectoryIfNotExists, IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { CopilotChatAttr, GenAiAttr, GenAiOperationName } from '../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, GenAiOperationName } from '../../../platform/otel/common/index';
 import { ICompletedSpanData, IOTelService, ISpanEventData, SpanStatusCode } from '../../../platform/otel/common/otelService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
@@ -28,48 +28,32 @@ const MIN_FLUSH_INTERVAL_MS = 2_000;
 const MAX_ATTR_VALUE_LENGTH = 5_000;
 const MAX_PENDING_CORE_EVENTS = 100;
 const DEFAULT_MAX_SESSION_LOG_MB = 100;
-const TRUNCATION_RETAIN_RATIO = 0.6; // retain 60% of max on truncation
+const TRUNCATION_RETAIN_RATIO = 0.6;
 const MAX_SPAN_SESSION_INDEX = 10_000;
 
 
 interface IActiveLogSession {
 	readonly uri: URI;
-	/** The directory containing this session's log files */
 	readonly sessionDir: URI;
 	readonly buffer: string[];
 	flushPromise: Promise<void>;
 	dirEnsured: boolean;
 	bytesWritten: number;
-	/** Parent session ID if this is a child session (e.g., title, categorization) */
 	readonly parentSessionId?: string;
-	/** Label for child sessions (e.g., 'title', 'categorization') */
 	readonly label?: string;
-	/** Whether this session has received its own OTel spans (vs being auto-created as a parent ref) */
 	hasOwnSpans: boolean;
-	/** Whether models.json has already been written to this session's directory */
 	modelSnapshotWritten: boolean;
-	/** Key identifying the last-written system prompt: model + agent/mode name (undefined = none written yet) */
 	systemPromptKey: string | undefined;
-	/** Index of the next system_prompt file to write */
 	systemPromptIndex: number;
-	/** File name of the most recently written system prompt (e.g., 'system_prompt_0.json') */
 	currentSystemPromptFile: string | undefined;
-	/** Key identifying the last-written tools file: model + agent/mode name (undefined = none written yet) */
 	toolsKey: string | undefined;
-	/** Index of the next tools file to write */
 	toolsIndex: number;
-	/** File name of the most recently written tools file (e.g., 'tools_0.json') */
 	currentToolsFile: string | undefined;
-	/** Pending tool definitions received before the session was promoted to hasOwnSpans */
 	pendingToolDefs: string | undefined;
-	/** Whether we've already checked disk for a previous session directory (prevents repeated sync FS calls) */
 	resumeChecked: boolean;
-	/** Run index: 0 for the first run, incremented on each VS Code restart that resumes this session */
 	runIndex: number;
 }
 
-// IDebugLogEntry is imported from and defined in the platform layer.
-// Re-export for consumers that import from this file.
 export type { IDebugLogEntry } from '../../../platform/chat/common/chatDebugFileLoggerService';
 
 export class ChatDebugFileLoggerService extends Disposable implements IChatDebugFileLoggerService {
@@ -81,9 +65,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	readonly onDidEmitEntry = this._onDidEmitEntry.event;
 
 	private readonly _activeSessions = new Map<string, IActiveLogSession>();
-	/** Maps child session ID → { parentSessionId, label } for child session routing */
 	private readonly _childSessionMap = new Map<string, { parentSessionId: string; label: string; parentToolSpanId?: string }>();
-	/** Maps spanId → resolved session ID for parent-span inheritance */
 	private readonly _spanSessionIndex = new Map<string, string>();
 	private readonly _pendingCoreEvents: IDebugLogEntry[] = [];
 	private _modelSnapshot: readonly unknown[] | undefined;
@@ -108,12 +90,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 
 		const enabled = this._configurationService.getExperimentBasedConfig(ConfigKey.Advanced.ChatDebugFileLogging, this._experimentationService);
 		if (!enabled) {
-			/* __GDPR__
-				"chatDebugFileLogger.disabled" : {
-					"owner": "vijayupadya",
-					"comment": "Chat debug file logging is disabled via experiment or config"
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('chatDebugFileLogger.disabled');
 			this._autoFlushIntervalMs = DEFAULT_FLUSH_INTERVAL_MS;
 			this._maxSessionLogBytes = DEFAULT_MAX_SESSION_LOG_MB * 1024 * 1024;
@@ -123,7 +99,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		this._autoFlushIntervalMs = Math.max(MIN_FLUSH_INTERVAL_MS, this._configurationService.getConfig(ConfigKey.Advanced.ChatDebugFileLoggingFlushInterval) ?? DEFAULT_FLUSH_INTERVAL_MS);
 		this._maxSessionLogBytes = this._resolveMaxSessionLogBytes();
 
-		// React to changes at runtime
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ConfigKey.Advanced.ChatDebugFileLoggingFlushInterval.fullyQualifiedId)) {
 				this._autoFlushIntervalMs = Math.max(MIN_FLUSH_INTERVAL_MS, this._configurationService.getConfig(ConfigKey.Advanced.ChatDebugFileLoggingFlushInterval) ?? DEFAULT_FLUSH_INTERVAL_MS);
@@ -134,17 +109,14 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			}
 		}));
 
-		// Subscribe to OTel span completions
 		this._register(this._otelService.onDidCompleteSpan(span => {
 			this._onSpanCompleted(span);
 		}));
 
-		// Subscribe to OTel span events (real-time user messages)
 		this._register(this._otelService.onDidEmitSpanEvent(event => {
 			this._onSpanEvent(event);
 		}));
 
-		// Subscribe to core debug events (discovery, skill loading, etc.)
 		if (typeof vscode.chat?.onDidReceiveChatDebugEvent === 'function') {
 			this._register(vscode.chat.onDidReceiveChatDebugEvent(event => {
 				this._onCoreDebugEvent(event);
@@ -163,18 +135,9 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			clearInterval(this._autoFlushTimer);
 			this._autoFlushTimer = undefined;
 		}
-		// Accumulate any remaining active session bytes before emitting telemetry
 		for (const session of this._activeSessions.values()) {
 			this._totalBytesWritten += session.bytesWritten;
 		}
-		/* __GDPR__
-			"chatDebugFileLogger.end" : {
-				"owner": "vijayupadya",
-				"comment": "Chat debug file logger is being disposed",
-				"totalBytesWritten": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Total bytes written across all sessions" },
-				"sessionCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Total number of sessions logged" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('chatDebugFileLogger.end', undefined, { totalBytesWritten: this._totalBytesWritten, sessionCount: this._totalSessionCount });
 		super.dispose();
 	}
@@ -187,10 +150,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		if (this._debugLogsDirUri) {
 			return this._debugLogsDirUri;
 		}
-		// Prefer workspace-scoped storage. When a workspace/folder is open
-		// `storageUri` is defined and is always used (this is the common case for
-		// both local and Copilot CLI sessions). Only when no workspace is open is
-		// `storageUri` `undefined`; in that case fall back to the always-available
 		// global storage so debug logs are still written to disk.
 		const storageUri = (this._extensionContext.storageUri ?? this._extensionContext.globalStorageUri) as URI | undefined;
 		if (!storageUri) {
@@ -227,37 +186,19 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		return roots;
 	}
 
-	/**
-	 * Resolve the directory of a historical session by probing the candidate
-	 * roots on disk and returning the first that actually contains the session
-	 * directory. Returns `undefined` when no root contains it (e.g. a brand new
-	 * session that hasn't been written yet).
-	 */
 	private _resolveHistoricalSessionDir(sessionId: string): URI | undefined {
 		for (const root of this._getCandidateDebugLogsRoots()) {
 			const candidate = URI.joinPath(root, sessionId);
 			try {
-				// Verify the candidate is an actual directory, not a stray file,
-				// so we never return a path under which `main.jsonl` could never exist.
 				if (fs.statSync(candidate.fsPath).isDirectory()) {
 					return candidate;
 				}
 			} catch {
-				// Not under this root — try the next one.
 			}
 		}
 		return undefined;
 	}
 
-	/**
-	 * Resolve the directory a child session should be written to. A child must
-	 * live under its parent's *actual* directory, which may sit under a different
-	 * storage root than the current window's active write root (e.g. when the
-	 * parent was logged with no workspace open and later resumed in a workspace
-	 * window). Prefer the parent's already-resolved active `sessionDir`, then
-	 * probe disk for a historical parent directory, and only fall back to the
-	 * current write root when neither is available.
-	 */
 	private _resolveParentSessionDir(parentSessionId: string, fallbackRoot: URI): URI {
 		return this._activeSessions.get(parentSessionId)?.sessionDir
 			?? this._resolveHistoricalSessionDir(parentSessionId)
@@ -265,7 +206,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	async startSession(sessionId: string): Promise<void> {
-		this._ensureSession(sessionId, /* hasOwnSpans */ true);
+		this._ensureSession(sessionId, true);
 	}
 
 	startChildSession(childSessionId: string, parentSessionId: string, label: string, parentToolSpanId?: string): void {
@@ -276,7 +217,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 
 	registerSpanSession(spanId: string, sessionId: string): void {
 		this._spanSessionIndex.set(spanId, sessionId);
-		// Apply same eviction cap as _onSpanCompleted
 		if (this._spanSessionIndex.size > MAX_SPAN_SESSION_INDEX) {
 			const excess = this._spanSessionIndex.size - MAX_SPAN_SESSION_INDEX;
 			const iter = this._spanSessionIndex.keys();
@@ -286,21 +226,11 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	/**
-	 * Synchronously ensure a session exists for buffering. Directory creation
-	 * and old-log cleanup are deferred to the first flush.
-	 *
-	 * Sessions are organized in directories:
-	 * - Parent session: `debug-logs/<sessionId>/main.jsonl`
-	 * - Child session: `debug-logs/<parentSessionId>/<label>-<childSessionId>.jsonl`
-	 */
 	private _ensureSession(sessionId: string, hasOwnSpans = false): void {
 		const existing = this._activeSessions.get(sessionId);
 		if (existing) {
-			// Mark that this session now has its own spans (upgrades from auto-created parent ref)
 			if (hasOwnSpans && !existing.hasOwnSpans) {
 				existing.hasOwnSpans = true;
-				// Now that we know this is a real session, replay pending core events
 				if (!existing.parentSessionId) {
 					this._emitSessionStartAndReplay(sessionId, existing);
 				}
@@ -320,21 +250,13 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		let fileUri: URI;
 
 		if (childInfo) {
-			// Ensure parent session exists so we can write a cross-reference and
-			// resolve the parent's actual directory before deriving the child path.
-			// A child referencing a parent proves it is a main user session,
-			// so promote it with hasOwnSpans = true.
-			this._ensureSession(childInfo.parentSessionId, /* hasOwnSpans */ true);
+			this._ensureSession(childInfo.parentSessionId, true);
 
-			// Child session — write under the parent's *actual* directory, which may
-			// live under a different storage root than the current write root when
-			// the parent was resumed from history.
 			sessionDir = this._resolveParentSessionDir(childInfo.parentSessionId, dir);
 			const safeLabel = childInfo.label.replace(/[/\\:*?"<>|\x00-\x1f]/g, '_').replace(/\.\./g, '_');
 			const fileName = `${safeLabel}-${sessionId}.jsonl`;
 			fileUri = URI.joinPath(sessionDir, fileName);
 
-			// Write a cross-reference entry in the parent's main.jsonl
 			this._bufferEntry(childInfo.parentSessionId, {
 				ts: Date.now(),
 				dur: 0,
@@ -351,11 +273,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 				},
 			});
 		} else {
-			// Parent session — write as main.jsonl in its own directory. When the
-			// session was previously written under a different storage root (e.g.
-			// logged with no workspace open, then resumed in a workspace window),
-			// continue in that existing directory instead of starting a fresh file
-			// under the current root.
 			sessionDir = this._resolveHistoricalSessionDir(sessionId) ?? URI.joinPath(dir, sessionId);
 			fileUri = URI.joinPath(sessionDir, 'main.jsonl');
 		}
@@ -383,10 +300,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		};
 		this._activeSessions.set(sessionId, session);
 
-		// Write a session_start entry so every JSONL file has a version header.
-		// For parent sessions with their own spans, also replay pending core events.
 		if (childInfo) {
-			// Child sessions get a minimal session_start (no core event replay)
 			this._bufferEntry(sessionId, {
 				v: 1,
 				ts: Date.now(),
@@ -407,12 +321,10 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			this._emitSessionStartAndReplay(sessionId, session);
 		}
 
-		// Start auto-flush timer if this is the first active session
 		if (this._activeSessions.size === 1 && !this._autoFlushTimer) {
 			this._autoFlushTimer = setInterval(() => this._autoFlushAll(), this._autoFlushIntervalMs);
 		}
 
-		// Fire-and-forget cleanup of old logs
 		this._cleanupOldLogs().catch(() => { });
 	}
 
@@ -424,14 +336,12 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 		this._activeSessions.delete(sessionId);
 
-		// Clean up span→session mappings for this session
 		for (const [spanId, sid] of this._spanSessionIndex) {
 			if (sid === sessionId) {
 				this._spanSessionIndex.delete(spanId);
 			}
 		}
 
-		// Stop auto-flush timer if no active sessions remain
 		if (this._activeSessions.size === 0 && this._autoFlushTimer) {
 			clearInterval(this._autoFlushTimer);
 			this._autoFlushTimer = undefined;
@@ -445,14 +355,9 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 
 		if (session.buffer.length === 0) {
-			// No JSONL entries to flush, but still await any pending async work
-			// (e.g. model snapshot write) enqueued on flushPromise.
 			return session.flushPromise;
 		}
 
-		// Skip flushing for sessions not yet confirmed as main sessions.
-		// Keep the buffer intact so entries are preserved if the session
-		// is promoted later (e.g., when a child span references it).
 		if (!session.parentSessionId && !session.hasOwnSpans) {
 			return;
 		}
@@ -472,7 +377,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		if (active) {
 			return active.uri;
 		}
-		// For child sessions, construct the correct <label>-<sessionId>.jsonl path
 		const childInfo = this._childSessionMap.get(sessionId);
 		if (childInfo) {
 			const dir = this._getDebugLogsDir();
@@ -480,33 +384,24 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			const parentDir = this._resolveParentSessionDir(childInfo.parentSessionId, dir);
 			return URI.joinPath(parentDir, `${childInfo.label}-${sessionId}.jsonl`);
 		}
-		// For historical sessions (after restart), construct the default path
 		const sessionDir = this.getSessionDir(sessionId);
 		return sessionDir ? URI.joinPath(sessionDir, 'main.jsonl') : undefined;
 	}
 
 	getSessionDir(sessionId: string): URI | undefined {
-		// If active, use the stored sessionDir (already points to parent dir for children)
 		const active = this._activeSessions.get(sessionId);
 		if (active) {
 			return active.sessionDir;
 		}
-		// If known as a child, resolve to the parent's directory
 		const childInfo = this._childSessionMap.get(sessionId);
 		if (childInfo) {
 			const dir = this._getDebugLogsDir();
 			return dir ? this._resolveParentSessionDir(childInfo.parentSessionId, dir) : undefined;
 		}
-		// Unknown session — likely historical (resumed after restart). It may have
-		// been written under a different storage root than the current window uses
-		// (e.g. a no-workspace session reopened in a workspace window), so probe
-		// disk and prefer the root that actually contains it.
 		const existing = this._resolveHistoricalSessionDir(sessionId);
 		if (existing) {
 			return existing;
 		}
-		// Not found on disk — fall back to the active write root (where it would
-		// be created), so callers still get a well-formed path.
 		const dir = this._getDebugLogsDir();
 		return dir ? URI.joinPath(dir, sessionId) : undefined;
 	}
@@ -516,10 +411,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	isDebugLogUri(uri: URI): boolean {
-		// Check every candidate root (workspace + global), not just the active
-		// write root: a session may have been written under a different root than
-		// the current window uses (e.g. a no-workspace session reopened in a
-		// workspace window). The tool read allowlist must cover those too.
 		for (const dir of this._getCandidateDebugLogsRoots()) {
 			if (extUriBiasedIgnorePathCase.isEqualOrParent(uri, dir)) {
 				return true;
@@ -535,7 +426,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 
 	setModelSnapshot(models: readonly unknown[]): void {
 		this._modelSnapshot = models;
-		// Write to any active parent sessions that started before the model fetch completed
 		for (const [, session] of this._activeSessions) {
 			if (!session.parentSessionId && session.hasOwnSpans) {
 				this._enqueueModelSnapshotWrite(session);
@@ -587,10 +477,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	/**
-	 * Emit a session_start entry, replay cached core events, and write the model snapshot.
-	 * Called when a parent session is first promoted to hasOwnSpans.
-	 */
 	private _emitSessionStartAndReplay(sessionId: string, session: IActiveLogSession): void {
 		this._bufferEntry(sessionId, {
 			v: 1,
@@ -612,7 +498,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		if (this._modelSnapshot) {
 			this._enqueueModelSnapshotWrite(session);
 		}
-		// Write pending tool definitions that arrived before the session was promoted
 		if (session.pendingToolDefs) {
 			const fileName = `tools_${session.toolsIndex}.json`;
 			session.toolsIndex++;
@@ -622,7 +507,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	// ── OTel span handling ──
 
 	private _onSpanCompleted(span: ICompletedSpanData): void {
 		const sessionId = this._extractSessionId(span);
@@ -630,10 +514,8 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			return;
 		}
 
-		// Record the span→session mapping so child spans can inherit it
 		this._spanSessionIndex.set(span.spanId, sessionId);
 		if (this._spanSessionIndex.size > MAX_SPAN_SESSION_INDEX) {
-			// Evict oldest entries (Map iterates in insertion order)
 			const excess = this._spanSessionIndex.size - MAX_SPAN_SESSION_INDEX;
 			const iter = this._spanSessionIndex.keys();
 			for (let i = 0; i < excess; i++) {
@@ -641,9 +523,8 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			}
 		}
 
-		// Check if this span carries parent session info (e.g., title, categorization)
-		const parentChatSessionId = asString(span.attributes[CopilotChatAttr.PARENT_CHAT_SESSION_ID]);
-		const debugLogLabel = asString(span.attributes[CopilotChatAttr.DEBUG_LOG_LABEL]);
+		const parentChatSessionId = asString(span.attributes[DardcorChatAttr.PARENT_CHAT_SESSION_ID]);
+		const debugLogLabel = asString(span.attributes[DardcorChatAttr.DEBUG_LOG_LABEL]);
 		if (parentChatSessionId && debugLogLabel && !this._childSessionMap.has(sessionId)) {
 			this._childSessionMap.set(sessionId, { parentSessionId: parentChatSessionId, label: debugLogLabel });
 		}
@@ -654,32 +535,17 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			? asString(span.attributes[GenAiAttr.OUTPUT_MESSAGES])
 			: undefined;
 
-		// Never auto-promote sessions from OTel spans.  Sub-requests like
-		// title generation, categorization, and progress-message generation
-		// each carry their own session IDs with real CHAT content but should
-		// not create top-level folders.  A session is only promoted to "real"
-		// (hasOwnSpans = true) when:
-		//   1. startSession() is called explicitly, or
-		//   2. A child span references it via PARENT_CHAT_SESSION_ID
-		//      (handled in _ensureSession's child branch).
-		//   3. The session directory already exists on disk (resumed after restart).
 		this._ensureSession(sessionId);
 
-		// Auto-promote resumed sessions: if the session was just created with
-		// hasOwnSpans = false but has an existing JSONL directory from a previous
-		// extension lifecycle, promote it. This handles sessions continued after
-		// VS Code restart where title/categorization won't re-fire.
 		const session = this._activeSessions.get(sessionId);
 		if (session && !session.hasOwnSpans && !session.parentSessionId && !session.resumeChecked) {
 			session.resumeChecked = true;
 			const mainJsonl = URI.joinPath(session.sessionDir, 'main.jsonl');
 			try {
 				fs.accessSync(mainJsonl.fsPath);
-				// Directory exists from a previous run — this is a resumed session
 				session.hasOwnSpans = true;
 				session.dirEnsured = true;
 
-				// Determine the run index: read the max rIdx from the existing file + 1
 				try {
 					const tail = this._readTailBytes(mainJsonl.fsPath, 8192);
 					let maxRIdx = 0;
@@ -690,13 +556,11 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 							if (typeof parsed.rIdx === 'number' && parsed.rIdx > maxRIdx) {
 								maxRIdx = parsed.rIdx;
 							}
-						} catch { /* skip malformed lines */ }
+						} catch { }
 					}
 					session.runIndex = maxRIdx + 1;
-				} catch { /* file read failed — runIndex stays at 0, but that's safe since this is a back-compat path */ }
+				} catch { }
 
-				// Find the next available indices for companion files to avoid
-				// overwriting ones from the previous run. Single readdir + scan.
 				try {
 					for (const f of fs.readdirSync(session.sessionDir.fsPath)) {
 						const spIdx = f.startsWith('system_prompt_') ? parseInt(f.slice(14), 10) : -1;
@@ -704,13 +568,11 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 						const tIdx = f.startsWith('tools_') ? parseInt(f.slice(6), 10) : -1;
 						if (tIdx >= session.toolsIndex) { session.toolsIndex = tIdx + 1; }
 					}
-				} catch { /* readdir failed — indices stay at 0 */ }
+				} catch { }
 			} catch {
-				// No existing directory — leave as is
 			}
 		}
 
-		// Write system_prompt JSON when model or mode changes (before buffering so llm_request gets the file ref)
 		if (opName === GenAiOperationName.CHAT) {
 			const session = this._activeSessions.get(sessionId);
 			if (session && session.hasOwnSpans && !session.parentSessionId) {
@@ -732,7 +594,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 
 		if (entry) {
-			// Attach current system prompt and tools file references to llm_request entries
 			if (entry.type === 'llm_request') {
 				const session = this._activeSessions.get(sessionId);
 				if (session?.currentSystemPromptFile) {
@@ -745,15 +606,10 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			this._bufferEntry(sessionId, entry);
 		}
 
-		// Note: user_message events are captured in real-time via _onSpanEvent
-		// (onDidEmitSpanEvent) to avoid duplicates, since span.events also
-		// contains them after completion.
 
-		// Extract agent_response from output messages (on chat spans)
 		if (opName === GenAiOperationName.CHAT) {
-			// Extract agent response summary from output messages
 			if (outputMessages) {
-				const reasoningContent = asString(span.attributes[CopilotChatAttr.REASONING_CONTENT]);
+				const reasoningContent = asString(span.attributes[DardcorChatAttr.REASONING_CONTENT]);
 				this._bufferEntry(sessionId, {
 					ts: span.endTime,
 					dur: 0,
@@ -791,10 +647,8 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			return;
 		}
 
-		// If the event carries a session ID, route to that specific session
-		const eventSessionId = event.attributes[CopilotChatAttr.CHAT_SESSION_ID];
+		const eventSessionId = event.attributes[DardcorChatAttr.CHAT_SESSION_ID];
 		if (typeof eventSessionId === 'string') {
-			// Ensure the session buffer exists so early events (before any span completes) are captured
 			this._ensureSession(eventSessionId);
 			this._bufferEntry(eventSessionId, {
 				ts: event.timestamp,
@@ -812,7 +666,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			return;
 		}
 
-		// Fallback: try to inherit session from parent span before broadcasting
 		const inheritedSessionId = event.parentSpanId ? this._spanSessionIndex.get(event.parentSpanId) : undefined;
 		if (inheritedSessionId && this._activeSessions.has(inheritedSessionId)) {
 			this._bufferEntry(inheritedSessionId, {
@@ -831,7 +684,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			return;
 		}
 
-		// Last resort: span events without chat_session_id — write to parent sessions that have their own spans
 		const parentSessions = [...this._activeSessions.entries()]
 			.filter(([, session]) => !session.parentSessionId && session.hasOwnSpans)
 			.map(([id]) => id);
@@ -860,15 +712,14 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	private _onTurnBoundaryEvent(event: ISpanEventData): void {
 		const type = event.eventName === 'turn_start' ? 'turn_start' : 'turn_end';
 		const turnId = typeof event.attributes.turnId === 'string' ? event.attributes.turnId : String(event.attributes.turnId ?? '');
-		const sessionId = typeof event.attributes[CopilotChatAttr.CHAT_SESSION_ID] === 'string'
-			? event.attributes[CopilotChatAttr.CHAT_SESSION_ID] as string
+		const sessionId = typeof event.attributes[DardcorChatAttr.CHAT_SESSION_ID] === 'string'
+			? event.attributes[DardcorChatAttr.CHAT_SESSION_ID] as string
 			: (event.parentSpanId ? this._spanSessionIndex.get(event.parentSpanId) : undefined);
 
 		if (!sessionId) {
 			return;
 		}
 
-		// Ensure the session buffer exists so early turn events are captured
 		this._ensureSession(sessionId);
 
 		this._bufferEntry(sessionId, {
@@ -885,22 +736,19 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	private _onToolsAvailableEvent(event: ISpanEventData): void {
-		const sessionId = typeof event.attributes[CopilotChatAttr.CHAT_SESSION_ID] === 'string'
-			? event.attributes[CopilotChatAttr.CHAT_SESSION_ID] as string
+		const sessionId = typeof event.attributes[DardcorChatAttr.CHAT_SESSION_ID] === 'string'
+			? event.attributes[DardcorChatAttr.CHAT_SESSION_ID] as string
 			: (event.parentSpanId ? this._spanSessionIndex.get(event.parentSpanId) : undefined);
 
 		if (!sessionId) {
 			return;
 		}
 
-		// Do NOT create sessions from tools_available events — they can carry tool call IDs
-		// (e.g., toolu_xxx, call_xxx) as conversation IDs, which are not valid session IDs.
 		const session = this._activeSessions.get(sessionId);
 		if (!session || session.parentSessionId) {
 			return;
 		}
 
-		// If the session isn't promoted yet, cache the tools for later replay
 		if (!session.hasOwnSpans) {
 			const toolDefs = typeof event.attributes.toolDefinitions === 'string' ? event.attributes.toolDefinitions : undefined;
 			if (toolDefs) {
@@ -914,9 +762,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			return;
 		}
 
-		// Use the content length to detect changes. Different tool sets (from model
-		// or mode switches) will have different lengths. A false negative (same length,
-		// different content) just means we skip writing a redundant file — harmless.
 		const key = `tools:${toolDefs.length}`;
 		if (key !== session.toolsKey) {
 			const fileName = `tools_${session.toolsIndex}.json`;
@@ -927,11 +772,8 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	// ── Core debug event handling (discovery, skill loading, etc.) ──
 
 	private _onCoreDebugEvent(event: vscode.ChatDebugEvent): void {
-		// Only capture discovery/generic events from core — tool calls, model turns,
-		// and subagent invocations come from OTel spans which are the source of truth.
 		if (!(event instanceof vscode.ChatDebugGenericEvent)) {
 			return;
 		}
@@ -956,13 +798,10 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			},
 		};
 
-		// Core events may arrive before any session exists — cache and replay.
-		// Cap the buffer to avoid unbounded growth over long-running sessions.
 		if (this._pendingCoreEvents.length >= MAX_PENDING_CORE_EVENTS) {
 			this._pendingCoreEvents.shift();
 		}
 		this._pendingCoreEvents.push(entry);
-		// Only write to parent sessions that have their own spans
 		for (const [sessionId, session] of this._activeSessions.entries()) {
 			if (!session.parentSessionId && session.hasOwnSpans) {
 				this._bufferEntry(sessionId, { ...entry, sid: sessionId });
@@ -970,7 +809,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	// ── Span to entry conversion ──
 
 	private _spanToEntry(span: ICompletedSpanData, sessionId: string): IDebugLogEntry | undefined {
 		const opName = asString(span.attributes[GenAiAttr.OPERATION_NAME]);
@@ -1005,7 +843,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 				const model = asString(span.attributes[GenAiAttr.REQUEST_MODEL])
 					?? asString(span.attributes[GenAiAttr.RESPONSE_MODEL])
 					?? 'unknown';
-				const debugName = asString(span.attributes[CopilotChatAttr.DEBUG_NAME])
+				const debugName = asString(span.attributes[DardcorChatAttr.DEBUG_NAME])
 					?? asString(span.attributes[GenAiAttr.AGENT_NAME]);
 				return {
 					ts: span.startTime,
@@ -1028,14 +866,14 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 						...(span.attributes[GenAiAttr.USAGE_CACHE_READ_INPUT_TOKENS] !== undefined
 							? { cachedTokens: asNumber(span.attributes[GenAiAttr.USAGE_CACHE_READ_INPUT_TOKENS]) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.TIME_TO_FIRST_TOKEN] !== undefined
-							? { ttft: asNumber(span.attributes[CopilotChatAttr.TIME_TO_FIRST_TOKEN]) }
+						...(span.attributes[DardcorChatAttr.TIME_TO_FIRST_TOKEN] !== undefined
+							? { ttft: asNumber(span.attributes[DardcorChatAttr.TIME_TO_FIRST_TOKEN]) }
 							: {}),
 						...(span.attributes[GenAiAttr.RESPONSE_ID] !== undefined
 							? { responseId: asString(span.attributes[GenAiAttr.RESPONSE_ID]) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.USER_REQUEST] !== undefined
-							? { userRequest: String(span.attributes[CopilotChatAttr.USER_REQUEST]) }
+						...(span.attributes[DardcorChatAttr.USER_REQUEST] !== undefined
+							? { userRequest: String(span.attributes[DardcorChatAttr.USER_REQUEST]) }
 							: {}),
 						...(span.attributes[GenAiAttr.INPUT_MESSAGES] !== undefined
 							? { inputMessages: String(span.attributes[GenAiAttr.INPUT_MESSAGES]) }
@@ -1049,14 +887,14 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 						...(span.attributes[GenAiAttr.REQUEST_TOP_P] !== undefined
 							? { topP: asNumber(span.attributes[GenAiAttr.REQUEST_TOP_P]) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.REQUEST_OPTIONS] !== undefined
-							? { requestOptions: String(span.attributes[CopilotChatAttr.REQUEST_OPTIONS]) }
+						...(span.attributes[DardcorChatAttr.REQUEST_OPTIONS] !== undefined
+							? { requestOptions: String(span.attributes[DardcorChatAttr.REQUEST_OPTIONS]) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.REQUEST_SHAPE] !== undefined
-							? { requestShape: String(span.attributes[CopilotChatAttr.REQUEST_SHAPE]) }
+						...(span.attributes[DardcorChatAttr.REQUEST_SHAPE] !== undefined
+							? { requestShape: String(span.attributes[DardcorChatAttr.REQUEST_SHAPE]) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.COPILOT_USAGE_NANO_AIU] !== undefined
-							? { dardcorUsageNanoAiu: asNumber(span.attributes[CopilotChatAttr.COPILOT_USAGE_NANO_AIU]) }
+						...(span.attributes[DardcorChatAttr.DARDCOR_USAGE_NANO_AIU] !== undefined
+							? { dardcorUsageNanoAiu: asNumber(span.attributes[DardcorChatAttr.DARDCOR_USAGE_NANO_AIU]) }
 							: {}),
 						...(isError && span.status.message ? { error: span.status.message } : {}),
 					},
@@ -1065,7 +903,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 
 			case GenAiOperationName.INVOKE_AGENT: {
 				if (!span.parentSpanId) {
-					return undefined; // Top-level agent spans are containers
+					return undefined;
 				}
 				const agentName = asString(span.attributes[GenAiAttr.AGENT_NAME]) ?? span.name;
 				return {
@@ -1089,7 +927,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 
 			case GenAiOperationName.CONTENT_EVENT:
 			case 'core_event': {
-				const name = asString(span.attributes[CopilotChatAttr.DEBUG_NAME]) ?? span.name;
+				const name = asString(span.attributes[DardcorChatAttr.DEBUG_NAME]) ?? span.name;
 				return {
 					ts: span.startTime,
 					dur: duration,
@@ -1111,7 +949,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			}
 
 			case GenAiOperationName.EXECUTE_HOOK: {
-				const hookType = asString(span.attributes[CopilotChatAttr.HOOK_TYPE]) ?? span.name;
+				const hookType = asString(span.attributes[DardcorChatAttr.HOOK_TYPE]) ?? span.name;
 				return {
 					ts: span.startTime,
 					dur: duration,
@@ -1125,14 +963,14 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 						...(span.attributes['dardcor_chat.hook_command'] !== undefined
 							? { command: truncate(String(span.attributes['dardcor_chat.hook_command']), MAX_ATTR_VALUE_LENGTH) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.HOOK_INPUT] !== undefined
-							? { input: truncate(String(span.attributes[CopilotChatAttr.HOOK_INPUT]), MAX_ATTR_VALUE_LENGTH) }
+						...(span.attributes[DardcorChatAttr.HOOK_INPUT] !== undefined
+							? { input: truncate(String(span.attributes[DardcorChatAttr.HOOK_INPUT]), MAX_ATTR_VALUE_LENGTH) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.HOOK_OUTPUT] !== undefined
-							? { output: truncate(String(span.attributes[CopilotChatAttr.HOOK_OUTPUT]), MAX_ATTR_VALUE_LENGTH) }
+						...(span.attributes[DardcorChatAttr.HOOK_OUTPUT] !== undefined
+							? { output: truncate(String(span.attributes[DardcorChatAttr.HOOK_OUTPUT]), MAX_ATTR_VALUE_LENGTH) }
 							: {}),
-						...(span.attributes[CopilotChatAttr.HOOK_RESULT_KIND] !== undefined
-							? { resultKind: String(span.attributes[CopilotChatAttr.HOOK_RESULT_KIND]) }
+						...(span.attributes[DardcorChatAttr.HOOK_RESULT_KIND] !== undefined
+							? { resultKind: String(span.attributes[DardcorChatAttr.HOOK_RESULT_KIND]) }
 							: {}),
 						...(isError && span.status.message ? { error: span.status.message } : {}),
 					},
@@ -1144,12 +982,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	// ── Helpers ──
 
-	/**
-	 * Read the last `byteCount` bytes of a file synchronously.
-	 * Used during session resume to determine the max rIdx without reading the entire file.
-	 */
 	private _readTailBytes(filePath: string, byteCount: number): string {
 		const fd = fs.openSync(filePath, 'r');
 		try {
@@ -1164,12 +997,9 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	private _extractSessionId(span: ICompletedSpanData): string | undefined {
-		const directSessionId = asString(span.attributes[CopilotChatAttr.CHAT_SESSION_ID])
+		const directSessionId = asString(span.attributes[DardcorChatAttr.CHAT_SESSION_ID])
 			?? asString(span.attributes[GenAiAttr.CONVERSATION_ID]);
 
-		// If the span's parentSpanId maps to a known child session, prefer that.
-		// This handles hook spans that carry the parent's CHAT_SESSION_ID but
-		// whose parent span belongs to a child subagent session.
 		if (span.parentSpanId) {
 			const childSessionId = this._spanSessionIndex.get(span.parentSpanId);
 			if (childSessionId && this._childSessionMap.has(childSessionId)) {
@@ -1187,7 +1017,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			return;
 		}
 		let stamped = entry;
-		// Stamp run index for restart scoping (omit when 0 to save bytes)
 		if (session.runIndex > 0 && !stamped.rIdx) {
 			stamped = { ...stamped, rIdx: session.runIndex };
 		}
@@ -1209,8 +1038,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		if (logPath) {
 			try {
 				const stat = await fs.promises.stat(logPath.fsPath);
-				// Start with a read size that should cover `count` entries.
-				// Average JSONL entry is ~1-2KB, so count * 4KB is generous.
 				const readSize = Math.min(stat.size, count * 4096);
 				const startOffset = Math.max(0, stat.size - readSize);
 
@@ -1221,37 +1048,32 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 
 					const text = buffer.subarray(0, bytesRead).toString('utf-8');
 					const lines = text.split('\n');
-					// Skip the first line if we started mid-file (likely partial)
 					const startIdx = startOffset > 0 ? 1 : 0;
 					for (let i = startIdx; i < lines.length; i++) {
 						if (!lines[i]) { continue; }
 						try {
 							entries.push(JSON.parse(lines[i]) as IDebugLogEntry);
-						} catch { /* skip malformed */ }
+						} catch { }
 					}
 				} finally {
 					await fd.close();
 				}
 
-				// Keep only the last `count` entries
 				if (entries.length > count) {
 					entries = entries.slice(-count);
 				}
 			} catch {
-				// File may not exist — that's fine
 			}
 		}
 
-		// Append unflushed buffer entries
 		if (session) {
 			for (const line of session.buffer) {
 				try {
 					entries.push(JSON.parse(line) as IDebugLogEntry);
-				} catch { /* skip malformed */ }
+				} catch { }
 			}
 		}
 
-		// Trim to the last `count` entries (file + buffer combined)
 		if (entries.length > count) {
 			entries = entries.slice(-count);
 		}
@@ -1272,37 +1094,33 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 						const text = typeof chunk === 'string' ? chunk : chunk.toString('utf-8');
 						partial += text;
 						const lines = partial.split('\n');
-						// Last element may be a partial line — keep it for next chunk
 						partial = lines.pop() ?? '';
 						for (const line of lines) {
 							if (!line) { continue; }
 							try {
 								onEntry(JSON.parse(line) as IDebugLogEntry);
-							} catch { /* skip malformed */ }
+							} catch { }
 						}
 					});
 					stream.on('end', () => {
-						// Process any remaining partial line
 						if (partial) {
 							try {
 								onEntry(JSON.parse(partial) as IDebugLogEntry);
-							} catch { /* skip malformed */ }
+							} catch { }
 						}
 						resolve();
 					});
 					stream.on('error', reject);
 				});
 			} catch {
-				// File may not exist — that's fine
 			}
 		}
 
-		// Append unflushed buffer entries
 		if (session) {
 			for (const line of session.buffer) {
 				try {
 					onEntry(JSON.parse(line) as IDebugLogEntry);
-				} catch { /* skip malformed */ }
+				} catch { }
 			}
 		}
 	}
@@ -1323,11 +1141,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 		}
 	}
 
-	/**
-	 * Truncate a log file to retain the newest portion (TRUNCATION_RETAIN_RATIO
-	 * of the configured max size) using a streaming approach via a temp file
-	 * to avoid loading the entire tail into memory.
-	 */
 	private async _truncateLogFile(session: IActiveLogSession): Promise<void> {
 		try {
 			const filePath = session.uri.fsPath;
@@ -1340,10 +1153,9 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			const skipBytes = stat.size - retainBytes;
 			const fd = await fs.promises.open(filePath, 'r');
 			try {
-				// Read a small probe around the cut point to find the next newline
 				const probe = Buffer.alloc(4096);
 				const { bytesRead } = await fd.read(probe, 0, probe.length, skipBytes);
-				const newlineIdx = probe.indexOf(0x0A, 0); // '\n'
+				const newlineIdx = probe.indexOf(0x0A, 0);
 				const cutOffset = skipBytes + (newlineIdx >= 0 && newlineIdx < bytesRead ? newlineIdx + 1 : 0);
 
 				const tailSize = stat.size - cutOffset;
@@ -1353,7 +1165,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 				}
 				await fd.close();
 
-				// Stream the tail to a temp file, then rename over the original.
 				const tmpPath = filePath + '.tmp';
 				await new Promise<void>((resolve, reject) => {
 					const readStream = fs.createReadStream(filePath, { start: cutOffset });
@@ -1370,29 +1181,14 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 				});
 				await fs.promises.rename(tmpPath, filePath);
 				session.bytesWritten = tailSize;
-				/* __GDPR__
-					"chatDebugFileLogger.truncated" : {
-						"owner": "vijayupadya",
-						"comment": "A debug log file was truncated due to size limits",
-						"previousSize": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "File size in bytes before truncation" },
-						"retainedSize": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "File size in bytes after truncation" }
-					}
-				*/
 				this._telemetryService.sendMSFTTelemetryEvent('chatDebugFileLogger.truncated', undefined, { previousSize: stat.size, retainedSize: tailSize });
 			} catch (innerErr) {
 				await fd.close().catch(() => { });
-				// Clean up temp file if it exists
 				await fs.promises.unlink(filePath + '.tmp').catch(() => { });
 				throw innerErr;
 			}
 		} catch (err) {
 			this._logService.warn(`[ChatDebugFileLogger] Failed to truncate log file: ${err}`);
-			/* __GDPR__
-				"chatDebugFileLogger.truncateFailed" : {
-					"owner": "vijayupadya",
-					"comment": "Failed to truncate a debug log file"
-				}
-			*/
 			this._telemetryService.sendMSFTTelemetryEvent('chatDebugFileLogger.truncateFailed');
 		}
 	}
@@ -1414,22 +1210,18 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	async listSessionIds(): Promise<string[]> {
-		// Aggregate across all candidate roots (workspace + global) so that
-		// sessions written in a different window context (e.g. with no workspace
-		// open) are still listed. Dedupe by session name, keeping the most recent.
 		const roots = this._getCandidateDebugLogsRoots();
 		const byName = new Map<string, number>();
 		await Promise.all(roots.map(async dir => {
 			try {
 				const entries = await this._fileSystemService.readDirectory(dir);
-				const dirs = entries.filter(([, type]) => type === 2 /* FileType.Directory */);
+				const dirs = entries.filter(([, type]) => type === 2 );
 				await Promise.all(dirs.map(async ([name]) => {
 					let mtime = 0;
 					try {
 						const stat = await this._fileSystemService.stat(URI.joinPath(dir, name));
 						mtime = stat.mtime;
 					} catch {
-						// Stat failed — treat as oldest.
 					}
 					const existing = byName.get(name);
 					if (existing === undefined || mtime > existing) {
@@ -1437,7 +1229,6 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 					}
 				}));
 			} catch {
-				// Directory may not exist yet — skip this root.
 			}
 		}));
 		return [...byName.entries()]
@@ -1446,10 +1237,7 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 	}
 
 	private async _cleanupOldLogs(): Promise<void> {
-		// Apply the retention cap to each candidate root (workspace + global)
-		// independently. This keeps each workspace's bucket bounded as before
 		// while also trimming the global no-workspace bucket, which may be written
-		// from any window context.
 		const roots = this._getCandidateDebugLogsRoots();
 		if (roots.length === 0) {
 			return;
@@ -1467,30 +1255,15 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			totalDeletedCount += result.deletedCount;
 		}
 
-		/* __GDPR__
-			"chatDebugFileLogger.cleanupOldLogs" : {
-				"owner": "vijayupadya",
-				"comment": "Old debug log files were cleaned up",
-				"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Time in ms to perform cleanup" },
-				"entryCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Total number of log entries found" },
-				"deletedCount": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "Number of log entries deleted" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('chatDebugFileLogger.cleanupOldLogs', undefined, { durationMs: Date.now() - startTime, entryCount: totalEntryCount, deletedCount: totalDeletedCount });
 	}
 
-	/**
-	 * Trim a single `debug-logs` root down to {@link maxRetainedSessionLogs}
-	 * sessions, deleting the oldest first and never deleting a currently active
-	 * session. Returns the number of entries found and deleted in this root.
-	 */
 	private async _cleanupOldLogsInRoot(dir: URI, maxRetainedSessionLogs: number): Promise<{ entryCount: number; deletedCount: number }> {
 		try {
 			const entries = await this._fileSystemService.readDirectory(dir);
-			// Count both directories (new format) and legacy .jsonl files (old format)
 			const sessionEntries = entries.filter(([name, type]) =>
-				(type === 2 /* FileType.Directory */) ||
-				(name.endsWith('.jsonl') && type === 1 /* FileType.File */)
+				(type === 2 ) ||
+				(name.endsWith('.jsonl') && type === 1 )
 			);
 
 			if (sessionEntries.length <= maxRetainedSessionLogs) {
@@ -1530,24 +1303,17 @@ export class ChatDebugFileLoggerService extends Disposable implements IChatDebug
 			}
 			return { entryCount: sessionEntries.length, deletedCount: deleted };
 		} catch {
-			// Directory may not exist yet
 			return { entryCount: 0, deletedCount: 0 };
 		}
 	}
 }
 
-/**
- * Contribution that eagerly instantiates the ChatDebugFileLoggerService
- * so it starts listening to OTel events at activation time.
- */
 export class ChatDebugFileLoggerContribution implements IExtensionContribution {
 	public readonly id = 'chatDebugFileLoggerContribution';
 
 	constructor(
 		@IChatDebugFileLoggerService _service: IChatDebugFileLoggerService,
 	) {
-		// The DI resolution of IChatDebugFileLoggerService triggers
-		// construction of the singleton, which subscribes to events.
 	}
 }
 

@@ -74,7 +74,6 @@ import { focusChatModelFeedbackSurveyAction } from '../actions/chatModelFeedback
 import { ChatTreeItem, IChatCodeBlockInfo, IChatFileTreeInfo, IChatListItemRendererOptions, IChatWidgetService } from '../chat.js';
 import { getCompactCodicon } from '../chatIcons.js';
 import { ChatModelFeedbackSurveyWidget } from '../feedbackSurvey/chatModelFeedbackSurveyWidget.js';
-import { AgentHostSnapshotController } from '../agentSessions/agentHost/agentHostSnapshotController.js';
 import { RestoreCheckpointActionId, StartOverActionId } from '../chatEditing/chatEditingActions.js';
 import { ChatForkActionViewItem } from './chatForkActionViewItem.js';
 import { ChatRestoreCheckpointActionViewItem } from './chatRestoreCheckpointActionViewItem.js';
@@ -131,31 +130,17 @@ import { ChatPendingDragController } from './chatPendingDragAndDrop.js';
 import { HookType } from '../../common/promptSyntax/hookTypes.js';
 import { AccessibilityWorkbenchSettingId } from '../../../accessibility/browser/accessibilityConfiguration.js';
 import { isAskQuestionsToolInvocation, isMcpToolInvocation } from './chatContentParts/toolInvocationParts/chatToolPartUtilities.js';
-import { AgentSessionProviders, isAgentHostTarget } from '../agentSessions/agentSessions.js';
 
 const $ = dom.$;
 
-const COPILOT_USERNAME = 'GitHub Copilot';
+const DARDCOR_USERNAME = 'Dardcor AI';
 const WORKING_CAUGHT_UP_DEBOUNCE_MS = 750;
 const DEFAULT_CHAT_ITEM_HORIZONTAL_PADDING = 40;
 
 export interface IChatListItemTemplate {
 	currentElement?: ChatTreeItem;
-	/**
-	 * The parts that are currently rendered in the template. Note that these are purposely not added to elementDisposables-
-	 * they are disposed in a separate cycle after diffing with the next content to render.
-	 */
 	renderedParts?: IChatContentPart[];
-	/**
-	 * Tool parts that have been moved out of a thinking part into the row's value
-	 * container. Their lifecycle matches `renderedParts` (cleared by
-	 * `clearRenderedParts`), not `elementDisposables` which is cleared on
-	 * virtualization recycle.
-	 */
 	movedOutToolParts?: DisposableMap<string, IDisposable>;
-	/**
-	 * Element used to track whether the template is mounted in the DOM.
-	 */
 	renderedPartsMounted?: boolean;
 	renderedContent?: ReadonlyArray<IChatRendererContent>;
 	completedResponseDisclosure?: HTMLDetailsElement;
@@ -164,18 +149,11 @@ export interface IChatListItemTemplate {
 	completedResponseDisclosureOpen?: boolean;
 	wasResponseComplete?: boolean;
 	readonly completedResponseDisclosureDisposables: DisposableStore;
-	/**
-	 * Token-usage breakdown hover for the response footer's model/credits stat.
-	 * Template-scoped because the focusable footer container is reused across
-	 * element renders, allowing its managed hover to be updated in place.
-	 */
 	readonly responseTokenStatsHover: MutableDisposable<IManagedHover>;
 
-	/** Drag handle element for reordering pending requests, if currently rendered. */
 	dragHandle?: HTMLElement;
 
 	readonly rowContainer: HTMLElement;
-	/** Height allocated by the list for the currently rendered row. */
 	allocatedHeight?: number;
 	readonly titleToolbar?: MenuWorkbenchToolBar;
 	readonly header?: HTMLElement;
@@ -199,7 +177,6 @@ export interface IChatListItemTemplate {
 	readonly checkpointRestoreToolbar: MenuWorkbenchToolBar;
 	readonly checkpointContainer: HTMLElement;
 	readonly checkpointRestoreContainer: HTMLElement;
-	/** Inline model feedback survey shown beneath the footer, when an experiment offers one. */
 	readonly feedbackSurveyWidget: ChatModelFeedbackSurveyWidget;
 }
 
@@ -387,16 +364,6 @@ export function getVisibleCompletedResponseItemCount(nodes: ReadonlyArray<Node>)
 	return visibleItemCount;
 }
 
-/**
- * Response details shown when hovering the response footer's model and credits
- * stat. Provider call-level token reports are aggregated by model for the whole
- * turn.
- *
- * Returns `undefined` when the provider reported no totals, in which case no
- * hover should be shown at all. The result doubles as managed-hover content and
- * carries a footer label with exact counts but no completion time, since the
- * verbose footer already includes it in its accessible name.
- */
 export function formatResponseTokenStats(modelTotals: readonly IChatUsageModelTotal[] | undefined, completedAt?: number): { readonly markdown: MarkdownString; readonly markdownNotSupportedFallback: string; readonly footerAriaLabel: string } | undefined {
 	if (!modelTotals?.length) {
 		return undefined;
@@ -456,29 +423,14 @@ export function getCompletedResponseCollapseEndIndex(content: ReadonlyArray<ICha
 	return finalResponseStartIndex;
 }
 
-/** How a freshly measured row height should be reconciled against the tree's known height. */
 export type ChatItemHeightUpdateKind = 'none' | 'fire' | 'scheduleInitial' | 'deferReMeasure';
 
 export interface IChatItemHeightUpdate {
-	/** Value to store back into the element's `currentRenderedHeight`. */
 	readonly nextRenderedHeight: number | undefined;
-	/** Whether/how to notify the tree of the new height. */
 	readonly kind: ChatItemHeightUpdateKind;
-	/** The height to notify with (meaningful when `kind` is `fire` or `scheduleInitial`). */
 	readonly height: number;
 }
 
-/**
- * Decide how a freshly measured, normalized row height should be reconciled against the height
- * the tree currently knows about (`currentRenderedHeight`).
- *
- * `isBeingRendered` is `true` when the measurement arrives *synchronously* during the tree's
- * `renderElement` call; in that case the tree must not be notified re-entrantly.
- *
- * See https://github.com/microsoft/vscode/issues/326952: when notification is suppressed,
- * `currentRenderedHeight` must remain unchanged so an identical deferred measurement is not
- * deduplicated before it reaches the tree.
- */
 export function reconcileChatItemHeight(
 	normalizedHeight: number,
 	currentRenderedHeight: number | undefined,
@@ -490,10 +442,6 @@ export function reconcileChatItemHeight(
 	}
 
 	if (isBeingRendered) {
-		// Suppress the re-entrant notification and DO NOT advance `currentRenderedHeight` (the tree
-		// was never told). Schedule a deferred re-measure so the height reaches the tree once this
-		// row is done rendering, instead of relying on a later async measurement that could be
-		// deduped by the "unchanged" check above.
 		return { nextRenderedHeight: currentRenderedHeight, kind: 'deferReMeasure', height: normalizedHeight };
 	}
 
@@ -501,8 +449,6 @@ export function reconcileChatItemHeight(
 		return { nextRenderedHeight: normalizedHeight, kind: 'fire', height: normalizedHeight };
 	}
 
-	// First measurements that already fit are just initialization. Only schedule a first update
-	// when the row would otherwise clip newly rendered content.
 	if (!shouldScheduleInitialHeightChange(normalizedHeight, allocatedHeight)) {
 		return { nextRenderedHeight: normalizedHeight, kind: 'none', height: normalizedHeight };
 	}
@@ -510,11 +456,6 @@ export function reconcileChatItemHeight(
 	return { nextRenderedHeight: normalizedHeight, kind: 'scheduleInitial', height: normalizedHeight };
 }
 
-/**
- * Renders the response footer: completion timestamp and the model/credits stat.
- * `tokenStatsAriaLabel` is folded into the container's accessible name so the
- * token breakdown offered on hover is also available to screen readers.
- */
 export function renderChatResponseDetails(container: HTMLElement, details: string | undefined, completedAt: number | undefined, elapsedMs: number | undefined, verbose: boolean, tokenStatsAriaLabel?: string): HTMLElement | undefined {
 	dom.clearNode(container);
 	container.classList.remove('chat-response-flip-active', 'chat-response-flip-down', 'chat-response-flip-reset');
@@ -622,7 +563,6 @@ function isGeneratedImageResultOwner(toolInvocation: IChatToolInvocation | IChat
 }
 
 const forceVerboseLayoutTracing = false
-	// || Boolean("TRUE") // causes a linter warning so that it cannot be pushed
 	;
 
 export interface IChatRendererDelegate {
@@ -641,14 +581,16 @@ const mostRecentResponseClassName = 'chat-most-recent-response';
 
 export function shouldHideChatUserIdentity(username: string, sessionResource: URI, isResponse: boolean, isSystemInitiatedRequest: boolean): boolean {
 	const sessionType = getChatSessionType(sessionResource);
-	return username === COPILOT_USERNAME ||
+	return username === DARDCOR_USERNAME ||
+		username === 'Dardcor Code' ||
+		username.toLowerCase() === 'dardcor code' ||
+		username.toLowerCase().includes('dardcor') ||
 		(isResponse && isAgentHostCopilotSessionType(sessionType)) ||
 		isSystemInitiatedRequest;
 }
 
 function isAgentHostCopilotSessionType(sessionType: string): boolean {
-	return sessionType === AgentSessionProviders.AgentHostCopilot ||
-		parseRemoteAgentHostSessionTypeAuthority(sessionType, SessionType.CopilotCLI) !== undefined;
+	return parseRemoteAgentHostSessionTypeAuthority(sessionType, SessionType.CopilotCLI) !== undefined;
 }
 
 function upvoteAnimationSettingToEnum(value: string | undefined): ClickAnimation | undefined {
@@ -686,7 +628,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	private readonly pendingStickyScrollStateRefresh = this._register(new MutableDisposable<IDisposable>());
 	private readonly templateDataByRow = new WeakMap<HTMLElement, IChatListItemTemplate>();
 
-	/** Track pending question carousels by session resource for auto-skip on chat submission */
 	private readonly pendingQuestionCarousels = new ResourceMap<Set<ChatQuestionCarouselPart>>();
 	private readonly _notifiedQuestionCarousels = new Set<string>();
 	private readonly workingProgressConfirmationEndListeners = new WeakSet<IChatToolInvocation>();
@@ -730,13 +671,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 	private readonly _inlineTextModels: InlineTextModelCollection;
 
-	/** Whether we have already logged the incremental-rendering telemetry event for this renderer instance. */
 	private _incrementalRenderingTelemetryLogged = false;
 
-	/**
-	 * Prevents re-announcement of already rendered chat progress
-	 * by screen readers
-	 */
 	private readonly _announcedToolProgressKeys = new Set<string>();
 
 	constructor(
@@ -771,7 +707,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 		this._inlineTextModels = this._register(this.instantiationService.createInstance(InlineTextModelCollection));
 		this._register(this.instantiationService.createInstance(ChatCodeBlockContentProvider));
-		// Auto-skip pending question carousels when user submits a new chat message
 		this._register(this.chatService.onDidSubmitRequest(e => {
 			const carousels = this.pendingQuestionCarousels.get(e.chatSessionResource);
 			if (carousels) {
@@ -782,7 +717,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		}));
 
-		// Auto-skip all pending question carousels when auto-reply is enabled mid-session
 		this._register(this.configService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ChatConfiguration.AutoReply) && this.configService.getValue<boolean>(ChatConfiguration.AutoReply)) {
 				for (const [, carousels] of this.pendingQuestionCarousels) {
@@ -862,9 +796,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				this._onDidChangeItemHeight.fire({ element, height: scheduledHeight });
 			});
 		} else if (update.kind === 'deferReMeasure') {
-			// The measurement arrived synchronously during this row's render. Re-measure on the
-			// next frame (once the render pass is over) so the grown height reliably reaches the
-			// tree without a re-entrant notification.
 			dom.scheduleAtNextAnimationFrame(dom.getWindow(template.rowContainer), () => {
 				if (template.currentElement === element && element !== this._elementBeingRendered) {
 					this.fireItemHeightChange(template);
@@ -873,9 +804,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 	}
 
-	/**
-	 * Compute a rate to render at in words/s.
-	 */
 	private getProgressiveRenderRate(element: IChatResponseViewModel): number {
 		const enum Rate {
 			Min = 40,
@@ -963,9 +891,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		this.stickyScrollSourceRangesByRequestId.clear();
 		this.stickyScrollRequestContentById.clear();
 
-		// Fire the viewModel update first so template listeners can dispose
-		// their rendered content parts and release pool items back. Only then
-		// clear the pools so all released items are caught.
 		this._onDidUpdateViewModel.fire();
 		this._editorPool.clear();
 		this._toolEditorPool.clear();
@@ -1030,9 +955,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 	}
 
-	/**
-	 * Returns the currently rendered chat item containing the node.
-	 */
 	getElementFromNode(node: HTMLElement): ChatTreeItem | undefined {
 		let current: HTMLElement | null = node;
 		while (current && this.delegate.container.contains(current)) {
@@ -1060,11 +982,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		if (this.rendererOptions.renderStyle === 'minimal') {
 			rowContainer.classList.add('interactive-item-compact');
 			rowContainer.classList.add('minimal');
-			// -----------------------------------------------------
-			//  icon | details
-			//       | references
-			//       | value
-			// -----------------------------------------------------
 			const lhsContainer = dom.append(rowContainer, $('.column.left'));
 			const rhsContainer = dom.append(rowContainer, $('.column.right'));
 
@@ -1157,11 +1074,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		}));
 
-		// Insert the details container into the toolbar's internal element structure
 		const footerDetailsContainer = dom.append(footerToolbar.getElement(), $('.chat-footer-details'));
 		footerDetailsContainer.tabIndex = 0;
 
-		// Sits below the footer toolbar so opening a survey never moves the footer icons.
 		const feedbackSurveyContainer = dom.append(rowContainer, $('.chat-feedback-survey-widget.hidden'));
 		const feedbackSurveyWidget = templateDisposables.add(scopedInstantiationService.createInstance(ChatModelFeedbackSurveyWidget, feedbackSurveyContainer, () => focusChatModelFeedbackSurveyAction(footerToolbar)));
 
@@ -1261,29 +1176,12 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return template;
 	}
 
-	/**
-	 * Determines whether an action at the given chat item would discard file
-	 * edits that the user should confirm in-place.
-	 */
 	private discardEditsActionNeedsConfirmation(context: unknown): boolean {
 		if (!isRequestVM(context) && !isResponseVM(context)) {
 			return false;
 		}
 
-		const requestId = isRequestVM(context) ? context.id : context.requestId;
-		const model = this.chatService.getSession(context.sessionResource);
-		const session = model?.editingSession;
-		if (!model || !(session instanceof AgentHostSnapshotController)) {
-			return false;
-		}
-
-		const requests = model.getRequests();
-		const index = requests.findIndex(request => request.id === requestId);
-		if (index === -1) {
-			return false;
-		}
-
-		return requests.slice(index).some(request => session.hasEditsInRequest(request.id));
+		return false;
 	}
 
 	renderElement(node: ITreeNode<ChatTreeItem, FuzzyScore>, index: number, templateData: IChatListItemTemplate, details?: IListElementRenderDetails): void {
@@ -1296,10 +1194,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 	}
 
-	/**
-	 * Dispose the rendered parts in the template, which aren't done in disposeElement
-	 * so they can be reused when a new render is started.
-	 */
 	private clearRenderedParts(templateData: IChatListItemTemplate): void {
 		this.removeCompletedResponseDisclosure(templateData);
 		if (templateData.renderedParts) {
@@ -1315,8 +1209,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.movedOutToolParts?.dispose();
 		templateData.movedOutToolParts = undefined;
 
-		// This template item is no longer in use, or having another element rendered into it,
-		// clear the context on toolbars so it doesn't retain the viewmodel.
 		if (templateData.titleToolbar) {
 			templateData.titleToolbar.context = undefined;
 		}
@@ -1341,21 +1233,16 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 
 		templateData.currentElement = element;
-		// Don't update the template map for sticky scroll renders - their templates
-		// get disposed independently and would leave stale references.
 		if (!dom.findParentWithClass(templateData.rowContainer, 'monaco-tree-sticky-row')) {
 			this.templateDataByRequestId.set(element.id, templateData);
 		}
 
-		// Clear pending-related classes and drag handle from previous renders
-		// Do this before element-type checks to ensure dividers also get cleaned up
 		templateData.rowContainer.classList.remove('pending-item', 'pending-divider', 'pending-request', 'chat-pending-dragging', 'terminal-command-request', 'chat-system-notification-response');
 		templateData.dragHandle?.remove();
 		templateData.dragHandle = undefined;
 		delete templateData.rowContainer.dataset.pendingRequestId;
 		delete templateData.rowContainer.dataset.pendingKind;
 
-		// Handle pending divider with simplified rendering
 		if (isPendingDividerVM(element)) {
 			this.renderPendingDivider(element, templateData);
 			return;
@@ -1400,9 +1287,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				renderChatResponseDetails(templateData.footerDetailsContainer, undefined, undefined, undefined, false);
 			}
 			const details = isResponseVM(element) && !rendersInlineSystemNotificationTiming ? element.result?.details : undefined;
-			// Providers report usage asynchronously, often after the footer has already
-			// rendered, so the breakdown is recomputed on every render pass. Sessions
-			// whose provider reports no totals get no hover rather than an empty one.
 			const tokenStats = isResponseVM(element)
 				&& !rendersInlineSystemNotificationTiming
 				? formatResponseTokenStats(element.model.usage?.modelTotals, element.model.completionTimestamp)
@@ -1415,12 +1299,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				isResponseVM(element) && this.configService.getValue<boolean>(ChatConfiguration.Verbose),
 				tokenStats?.footerAriaLabel,
 			);
-			// The container (rather than the stat span) is the hover target because it
-			// is the focusable element, which keeps the breakdown reachable by keyboard
-			// as well as by pointer. It is created once per template and survives the
-			// re-render above, so an existing hover is updated in place: replacing it
-			// would re-key the hover service's target map and leave the container
-			// unregistered for `workbench.action.showHover`.
 			const tokenStatsHover = templateData.responseTokenStatsHover;
 			if (!tokenStats) {
 				tokenStatsHover.clear();
@@ -1476,8 +1354,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.rowContainer.classList.toggle('show-detail-progress', isResponseVM(element) && !element.isComplete && !element.progressMessages.length && !progressMessageAtBottomOfResponse);
 		templateData.rowContainer.classList.toggle('chat-progress-reservable', isResponseVM(element) && !element.isComplete && !!progressMessageAtBottomOfResponse);
 
-		// Toggle show-checkmarks class at the container level for the accessibility setting,
-		// so child content parts can use CSS descendant selectors instead of each subscribing individually.
 		const updateContainerCheckmarks = () => templateData.rowContainer.classList.toggle('show-checkmarks', !!this.configService.getValue<boolean>(AccessibilityWorkbenchSettingId.ShowChatCheckmarks));
 		updateContainerCheckmarks();
 		const updateVerboseDetails = () => templateData.rowContainer.classList.toggle('show-verbose-details', !!this.configService.getValue<boolean>(ChatConfiguration.Verbose));
@@ -1522,19 +1398,15 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 		templateData.checkpointContainer.classList.toggle('hidden', isStickyScrollRow || isResponseVM(element) || isPendingRequest || isSystemInitiatedRequest || !(checkpointEnabled));
 
-		// Force toolbars to synchronously re-evaluate after context key changes
-		// to avoid size measurement issues from the debounced menu update.
 		templateData.footerToolbar.refresh();
 		templateData.checkpointToolbar.refresh();
 		templateData.checkpointRestoreToolbar.refresh();
 
-		// Track response template data by request ID for cross-row hover effects
 		if (isResponseVM(element)) {
 			this.responseTemplateDataByRequestId.set(element.requestId, templateData);
 			templateData.elementDisposables.add(toDisposable(() => this.responseTemplateDataByRequestId.delete(element.requestId)));
 		}
 
-		// unified hovering
 		if (!isPendingRequest) {
 			const setGroupHover = (hovered: boolean) => {
 				const requestId = isRequestVM(element) ? element.id : isResponseVM(element) ? element.requestId : undefined;
@@ -1562,7 +1434,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			templateData.elementDisposables.add(toDisposable(() => setGroupHover(false)));
 		}
 
-		// Only show restore container when we have a checkpoint and not editing, and not a pending request.
 		const shouldShowRestore = !isStickyScrollRow && this.viewModel?.model.checkpoint && !this.viewModel?.editing && (index === this.delegate.getListLength() - 1) && !isPendingRequest;
 		templateData.checkpointRestoreContainer.classList.toggle('hidden', !(shouldShowRestore && checkpointEnabled));
 
@@ -1588,41 +1459,32 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		}));
 
-		// Overlay click listener removed: overlay is non-interactive in cancel-on-any-row mode.
 
-		// hack @joaomoreno
 		const rowRoot = templateData.rowContainer.parentElement?.parentElement?.parentElement;
 		rowRoot?.classList.toggle('request', isRequestVM(element));
 		rowRoot?.classList.toggle('response', isResponseVM(element));
 		templateData.rowContainer.classList.toggle(mostRecentResponseClassName, index === this.delegate.getListLength() - 1);
 		templateData.rowContainer.classList.toggle('confirmation-message', isRequestVM(element) && !!element.confirmation);
 
-		// The streaming/progressive-rendering target is the last non-pending item, so the active
-		// response keeps rendering (and the view keeps following it) even when queued or steering
-		// rows are shown below it.
 		const isStickyScrollTargetItem = getStickyScrollTargetItem(this.viewModel?.getItems() ?? []) === element;
 
-		// TODO: @justschen decide if we want to hide the header for requests or not
-		const shouldShowHeader = (isResponseVM(element) && !this.rendererOptions.noHeader) && !isSystemInitiatedRequest;
+		const shouldShowHeader = (isResponseVM(element) && !this.rendererOptions.noHeader) && !isSystemInitiatedRequest && !hideChatUserIdentity;
 		templateData.header?.classList.toggle('header-disabled', !shouldShowHeader);
+		if (isResponseVM(element) && hideChatUserIdentity) {
+			templateData.header?.classList.add('hidden');
+		} else {
+			templateData.header?.classList.remove('hidden');
+		}
 
 		if (isRequestVM(element) && element.confirmation) {
 			this.renderConfirmationAction(element, templateData);
 		}
 
-		// Do a progressive render if
-		// - This is the last non-pending response in the list
-		// - And it has some content
-		// - And the response is not complete
-		//   - Or, we previously started a progressive rendering of this element (if the element is complete, we will finish progressive rendering with a very fast rate)
 		const incrementalRendering = this.configService.getValue<boolean>(ChatConfiguration.IncrementalRendering);
 		if (isResponseVM(element) && isStickyScrollTargetItem && (!element.isComplete || element.renderData)) {
 			this.traceLayout('renderElement', `start progressive render, index=${index}`);
 
 			if (incrementalRendering && !element.renderData) {
-				// Incremental rendering: event-driven flow, no timer.
-				// renderElement is called each time the model changes, so
-				// this method runs on every content update.
 				this.logIncrementalRenderingTelemetry();
 				this.doIncrementalRender(element, index, templateData);
 			} else {
@@ -1633,9 +1495,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 							timer.cancel();
 						}
 					} catch (err) {
-						// Kill the timer if anything went wrong, avoid getting stuck in a nasty rendering loop.
 						timer.cancel();
-						this.logService.error(err);
+						this.logService.error(err as any);
 					}
 				};
 				timer.cancelAndSet(runProgressiveRender, 50, dom.getWindow(templateData.rowContainer));
@@ -1643,9 +1504,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		} else {
 			if (isResponseVM(element)) {
-				// When incremental rendering was active during this response,
-				// notify any active morpher that the stream is complete
-				// so it switches to a fast drain rate before we render.
 				if (incrementalRendering) {
 					const rate = this.getProgressiveRenderRate(element);
 					this._updateMorpherRate(templateData, rate, true);
@@ -1665,7 +1523,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.rowContainer.classList.add('pending-divider');
 		templateData.rowContainer.classList.remove('interactive-request', 'interactive-response', 'pending-request');
 
-		// Hide header elements not applicable to pending divider
 		templateData.avatarContainer.classList.add('hidden');
 		templateData.username.classList.add('hidden');
 		templateData.requestHover.classList.add('hidden');
@@ -1770,8 +1627,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const content: IChatRendererContent[] = [];
 		const isFiltered = !!element.errorDetails?.responseIsFiltered;
 		if (!isFiltered) {
-			// Always add the references to avoid shifting the content parts when a reference is added, and having to re-diff all the content.
-			// The part will hide itself if the list is empty.
 			content.push({ kind: 'references', references: element.contentReferences });
 			const responseContent = annotateSpecialMarkdownContent(element.response.value);
 			content.push(...(element.isComplete ? moveResponseOutcomeToolsAfterFinalResponse(responseContent) : responseContent));
@@ -1821,12 +1676,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return undefined;
 		}
 
-		// Never show working progress while an unresolved plan review is in
-		// the response. The plan review widget surfaces its own "Plan review
-		// required" progress row and is blocking on user input, so a second
-		// working indicator below it is redundant. This must run before any
-		// settings/mode-driven branches so it applies regardless of
-		// persistent-progress / shimmer / progressMessageAtBottomOfResponse.
 		if (partsToRender.some(part => part.kind === 'planReview' && !part.isUsed)) {
 			return undefined;
 		}
@@ -1835,7 +1684,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return undefined;
 		}
 
-		// Show confirmation progress while a non-subagent confirmation carousel is active above the input.
 		if (isResponseVM(element)) {
 			const widget = this.chatWidgetService.getWidgetBySessionResource(element.sessionResource);
 			if (widget?.inputPart.hasActiveToolConfirmationCarousel) {
@@ -1866,24 +1714,19 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const lastPart = findLastMeaningfulPart(workingParts);
 		const endsWithCompletedQuestion = endsWithCompletedQuestionInteraction(workingParts);
 
-		// Don't show working if a streaming tool invocation is already present
 		if (workingParts.some(part => part.kind === 'toolInvocation' && IChatToolInvocation.isStreaming(part))) {
 			return undefined;
 		}
 
-		// Don't show working spinner when there's an in-progress MCP tool - MCP tools have their own progress indicator
 		if (workingParts.some(part => part.kind === 'toolInvocation' && !IChatToolInvocation.isComplete(part) && isMcpToolInvocation(part))) {
 			return undefined;
 		}
 
-		// never show working progress when there is an active thinking piece
 		const lastThinking = this.getLastThinkingPart(templateData.renderedParts);
 		if (lastThinking && !endsWithCompletedQuestion) {
 			return undefined;
 		}
 
-		// Never show working when the last part is a tool invocation that is attached to thinking,
-		// or *will be* attached to thinking during the upcoming render pass
 		if (lastPart && (lastPart.kind === 'toolInvocation' || lastPart.kind === 'toolInvocationSerialized')) {
 			if (lastPart.isAttachedToThinking) {
 				return undefined;
@@ -1963,11 +1806,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	}
 
 	private updateWorkingProgressForPendingConfirmations(templateData: IChatListItemTemplate): void {
-		// Defer mutation of `templateData.renderedParts` (via `removeWorkingProgressContentPart`)
-		// to a microtask. This method is invoked from tool autoruns, which fire synchronously inside
-		// `renderChatContentDiff` while the array is being iterated — splicing it mid-render would
-		// orphan subsequent parts and leave detached DOM nodes referenced from `renderedParts`.
-		// Capture the originating element so we bail out if the template was recycled for a different one.
 		const originalElement = templateData.currentElement;
 		queueMicrotask(() => {
 			if (templateData.currentElement !== originalElement) {
@@ -2043,27 +1881,13 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return (Date.now() - lastRenderTime) >= WORKING_CAUGHT_UP_DEBOUNCE_MS;
 	}
 
-	/**
-	 * Returns the last part that visually contributes to the response, skipping
-	 * empty markdown placeholders.
-	 */
-	/**
-	 * True while we have caught up to streamed markdown but are still within the
-	 * {@link WORKING_CAUGHT_UP_DEBOUNCE_MS} window before the working indicator
-	 * should appear. The progressive render loop keeps polling in this state so
-	 * the indicator can still surface after a genuine pause, instead of being
-	 * dropped when the loop would otherwise stop (the debounce itself avoids
-	 * flicker during normal token streaming).
-	 */
 	private isWorkingProgressDebouncePending(element: IChatResponseViewModel, partsToRender: readonly IChatRendererContent[]): boolean {
 		if (element.isComplete) {
 			return false;
 		}
-		// The indicator is already showing, so there is nothing pending.
 		if (partsToRender.some(part => part.kind === 'working')) {
 			return false;
 		}
-		// Only the streamed-markdown "caught up" case is gated behind the debounce.
 		return findLastMeaningfulPart(getWorkingProgressRelevantParts(partsToRender))?.kind === 'markdownContent' && !this.hasBeenCaughtUpLongEnough(element);
 	}
 
@@ -2071,16 +1895,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		if (this.shouldShowPillsSummary(element) || !this.shouldShowFileChangesSummary(element)) {
 			return undefined;
 		}
-		// Agent host sessions compute their per-turn changes server-side and
-		// supply them via IChatResponseFileChangesService; the summary part
-		// resolves them asynchronously and self-hides when the turn produced no
-		// edits. Other sessions surface diff data through the chat editing
-		// session, which only has data when the response carries text/notebook
-		// edit groups — so skip the summary for those unless such a group is
-		// present.
-		const sessionType = getChatSessionType(element.sessionResource);
-		if (!isAgentHostTarget(sessionType) &&
-			!element.model.entireResponse.value.some(part => part.kind === 'textEditGroup' || part.kind === 'notebookEditGroup')) {
+		if (!element.model.entireResponse.value.some(part => part.kind === 'textEditGroup' || part.kind === 'notebookEditGroup')) {
 			return undefined;
 		}
 
@@ -2088,11 +1903,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	}
 
 	private getChatTurnPillsPart(element: IChatResponseViewModel): IChatTurnPillsPart | undefined {
-		// The turn status pills mirror the floating pills shown above the input
-		// while the turn streams. They are opt-in per pill, only apply to agent
-		// host sessions (which supply authoritative per-turn changes via
-		// IChatResponseFileChangesService) and, like the pills above the input,
-		// appear once the turn is complete.
 		if (!this.shouldShowPillsSummary(element)) {
 			return undefined;
 		}
@@ -2111,7 +1921,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.rowContainer.classList.toggle('system-initiated-request', !!element.isSystemInitiated);
 		templateData.rowContainer.classList.toggle('terminal-command-request', !element.isSystemInitiated && element.isTerminalCommand);
 
-		// System-initiated requests render as compact progress-style messages
 		if (element.isSystemInitiated) {
 			this.renderSystemInitiatedRequest(element, templateData);
 			return;
@@ -2276,7 +2085,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				onDidChangeVisibility: this._onDidChangeVisibility.event,
 				inlineTextModels: this._inlineTextModels,
 				codeBlockStartIndex,
-				treeStartIndex: 0, // no trees in requests
+				treeStartIndex: 0,
 			};
 			const newPart = this.renderChatContentPart(data, templateData, context);
 			if (newPart) {
@@ -2292,7 +2101,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					&& this.rendererOptions.renderDetectedCommandsWithRequest
 					&& !inlineSlashCommandRendered
 					&& element.agentOrSlashCommandDetected && element.slashCommand
-					&& data.kind === 'markdownContent' // TODO this is fishy but I didn't find a better way to render on the same inline as the MD request part
+					&& data.kind === 'markdownContent'
 				) {
 					if (newPart.domNode) {
 						newPart.domNode.style.display = 'inline-flex';
@@ -2541,8 +2350,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 		templateData.renderedParts = [];
 
-		// Agent Merge drives its turns with a machine-facing state block, which
-		// gets summarized instead of being shown to the user verbatim.
 		const agentMerge = element.systemInitiatedLabel === undefined ? parseAgentMergePrompt(element.messageText) : undefined;
 		if (agentMerge) {
 			const agentMergePart = this.instantiationService.createInstance(ChatAgentMergeContentPart, agentMerge, element.sessionResource, this.chatContentMarkdownRenderer, element.requestTimestamp);
@@ -2561,36 +2368,15 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.value.appendChild(notificationPart.domNode);
 	}
 
-	/**
-	 * Smooth streaming render path — event-driven, rAF-batched.
-	 *
-	 * Does a render pass that feeds the full content through
-	 * `getNextProgressiveRenderContent` → `diff` → `renderChatContentDiff`,
-	 * where the morpher intercepts markdown appends and schedules
-	 * rAF-batched re-renders through the standard markdown pipeline.
-	 *
-	 * Called on every `renderElement` invocation (which fires each time
-	 * the model changes). On completion/cancellation the morpher's
-	 * content is already correctly rendered, so we do a final diff pass
-	 * (not a destructive re-render) to finalize non-markdown parts like
-	 * thinking indicators, error details, and code citations.
-	 */
 	private doIncrementalRender(element: IChatResponseViewModel, index: number, templateData: IChatListItemTemplate): void {
 		if (!this._isVisible) {
 			return;
 		}
 
-		// Always update the word buffer's reveal rate, including on the
-		// completion pass so the buffer switches to a fast drain rate.
 		const rate = this.getProgressiveRenderRate(element);
 		this._updateMorpherRate(templateData, rate, element.isComplete || element.isCanceled);
 
 		if (element.isCanceled || element.isComplete) {
-			// The morpher has already rendered the markdown content
-			// correctly through the standard pipeline. Clear renderData
-			// and do a final diff pass to pick up non-markdown parts
-			// (error details, code citations, thinking finalization)
-			// without tearing down what the morpher built.
 			element.renderData = undefined;
 			templateData.rowContainer.classList.toggle('chat-response-loading', false);
 			this.renderChatResponseBasic(element, index, templateData);
@@ -2607,10 +2393,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 	}
 
-	/**
-	 * Propagate the stream's word-rate estimate to any active morpher's
-	 * word buffer so it reveals content at the model's speed.
-	 */
 	private _updateMorpherRate(templateData: IChatListItemTemplate, rate: number, isComplete: boolean): void {
 		const renderedParts = templateData.renderedParts;
 		if (!renderedParts) {
@@ -2645,9 +2427,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		});
 	}
 
-	/**
-	 *	@returns true if progressive rendering should be considered complete- the element's data is fully rendered or the view is not visible
-	 */
 	private doNextProgressiveRender(element: IChatResponseViewModel, index: number, templateData: IChatListItemTemplate, isInRenderElement: boolean): boolean {
 		if (!this._isVisible) {
 			return true;
@@ -2668,28 +2447,20 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const contentIsAlreadyRendered = partsToRender.every(part => part === null);
 		if (contentIsAlreadyRendered) {
 			if (contentForThisTurn.moreContentAvailable) {
-				// The content that we want to render in this turn is already rendered, but there is more content to render on the next tick
 				this.traceLayout('doNextProgressiveRender', 'not rendering any new content this tick, but more available');
 				return false;
 			} else if (element.isComplete) {
-				// All content is rendered, and response is done, so do a normal render
 				this.traceLayout('doNextProgressiveRender', `END progressive render, index=${index} and clearing renderData, response is complete`);
 				element.renderData = undefined;
 				this.renderChatResponseBasic(element, index, templateData);
 				return true;
 			} else if (this.isWorkingProgressDebouncePending(element, contentForThisTurn.content)) {
-				// Caught up to the streamed markdown, but still within the working
-				// indicator debounce window. Keep the render loop alive so the
-				// indicator can appear after a genuine pause instead of being dropped
-				// when the loop would otherwise stop here.
 				return false;
 			} else {
-				// Nothing new to render, stop rendering until next model update
 				return true;
 			}
 		}
 
-		// Do an actual progressive render
 		this.traceLayout('doNextProgressiveRender', `doing progressive render, ${partsToRender.length} parts to render`);
 		this.renderChatContentDiff(partsToRender, contentForThisTurn.content, element, index, templateData);
 
@@ -2705,7 +2476,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		let treeStartIndex = 0;
 		let displacedWorkingPart: ChatWorkingProgressContentPart | undefined;
 		const renderParts = () => partsToRender.forEach((partToRender, contentIndex) => {
-			// Accumulate counts from the part that ended up at the previous index
 			if (contentIndex > 0) {
 				const prevPart = renderedParts[contentIndex - 1];
 				if (prevPart) {
@@ -2719,7 +2489,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			const alreadyRenderedPart = templateData.renderedParts?.[contentIndex];
 
 			if (!partToRender) {
-				// null=no change
 				if (!templateData.renderedPartsMounted) {
 					alreadyRenderedPart?.onDidRemount?.();
 				}
@@ -2732,7 +2501,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				return;
 			}
 
-			// keep existing thinking part instance during streaming and update it in place
 			const preserveWorkingPart = alreadyRenderedPart instanceof ChatWorkingProgressContentPart
 				&& partToRender.kind !== 'working'
 				&& contentForThisTurn.slice(contentIndex + 1).some(part => part.kind === 'working');
@@ -2744,13 +2512,10 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					renderedParts[contentIndex] = alreadyRenderedPart;
 					return;
 				} else if (alreadyRenderedPart instanceof ChatThinkingContentPart && this.shouldPinPart(partToRender, element)) {
-					// keep existing thinking part if we are pinning it (combining tool calls into it)
 					renderedParts[contentIndex] = alreadyRenderedPart;
 					return;
 				}
 
-				// Incremental rendering: try an incremental DOM morph instead of
-				// tearing down and rebuilding the entire markdown part.
 				if (partToRender.kind === 'markdownContent'
 					&& alreadyRenderedPart instanceof ChatMarkdownContentPart
 					&& this.configService.getValue<boolean>(ChatConfiguration.IncrementalRendering)
@@ -2767,8 +2532,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					alreadyRenderedPart.dispose();
 				}
 
-				// Replace old DOM from thinking wrapper to prevent accumulation
-				// of duplicate entries when re-rendering pinned parts.
 				if (alreadyRenderedPart.domNode) {
 					const thinkingToolWrapper = dom.findParentWithClass(alreadyRenderedPart.domNode, 'chat-thinking-tool-wrapper');
 					if (thinkingToolWrapper) {
@@ -2792,7 +2555,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				treeStartIndex,
 			};
 
-			// combine tool invocations into thinking part if needed. render the tool, but do not replace the working spinner with the new part's dom node since it is already inside the thinking part.
 			const lastThinking = this.getLastThinkingPart(renderedParts);
 			if (lastThinking && (partToRender.kind === 'toolInvocation' || partToRender.kind === 'toolInvocationSerialized' || partToRender.kind === 'markdownContent' || partToRender.kind === 'textEditGroup' || partToRender.kind === 'externalEdit' || partToRender.kind === 'hook') && this.shouldPinPart(partToRender, element)) {
 				if (alreadyRenderedPart instanceof ChatMarkdownContentPart) {
@@ -2810,7 +2572,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			const newPart = this.renderChatContentPart(partToRender, templateData, context, batchedSubagentParts);
 			if (newPart) {
 				renderedParts[contentIndex] = newPart;
-				// Maybe the part can't be rendered in this context, but this shouldn't really happen
 				try {
 					if (alreadyRenderedPart?.domNode) {
 						if (newPart.domNode) {
@@ -2825,7 +2586,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 							}
 						}
 					} else if (newPart.domNode && !newPart.domNode.parentElement) {
-						// Only append if not already attached somewhere else (e.g. inside a thinking wrapper)
 						templateData.value.appendChild(newPart.domNode);
 					}
 
@@ -2850,7 +2610,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		displacedWorkingPart?.dispose();
 		displacedWorkingPart?.domNode?.remove();
 
-		// Delete previously rendered parts that are removed
 		for (let i = partsToRender.length; i < renderedParts.length; i++) {
 			const part = renderedParts[i];
 			if (part) {
@@ -2988,11 +2747,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			updateExpansionState();
 		}));
 
-		// Unlike the `ChatCollapsibleContentPart`-based collapsibles, this disclosure is a plain
-		// `<details>` built here, so it has to announce user toggles itself. Without the
-		// announcement `ChatListWidget` treats the expansion like streamed content and auto-scrolls
-		// to the new end of the transcript, which pushes the summary off the top of the viewport
-		// instead of keeping it anchored and growing downwards.
 		templateData.completedResponseDisclosureDisposables.add(dom.addDisposableListener(summary, dom.EventType.CLICK, () => {
 			details.dispatchEvent(new CustomEvent(ChatCollapsibleContentPart.userToggleEvent, { bubbles: true }));
 		}));
@@ -3024,14 +2778,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.completedResponseCollapseEndIndex = undefined;
 	}
 
-	/**
-	 * Returns all content parts that should be rendered, and trimmed markdown content. We will diff this with the current rendered set.
-	 */
 	private getNextProgressiveRenderContent(element: IChatResponseViewModel, templateData: IChatListItemTemplate): { content: IChatRendererContent[]; moreContentAvailable: boolean } {
 		const data = this.getDataForProgressiveRender(element);
 
-		// When incremental rendering is enabled, skip word-counting for markdown.
-		// The morpher's own buffer + rAF loop is the sole rate limiter.
 		const incrementalRendering = this.configService.getValue<boolean>(ChatConfiguration.IncrementalRendering) === true;
 
 		const responseContent = annotateSpecialMarkdownContent(element.response.value);
@@ -3041,8 +2790,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		let numNeededWords = data.numWordsToRender;
 		const partsToRender: IChatRendererContent[] = [];
 
-		// Always add the references to avoid shifting the content parts when a reference is added, and having to re-diff all the content.
-		// The part will hide itself if the list is empty.
 		partsToRender.push({ kind: 'references', references: element.contentReferences });
 
 		let moreContentAvailable = false;
@@ -3056,7 +2803,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				if (wordCountResult.isFullString) {
 					partsToRender.push(part);
 
-					// Consumed full markdown chunk- need to ensure that all following non-markdown parts are rendered
 					for (const nextPart of renderableResponse.slice(i + 1)) {
 						if (nextPart.kind !== 'markdownContent') {
 							i++;
@@ -3066,13 +2812,11 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 						}
 					}
 				} else {
-					// Only taking part of this markdown part
 					moreContentAvailable = true;
 					partsToRender.push({ ...part, content: new MarkdownString(wordCountResult.value, part.content) });
 				}
 
 				if (numNeededWords <= 0) {
-					// Collected all words and following non-markdown parts if needed, done
 					if (renderableResponse.slice(i + 1).some(part => part.kind === 'markdownContent')) {
 						moreContentAvailable = true;
 					}
@@ -3088,7 +2832,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const bufferWords = lastWordCount - newRenderedWordCount;
 		this.traceLayout('getNextProgressiveRenderContent', `Want to render ${data.numWordsToRender} words. Rendering ${newRenderedWordCount} words. Buffer: ${bufferWords} words`);
 		if (newRenderedWordCount > 0 && newRenderedWordCount !== element.renderData?.renderedWordCount) {
-			// Only update lastRenderTime when we actually render new content
 			element.renderData = { lastRenderTime: Date.now(), renderedWordCount: newRenderedWordCount, renderedParts: partsToRender };
 		}
 
@@ -3111,9 +2854,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	}
 
 	private shouldShowFileChangesSummary(element: IChatResponseViewModel): boolean {
-		// Only show file changes summary for local sessions - background sessions already have their own file changes part
 		const sessionType = getChatSessionType(element.sessionResource);
-		const isLocalSession = sessionType === localChatSessionType || isAgentHostTarget(sessionType);
+		const isLocalSession = sessionType === localChatSessionType;
 		return shouldShowFileChangesSummaryForSettings(
 			element.isComplete,
 			isLocalSession,
@@ -3124,17 +2866,13 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	private shouldShowPillsSummary(element: IChatResponseViewModel): boolean {
 		return shouldShowTurnPillsSummary(
 			element.isComplete,
-			isAgentHostTarget(getChatSessionType(element.sessionResource)),
+			false,
 		);
 	}
 
 	private getDataForProgressiveRender(element: IChatResponseViewModel) {
 		const hasMarkdownParts = element.response.value.some(part => part.kind === 'markdownContent' && part.content.value.trim().length > 0);
 		if (shouldRenderInitialProgressiveContentImmediately(element.isComplete, hasMarkdownParts, element.renderData !== undefined)) {
-			/**
-			 * None of the markdown in the ongoing response has been rendered yet,
-			 * so we should render all existing parts without animation.
-			 */
 			return {
 				numWordsToRender: Number.MAX_SAFE_INTEGER,
 				rate: Number.MAX_SAFE_INTEGER
@@ -3147,7 +2885,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const numWordsToRender = renderData.lastRenderTime === 0 ?
 			1 :
 			renderData.renderedWordCount +
-			// Additional words to render beyond what's already rendered
 			Math.floor((Date.now() - renderData.lastRenderTime) / 1000 * rate);
 
 		return {
@@ -3165,7 +2902,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			if (!renderedPart || !renderedPart.hasSameContent(content, contentToRender.slice(i + 1), element)) {
 				diff.push(content);
 			} else {
-				// null -> no change
 				diff.push(null);
 			}
 		}
@@ -3187,21 +2923,17 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return !isResponseVM(element) || element.isComplete || codeblockHasClosingBackticks(part.content.value);
 	}
 
-	// todo @justschen initially split up each of the checks to easily see what should be pinned/not pinned, we can probably consolidate this down by a lot once we're more confident in the logic.
 	private shouldPinPart(part: IChatRendererContent, element?: IChatResponseViewModel): boolean {
 		const collapsedToolsMode = this.configService.getValue<CollapsedToolsDisplayMode>('chat.agent.thinking.collapsedTools');
 
-		// thinking and working content are always pinned (they are the thinking container itself)
 		if (part.kind === 'thinking' || part.kind === 'working') {
 			return true;
 		}
 
-		// should not finalize thinking
 		if (part.kind === 'undoStop') {
 			return true;
 		}
 
-		// only tool related hooks will be inside thinking containers.
 		if (part.kind === 'hook') {
 			if (part.subAgentInvocationId) {
 				return false;
@@ -3213,57 +2945,43 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return false;
 		}
 
-		// is an edit related part
 		if (this.hasEditCodeblockUri(part) || part.kind === 'textEditGroup' || part.kind === 'externalEdit') {
 			return true;
 		}
 
-		// Don't pin MCP tools + for CLI specficially, we parse tool name since CLI tools are "external" tools.
 		const isMcpTool = (part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && isMcpToolInvocation(part);
 		if (isMcpTool) {
 			return false;
 		}
 
-		// don't pin Mermaid tools since it has rendered output
 		const isMermaidTool = (part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && part.toolId.toLowerCase().includes('mermaid');
 		if (isMermaidTool) {
 			return false;
 		}
 
-		// don't pin ask questions tool invocations
 		const isAskQuestionsTool = (part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && isAskQuestionsToolInvocation(part);
 		if (isAskQuestionsTool) {
 			return false;
 		}
 
-		// Don't pin subagent tools to thinking parts - they have their own grouping
 		if ((part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && isSubagentToolInvocation(part)) {
 			return false;
 		}
 
-		// Don't pin session-created tools (create_session / create_chat) — their
-		// "Open Session" button must stay visible, not hidden inside a collapsed
-		// thinking group. Keyed on toolId so this holds while the tool streams too
-		// (before `toolSpecificData` is set on completion).
 		if ((part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && (isCreateSessionTool(part.toolId) || isCreateChatTool(part.toolId) || isSendMessageTool(part.toolId))) {
 			return false;
 		}
 
-		// Generated images are durable response outcomes. Keep them outside thinking from the
-		// moment the tool starts so completion can replace the compact progress rendering with
-		// the final image in place instead of leaving a materialized copy inside thinking.
 		if ((part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized')
 			&& (part.toolId === 'image_gen.imagegen' || part.toolSpecificData?.kind === 'generatedImage')) {
 			return false;
 		}
 
-		// only pin terminal tools based on settings
 		const isTerminalTool = (part.kind === 'toolInvocation' || part.kind === 'toolInvocationSerialized') && part.toolSpecificData?.kind === 'terminal';
 		const isContributedTerminalToolInvocation = element
-			&& (element.sessionResource.scheme !== Schemas.vscodeChatInput && getChatSessionType(element.sessionResource) !== localChatSessionType) // contributed sessions
-			&& part.kind === 'toolInvocationSerialized' && part.toolSpecificData?.kind === 'terminal'; // contributed serialized terminal tool invocations data
+			&& (element.sessionResource.scheme !== Schemas.vscodeChatInput && getChatSessionType(element.sessionResource) !== localChatSessionType)
+			&& part.kind === 'toolInvocationSerialized' && part.toolSpecificData?.kind === 'terminal';
 		if (isTerminalTool && !isContributedTerminalToolInvocation) {
-			// don't pin terminals with confirmation
 			if (part.kind === 'toolInvocation' && IChatToolInvocation.getConfirmationMessages(part)) {
 				return false;
 			}
@@ -3288,7 +3006,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return undefined;
 		}
 
-		// Search backwards for the most recent active thinking part
 		for (let i = renderedParts.length - 1; i >= 0; i--) {
 			const part = renderedParts[i];
 			if (part instanceof ChatThinkingContentPart && part.getIsActive()) {
@@ -3309,23 +3026,13 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return { part: lastThinking, separatedFromReasoning: false };
 	}
 
-	/**
-	 * Determines if a thinking part at the given content index is "look-ahead complete".
-	 * A thinking part is look-ahead complete if there are subsequent parts that will NOT
-	 * be pinned to it, meaning we know this thinking part is already done even though
-	 * the overall response is still in progress.
-	 */
 	private isThinkingLookAheadComplete(context: IChatContentPartRenderContext, element?: IChatResponseViewModel): boolean {
-		// If element is already complete, no need for look-ahead
 		if (element?.isComplete) {
 			return true;
 		}
 
-		// Look at all parts after the current content index
 		for (let i = context.contentIndex + 1; i < context.content.length; i++) {
 			const nextPart = context.content[i];
-			// If there's any part that would NOT be pinned to the thinking part,
-			// then this thinking part is already complete
 			if (!this.shouldPinPart(nextPart, element)) {
 				return true;
 			}
@@ -3339,15 +3046,12 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return undefined;
 		}
 
-		// Search backwards for the most recent subagent part
 		for (let i = renderedParts.length - 1; i >= 0; i--) {
 			const part = renderedParts[i];
 			if (part instanceof ChatSubagentContentPart) {
-				// If looking for a specific ID, return the part with that ID regardless of active state
 				if (subAgentInvocationId && part.subAgentInvocationId === subAgentInvocationId) {
 					return part;
 				}
-				// If no ID specified, only return active parts
 				if (!subAgentInvocationId && part.getIsActive()) {
 					return part;
 				}
@@ -3362,8 +3066,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return;
 		}
 
-		// Finalize all active subagent parts (there can be multiple parallel subagents)
-		// Skip subagents that still have tools waiting for confirmation
 		for (const part of templateData.renderedParts) {
 			if (part instanceof ChatSubagentContentPart && part.getIsActive() && (force || !part.shouldRemainActive()) && (force || !part.hasToolsWaitingForConfirmation)) {
 				part.markAsInactive(force);
@@ -3372,17 +3074,13 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	}
 
 	private handleSubagentToolGrouping(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, subagentId: string, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate, codeBlockStartIndex: number, batchedSubagentParts?: Set<ChatSubagentContentPart>): IChatContentPart {
-		// Finalize any active thinking part since subagent tools have their own grouping
 		this.finalizeCurrentThinkingPart(context, templateData);
 
 		const lastSubagent = this.getSubagentPart(templateData.renderedParts, subagentId);
 		if (lastSubagent) {
 			this.beginSubagentToolPresentationBatch(lastSubagent, batchedSubagentParts);
-			// Enable carousel mode before appendToolInvocation creates an inline part.
 			this.maybeRouteSubagentToolToCarousel(toolInvocation, lastSubagent, context, templateData, codeBlockStartIndex);
 
-			// Append to existing subagent part with matching ID
-			// But skip the parent subagent tool itself - we only want child tools
 			if (!isParentSubagentTool(toolInvocation)) {
 				lastSubagent.appendToolInvocation(toolInvocation, codeBlockStartIndex);
 				return this.renderNoContent(other =>
@@ -3392,7 +3090,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return lastSubagent;
 		}
 
-		// Create a new subagent part - it will extract description/agentName/prompt and watch for completion
 		const subagentPart = this.instantiationService.createInstance(
 			ChatSubagentContentPart,
 			subagentId,
@@ -3405,11 +3102,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			this._announcedToolProgressKeys,
 		);
 		this.beginSubagentToolPresentationBatch(subagentPart, batchedSubagentParts);
-		// Enable carousel mode before appendToolInvocation creates an inline part.
 		this.maybeRouteSubagentToolToCarousel(toolInvocation, subagentPart, context, templateData, codeBlockStartIndex);
 
-		// Don't append the parent subagent tool itself - its description is already shown in the title
-		// Only append child tools (those with subAgentInvocationId)
 		if (!isParentSubagentTool(toolInvocation)) {
 			subagentPart.appendToolInvocation(toolInvocation, codeBlockStartIndex);
 		}
@@ -3424,7 +3118,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 	}
 
-	/** Routes subagent confirmations to the input carousel and leaves a placeholder inline. */
 	private maybeRouteSubagentToolToCarousel(
 		toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
 		subagentPart: ChatSubagentContentPart,
@@ -3513,7 +3206,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 	private renderChatContentPart(content: IChatRendererContent, templateData: IChatListItemTemplate, context: IChatContentPartRenderContext, batchedSubagentParts?: Set<ChatSubagentContentPart>): IChatContentPart | undefined {
 		try {
-			// if we get an empty thinking part, mark thinking as finished
 			if (content.kind === 'thinking' && (Array.isArray(content.value) ? content.value.length === 0 : content.value === '')) {
 				const lastThinking = this.getLastThinkingPart(templateData.renderedParts);
 				lastThinking?.resetId();
@@ -3523,9 +3215,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			const isResponseElement = isResponseVM(context.element);
 			const shouldPin = this.shouldPinPart(content, isResponseElement ? context.element : undefined);
 
-			// Finalize the active thinking part for this element when the response is complete.
-			// Scoped to the current element's templateData to avoid finalizing thinking parts
-			// belonging to other (still-streaming) responses during scroll re-renders.
 			if (context.element.isComplete && !shouldPin) {
 				const elementTemplateData = this.getTemplateDataForRequestId(context.element.id);
 				if (elementTemplateData?.renderedParts) {
@@ -3536,13 +3225,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				}
 			}
 
-			// Check if this is subagent content
 			const isSubagentContent = (content.kind === 'toolInvocation' || content.kind === 'toolInvocationSerialized')
 				&& isSubagentToolInvocation(content);
 
-			// Finalize subagent parts for this element when the response is complete.
-			// Note: We don't finalize when non-subagent content arrives because parallel subagents may still be running.
-			// Scoped to the current element to avoid finalizing subagent parts on other responses during scroll re-renders.
 			if (context.element.isComplete && !isSubagentContent) {
 				const elementTemplateData = this.getTemplateDataForRequestId(context.element.id);
 				if (elementTemplateData) {
@@ -3577,7 +3262,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			} else if (content.kind === 'markdownContent') {
 				return this.renderMarkdown(content, templateData, context);
 			} else if (content.kind === 'references') {
-				// Only show references for chat participants, not agents
 				if (isResponseVM(context.element) && context.element.agent?.isDefault && !context.element.agent.modes.includes(ChatModeKind.Ask)) {
 					return this.renderNoContent(other => other.kind === content.kind);
 				}
@@ -3621,8 +3305,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			} else if (content.kind === 'externalEdit') {
 				return this.renderExternalEdit(content, context, templateData);
 			} else if (content.kind === 'autoModeResolution') {
-				// A row that never resolved (cancelled or errored turn) has nothing
-				// left to say, so drop it instead of leaving a stuck "Auto routing task".
 				if (!content.resolved && context.element.isComplete) {
 					return this.renderNoContent(other => other.kind === content.kind && !other.resolved);
 				}
@@ -3712,7 +3394,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				}
 			};
 
-			// TODO@roblourens there's got to be a better way to navigate trees
 			treePart.addDisposable(treePart.onDidFocus(() => {
 				this.focusedFileTreesByResponseId.set(context.element.id, fileTreeFocusInfo.treeIndex);
 			}));
@@ -3752,7 +3433,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		part.addDisposable(toDisposable(() => {
 			const codeBlocksByResponseId = this.codeBlocksByResponseId.get(element.id);
 			if (codeBlocksByResponseId) {
-				// Only delete if this is my code block
 				part.codeblocks?.forEach((info, i) => {
 					const codeblock = codeBlocksByResponseId[codeBlockStartIndex + i];
 					if (codeblock?.ownerMarkdownPartId === part.codeblocksPartId) {
@@ -3780,9 +3460,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	}
 
 	private renderToolInvocation(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate, batchedSubagentParts?: Set<ChatSubagentContentPart>): IChatContentPart | undefined {
-		// Skip rendering completed tool invocations that are hidden and have no meaningful content - ie, autopilot "task complete".
-		// We intentionally only short-circuit when the invocation's presentation is hidden, otherwise extension-contributed
-		// tools that don't supply a `pastTenseMessage` (proposed API) get filtered out incorrectly.
 		if (IChatToolInvocation.isComplete(toolInvocation) && IChatToolInvocation.isEffectivelyHidden(toolInvocation)) {
 			const msg = toolInvocation.pastTenseMessage ?? toolInvocation.invocationMessage;
 			const text = typeof msg === 'string' ? msg : msg?.value;
@@ -3792,9 +3469,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		}
 
-		// A completed turn renders all generated images in one gallery. Keep the gallery on the
-		// final image tool call so multiple tool results cannot be split between the completed
-		// response disclosure and the durable response outcome.
 		if (context.element.isComplete
 			&& toolInvocation.toolSpecificData?.kind === 'generatedImage'
 			&& !isGeneratedImageResultOwner(toolInvocation, context.content)) {
@@ -3809,7 +3483,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 		const codeBlockStartIndex = context.codeBlockStartIndex;
 
-		// Factory that creates the tool invocation part with all necessary setup
 		let lazilyCreatedPart: ChatToolInvocationPart | undefined = undefined;
 		const createToolPart = (): { domNode: HTMLElement; disposable: ChatToolInvocationPart; part: ChatToolInvocationPart } => {
 			lazilyCreatedPart = this.instantiationService.createInstance(ChatToolInvocationPart, toolInvocation, context, this.chatContentMarkdownRenderer, this._contentReferencesListPool, this._toolEditorPool, () => this._currentLayoutWidth.get(), this._announcedToolProgressKeys, codeBlockStartIndex);
@@ -3818,19 +3491,16 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return { domNode: lazilyCreatedPart.domNode, disposable: lazilyCreatedPart, part: lazilyCreatedPart };
 		};
 
-		// handling for when we want to put tool invocations inside a thinking part
 		const collapsedToolsMode = this.configService.getValue<CollapsedToolsDisplayMode>('chat.agent.thinking.collapsedTools');
 		if (isResponseVM(context.element) && collapsedToolsMode !== CollapsedToolsDisplayMode.Off) {
 			const { part: lastThinking, separatedFromReasoning } = this.getLastThinkingPartForGroupedItem(context, templateData);
 
-			// create thinking part if it doesn't exist yet
 			if (!lastThinking && !IChatToolInvocation.isEffectivelyHidden(toolInvocation) && this.shouldPinPart(toolInvocation, context.element) && shouldCreateGroupedThinkingPart(collapsedToolsMode, separatedFromReasoning)) {
 				const thinkingPart = this.renderThinkingPart({
 					kind: 'thinking',
 				}, context, templateData);
 
 				if (thinkingPart instanceof ChatThinkingContentPart) {
-					// Append using factory - thinking part decides whether to render lazily
 					toolInvocation.isAttachedToThinking = true;
 					thinkingPart.appendItem(createToolPart, toolInvocation.toolId, toolInvocation, templateData.value);
 					this.setupConfirmationTransitionWatcher(toolInvocation, thinkingPart, () => lazilyCreatedPart, createToolPart, context, templateData);
@@ -3841,7 +3511,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 			if (this.shouldPinPart(toolInvocation, context.element)) {
 				if (lastThinking && !IChatToolInvocation.isEffectivelyHidden(toolInvocation)) {
-					// Append using factory - thinking part decides whether to render lazily
 					toolInvocation.isAttachedToThinking = true;
 					lastThinking.appendItem(createToolPart, toolInvocation.toolId, toolInvocation, templateData.value);
 					this.setupConfirmationTransitionWatcher(toolInvocation, lastThinking, () => lazilyCreatedPart, createToolPart, context, templateData);
@@ -3854,15 +3523,12 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		}
 
-		// Check for subagent grouping before creating tool part - subagent part handles lazy creation
 		const subagentId = getSubagentId(toolInvocation);
 		if (subagentId && isResponseVM(context.element) && !IChatToolInvocation.isEffectivelyHidden(toolInvocation)) {
 			return this.handleSubagentToolGrouping(toolInvocation, subagentId, context, templateData, codeBlockStartIndex, batchedSubagentParts);
 		}
 
-		// For cases not handled above (no thinking part, no subagent, etc.), create the part now
 		const { part } = createToolPart();
-		// Watch for future confirmation transitions and route to carousel
 		if (this.configService.getValue<boolean>(ChatConfiguration.ToolConfirmationCarousel) &&
 			toolInvocation.kind === 'toolInvocation' && isResponseVM(context.element) &&
 			toolInvocation.source.type !== 'mcp' && !this.viewModel?.editing) {
@@ -3925,7 +3591,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return part;
 	}
 
-	// watch for confirmation part transition when tool invocation is streaming
 	private setupConfirmationTransitionWatcher(
 		toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
 		thinkingPart: ChatThinkingContentPart,
@@ -3949,10 +3614,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					wrapper.remove();
 				}
 				templateData.value.appendChild(createdPart.domNode);
-				// Decrement thinking part counters for the materialized item that was moved out.
-				// removeMaterializedItem detaches the part from the thinking part's ownership
-				// without disposing it, so transfer ownership to the template's moved-out
-				// store which shares the lifecycle of `renderedParts`.
 				thinkingPart.removeMaterializedItem(toolInvocation.toolCallId);
 				(templateData.movedOutToolParts ??= new DisposableMap()).set(toolInvocation.toolCallId, createdPart);
 			} else {
@@ -3964,7 +3625,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 			this.finalizeCurrentThinkingPart(context, templateData);
 
-			// if the thinking part is now completely empty (no tools, no thinking text)
 			if (thinkingPart.isEffectivelyEmpty()) {
 				thinkingPart.domNode?.remove();
 				thinkingPart.dispose();
@@ -4092,7 +3752,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 		}
 
-		// Only pin preTool/postTool hooks into the thinking part
 		const shouldPinToThinking = hookPart.hookType === HookType.PreToolUse || hookPart.hookType === HookType.PostToolUse;
 		if (shouldPinToThinking) {
 			const hookTitle = hookPart.stopReason
@@ -4105,7 +3764,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 			let { part: thinkingPart } = this.getLastThinkingPartForGroupedItem(context, templateData);
 			if (!thinkingPart) {
-				// Create a thinking part if one doesn't exist yet (e.g. hook arrives before/with its tool in the same turn)
 				const newThinking = this.renderThinkingPart({ kind: 'thinking' }, context, templateData);
 				if (newThinking instanceof ChatThinkingContentPart) {
 					thinkingPart = newThinking;
@@ -4162,9 +3820,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		this.finalizeCurrentThinkingPart(context, templateData);
 		this._notifyOnQuestionCarousel(context, carousel);
 
-		// Backfill terminal correlation on the carousel from the originating request.
-		// This keeps focus button / send_to_terminal correlation working even when
-		// askQuestions couldn't stamp terminalId during tool execution.
 		if (!carousel.terminalId && isResponseVM(context.element)) {
 			const responseElement = context.element;
 			const model = this.chatService.getSession(responseElement.sessionResource);
@@ -4178,20 +3833,14 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}
 
 		const widget = isResponseVM(context.element) ? this.chatWidgetService.getWidgetBySessionResource(context.element.sessionResource) : undefined;
-		// Only auto-focus if the chat input is empty AND focus is already within the chat widget
-		// This prevents stealing focus from other VS Code UI (editor, terminal, etc.)
 		const shouldAutoFocus = !!widget && dom.isAncestorOfActiveElement(widget.domNode) && widget.getInput() === '';
 		const responseId = isResponseVM(context.element) ? context.element.requestId : undefined;
 		const carouselKey = carousel.resolveId ?? `${responseId ?? ''}_${context.contentIndex}`;
 
 		const handleSubmit = async (answers: Map<string, IChatQuestionAnswerValue> | undefined, part: ChatQuestionCarouselPart) => {
 			if (carousel.isUsed) {
-				// Voice can answer the same form, so a queued click may land after it
-				// has been submitted. Applying it would replace the spoken answer and
-				// notify the extension twice.
 				return;
 			}
-			// Mark the carousel as used and store the answers
 			const answersRecord: IChatQuestionAnswers | undefined = answers ? Object.fromEntries(answers) : undefined;
 			carousel.data = answersRecord ?? {};
 			carousel.isUsed = true;
@@ -4201,19 +3850,15 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				carousel.completion.complete({ answers: answersRecord });
 			}
 
-			// Notify the extension about the carousel answers to resolve the deferred promise
 			if (isResponseVM(context.element) && carousel.resolveId) {
 				this.chatService.notifyQuestionCarouselAnswer(context.element.requestId, carousel.resolveId, answersRecord);
 			}
 
-			// Remove from pending carousels
 			this.removeCarouselFromTracking(context, part);
 
-			// Clear from input part (clear only the submitted carousel by its key)
 			widget?.input.clearQuestionCarousel(undefined, carouselKey);
 		};
 
-		// If carousel is already used or response is complete/canceled, render summary inline in the list
 		const responseIsComplete = isResponseVM(context.element) && context.element.isComplete;
 		const inputPartHasCarousel = widget?.input.questionCarousel !== undefined;
 
@@ -4230,9 +3875,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				this.pendingQuestionCarousels.get(context.element.sessionResource)?.clear();
 			}
 
-			// Clear the carousel from the input area once it has been answered or when the
-			// whole response completes. `carousel.isUsed` covers externally completed
-			// flows (for example, a remote answer winning over the local input UI).
 			if (inputPartHasCarousel) {
 				if (carousel.isUsed) {
 					widget?.input.clearQuestionCarousel(undefined, carouselKey);
@@ -4248,14 +3890,12 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return part;
 		}
 
-		// Render the active carousel in the input part (above the input box, not while editing)
 		const isEditing = !!this.viewModel?.editing;
 		const part = isEditing ? undefined : widget?.input.renderQuestionCarousel(carousel, context, {
 			shouldAutoFocus,
 			onSubmit: async (answers) => handleSubmit(answers, part!)
 		});
 
-		// If we couldn't render in the input part, fall back to inline rendering
 		if (!part) {
 			const fallbackPart = this.instantiationService.createInstance(ChatQuestionCarouselPart, carousel, context, {
 				shouldAutoFocus,
@@ -4264,8 +3904,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return fallbackPart;
 		}
 
-		// Track the carousel for auto-skip when user submits a new message
-		// Only add tracking if not already tracked (prevents duplicate tracking on re-render)
 		if (isResponseVM(context.element) && carousel.allowSkip && !carousel.isUsed) {
 			let carousels = this.pendingQuestionCarousels.get(context.element.sessionResource);
 			if (!carousels) {
@@ -4275,23 +3913,16 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			if (!carousels.has(part)) {
 				carousels.add(part);
 
-				// Clean up when the part is disposed
 				part.addDisposable({ dispose: () => this.removeCarouselFromTracking(context, part) });
 			}
 		}
 
-		// Return a placeholder that will re-render as a summary when the carousel is used or response is complete/stopped
 		return this.renderNoContent((other, _followingContent, element) => {
-			// Re-render (return false) if:
-			// - carousel was used/submitted
-			// - response is complete (stopped)
 			if (carousel.isUsed || (isResponseVM(element) && element.isComplete)) {
 				return false;
 			}
-			// Use resolveId for comparison instead of object identity to handle re-rendering during scrolling
 			if (other.kind === 'questionCarousel') {
 				const otherCarousel = other as IChatQuestionCarousel;
-				// Compare by resolveId if available, otherwise fall back to object identity
 				if (carousel.resolveId && otherCarousel.resolveId) {
 					return carousel.resolveId === otherCarousel.resolveId;
 				}
@@ -4314,13 +3945,10 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			return;
 		}
 
-		// Only notify once per carousel to avoid duplicate toasts on rerender.
-		// Use a stable key based on requestId + resolveId instead of object identity.
 		const stableKey = this._getCarouselStableKey(context, carousel);
 		if (stableKey ? this._notifiedQuestionCarousels.has(stableKey) : false) {
 			return;
 		}
-		// Alert screen readers with the question
 		const questionCount = carousel.questions.length;
 		const question = carousel.questions.length > 0 && carousel.questions[0].message ? carousel.questions[0].message : localize('chat.questionCarouselNeedsInputSR', "Chat input required.");
 		const stringQuestion = typeof question === 'string' ? question : question.value;
@@ -4332,13 +3960,11 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			this._notifiedQuestionCarousels.add(stableKey);
 		}
 
-		// Play accessibility signal regardless of notification setting
 		const signalMessage = questionCount === 1
 			? localize('chat.questionCarouselSignalOne', "Chat needs your input (1 question).")
 			: localize('chat.questionCarouselSignalMany', "Chat needs your input ({0} questions).", questionCount);
 		this.accessibilitySignalService.playSignal(AccessibilitySignal.chatUserActionRequired, { allowManyInParallel: true, customAlertMessage: signalMessage });
 
-		// OS toast notification is handled by ChatWindowNotifier
 	}
 
 	private renderPlanReview(context: IChatContentPartRenderContext, review: IChatPlanReview, templateData: IChatListItemTemplate): IChatContentPart {
@@ -4346,8 +3972,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const responseId = isResponseVM(context.element) ? context.element.requestId : undefined;
 		const reviewKey = review.resolveId ?? `${responseId ?? ''}_${context.contentIndex}`;
 
-		// A pending plan review blocks the agent on user input, so stop any
-		// active thinking part — parity with elicitation / question carousel.
 		this.finalizeCurrentThinkingPart(context, templateData);
 
 		const handleSubmit = (result: IChatPlanReviewResult) => {
@@ -4359,9 +3983,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			widget?.input.clearPlanReview(undefined, reviewKey);
 		};
 
-		// Once the response is complete without a user response, mark the
-		// review as used and clear any docked widget. This matches the
-		// no-answer cancellation path in ChatToolConfirmationCarouselPart.
 		const responseIsComplete = isResponseVM(context.element) && context.element.isComplete;
 		if (responseIsComplete && !review.isUsed) {
 			review.isUsed = true;
@@ -4369,30 +3990,15 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				review.completion.complete(undefined);
 			}
 		}
-		// Always clear the docked widget once the response is complete —
-		// `isUsed` may already be true if the response was cancelled (see
-		// `ChatResponseModel.cancel()` → `ChatPlanReviewData.dismiss()`),
-		// in which case the branch above is skipped but the widget above
-		// the input still needs to go.
 		if (responseIsComplete && responseId) {
 			widget?.input.clearPlanReview(responseId);
 		}
 
-		// Build the inline progress message. While pending: "Plan review
-		// required" with a spinner. Once answered: the action that was
-		// taken (e.g. "Approved plan", "Provided feedback"). The actual
-		// feedback text is rendered as a separate markdown block beneath
-		// rather than collapsed onto the progress line.
 		const renderProgress = (): IChatContentPart => {
 			const message = this.getPlanReviewProgressMessage(review);
 			if (!message) {
 				return this.renderNoContent(other => other.kind === 'planReview');
 			}
-			// Capture the used state at render time. `other` and `review`
-			// are typically the same mutable object, so comparing
-			// `other.isUsed` against `review.isUsed` would always match.
-			// Snapshotting here lets `hasSameContent` detect the
-			// pending → used transition and trigger a re-render.
 			const renderedAsUsed = !!review.isUsed;
 			const isPending = !renderedAsUsed;
 			const content = buildPlanReviewProgressContent(review, message);
@@ -4401,11 +4007,11 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				{ content },
 				this.chatContentMarkdownRenderer,
 				context,
-				/* forceShowSpinner */ isPending,
-				/* forceShowMessage */ true,
-				/* icon */ isPending ? undefined : Codicon.check,
+				isPending,
+				true,
+				isPending ? undefined : Codicon.check,
 				undefined,
-				/* shimmer */ isPending,
+				isPending,
 			);
 			return {
 				domNode: progressPart.domNode,
@@ -4414,8 +4020,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					if (other.kind !== 'planReview') {
 						return false;
 					}
-					// Re-render when the used state flips so we transition
-					// from "Plan review required" to the final action label.
 					if (!!review.isUsed !== renderedAsUsed) {
 						return false;
 					}
@@ -4427,19 +4031,15 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			};
 		};
 
-		// If the review has been answered (or the response is complete), the
-		// docked widget is gone. Render only the final progress line.
 		if (review.isUsed) {
 			return renderProgress();
 		}
 
-		// Dock the active review above the chat input (not while editing).
 		const isEditing = !!this.viewModel?.editing;
 		const dockedPart = isEditing ? undefined : widget?.input.renderPlanReview(review, context, {
 			onSubmit: handleSubmit,
 		});
 
-		// If we couldn't dock (no widget, editing, etc.), fall back to inline rendering.
 		if (!dockedPart) {
 			const fallbackPart = this.instantiationService.createInstance(ChatPlanReviewPart, review, context, {
 				onSubmit: handleSubmit,
@@ -4507,20 +4107,13 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	private renderExternalEdit(content: IChatExternalEdit, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate): IChatContentPart {
 		const editPart = this.instantiationService.createInstance(ChatExternalEditContentPart, content, context);
 
-		// Pin the pill into the surrounding thinking part so diff stats bubble
-		// up into the thinking title. The list renderer pinning logic above
-		// already routes externalEdit kinds through this path.
 		const collapsedToolsMode = this.configService.getValue<CollapsedToolsDisplayMode>('chat.agent.thinking.collapsedTools');
 		if (isResponseVM(context.element) && collapsedToolsMode !== CollapsedToolsDisplayMode.Off && this.shouldPinPart(content, context.element)) {
-			// Stable id per part so the thinking part can dedup if it sees us twice.
 			const partId = `externalEdit-${content.uri.toString()}-${content.undoStopId ?? ''}`;
 			const { part: lastThinking, separatedFromReasoning } = this.getLastThinkingPartForGroupedItem(context, templateData);
 			if (!lastThinking && shouldCreateGroupedThinkingPart(collapsedToolsMode, separatedFromReasoning)) {
 				const thinkingPart = this.renderThinkingPart({ kind: 'thinking' }, context, templateData);
 				if (thinkingPart instanceof ChatThinkingContentPart) {
-					// New thinking part owns the edit pill via eagerDisposable.
-					// We return the thinking part (not editPart) so renderedParts
-					// stores the thinking part — no double ownership.
 					thinkingPart.appendItem(
 						() => ({ domNode: editPart.domNode, disposable: editPart }),
 						partId,
@@ -4533,9 +4126,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				return thinkingPart;
 			}
 			if (lastThinking) {
-				// Thinking part takes ownership via eagerDisposable; we return
-				// a no-content shim so renderedParts does not also own editPart
-				// (that would double-dispose).
 				lastThinking.appendItem(
 					() => ({ domNode: editPart.domNode, disposable: editPart }),
 					partId,
@@ -4554,9 +4144,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	private renderMarkdown(markdown: IChatMarkdownContent, templateData: IChatListItemTemplate, context: IChatContentPartRenderContext): IChatContentPart {
 		const element = context.element;
 		const isBlankMarkdown = !markdown.content.value.trim();
-		// Don't finalize thinking if the markdown has an incomplete codeblock with a
-		// vscode_codeblock_uri tag — the isEdit annotation may not have arrived yet.
-		// Only check codeblocks that contain a URI tag to avoid catching regular non-edit codeblocks.
 		const hasPendingEditCodeblock = isResponseVM(element) && !element.isComplete
 			&& hasCodeblockUriTag(markdown.content.value)
 			&& !codeblockHasClosingBackticks(markdown.content.value);
@@ -4581,13 +4168,11 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					}
 					const clickedElement = e.target as HTMLElement;
 
-					// Don't handle if there's a text selection in the window
 					const selection = dom.getWindow(templateData.rowContainer).getSelection();
 					if (selection && !selection.isCollapsed && selection.toString().length > 0) {
 						return;
 					}
 
-					// Don't handle if there's a selection in code block
 					const monacoEditor = dom.findParentWithClass(clickedElement, 'monaco-editor');
 					if (monacoEditor) {
 						const editorPart = Array.from(this.editorsInUse()).find(editor =>
@@ -4619,10 +4204,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const collapsedToolsMode = this.configService.getValue<CollapsedToolsDisplayMode>('chat.agent.thinking.collapsedTools');
 		if (isResponseVM(context.element) && collapsedToolsMode !== CollapsedToolsDisplayMode.Off) {
 
-			// append to thinking part when the codeblock is complete
 			const isComplete = this.isCodeblockComplete(markdown, context.element);
 
-			// Check if this markdown should be routed to a subagent content part
 			const subAgentInvocationId = extractSubAgentInvocationIdFromText(markdown.content.value);
 			if (subAgentInvocationId) {
 				const subagentPart = this.getSubagentPart(templateData.renderedParts, subAgentInvocationId);
@@ -4643,7 +4226,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 			const shouldPin = this.shouldPinPart(markdown, context.element);
 			if (markdownPart?.domNode && shouldPin && isComplete) {
-				// create thinking part if it doesn't exist yet
 				const { part: lastThinking, separatedFromReasoning } = this.getLastThinkingPartForGroupedItem(context, templateData);
 				if (!lastThinking && shouldCreateGroupedThinkingPart(collapsedToolsMode, separatedFromReasoning)) {
 					const thinkingPart = this.renderThinkingPart({
@@ -4651,7 +4233,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 					}, context, templateData);
 
 					if (thinkingPart instanceof ChatThinkingContentPart) {
-						// Factory wrapping already-created markdown part
 						thinkingPart.appendItem(
 							() => ({ domNode: markdownPart.domNode, disposable: markdownPart }),
 							markdownPart.codeblocksPartId,
@@ -4666,10 +4247,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				}
 
 				if (lastThinking) {
-					// Factory wrapping already-created markdown part.
-					// No eagerDisposable needed here because the markdownPart is returned
-					// from this method and tracked directly in renderedParts, so it will
-					// be disposed by clearRenderedParts.
 					lastThinking.appendItem(
 						() => ({ domNode: markdownPart.domNode, disposable: markdownPart }),
 						markdownPart.codeblocksPartId,
@@ -4687,13 +4264,10 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	}
 
 	renderThinkingPart(content: IChatThinkingPart, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate): IChatContentPart {
-		// TODO @justschen @karthiknadig: remove this when OSWE moves off commentary channel
 		if (!content.id) {
 			content.id = Date.now().toString();
 		}
 
-		// Determine if this thinking part is already complete based on look-ahead
-		// (i.e., there are subsequent parts that won't be pinned to this thinking part)
 		const element = isResponseVM(context.element) ? context.element : undefined;
 		const streamingCompleted = this.isThinkingLookAheadComplete(context, element);
 		const lastThinkingPart = this.getLastThinkingPart(templateData.renderedParts);
@@ -4701,7 +4275,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			this.finalizeCurrentThinkingPart(context, templateData);
 		}
 
-		// if array, we do a naive part by part rendering for now
 		if (Array.isArray(content.value)) {
 			if (content.value.length < 1) {
 				const lastThinking = this.getLastThinkingPart(templateData.renderedParts);
@@ -4722,7 +4295,6 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				}
 			}
 			return lastPart ?? this.renderNoContent(other => content.kind === other.kind);
-			// non-array, handle case where we are currently thinking vs. starting a new thinking part
 		} else {
 			const lastActiveThinking = this.getLastThinkingPart(templateData.renderedParts);
 			if (lastActiveThinking) {
@@ -4742,16 +4314,12 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const ownsElementMappings = this.templateDataByRequestId.get(node.element.id) === templateData;
 
 		if (templateData.currentElement && !this.viewModel?.editing) {
-			// Only delete if the map currently points to this template instance,
-			// to avoid removing the main row's entry when a sticky scroll row is disposed.
 			const mapped = this.templateDataByRequestId.get(templateData.currentElement.id);
 			if (mapped === templateData) {
 				this.templateDataByRequestId.delete(templateData.currentElement.id);
 			}
 		}
 
-		// These maps are only read for the focused response which is always visible,
-		// so we can clean up entries for elements that leave the viewport.
 		if (ownsElementMappings) {
 			const codeBlocks = this.codeBlocksByResponseId.get(node.element.id);
 			if (codeBlocks) {
@@ -4770,16 +4338,12 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			this._onDidDispose.fire(templateData);
 		}
 
-		// Don't retain the toolbar context which includes chat viewmodels
 		if (templateData.titleToolbar) {
 			templateData.titleToolbar.context = undefined;
 		}
 		templateData.footerToolbar.context = undefined;
 		templateData.checkpointToolbar.context = undefined;
 		templateData.checkpointRestoreToolbar.context = undefined;
-		// The footer hover is template-scoped, so it outlives the element unless
-		// released here; a virtualized row would otherwise keep showing (and
-		// retaining) the previous element's token breakdown.
 		templateData.responseTokenStatsHover.clear();
 	}
 
@@ -4814,7 +4378,6 @@ export class ChatListDelegate extends CachedListVirtualDelegate<ChatTreeItem> {
 	}
 
 	protected estimateHeight(element: ChatTreeItem): number {
-		// currentRenderedHeight is not load-bearing here- probably if it's ever set, then the superclass cache will have the height.
 		return element.currentRenderedHeight ?? this.defaultElementHeight;
 	}
 
@@ -4831,19 +4394,10 @@ export class ChatListDelegate extends CachedListVirtualDelegate<ChatTreeItem> {
 	}
 }
 
-/**
- * Check if a tool invocation is the parent subagent tool (the tool that spawns a subagent).
- * A parent subagent tool has subagent toolSpecificData but no subAgentInvocationId.
- */
 function isParentSubagentTool(invocation: IChatToolInvocation | IChatToolInvocationSerialized): boolean {
 	return invocation.toolSpecificData?.kind === 'subagent' && !invocation.subAgentInvocationId;
 }
 
-/**
- * Get the subagent invocation ID for grouping tools.
- * For parent subagent tools, use their toolCallId.
- * For child tools, use their subAgentInvocationId.
- */
 function getSubagentId(invocation: IChatToolInvocation | IChatToolInvocationSerialized): string | undefined {
 	if (isParentSubagentTool(invocation)) {
 		return invocation.toolCallId;
@@ -4851,9 +4405,6 @@ function getSubagentId(invocation: IChatToolInvocation | IChatToolInvocationSeri
 	return invocation.subAgentInvocationId;
 }
 
-/**
- * Check if a tool invocation is part of a subagent (either parent or child).
- */
 function isSubagentToolInvocation(invocation: IChatToolInvocation | IChatToolInvocationSerialized): boolean {
 	return !!getSubagentId(invocation);
 }

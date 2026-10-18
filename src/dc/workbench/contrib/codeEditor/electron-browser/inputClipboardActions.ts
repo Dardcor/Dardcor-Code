@@ -10,9 +10,6 @@ import { getActiveWindow } from '../../../../base/browser/dom.js';
 
 if (platform.isMacintosh) {
 
-	// On the mac, cmd+x, cmd+c and cmd+v do not result in cut / copy / paste
-	// We therefore add a basic keybinding rule that invokes document.execCommand
-	// This is to cover <input>s...
 
 	KeybindingsRegistry.registerCommandAndKeybindingRule({
 		id: 'execCut',

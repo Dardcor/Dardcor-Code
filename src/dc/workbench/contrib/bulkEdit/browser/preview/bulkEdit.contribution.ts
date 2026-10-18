@@ -50,7 +50,6 @@ class UXState {
 
 	async restore(panels: boolean, editors: boolean): Promise<void> {
 
-		// (1) restore previous panel
 		if (panels) {
 			if (typeof this._activePanel === 'string') {
 				await this._paneCompositeService.openPaneComposite(this._activePanel, ViewContainerLocation.Panel);
@@ -59,7 +58,6 @@ class UXState {
 			}
 		}
 
-		// (2) close preview editors
 		if (editors) {
 			for (const group of this._editorGroupsService.groups) {
 				const previewEditors: EditorInput[] = [];
@@ -118,7 +116,6 @@ class BulkEditPreviewContribution {
 			return edits;
 		}
 
-		// check for active preview session and let the user decide
 		if (view.hasInput()) {
 			const { confirmed } = await this._dialogService.confirm({
 				type: Severity.Info,
@@ -132,7 +129,6 @@ class BulkEditPreviewContribution {
 			}
 		}
 
-		// session
 		let session: PreviewSession;
 		if (this._activeSession) {
 			await this._activeSession.uxState.restore(false, true);
@@ -143,13 +139,11 @@ class BulkEditPreviewContribution {
 		}
 		this._activeSession = session;
 
-		// the actual work...
 		try {
 
 			return await view.setInput(edits, session.cts.token) ?? [];
 
 		} finally {
-			// restore UX state
 			if (this._activeSession === session) {
 				await this._activeSession.uxState.restore(true, true);
 				this._activeSession.cts.dispose();
@@ -161,7 +155,6 @@ class BulkEditPreviewContribution {
 }
 
 
-// CMD: accept
 registerAction2(class ApplyAction extends Action2 {
 
 	constructor() {
@@ -190,7 +183,6 @@ registerAction2(class ApplyAction extends Action2 {
 	}
 });
 
-// CMD: discard
 registerAction2(class DiscardAction extends Action2 {
 
 	constructor() {
@@ -215,7 +207,6 @@ registerAction2(class DiscardAction extends Action2 {
 });
 
 
-// CMD: toggle change
 registerAction2(class ToggleAction extends Action2 {
 
 	constructor() {
@@ -244,7 +235,6 @@ registerAction2(class ToggleAction extends Action2 {
 });
 
 
-// CMD: toggle category
 registerAction2(class GroupByFile extends Action2 {
 
 	constructor() {

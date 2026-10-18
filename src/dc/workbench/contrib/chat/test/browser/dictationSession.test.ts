@@ -22,11 +22,6 @@ suite('DictationSession', () => {
 
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * A dictation service that records `transcript` as its final result and lets
-	 * the test drive interim updates through the returned emitter. `setTranscript`
-	 * updates what a subsequent `stopAndTranscribe` resolves with.
-	 */
 	function createService(transcript: string, showTranscriptWhileDictating: boolean, cancelBarrier?: Promise<void>): { service: IChatSpeechToTextService; onDidUpdateTranscript: Emitter<IChatDictationTranscript>; setTranscript(text: string): void; starts: ChatDictationSurface[]; blockStop(): () => void } {
 		const onDidUpdateTranscript = store.add(new Emitter<IChatDictationTranscript>());
 		const onDidChangeState = store.add(new Emitter<ChatSpeechToTextState>());
@@ -60,7 +55,6 @@ suite('DictationSession', () => {
 				onDidChangeState.fire(state);
 			},
 			async stopAndTranscribe() {
-				// Lets a test hold the finalization open to exercise concurrent stops.
 				await stopBarrier;
 				state = ChatSpeechToTextState.Idle;
 				onDidChangeState.fire(state);
@@ -86,7 +80,6 @@ suite('DictationSession', () => {
 		};
 	}
 
-	/** Ranges rendered as still being processed, as `[startLine,startColumn -> endLine,endColumn]`. */
 	function processingRanges(model: ITextModel): string[] {
 		return model.getAllDecorations()
 			.filter(decoration => decoration.options.inlineClassName === 'dictation-interim-processing')
@@ -176,13 +169,10 @@ suite('DictationSession', () => {
 		const ownershipChanges: boolean[] = [];
 		store.add(onDidChangeDictationEditor(() => ownershipChanges.push(isDictationActiveForEditor(editor))));
 
-		// The first submit begins finalizing but blocks inside stopAndTranscribe.
 		const release = blockStop();
 		const firstStop = stopDictationForEditor(editor);
 		const ownsFinalizingDictation = isDictationActiveForEditor(editor);
 		const otherOwnsFinalizingDictation = isDictationActiveForEditor(otherEditor);
-		// A second submit for the same editor arrives mid-finalization; it must
-		// await the in-flight finalization rather than returning early.
 		let secondResolved = false;
 		const secondStop = stopDictationForEditor(editor).then(() => { secondResolved = true; });
 		await timeout(0);
@@ -217,8 +207,6 @@ suite('DictationSession', () => {
 		const editor = store.add(createTestCodeEditor(model));
 
 		await startDictation(service, editor, mainWindow, new NullLogService());
-		// Even where the recognizer reports a committed prefix, the whole
-		// in-progress transcript reads as provisional until dictation ends.
 		onDidUpdateTranscript.fire({ text: transcript, finalizedText: 'hello' });
 		const whileProcessing = processingRanges(model);
 		await stopDictation();
@@ -233,11 +221,8 @@ suite('DictationSession', () => {
 
 		await startDictation(service, editor, mainWindow, new NullLogService());
 		onDidUpdateTranscript.fire({ text: 'one two', finalizedText: '' });
-		// The user manually deletes the trailing character of the dictated text.
 		editor.executeEdits('test', [{ range: new Range(1, 7, 1, 8), text: '' }]);
 		editor.setPosition(new Position(1, 7));
-		// More speech arrives as a cumulative transcript; only the new tail is
-		// inserted, leaving the user's edit intact.
 		setTranscript('one two three');
 		onDidUpdateTranscript.fire({ text: 'one two three', finalizedText: '' });
 		const afterMore = editor.getValue();
@@ -253,10 +238,7 @@ suite('DictationSession', () => {
 
 		await startDictation(service, editor, mainWindow, new NullLogService());
 		onDidUpdateTranscript.fire({ text: 'one two', finalizedText: '' });
-		// A bumped key must be appended at the hidden caret after the dictated region.
 		editor.trigger('test', 'type', { text: 'x' });
-		// More speech arrives and is appended after the stray character rather
-		// than jumping to the start of the input.
 		setTranscript('one two three');
 		onDidUpdateTranscript.fire({ text: 'one two three', finalizedText: '' });
 		const afterMore = editor.getValue();
@@ -275,8 +257,6 @@ suite('DictationSession', () => {
 		await startDictation(service, editor1, mainWindow, new NullLogService());
 		onDidUpdateTranscript.fire({ text: 'hello', finalizedText: '' });
 		const editor1WhileDictating = editor1.getValue();
-		// Starting dictation in a second editor cancels the first session (keeping
-		// its already-inserted text) and takes over the shared engine.
 		await startDictation(service, editor2, mainWindow, new NullLogService());
 		onDidUpdateTranscript.fire({ text: 'world', finalizedText: '' });
 		const editor2WhileDictating = editor2.getValue();

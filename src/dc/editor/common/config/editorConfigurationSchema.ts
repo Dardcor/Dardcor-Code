@@ -160,7 +160,7 @@ const editorConfiguration: IConfigurationNode = {
 		},
 		'editor.language.brackets': {
 			type: ['array', 'null'],
-			default: null, // We want to distinguish the empty array from not configured.
+			default: null,
 			description: nls.localize('schema.brackets', 'Defines the bracket symbols that increase or decrease the indentation.'),
 			items: {
 				type: 'array',
@@ -178,7 +178,7 @@ const editorConfiguration: IConfigurationNode = {
 		},
 		'editor.language.colorizedBracketPairs': {
 			type: ['array', 'null'],
-			default: null, // We want to distinguish the empty array from not configured.
+			default: null,
 			description: nls.localize('schema.colorizedBracketPairs', 'Defines the bracket pairs that are colorized by their nesting level if bracket pair colorization is enabled.'),
 			items: {
 				type: 'array',
@@ -310,12 +310,10 @@ function isConfigurationPropertySchema(x: IConfigurationPropertySchema | { [path
 	return (typeof x.type !== 'undefined' || typeof x.anyOf !== 'undefined');
 }
 
-// Add properties from the Editor Option Registry
 for (const editorOption of editorOptionsRegistry) {
 	const schema = editorOption.schema;
 	if (typeof schema !== 'undefined') {
 		if (isConfigurationPropertySchema(schema)) {
-			// This is a single schema contribution
 			editorConfiguration.properties![`editor.${editorOption.name}`] = schema;
 		} else {
 			for (const key in schema) {

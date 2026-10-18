@@ -45,12 +45,6 @@ export function getRecentCodeSnippets(
 		recentlyViewedCodeSnippets = docsBesidesActiveDoc.map(d => historyEntryToCodeSnippet(d));
 	}
 
-	// Keep the three sources in separate arrays (like `runGlobalBudgetCascade`)
-	// so per-subsection token counts can be reported. The appenders only read
-	// `docsInPrompt` for de-duplication, so splitting the output arrays does not
-	// change which snippets are selected; concatenating them in the same order
-	// (recent files, language context, neighbor files) reproduces the previous
-	// single-array output byte-for-byte.
 	const { snippets, docsInPrompt } = buildCodeSnippetsUsingPagedClipping(recentlyViewedCodeSnippets, computeTokens, opts);
 
 	const langCtxSnippets: string[] = [];
@@ -76,12 +70,6 @@ export function getRecentCodeSnippets(
 	};
 }
 
-/**
- * Rendered strings for the three sources that make up the
- * `recently_viewed_code_snippets` block, kept separate so per-subsection token
- * counts can be reported. Each is the `\n\n`-joined snippets for that source
- * (empty string when the source contributed nothing).
- */
 export interface RecentlyViewedSubsectionSnippets {
 	readonly recentlyViewedFiles: string;
 	readonly languageContext: string;
@@ -120,10 +108,6 @@ function formatCodeSnippet(
 	return [PromptTags.RECENT_FILE.start, firstLine, fileContent, PromptTags.RECENT_FILE.end].join('\n');
 }
 
-/**
- * Collect last `nDocuments` unique documents from xtab history, excluding the active document.
- * Returns entries from most to least recent.
- */
 function collectRecentDocuments(
 	xtabHistory: readonly IXtabHistoryEntry[],
 	activeDocId: DocumentId,
@@ -158,12 +142,6 @@ interface GroupedDocumentEntries {
 	readonly entries: IXtabHistoryEntry[];
 }
 
-/**
- * Collect last `nDocuments` unique documents from xtab history, excluding the active document.
- * Unlike {@link collectRecentDocuments}, this returns *all* entries per document (not just the latest),
- * so that multiple edit locations within a single document can be used as focal ranges.
- * Returns groups from most to least recently active document.
- */
 function collectRecentDocumentsGrouped(
 	xtabHistory: readonly IXtabHistoryEntry[],
 	activeDocId: DocumentId,
@@ -189,7 +167,7 @@ function collectRecentDocumentsGrouped(
 			existing.push(entry);
 		} else {
 			if (docOrder.length >= nDocuments) {
-				continue; // already have enough unique docs, skip entries for new docs
+				continue;
 			}
 			docOrder.push(entry.docId);
 			docEntries.set(entry.docId, [entry]);
@@ -206,11 +184,6 @@ export type RecentCodeSnippet = {
 	readonly editEntryCount?: number;
 };
 
-/**
- * Build the per-document `RecentCodeSnippet` list that feeds the paged-clipping
- * recently-viewed builder. Extracted from {@link getRecentCodeSnippets} so the
- * global-budget cascade can run the recently-viewed sub-builder independently.
- */
 export function prepareRecentCodeSnippets(
 	activeDoc: StatelessNextEditDocument,
 	xtabHistory: readonly IXtabHistoryEntry[],
@@ -225,20 +198,6 @@ export function prepareRecentCodeSnippets(
 	return docsBesidesActiveDoc.map(d => historyEntryToCodeSnippet(d));
 }
 
-/**
- * Select focal ranges prioritizing the most recent (earliest in array order),
- * capping the total line span to prevent wide-scatter edits from blowing up
- * the initial page coverage in {@link clipAroundFocalRanges}.
- *
- * Focal ranges from {@link historyEntriesToCodeSnippet} are ordered most-recent-first.
- * When edits are spread across a file (e.g., line 10 + line 90), including all
- * ranges would cause the initial focal span to cover the entire document. This
- * function greedily includes ranges until a line span cap is reached.
- *
- * @param focalRanges  Character-offset ranges ordered most-recent-first.
- * @param getLineNumber Maps a character offset to a 1-based line number.
- * @param maxSpanLines  Maximum allowed line span for the combined focal range.
- */
 export function selectFocalRangesWithinSpanCap(
 	focalRanges: readonly OffsetRange[],
 	getLineNumber: (offset: number) => number,
@@ -269,14 +228,9 @@ export function selectFocalRangesWithinSpanCap(
 	return selected;
 }
 
-/**
- * Convert a single history entry to a code snippet.
- * Edit entries get `focalRanges` derived from the edit's replacement ranges in
- * the post-edit document.
- */
 function historyEntryToCodeSnippet(d: IXtabHistoryEntry): RecentCodeSnippet {
 	if (d.kind === 'edit') {
-		const content = d.edit.edit.applyOnText(d.edit.base); // FIXME@ulugbekna: I don't like this being computed afresh
+		const content = d.edit.edit.applyOnText(d.edit.base);
 		return {
 			id: d.docId,
 			content,
@@ -291,27 +245,12 @@ function historyEntryToCodeSnippet(d: IXtabHistoryEntry): RecentCodeSnippet {
 	};
 }
 
-/**
- * Convert a group of history entries (all for the same document) into a single code snippet.
- * Merges focal ranges from all edit entries so clipping can center on all edit locations.
- *
- * Focal ranges are only collected from edit entries — visibleRanges entries are skipped
- * because their character offsets correspond to older document snapshots and cannot be
- * reliably transformed to the current content's coordinate space.
- *
- * For older edit entries, their focal ranges are transformed forward through the chain
- * of subsequent edits using {@link BaseStringEdit.applyToOffsetRange} so that they
- * remain valid in the most recent content.
- */
 export function historyEntriesToCodeSnippet(entries: IXtabHistoryEntry[]): RecentCodeSnippet {
-	// Use the most recent entry's content as the base
 	const mostRecent = entries[0];
 	const content = mostRecent.kind === 'edit'
 		? mostRecent.edit.edit.applyOnText(mostRecent.edit.base)
 		: mostRecent.documentContent;
 
-	// Collect only edit entries (most recent first). VisibleRanges entries are
-	// skipped because their character offsets refer to older document snapshots.
 	const editEntries: IXtabHistoryEditEntry[] = [];
 	for (const entry of entries) {
 		if (entry.kind === 'edit') {
@@ -319,12 +258,6 @@ export function historyEntriesToCodeSnippet(entries: IXtabHistoryEntry[]): Recen
 		}
 	}
 
-	// Transform focal ranges from each edit entry into the most recent content's
-	// coordinate space. Each entry's getNewRanges() returns character offsets
-	// valid in that entry's own post-edit document. The chain invariant is:
-	//   editEntries[j].postEdit ≈ editEntries[j-1].base
-	// so we apply each intervening edit's transformation in sequence (indices
-	// j-1 down to 0) to project an older entry's ranges into the newest content.
 	const allFocalRanges: OffsetRange[] = [];
 	for (let j = 0; j < editEntries.length; j++) {
 		let ranges = editEntries[j].edit.edit.getNewRanges();
@@ -342,13 +275,6 @@ export function historyEntriesToCodeSnippet(entries: IXtabHistoryEntry[]): Recen
 	};
 }
 
-/**
- * Append language context snippets to the snippets array, respecting the token budget.
- * Language context snippets omit line numbers because providers do not report source ranges.
- *
- * @returns the number of tokens consumed (matches the same per-snippet accounting
- * the function uses internally for budget decisions).
- */
 export function appendLanguageContextSnippets(
 	langCtx: LanguageContextResponse,
 	snippets: string[],
@@ -357,15 +283,11 @@ export function appendLanguageContextSnippets(
 ): number {
 	const initialBudget = tokenBudget;
 	for (const langCtxEntry of langCtx.items) {
-		// Context which is provided on timeout is not guranteed to be good context
-		// TODO should these be included?
 		if (langCtxEntry.onTimeout) {
 			continue;
 		}
 
 		const ctx = langCtxEntry.context;
-		// TODO@ulugbekna: currently we only include snippets
-		// TODO@ulugbekna: are the snippets sorted by priority?
 		if (ctx.kind === ContextKind.Snippet) {
 			const langCtxSnippet = ctx.value;
 			const potentialBudget = tokenBudget - computeTokens(langCtxSnippet);
@@ -384,37 +306,13 @@ export function appendLanguageContextSnippets(
 	return initialBudget - tokenBudget;
 }
 
-/**
- * Result of appending neighbor-file snippets, used for telemetry.
- */
 export interface AppendNeighborFileSnippetsResult {
-	/** Total snippets considered (input array length). */
 	readonly nComputed: number;
-	/** Snippets actually included in the prompt. */
 	readonly nIncluded: number;
-	/**
-	 * Original input indices (ascending) of snippets included in the prompt.
-	 * E.g. `[3, 4, 6]` means snippets at original indices 3, 4 and 6 were included
-	 * (snippet at index 5 was skipped — too large or duplicate doc — and snippets
-	 * at 0, 1 and 2 were skipped because the budget ran out).
-	 */
 	readonly includedIndices: readonly number[];
-	/** Tokens consumed using the same per-snippet accounting used for budget decisions. */
 	readonly tokensConsumed: number;
 }
 
-/**
- * Append Completions-style neighbor-file snippets (Jaccard-ranked) to the snippets array.
- *
- * Snippets are pre-clipped by Completions (each is a fixed-window match around
- * the cursor in a neighbor file) and arrive ordered with the highest-scoring
- * snippet last. We select greedily from highest score downward so the best
- * snippets reserve budget first, skipping any whose file is already represented
- * in {@link docsInPrompt} (avoids duplicating recently-edited or recently-viewed
- * files) and any snippet that would exceed the remaining token budget. Selected
- * snippets are then appended in score-ascending order so the highest-scoring
- * snippet ends up closest to the current file in the prompt.
- */
 export function appendNeighborFileSnippets(
 	neighborSnippets: readonly INeighborFileSnippet[],
 	snippets: string[],
@@ -425,7 +323,6 @@ export function appendNeighborFileSnippets(
 ): AppendNeighborFileSnippetsResult {
 	const initialBudget = tokenBudget;
 	const selected: { snippet: INeighborFileSnippet; originalIndex: number }[] = [];
-	// Iterate from highest score (last) to lowest (first) so the best snippets reserve budget first.
 	for (let i = neighborSnippets.length - 1; i >= 0; i--) {
 		const neighborSnippet = neighborSnippets[i];
 		const documentId = DocumentId.create(neighborSnippet.uri);
@@ -440,11 +337,8 @@ export function appendNeighborFileSnippets(
 		docsInPrompt.add(documentId);
 		tokenBudget = potentialBudget;
 	}
-	// Reverse so the highest-scoring snippet is appended last (closest to the current file).
 	for (let i = selected.length - 1; i >= 0; i--) {
 		const neighborSnippet = selected[i].snippet;
-		// Related (language-service) files omit line numbers, matching the language-context path;
-		// open-tab neighbors keep the configured line-number formatting.
 		const snippetIncludeLineNumbers = neighborSnippet.isFromRelatedFile
 			? xtabPromptOptions.IncludeLineNumbersOption.None
 			: includeLineNumbers;
@@ -463,11 +357,6 @@ export function appendNeighborFileSnippets(
 	};
 }
 
-/**
- * Clip a file without visible ranges by taking pages from the start until budget is exhausted.
- *
- * @returns The remaining token budget after clipping.
- */
 function clipFullDocument(
 	document: { id: DocumentId; content: StringText },
 	pages: Iterable<string[]>,
@@ -498,12 +387,6 @@ function clipFullDocument(
 	return allowedBudget;
 }
 
-/**
- * Compute the token cost of the focal pages for a file — the minimum tokens
- * needed to include just the pages that contain the focal ranges.
- *
- * Returns `undefined` when there are no usable focal ranges.
- */
 export function computeFocalPageCost(
 	content: StringText,
 	focalRanges: readonly OffsetRange[],
@@ -540,16 +423,6 @@ export function computeFocalPageCost(
 	return cost;
 }
 
-/**
- * Clip a file around its focal ranges (visible ranges or edit locations)
- * by expanding pages outward until budget is exhausted.
- *
- * The focal range span is capped to avoid blowing up the initial page
- * coverage when edits are spread across the file. Newer focal ranges
- * (earlier in the array) are prioritized over older ones.
- *
- * @returns The remaining token budget after clipping, or `undefined` if nothing fit into the budget.
- */
 function clipAroundFocalRanges(
 	document: { id: DocumentId; content: StringText; focalRanges: readonly OffsetRange[] },
 	pageSize: number,
@@ -566,8 +439,6 @@ function clipAroundFocalRanges(
 
 	const contentTransform = document.content.getTransformer();
 
-	// Limit focal range span so that wide-scatter edits don't consume
-	// the entire budget on the initial pages alone.
 	const maxFocalSpanLines = pageSize * 3;
 	const focalRanges = selectFocalRangesWithinSpanCap(
 		document.focalRanges,
@@ -586,7 +457,7 @@ function clipAroundFocalRanges(
 
 	const { firstPageIdx, lastPageIdxIncl, budgetLeft } = expandRangeToPageRange(
 		document.content.getLines(),
-		new OffsetRange(startPos.lineNumber - 1 /* convert from 1-based to 0-based */, endPos.lineNumber),
+		new OffsetRange(startPos.lineNumber - 1 , endPos.lineNumber),
 		pageSize,
 		tokenBudget,
 		computeTokens,
@@ -595,11 +466,9 @@ function clipAroundFocalRanges(
 	);
 
 	if (budgetLeft === tokenBudget) {
-		return undefined; // nothing fit — signal caller to stop
+		return undefined;
 	}
 
-	// If the focal pages alone exceed the budget (negative budgetLeft from
-	// expandRangeToPageRange), skip this file rather than silently overshooting.
 	if (budgetLeft < 0) {
 		return undefined;
 	}
@@ -611,11 +480,6 @@ function clipAroundFocalRanges(
 	return budgetLeft;
 }
 
-/**
- * Build code snippets using paged clipping.
- *
- * @param recentlyViewedCodeSnippets List of recently viewed code snippets from most to least recent
- */
 export function buildCodeSnippetsUsingPagedClipping(
 	recentlyViewedCodeSnippets: RecentCodeSnippet[],
 	computeTokens: (s: string) => number,
@@ -636,9 +500,6 @@ export function buildCodeSnippetsUsingPagedClipping(
 	return buildCodeSnippetsGreedy(recentlyViewedCodeSnippets, computeTokens, opts, pageSize);
 }
 
-/**
- * Greedy (most-recent-first) code snippet building. Used for the `AroundEditRange` strategy.
- */
 function buildCodeSnippetsGreedy(
 	recentlyViewedCodeSnippets: RecentCodeSnippet[],
 	computeTokens: (s: string) => number,
@@ -659,8 +520,6 @@ function buildCodeSnippetsGreedy(
 	for (const file of recentlyViewedCodeSnippets) {
 		const lines = file.content.getLines();
 
-		// When we have focalRanges (from edits or visible ranges),
-		// center the clip around those ranges instead of truncating from top.
 		if (file.focalRanges !== undefined) {
 			const budgetLeft = clipAroundFocalRanges(
 				file as { id: DocumentId; content: StringText; focalRanges: readonly OffsetRange[] },
@@ -679,14 +538,6 @@ function buildCodeSnippetsGreedy(
 	return { snippets: result.snippets.reverse(), docsInPrompt: result.docsInPrompt, tokensConsumed: initialBudget - maxTokenBudget };
 }
 
-/**
- * Two-pass proportional budget allocation:
- * 1. Compute the minimum focal page cost for each file and determine which files
- *    can be included within the total budget. When files must be dropped, the
- *    oldest (last in the most-recent-first input order) are dropped first.
- * 2. Distribute the remaining budget proportionally (by edit-entry-count weight)
- *    across included files for page expansion around their focal ranges.
- */
 function buildCodeSnippetsWithProportionalBudget(
 	recentlyViewedCodeSnippets: RecentCodeSnippet[],
 	computeTokens: (s: string) => number,
@@ -707,15 +558,12 @@ function buildCodeSnippetsWithProportionalBudget(
 		return { snippets: [], docsInPrompt: new Set(), tokensConsumed: 0 };
 	}
 
-	// --- Pass 1: compute minimum focal costs ---
 	const focalCosts = recentlyViewedCodeSnippets.map(file =>
 		file.focalRanges !== undefined && file.focalRanges.length > 0
 			? computeFocalPageCost(file.content, file.focalRanges, pageSize, computeTokens) ?? 0
 			: 0
 	);
 
-	// Determine which files to include. Input is ordered most-recent-first,
-	// so we drop from the end (oldest) when focal minimums exceed the budget.
 	let includedCount = recentlyViewedCodeSnippets.length;
 	let sumFocalCosts = focalCosts.reduce((a, b) => a + b, 0);
 	while (includedCount > 0 && sumFocalCosts > totalBudget) {
@@ -727,13 +575,11 @@ function buildCodeSnippetsWithProportionalBudget(
 		return { snippets: [], docsInPrompt: new Set(), tokensConsumed: 0 };
 	}
 
-	// --- Pass 2: distribute expansion budget proportionally ---
 	const expansionBudget = totalBudget - sumFocalCosts;
 
 	const weights = recentlyViewedCodeSnippets.slice(0, includedCount).map(f => f.editEntryCount ?? 1);
 	const totalWeight = weights.reduce((sum, w) => sum + w, 0);
 
-	// Per-file expansion shares, proportional to edit-entry weight
 	const expansionShares = weights.map(w => Math.floor(expansionBudget * (w / totalWeight)));
 
 	let unspentBudget = 0;
@@ -741,7 +587,6 @@ function buildCodeSnippetsWithProportionalBudget(
 	for (let i = 0; i < includedCount; i++) {
 		const file = recentlyViewedCodeSnippets[i];
 		const lines = file.content.getLines();
-		// Each file's budget = guaranteed focal cost + proportional expansion share + carry-forward
 		const effectiveBudget = focalCosts[i] + expansionShares[i] + unspentBudget;
 
 		if (file.focalRanges !== undefined && file.focalRanges.length > 0) {
@@ -756,8 +601,5 @@ function buildCodeSnippetsWithProportionalBudget(
 		}
 	}
 
-	// Total budget given out across all files = sum(focalCosts[0..includedCount]) + expansionBudget = totalBudget,
-	// with unspentBudget rolling forward each iteration. Final unspentBudget therefore represents the leftover
-	// of the entire pool, so consumed = totalBudget - finalUnspentBudget.
 	return { snippets: result.snippets.reverse(), docsInPrompt: result.docsInPrompt, tokensConsumed: totalBudget - unspentBudget };
 }

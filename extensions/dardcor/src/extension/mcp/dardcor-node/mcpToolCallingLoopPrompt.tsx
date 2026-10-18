@@ -10,7 +10,7 @@ import { InstructionMessage } from '../../prompts/node/base/instructionMessage';
 import { Tag } from '../../prompts/node/base/tag';
 import { HistoryWithInstructions } from '../../prompts/node/panel/conversationHistory';
 import { ChatToolCalls } from '../../prompts/node/panel/toolCalling';
-import { CopilotToolMode } from '../../tools/common/toolsRegistry';
+import { AgentToolMode } from '../../tools/common/toolsRegistry';
 import { McpPickRef, QuickInputTool, QuickPickTool } from './mcpToolCallingTools';
 
 export interface IMcpToolCallingLoopPromptContext {
@@ -36,12 +36,9 @@ export class McpToolCallingLoopPrompt extends PromptElement<IMcpToolCallingLoopP
 		const { packageType, packageName, packageVersion, pickRef, packageReadme } = this.props;
 		const { history, toolCallRounds = [], toolCallResults = {} } = this.props.promptContext;
 
-		// We do kind of a 'special' thing here to have the tool only available to *this* prompt because
-		// we're in a quickpick flow (and don't really want the tool generally available)
 		for (const round of toolCallRounds) {
 			for (const tool of round.toolCalls) {
 				if (toolCallResults[tool.id]) {
-					// no-op
 				} else if (tool.name === QuickInputTool.ID) {
 					toolCallResults[tool.id] = await QuickInputTool.invoke(pickRef, JSON.parse(tool.arguments));
 				} else if (tool.name === QuickPickTool.ID) {
@@ -103,7 +100,7 @@ export class McpToolCallingLoopPrompt extends PromptElement<IMcpToolCallingLoopP
 						</TextChunk>
 					</Tag>
 				</UserMessage>
-				<ChatToolCalls priority={899} flexGrow={2} promptContext={this.props.promptContext} toolCallRounds={toolCallRounds} toolCallResults={toolCallResults} toolCallMode={CopilotToolMode.FullContext} />
+				<ChatToolCalls priority={899} flexGrow={2} promptContext={this.props.promptContext} toolCallRounds={toolCallRounds} toolCallResults={toolCallResults} toolCallMode={AgentToolMode.FullContext} />
 			</>
 		);
 	}

@@ -23,7 +23,6 @@ export function buildReplaceStringWithCasePreserved(matches: string[] | null, pa
 		} else if (matches[0][0].toUpperCase() !== matches[0][0] && pattern.length > 0) {
 			return pattern[0].toLowerCase() + pattern.substr(1);
 		} else {
-			// we don't understand its pattern yet.
 			return pattern;
 		}
 	} else {

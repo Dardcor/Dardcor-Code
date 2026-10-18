@@ -16,36 +16,11 @@ export interface IChatResponseFileEdit extends IEditSessionEntryDiff {
 	readonly isOutsideWorkspace: boolean;
 }
 
-/** An authoritative result saying valid edits produced no net file changes. */
 export const AUTHORITATIVE_EMPTY_CHAT_RESPONSE_FILE_CHANGES: readonly IEditSessionEntryDiff[] = [];
 
-/**
- * Supplies the per-response (per-request) file-change diffs rendered by the
- * "Changed N files" summary under a completed chat response.
- *
- * Most chat sessions derive these diffs from their {@link IChatEditingSession}.
- * Some session types (notably agent host sessions) own an authoritative,
- * server-computed view of a turn's changes and provide it here instead, so the
- * summary reflects the same source of truth as the rest of that session's
- * change UI.
- */
 export interface IChatResponseFileChangesProvider {
-	/**
-	 * Returns an observable of the file-change diffs produced by `requestId`
-	 * within `sessionResource`, or `undefined` when this provider cannot
-	 * supply changes for that request (in which case the caller falls back to
-	 * the chat editing session). Return
-	 * {@link AUTHORITATIVE_EMPTY_CHAT_RESPONSE_FILE_CHANGES} when valid edits
-	 * cancel to no net change and consumers must clear previously cached diffs.
-	 */
 	getChangesForRequest(sessionResource: URI, requestId: string): IObservable<readonly IEditSessionEntryDiff[]> | undefined;
 
-	/**
-	 * Returns the file edits produced by `requestId` from the response output
-	 * stream, or `undefined` when unavailable. Unlike {@link getChangesForRequest},
-	 * this is not limited to a changeset and can include files outside the
-	 * workspace. Each edit is classified against its owning session.
-	 */
 	getFileEditsForRequest?(sessionResource: URI, requestId: string): IObservable<readonly IChatResponseFileEdit[]> | undefined;
 }
 
@@ -62,34 +37,14 @@ export interface IChatResponseFileChangesStats {
 export interface IChatResponseFileChangesService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Registers a provider for a chat session type (as returned by
-	 * {@link getChatSessionType}). At most one provider may be registered per
-	 * session type.
-	 */
 	registerProvider(chatSessionType: string, provider: IChatResponseFileChangesProvider): IDisposable;
 
-	/**
-	 * Returns the per-request change diffs for `sessionResource` from the
-	 * provider registered for its session type, or `undefined` when there is
-	 * no provider or the provider cannot supply changes for this request.
-	 */
 	getChangesForRequest(sessionResource: URI, requestId: string): IObservable<readonly IEditSessionEntryDiff[]> | undefined;
 
-	/**
-	 * Returns file edits produced by `requestId` from the response output stream,
-	 * classified against their owning session, when the provider can supply them.
-	 */
 	getFileEditsForRequest?(sessionResource: URI, requestId: string): IObservable<readonly IChatResponseFileEdit[]> | undefined;
 
-	/**
-	 * Returns authoritative aggregate stats when the owning surface already
-	 * projects the request's changes. When omitted, consumers aggregate
-	 * {@link getChangesForRequest}.
-	 */
 	getChangeStatsForRequest?(sessionResource: URI, requestId: string, context: IChatResponseFileChangesOpenContext): IObservable<IChatResponseFileChangesStats> | undefined;
 
-	/** Opens response changes. `requestId` may be omitted for invocations not tied to a rendered response; `context.isLastTurn` controls last-turn routing. */
 	openChangesForRequest(sessionResource: URI, requestId: string | undefined, context: IChatResponseFileChangesOpenContext): void;
 }
 

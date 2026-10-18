@@ -39,12 +39,10 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 		const storageValueChangeEvents: IStorageValueChangeEvent[] = [];
 		storageService.onDidChangeValue(StorageScope.WORKSPACE, undefined, disposables)(e => storageValueChangeEvents.push(e), undefined, disposables);
 
-		// Explicit external source
 		storageService.storeAll([{ key: 'testExternalChange', value: 'foobar', scope: StorageScope.WORKSPACE, target: StorageTarget.MACHINE }], true);
 		let storageValueChangeEvent = storageValueChangeEvents.find(e => e.key === 'testExternalChange');
 		strictEqual(storageValueChangeEvent?.external, true);
 
-		// Default source
 		storageService.storeAll([{ key: 'testChange', value: 'barfoo', scope: StorageScope.WORKSPACE, target: StorageTarget.MACHINE }], false);
 		storageValueChangeEvent = storageValueChangeEvents.find(e => e.key === 'testChange');
 		strictEqual(storageValueChangeEvent?.external, false);
@@ -173,7 +171,6 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 		let storageTargetEvent: IStorageTargetChangeEvent | undefined = undefined;
 		storageService.onDidChangeTarget(e => storageTargetEvent = e, undefined, disposables);
 
-		// Empty
 		for (const scope of [StorageScope.WORKSPACE, StorageScope.PROFILE, StorageScope.APPLICATION]) {
 			for (const target of [StorageTarget.MACHINE, StorageTarget.USER]) {
 				strictEqual(storageService.keys(scope, target).length, 0);
@@ -182,7 +179,6 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 
 		let storageValueChangeEvent: IStorageValueChangeEvent | undefined = undefined;
 
-		// Add values
 		for (const scope of [StorageScope.WORKSPACE, StorageScope.PROFILE, StorageScope.APPLICATION]) {
 			storageService.onDidChangeValue(scope, undefined, disposables)(e => storageValueChangeEvent = e, undefined, disposables);
 
@@ -214,7 +210,6 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 			}
 		}
 
-		// Remove values
 		for (const scope of [StorageScope.WORKSPACE, StorageScope.PROFILE, StorageScope.APPLICATION]) {
 			for (const target of [StorageTarget.MACHINE, StorageTarget.USER]) {
 				const keysLength = storageService.keys(scope, target).length;
@@ -233,7 +228,6 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 			}
 		}
 
-		// Remove all
 		for (const scope of [StorageScope.WORKSPACE, StorageScope.PROFILE, StorageScope.APPLICATION]) {
 			for (const target of [StorageTarget.MACHINE, StorageTarget.USER]) {
 				const keys = storageService.keys(scope, target);
@@ -246,7 +240,6 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 			}
 		}
 
-		// Adding undefined or null removes value
 		for (const scope of [StorageScope.WORKSPACE, StorageScope.PROFILE, StorageScope.APPLICATION]) {
 			for (const target of [StorageTarget.MACHINE, StorageTarget.USER]) {
 				storageService.store('test.target1', 'value1', scope, target);
@@ -266,7 +259,6 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 			}
 		}
 
-		// Target change
 		for (const scope of [StorageScope.WORKSPACE, StorageScope.PROFILE, StorageScope.APPLICATION]) {
 			storageTargetEvent = undefined;
 			storageService.store('test.target5', 'value1', scope, StorageTarget.MACHINE);
@@ -279,7 +271,7 @@ export function createSuite<T extends IStorageService>(params: { setup: () => Pr
 			ok(storageTargetEvent);
 			storageTargetEvent = undefined;
 			storageService.store('test.target5', 'value1', scope, StorageTarget.MACHINE);
-			ok(!storageTargetEvent); // no change in target
+			ok(!storageTargetEvent);
 		}
 	});
 }

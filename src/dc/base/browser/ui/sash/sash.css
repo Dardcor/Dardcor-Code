@@ -134,7 +134,6 @@
 	pointer-events: none !important;
 }
 
-/** Debug **/
 
 .monaco-sash.debug {
 	background: cyan;

@@ -71,10 +71,6 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 	) {
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostChatProvider);
 
-		// Bridge workbench-side language-model changes to extensions via `vscode.lm.onDidChangeChatModels`.
-		// Only forward when the set of model identifiers changes. Providers (e.g. BYOK utility aliases) can
-		// re-publish models with metadata-only diffs many times per second; firing on those lets listeners
-		// that re-resolve models (e.g. `selectChatModels`) spin an unbounded CPU-pinning feedback loop.
 		let lastModelIds = new Set(this._chatProviderService.getLanguageModelIds());
 		this._store.add(this._chatProviderService.onDidChangeLanguageModels(() => {
 			const currentModelIds = new Set(this._chatProviderService.getLanguageModelIds());
@@ -102,27 +98,21 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 				onDidChange: Event.filter(this._lmProviderChange.event, e => e.vendor === vendor, disposables) as unknown as Event<void>,
 				provideLanguageModelChatInfo: async (options, token) => {
 					const modelsAndIdentifiers = await this._proxy.$provideLanguageModelChatInfo(vendor, options, token);
-					const copilotExtensionId = this._productService.defaultChatAgent?.chatExtensionId;
+					const defaultChatExtensionId = this._productService.defaultChatAgent?.chatExtensionId;
 					return modelsAndIdentifiers.map(m => {
 						if (m.metadata.auth) {
 							disposables.add(this._registerAuthenticationProvider(m.metadata.extension, m.metadata.auth));
 						}
 						if (m.metadata.isBYOK !== undefined) {
-							return m; // provider declared it explicitly
+							return m;
 						}
-						// Any contributed model that isn't from the built-in Copilot chat extension is BYOK.
-						const isBuiltinCopilot = !!copilotExtensionId && ExtensionIdentifier.equals(m.metadata.extension, copilotExtensionId);
-						return { ...m, metadata: { ...m.metadata, isBYOK: !isBuiltinCopilot } };
+						const isBuiltinDardcorChat = !!defaultChatExtensionId && ExtensionIdentifier.equals(m.metadata.extension, defaultChatExtensionId);
+						return { ...m, metadata: { ...m.metadata, isBYOK: !isBuiltinDardcorChat } };
 					});
 				},
 				sendChatRequest: async (modelId, messages, from, options, token) => {
 					const requestId = (Math.random() * 1e6) | 0;
 					const defer = new DeferredPromise<unknown>();
-					// `result` mirrors the stream's terminal status and is rejected together with the
-					// stream on error (see `$reportResponseDone`). Consumers that read the stream let the
-					// for-await throw and never reach `await response.result`, leaving its rejection (e.g.
-					// an expected `ChatQuotaExceeded`) unobserved. Attach a no-op handler so it cannot
-					// surface as an unhandled rejection; real awaiters of `result` still see the error.
 					defer.p.catch(() => { });
 					const stream = new AsyncIterableSource<IChatResponsePart | IChatResponsePart[]>();
 
@@ -219,9 +209,6 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 	async $tryStartChatRequest(extension: ExtensionIdentifier, modelIdentifier: string, requestId: number, messages: SerializableObjectWithBuffers<IChatMessage[]>, options: {}, token: CancellationToken): Promise<void> {
 		this._logService.trace('[CHAT] request STARTED', extension.value, requestId);
 
-		// Create a local CTS so cancellation can be signalled via
-		// $cancelLanguageModelChatRequest even after the RPC cancel
-		// handler for the original token has been removed.
 		const cts = new RequestCancellationTokenSource(token);
 		this._pendingCancelCTS.set(requestId, cts);
 
@@ -234,10 +221,6 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 			throw err;
 		}
 
-		// !!! IMPORTANT !!!
-		// This method must return before the response is done (has streamed all parts)
-		// and because of that we consume the stream without awaiting
-		// !!! IMPORTANT !!!
 		const streaming = (async () => {
 			try {
 				for await (const part of response.stream) {
@@ -251,7 +234,6 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 			}
 		})();
 
-		// When the response is done (signaled via its result) we tell the EH
 		Promise.allSettled([response.result, streaming]).then(() => {
 			this._logService.debug('[CHAT] extension request DONE', extension.value, requestId);
 			this._pendingCancelCTS.deleteAndDispose(requestId);
@@ -269,10 +251,8 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 	}
 
 	private _registerAuthenticationProvider(extension: ExtensionIdentifier, auth: { providerLabel: string; accountLabel?: string | undefined }): IDisposable {
-		// This needs to be done in both MainThread & ExtHost ChatProvider
 		const authProviderId = INTERNAL_AUTH_PROVIDER_PREFIX + extension.value;
 
-		// Only register one auth provider per extension
 		if (this._authenticationService.getProviderIds().includes(authProviderId)) {
 			return Disposable.None;
 		}
@@ -318,11 +298,9 @@ export class MainThreadLanguageModels implements MainThreadLanguageModelsShape {
 	}
 }
 
-// The fake AuthenticationProvider that will be used to gate access to the Language Model. There will be one per provider.
 class LanguageModelAccessAuthProvider implements IAuthenticationProvider {
 	supportsMultipleAccounts = false;
 
-	// Important for updating the UI
 	private _onDidChangeSessions: Emitter<AuthenticationSessionsChangeEvent> = new Emitter<AuthenticationSessionsChangeEvent>();
 	readonly onDidChangeSessions: Event<AuthenticationSessionsChangeEvent> = this._onDidChangeSessions.event;
 
@@ -331,8 +309,6 @@ class LanguageModelAccessAuthProvider implements IAuthenticationProvider {
 	constructor(readonly id: string, readonly label: string, private readonly _accountLabel: string) { }
 
 	async getSessions(scopes?: string[] | undefined): Promise<readonly AuthenticationSession[]> {
-		// If there are no scopes and no session that means no extension has requested a session yet
-		// and the user is simply opening the Account menu. In that case, we should not return any "sessions".
 		if (scopes === undefined && !this._session) {
 			return [];
 		}

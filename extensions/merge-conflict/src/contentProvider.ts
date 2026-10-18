@@ -25,7 +25,6 @@ export default class MergeConflictContentProvider implements vscode.TextDocument
 		try {
 			const { scheme, ranges } = JSON.parse(uri.query) as { scheme: string; ranges: [{ line: number; character: number }[], { line: number; character: number }[]][] };
 
-			// complete diff
 			const document = await vscode.workspace.openTextDocument(uri.with({ scheme, query: '' }));
 
 			let text = '';

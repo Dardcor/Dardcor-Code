@@ -68,8 +68,6 @@ export class PreferencesSearchService extends Disposable implements IPreferences
 }
 
 function cleanFilter(filter: string): string {
-	// Remove " and : which are likely to be copypasted as part of a setting name.
-	// Leave other special characters which the user might want to search for.
 	return filter
 		.replace(/[":]/g, ' ')
 		.replace(/  /g, ' ')
@@ -106,15 +104,13 @@ export class LocalSearchProvider implements ISearchProvider {
 				matches,
 				matchType,
 				keyMatchScore,
-				score: 0 // only used for RemoteSearchProvider matches.
+				score: 0
 			};
 		};
 
 		const filterMatches = preferencesModel.filterSettings(this._filter, this.getGroupFilter(this._filter), settingMatcher);
 
-		// Check the top key match type.
 		const topKeyMatchType = Math.max(...filterMatches.map(m => (m.matchType & SettingKeyMatchTypes)));
-		// Always allow description matches as part of https://github.com/microsoft/vscode/issues/239936.
 		const alwaysAllowedMatchTypes = SettingMatchType.DescriptionOrValueMatch | SettingMatchType.LanguageTagSettingMatch;
 		const filteredMatches = filterMatches
 			.filter(m => (m.matchType & topKeyMatchType) || (m.matchType & alwaysAllowedMatchTypes) || m.matchType === SettingMatchType.ExactMatch)
@@ -136,10 +132,6 @@ export class LocalSearchProvider implements ISearchProvider {
 export class SettingMatches {
 	readonly matches: IRange[];
 	matchType: SettingMatchType = SettingMatchType.None;
-	/**
-	 * A match score for key matches to allow comparing key matches against each other.
-	 * Otherwise, all key matches are treated the same, and sorting is done by ToC order.
-	 */
 	keyMatchScore: number = 0;
 
 	constructor(
@@ -175,24 +167,17 @@ export class SettingMatches {
 		const keyMatchingWords: Map<string, IRange[]> = new Map<string, IRange[]>();
 		const valueMatchingWords: Map<string, IRange[]> = new Map<string, IRange[]>();
 
-		// Key (ID) search
-		// First, search by the setting's ID and label.
 		const settingKeyAsWords: string = this._keyToLabel(setting.key);
 		const queryWords = new Set<string>(searchString.split(' '));
 		for (const word of queryWords) {
-			// Check if the key contains the word. Use contiguous search.
 			const keyMatches = matchesWords(word, settingKeyAsWords, true);
 			if (keyMatches?.length) {
 				keyMatchingWords.set(word, keyMatches.map(match => this.toKeyRange(setting, match)));
 			}
 		}
 		if (keyMatchingWords.size === queryWords.size) {
-			// All words in the query matched with something in the setting key.
-			// Matches "edit format on paste" to "editor.formatOnPaste".
 			this.matchType |= SettingMatchType.AllWordsInSettingsLabel;
 		} else if (keyMatchingWords.size >= 2) {
-			// Matches "edit paste" to "editor.formatOnPaste".
-			// The if statement reduces noise by preventing "editor formatonpast" from matching all editor settings.
 			this.matchType |= SettingMatchType.ContiguousWordsInSettingsLabel;
 			this.keyMatchScore = keyMatchingWords.size;
 		}
@@ -200,12 +185,10 @@ export class SettingMatches {
 		const keyAlphaNumeric = this._toAlphaNumeric(setting.key);
 		const keyIdMatches = matchesContiguousSubString(searchStringAlphaNumeric, keyAlphaNumeric);
 		if (keyIdMatches?.length) {
-			// Matches "editorformatonp" to "editor.formatonpaste".
 			keyMatchingWords.set(setting.key, keyIdMatches.map(match => this.toKeyRange(setting, match)));
 			this.matchType |= SettingMatchType.ContiguousQueryInSettingId;
 		}
 
-		// Fall back to non-contiguous key (ID) searches if nothing matched yet.
 		if (this.matchType === SettingMatchType.None) {
 			keyMatchingWords.clear();
 			for (const word of queryWords) {
@@ -215,22 +198,17 @@ export class SettingMatches {
 				}
 			}
 			if (keyMatchingWords.size >= 2 || (keyMatchingWords.size === 1 && queryWords.size === 1)) {
-				// Matches "edforonpas" to "editor.formatOnPaste".
-				// The if statement reduces noise by preventing "editor fomonpast" from matching all editor settings.
 				this.matchType |= SettingMatchType.NonContiguousWordsInSettingsLabel;
 				this.keyMatchScore = keyMatchingWords.size;
 			} else {
 				const keyIdMatches = matchesSubString(searchStringAlphaNumeric, keyAlphaNumeric);
 				if (keyIdMatches?.length) {
-					// Matches "edfmonpas" to "editor.formatOnPaste".
 					keyMatchingWords.set(setting.key, keyIdMatches.map(match => this.toKeyRange(setting, match)));
 					this.matchType |= SettingMatchType.NonContiguousQueryInSettingId;
 				}
 			}
 		}
 
-		// Check if the match was for a language tag group setting such as [markdown].
-		// In such a case, move that setting to be last.
 		if (setting.overrides?.length && (this.matchType !== SettingMatchType.None)) {
 			this.matchType = SettingMatchType.LanguageTagSettingMatch;
 			const keyRanges = keyMatchingWords.size ?
@@ -238,11 +216,8 @@ export class SettingMatches {
 			return [...keyRanges];
 		}
 
-		// Description search
-		// Search the description if we found non-contiguous key matches at best.
 		const hasContiguousKeyMatchTypes = this.matchType >= SettingMatchType.ContiguousWordsInSettingsLabel;
 		if (this.searchDescription && !hasContiguousKeyMatchTypes) {
-			// Search the description lines and any additional keywords.
 			const searchableLines = setting.keywords?.length
 				? [...setting.description, setting.keywords.join(' ')]
 				: setting.description;
@@ -257,17 +232,12 @@ export class SettingMatches {
 			if (descriptionMatchingWords.size === queryWords.size) {
 				this.matchType |= SettingMatchType.DescriptionOrValueMatch;
 			} else {
-				// Clear out the match for now. We want to require all words to match in the description.
 				descriptionMatchingWords.clear();
 			}
 		}
 
-		// Value search
-		// Check if the value contains all the words.
-		// Search the values if we found non-contiguous key matches at best.
 		if (!hasContiguousKeyMatchTypes) {
 			if (setting.enum?.length) {
-				// Search all string values of enums.
 				for (const option of setting.enum) {
 					if (typeof option !== 'string') {
 						continue;
@@ -283,12 +253,10 @@ export class SettingMatches {
 						this.matchType |= SettingMatchType.DescriptionOrValueMatch;
 						break;
 					} else {
-						// Clear out the match for now. We want to require all words to match in the value.
 						valueMatchingWords.clear();
 					}
 				}
 			} else {
-				// Search single string value.
 				const settingValue = this.configurationService.getValue(setting.key);
 				if (typeof settingValue === 'string') {
 					for (const word of queryWords) {
@@ -300,7 +268,6 @@ export class SettingMatches {
 					if (valueMatchingWords.size === queryWords.size) {
 						this.matchType |= SettingMatchType.DescriptionOrValueMatch;
 					} else {
-						// Clear out the match for now. We want to require all words to match in the value.
 						valueMatchingWords.clear();
 					}
 				}
@@ -328,8 +295,6 @@ export class SettingMatches {
 	private toDescriptionRange(setting: ISetting, match: IMatch, lineIndex: number): IRange {
 		const descriptionRange = setting.descriptionRanges[lineIndex];
 		if (!descriptionRange) {
-			// This case occurs with added settings such as the
-			// manage extension setting.
 			return nullRange;
 		}
 		return {
@@ -437,7 +402,7 @@ class EmbeddingsSearchProvider implements IRemoteSearchProvider {
 				matches: [settingsRecord[settingKey].range],
 				matchType: SettingMatchType.RemoteMatch,
 				keyMatchScore: 0,
-				score: 0, // the results are sorted upstream.
+				score: 0,
 				providerName
 			});
 		}
@@ -486,7 +451,6 @@ class TfIdfSearchProvider implements IRemoteSearchProvider {
 		}
 
 		if (this._currentPreferencesModel !== preferencesModel) {
-			// Refresh the documents and settings record
 			this._currentPreferencesModel = preferencesModel;
 			this._documents = [];
 			this._settingsRecord = {};
@@ -521,7 +485,6 @@ class TfIdfSearchProvider implements IRemoteSearchProvider {
 		const maxScore = tfIdfRankings[0].score;
 
 		if (maxScore < TfIdfSearchProvider.TF_IDF_PRE_NORMALIZE_THRESHOLD) {
-			// Reject all the matches.
 			return [];
 		}
 
@@ -616,7 +579,6 @@ class AiSearchProvider implements IAiSearchProvider {
 
 		for (const settingKey of settings) {
 			if (!settingsRecord[settingKey]) {
-				// Non-existent setting.
 				continue;
 			}
 			filterMatches.push({
@@ -624,7 +586,7 @@ class AiSearchProvider implements IAiSearchProvider {
 				matches: [settingsRecord[settingKey].range],
 				matchType: SettingMatchType.RemoteMatch,
 				keyMatchScore: 0,
-				score: 0, // the results are sorted upstream.
+				score: 0,
 				providerName: LLM_RANKED_SEARCH_PROVIDER_NAME
 			});
 		}

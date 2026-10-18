@@ -5,16 +5,6 @@
 
 import * as fs from 'fs';
 
-/**
- * A small wrapper around `fs.WriteStream` that:
- * - attaches an `'error'` listener immediately so async write failures (ENOSPC,
- *   EIO, …) never bubble up as `uncaughtException` and abort the process;
- * - awaits backpressure via the per-write callback;
- * - surfaces stream errors through the next `write`/`close` rejection.
- *
- * Always `close()` the returned writer (including on error paths) to release
- * the underlying file descriptor.
- */
 export function openWriteStream(filePath: string): {
 	write: (data: string) => Promise<void>;
 	close: () => Promise<void>;

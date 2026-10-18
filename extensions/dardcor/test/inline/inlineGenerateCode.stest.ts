@@ -163,7 +163,7 @@ forInlineChatIntent((strategy, variant, nonExtensionConfigurations) => {
 							assertContainsAllSnippets(changedModifiedLines, ['function']);
 							assertOneOf([
 								() => assertContainsAllSnippets(changedModifiedLines, ['fibonacci']),
-								() => assertContainsAllSnippets(changedModifiedLines, ['Fibonacci']), // e.g., `generateFibonacci()`
+								() => assertContainsAllSnippets(changedModifiedLines, ['Fibonacci']),
 							]);
 						},
 					},
@@ -354,7 +354,6 @@ forInlineChatIntent((strategy, variant, nonExtensionConfigurations) => {
 						validate: async (outcome, workspace, accessor) => {
 							assertInlineEdit(outcome);
 							const text = outcome.fileContents;
-							// we need to have 2 functions
 							const f1 = text.indexOf('function fibonacci');
 							const f2 = text.indexOf('\nfunction getPrimes', f1 + 1);
 							const f3 = text.indexOf('\nfunction getFibonacciPrimes', f2 + 1);
@@ -607,7 +606,7 @@ forInlineChatIntent((strategy, variant, nonExtensionConfigurations) => {
 					{
 						file: 'strings.ts',
 						selection: [49, 3],
-						wholeRange: [49, 0, 49, 3], // we want to simulate 100% vscode's behavior and vscode is peculiar here
+						wholeRange: [49, 0, 49, 3],
 						query: 'avoid using recursion',
 						expectedIntent: EditCodeIntent.ID,
 						validate: async (outcome, workspace, accessor) => {
@@ -736,7 +735,6 @@ forInlineChatIntent((strategy, variant, nonExtensionConfigurations) => {
 						},
 					},
 					{
-						// file: uri,
 						query: 'Print my name as a sample usage of the class',
 						expectedIntent: GenerateCodeIntent.ID,
 						validate: async (outcome, workspace, accessor) => {
@@ -845,7 +843,6 @@ forInlineChatIntent((strategy, variant, nonExtensionConfigurations) => {
 						expectedIntent: GenerateCodeIntent.ID,
 						validate: async (outcome, workspace, accessor) => {
 							assertInlineEdit(outcome);
-							// Validate the generated code matches naming and formatting conventions.
 							assertSomeStrings(outcome.fileContents, ['sorted_map', 'sorted_json', 'basic_json<nlohmann::sorted_map>']);
 							await assertNoSyntacticDiagnosticsAsync(accessor, outcome, workspace, 'cpp');
 						}

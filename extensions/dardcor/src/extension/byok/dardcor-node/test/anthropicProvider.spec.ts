@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { DefaultsOnlyConfigurationService } from '../../../../platform/configuration/common/defaultsOnlyConfigurationService';
 import { IToolDeferralService } from '../../../../platform/networking/common/toolDeferralService';
-import { CopilotChatAttr, GenAiAttr, NoopOTelService, resolveOTelConfig } from '../../../../platform/otel/common/index';
+import { DardcorChatAttr, GenAiAttr, NoopOTelService, resolveOTelConfig } from '../../../../platform/otel/common/index';
 import type { IOTelService } from '../../../../platform/otel/common/otelService';
 import { CapturingOTelService } from '../../../../platform/otel/common/test/capturingOTelService';
 import { CapturingToken } from '../../../../platform/requestLogger/common/capturingToken';
@@ -188,11 +188,6 @@ async function runAnthropicRequest(options: { telemetryTurn?: number; otel?: IOT
 	return telemetry.events.find(event => event.eventName === 'response.success')?.measurements;
 }
 
-/**
- * Registers a CapturingToken carrying `chatSessionId` under a correlation id so
- * the provider retrieves it via `_capturingTokenCorrelationId`, mirroring how
- * the real request path threads the token across the IPC boundary.
- */
 function registerCapturingToken(correlationId: string, chatSessionId: string | undefined): void {
 	const token = new CapturingToken('test', undefined, undefined, undefined, chatSessionId);
 	runWithCapturingToken(token, () => storeCapturingTokenForCorrelation(correlationId));
@@ -223,8 +218,8 @@ describe('AnthropicLMProvider', () => {
 
 		const chatSpan = otel.spans.find(s => s.name.startsWith('chat '));
 		expect(chatSpan?.attributes[GenAiAttr.CONVERSATION_ID]).toBe('session-xyz');
-		expect(chatSpan?.attributes[CopilotChatAttr.SESSION_ID]).toBe('session-xyz');
-		expect(chatSpan?.attributes[CopilotChatAttr.CHAT_SESSION_ID]).toBe('session-xyz');
+		expect(chatSpan?.attributes[DardcorChatAttr.SESSION_ID]).toBe('session-xyz');
+		expect(chatSpan?.attributes[DardcorChatAttr.CHAT_SESSION_ID]).toBe('session-xyz');
 	}, 30_000);
 
 	it('omits session ids on the chat span when no CapturingToken is available', async () => {
@@ -235,7 +230,7 @@ describe('AnthropicLMProvider', () => {
 		const chatSpan = otel.spans.find(s => s.name.startsWith('chat '));
 		expect(chatSpan).toBeDefined();
 		expect(chatSpan?.attributes[GenAiAttr.CONVERSATION_ID]).toBeUndefined();
-		expect(chatSpan?.attributes[CopilotChatAttr.SESSION_ID]).toBeUndefined();
-		expect(chatSpan?.attributes[CopilotChatAttr.CHAT_SESSION_ID]).toBeUndefined();
+		expect(chatSpan?.attributes[DardcorChatAttr.SESSION_ID]).toBeUndefined();
+		expect(chatSpan?.attributes[DardcorChatAttr.CHAT_SESSION_ID]).toBeUndefined();
 	}, 30_000);
 });

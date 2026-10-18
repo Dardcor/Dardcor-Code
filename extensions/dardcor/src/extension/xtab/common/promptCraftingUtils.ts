@@ -8,7 +8,6 @@ import { Schemas } from '../../../util/dardcor/base/common/network';
 
 export function toUniquePath(documentId: DocumentId, workspaceRootPath: string | undefined): string {
 	const filePath = documentId.path;
-	// remove prefix from path if defined
 	const workspaceRootPathWithSlash = workspaceRootPath === undefined ? undefined : (workspaceRootPath.endsWith('/') ? workspaceRootPath : workspaceRootPath + '/');
 
 	const updatedFilePath = workspaceRootPathWithSlash !== undefined && filePath.startsWith(workspaceRootPathWithSlash)
@@ -19,6 +18,6 @@ export function toUniquePath(documentId: DocumentId, workspaceRootPath: string |
 }
 
 export function countTokensForLines(page: string[], computeTokens: (s: string) => number): number {
-	return page.reduce((sum, line) => sum + computeTokens(line) + 1 /* \n */, 0);
+	return page.reduce((sum, line) => sum + computeTokens(line) + 1 , 0);
 }
 

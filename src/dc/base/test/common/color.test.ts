@@ -16,7 +16,6 @@ suite('Color', () => {
 
 		assert.ok(color1.isLighterThan(color2));
 
-		// Abyss theme
 		assert.ok(Color.fromHex('#770811').isLighterThan(Color.fromHex('#000c18')));
 	});
 
@@ -47,7 +46,6 @@ suite('Color', () => {
 		assert.deepStrictEqual(new HSLA(60, 1, 0.349, 1), Color.getDarkerColor(color1, color2, 0.7).hsla);
 		assert.deepStrictEqual(new HSLA(60, 1, 0.284, 1), Color.getDarkerColor(color1, color2, 1).hsla);
 
-		// Abyss theme
 		assert.deepStrictEqual(new HSLA(355, 0.874, 0.157, 1), Color.getDarkerColor(Color.fromHex('#770811'), Color.fromHex('#000c18'), 0.4).hsla);
 	});
 
@@ -441,12 +439,10 @@ suite('Color', () => {
 				});
 
 				test('hex-color', () => {
-					// somewhat valid
 					assert.deepStrictEqual(Color.Format.CSS.parse('#FFFFG0')!.rgba, new RGBA(255, 255, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('#FFFFg0')!.rgba, new RGBA(255, 255, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('#-FFF00')!.rgba, new RGBA(15, 255, 0, 1));
 
-					// valid
 					assert.deepStrictEqual(Color.Format.CSS.parse('#000000')!.rgba, new RGBA(0, 0, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('#FFFFFF')!.rgba, new RGBA(255, 255, 255, 1));
 
@@ -483,12 +479,10 @@ suite('Color', () => {
 				});
 
 				test('rgb()', () => {
-					// somewhat valid / unusual
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgb(-255, 0, 0)')!.rgba, new RGBA(0, 0, 0));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgb(+255, 0, 0)')!.rgba, new RGBA(255, 0, 0));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgb(800, 0, 0)')!.rgba, new RGBA(255, 0, 0));
 
-					// valid
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgb(0, 0, 0)')!.rgba, new RGBA(0, 0, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgb(255, 255, 255)')!.rgba, new RGBA(255, 255, 255, 1));
 
@@ -522,18 +516,15 @@ suite('Color', () => {
 				});
 
 				test('rgba()', () => {
-					// somewhat valid / unusual
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(0, 0, 0, 255)')!.rgba, new RGBA(0, 0, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(-255, 0, 0, 1)')!.rgba, new RGBA(0, 0, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(+255, 0, 0, 1)')!.rgba, new RGBA(255, 0, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(800, 0, 0, 1)')!.rgba, new RGBA(255, 0, 0, 1));
 
-					// alpha values
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(255, 0, 0, 0.2)')!.rgba, new RGBA(255, 0, 0, 0.2));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(255, 0, 0, 0.5)')!.rgba, new RGBA(255, 0, 0, 0.5));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(255, 0, 0, 0.75)')!.rgba, new RGBA(255, 0, 0, 0.75));
 
-					// valid
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(0, 0, 0, 1)')!.rgba, new RGBA(0, 0, 0, 1));
 					assert.deepStrictEqual(Color.Format.CSS.parse('rgba(255, 255, 255, 1)')!.rgba, new RGBA(255, 255, 255, 1));
 
@@ -569,17 +560,14 @@ suite('Color', () => {
 
 			test('parseHex', () => {
 
-				// invalid
 				assert.deepStrictEqual(Color.Format.CSS.parseHex(''), null);
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#'), null);
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#0102030'), null);
 
-				// somewhat valid
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#FFFFG0')!.rgba, new RGBA(255, 255, 0, 1));
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#FFFFg0')!.rgba, new RGBA(255, 255, 0, 1));
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#-FFF00')!.rgba, new RGBA(15, 255, 0, 1));
 
-				// valid
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#000000')!.rgba, new RGBA(0, 0, 0, 1));
 				assert.deepStrictEqual(Color.Format.CSS.parseHex('#FFFFFF')!.rgba, new RGBA(255, 255, 255, 1));
 
@@ -617,26 +605,21 @@ suite('Color', () => {
 
 			suite('format', () => {
 				test('formatHSL should use whole numbers for percentages', () => {
-					// Test case matching the issue: color with fractional percentages that should be rounded
-					const color1 = new Color(new HSLA(0, 0.857, 0.437, 1)); // Should format as hsl(0, 86%, 44%)
+					const color1 = new Color(new HSLA(0, 0.857, 0.437, 1));
 					assert.strictEqual(Color.Format.CSS.formatHSL(color1), 'hsl(0, 86%, 44%)');
 
-					// Test edge cases
-					const color2 = new Color(new HSLA(120, 0.5, 0.75, 1)); // Should format as hsl(120, 50%, 75%)
+					const color2 = new Color(new HSLA(120, 0.5, 0.75, 1));
 					assert.strictEqual(Color.Format.CSS.formatHSL(color2), 'hsl(120, 50%, 75%)');
 
-					// Test case with values that would round differently
-					const color3 = new Color(new HSLA(240, 0.334, 0.666, 1)); // Should format as hsl(240, 33%, 67%)
+					const color3 = new Color(new HSLA(240, 0.334, 0.666, 1));
 					assert.strictEqual(Color.Format.CSS.formatHSL(color3), 'hsl(240, 33%, 67%)');
 				});
 
 				test('formatHSLA should use whole numbers for percentages', () => {
-					// Test case with alpha
-					const color1 = new Color(new HSLA(0, 0.857, 0.437, 0.85)); // Should format as hsla(0, 86%, 44%, 0.85)
+					const color1 = new Color(new HSLA(0, 0.857, 0.437, 0.85));
 					assert.strictEqual(Color.Format.CSS.formatHSLA(color1), 'hsla(0, 86%, 44%, 0.85)');
 
-					// Test edge cases
-					const color2 = new Color(new HSLA(180, 0.25, 0.5, 0.5)); // Should format as hsla(180, 25%, 50%, 0.50)
+					const color2 = new Color(new HSLA(180, 0.25, 0.5, 0.5));
 					assert.strictEqual(Color.Format.CSS.formatHSLA(color2), 'hsla(180, 25%, 50%, 0.50)');
 				});
 			});
@@ -656,7 +639,6 @@ suite('Color', () => {
 		assert.deepStrictEqual(bgColor.ensureConstrast(fgColor, ratio).rgba, rgbaFromInt(expected).rgba);
 	};
 
-	// https://github.com/xtermjs/xterm.js/blob/44f9fa39ae03e2ca6d28354d88a399608686770e/src/common/Color.test.ts#L355
 	suite('ensureContrastRatio', () => {
 		test('should return undefined if the color already meets the contrast ratio (black bg)', () => {
 			assertContrastRatio(0x000000ff, 0x606060ff, 1, undefined);

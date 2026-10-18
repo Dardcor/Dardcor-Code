@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -33,12 +32,10 @@ export class PromptFileParser {
 			} else {
 				bodyStartLine = headerEndLine + 1;
 			}
-			// range starts on the line after the ---, and ends at the beginning of the line that has the closing ---
 			const range = new Range(2, 1, headerEndLine + 1, 1);
 			header = new PromptHeader(range, uri, linesWithEOL);
 		}
 		if (bodyStartLine < linesWithEOL.length) {
-			// range starts  on the line after the ---, and ends at the beginning of line after the last line
 			const range = new Range(bodyStartLine + 1, 1, linesWithEOL.length + 1, 1);
 			body = new PromptBody(range, linesWithEOL, uri);
 		}
@@ -179,11 +176,6 @@ export class PromptHeader {
 		return this.getStringAttribute(PromptHeaderAttributes.applyTo);
 	}
 
-	/**
-	 * Gets the 'paths' attribute from the header.
-	 * The `paths` field supports a list of glob patterns that scope the instruction
-	 * to specific files (used by Claude rules). Returns a string array or undefined.
-	 */
 	public get paths(): readonly string[] | undefined {
 		return this.getStringOrStringArrayAttribute(PromptHeaderAttributes.paths);
 	}
@@ -227,7 +219,6 @@ export class PromptHeader {
 			return undefined;
 		}
 		if (handoffsAttribute.value.type === 'sequence') {
-			// Array format: list of objects: { agent, label, prompt, send?, showContinueOn?, model? }
 			const handoffs: IHandOff[] = [];
 			for (const item of handoffsAttribute.value.items) {
 				if (item.type === 'map') {
@@ -323,12 +314,6 @@ export class PromptHeader {
 		return this.getStringAttribute(PromptHeaderAttributes.context);
 	}
 
-	/**
-	 * Gets the raw 'hooks' attribute value from the header.
-	 * Returns the YAML map value if present, or undefined. The caller is
-	 * responsible for converting this to `ChatRequestHooks` via
-	 * {@link parseSubagentHooksFromYaml}.
-	 */
 	public get hooksRaw(): IMapValue | undefined {
 		const attr = this._parsedHeader.attributes.find(a => a.key === PromptHeaderAttributes.hooks);
 		if (attr?.value.type === 'map') {
@@ -360,8 +345,8 @@ export interface IHandOff {
 	readonly label: string;
 	readonly prompt: string;
 	readonly send?: boolean;
-	readonly showContinueOn?: boolean; // treated exactly like send (optional boolean)
-	readonly model?: string; // qualified model name to switch to (e.g., "GPT-5 (dardcor)")
+	readonly showContinueOn?: boolean;
+	readonly model?: string;
 }
 
 export interface IHeaderAttribute {
@@ -429,7 +414,6 @@ export class PromptBody {
 				const line = this.linesWithEOL[i];
 				const trimmedLine = line.trimStart();
 
-				// Detect fenced code block lines (``` or ~~~, 3 or more chars)
 				const fenceMatch = /^(?<fence>(`{3,}|~{3,}))/u.exec(trimmedLine);
 				if (fenceMatch) {
 					const fence = fenceMatch.groups!.fence;
@@ -438,7 +422,6 @@ export class PromptBody {
 					const restOfLine = trimmedLine.slice(fence.length);
 
 					if (!inFencedCodeBlock) {
-						// Opening fence: record fence char/length and enter fenced code block
 						inFencedCodeBlock = true;
 						fencedCodeBlockFenceChar = fenceChar;
 						fencedCodeBlockFenceLength = fenceLength;
@@ -446,8 +429,6 @@ export class PromptBody {
 						continue;
 					}
 
-					// Potential closing fence: must match fence char and have at least the same length,
-					// and only whitespace is allowed after the fence.
 					if (fencedCodeBlockFenceChar === fenceChar && fenceLength >= fencedCodeBlockFenceLength && /^\s*$/.test(restOfLine)) {
 						inFencedCodeBlock = false;
 						fencedCodeBlockFenceChar = undefined;
@@ -457,13 +438,11 @@ export class PromptBody {
 					}
 				}
 
-				// Skip all lines inside fenced code blocks
 				if (inFencedCodeBlock) {
 					lineStartOffset += line.length;
 					continue;
 				}
 
-				// Collect inline code spans (backtick-delimited) to exclude from matching
 				const inlineCodeRanges: { start: number; end: number }[] = [];
 				for (const inlineMatch of line.matchAll(/`[^`]+`/g)) {
 					inlineCodeRanges.push({ start: inlineMatch.index, end: inlineMatch.index + inlineMatch[0].length });
@@ -473,23 +452,20 @@ export class PromptBody {
 					return inlineCodeRanges.some(r => offset >= r.start && offset < r.end);
 				};
 
-				// Match markdown links: [text](link)
 				const linkMatch = line.matchAll(/\[(.*?)\]\((.+?)\)/g);
 				for (const match of linkMatch) {
 					if (match.index > 0 && line[match.index - 1] === '!') {
-						continue; // skip image links
+						continue;
 					}
 					if (isInsideInlineCode(match.index)) {
-						continue; // skip matches inside inline code
+						continue;
 					}
-					const linkEndOffset = match.index + match[0].length - 1; // before the parenthesis
+					const linkEndOffset = match.index + match[0].length - 1;
 					const linkStartOffset = match.index + match[0].length - match[2].length - 1;
 					const range = new Range(i + 1, linkStartOffset + 1, i + 1, linkEndOffset + 1);
 					fileReferences.push({ content: match[2], range, isMarkdownLink: true });
 					markdownLinkRanges.push(new Range(i + 1, match.index + 1, i + 1, match.index + match[0].length + 1));
 				}
-				// Match #file:<filePath> and #tool:<toolName>
-				// Regarding the <toolName> pattern below, see also the variableReg regex in chatRequestParser.ts.
 				const reg = /#file:(?<filePath>[^\s#]+)|#tool:(?<toolName>[\w_\-\.\/]+)/gi;
 				const matches = line.matchAll(reg);
 				for (const match of matches) {
@@ -499,7 +475,7 @@ export class PromptBody {
 						continue;
 					}
 					if (isInsideInlineCode(match.index)) {
-						continue; // skip matches inside inline code
+						continue;
 					}
 					const contentMatch = match.groups?.['filePath'] || match.groups?.['toolName'];
 					if (!contentMatch) {
@@ -554,13 +530,6 @@ export interface IBodyVariableReference {
 	readonly fullLength: number;
 }
 
-/**
- * Parses a comma-separated list of values into an array of strings.
- * Values can be unquoted or quoted (single or double quotes).
- *
- * @param input A string containing comma-separated values
- * @returns An ISequenceValue containing the parsed values and their ranges
- */
 export function parseCommaSeparatedList(stringValue: IScalarValue): ISequenceValue {
 	const result: IScalarValue[] = [];
 	const input = stringValue.value;
@@ -569,7 +538,6 @@ export function parseCommaSeparatedList(stringValue: IScalarValue): ISequenceVal
 	const isWhitespace = (char: string): boolean => char === ' ' || char === '\t';
 
 	while (pos < input.length) {
-		// Skip leading whitespace
 		while (pos < input.length && isWhitespace(input[pos])) {
 			pos++;
 		}
@@ -585,22 +553,20 @@ export function parseCommaSeparatedList(stringValue: IScalarValue): ISequenceVal
 
 		const char = input[pos];
 		if (char === '"' || char === `'`) {
-			// Quoted string
 			const quote = char;
-			pos++; // Skip opening quote
+			pos++;
 
 			while (pos < input.length && input[pos] !== quote) {
 				value += input[pos];
 				pos++;
 			}
-			endPos = pos + 1; // Include closing quote in the range
+			endPos = pos + 1;
 
 			if (pos < input.length) {
 				pos++;
 			}
 			quoteStyle = quote === '"' ? 'double' : 'single';
 		} else {
-			// Unquoted string - read until comma or end
 			const startPos = pos;
 			while (pos < input.length && input[pos] !== ',') {
 				value += input[pos];
@@ -613,12 +579,10 @@ export function parseCommaSeparatedList(stringValue: IScalarValue): ISequenceVal
 
 		result.push({ type: 'scalar', value: value, range: new Range(positionOffset.lineNumber, positionOffset.column + startPos, positionOffset.lineNumber, positionOffset.column + endPos), format: quoteStyle });
 
-		// Skip whitespace after value
 		while (pos < input.length && isWhitespace(input[pos])) {
 			pos++;
 		}
 
-		// Skip comma if present
 		if (pos < input.length && input[pos] === ',') {
 			pos++;
 		}
@@ -627,10 +591,6 @@ export function parseCommaSeparatedList(stringValue: IScalarValue): ISequenceVal
 	return { type: 'sequence', items: result, range: stringValue.range };
 }
 
-/**
- * Returns the effective `applyTo` pattern for an instruction file.
- * Claude rules use `paths` (defaulting to `**`), while regular instructions use `applyTo`.
- */
 export function evaluateApplyToPattern(header: PromptHeader | undefined, isClaudeRules: boolean): string | undefined {
 	if (isClaudeRules) {
 		return header?.paths?.join(', ') ?? '**';

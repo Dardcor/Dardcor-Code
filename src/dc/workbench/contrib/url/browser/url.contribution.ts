@@ -56,9 +56,6 @@ class OpenUrlAction extends Action2 {
 
 registerAction2(OpenUrlAction);
 
-/**
- * Trusted Domains Contribution
- */
 
 CommandsRegistry.registerCommand(manageTrustedDomainSettingsCommand);
 MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
@@ -75,12 +72,12 @@ Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench).regi
 registerWorkbenchContribution2(
 	TrustedDomainsFileSystemProvider.ID,
 	TrustedDomainsFileSystemProvider,
-	WorkbenchPhase.BlockRestore // registration only
+	WorkbenchPhase.BlockRestore
 );
 registerWorkbenchContribution2(
 	ExternalUriResolverContribution.ID,
 	ExternalUriResolverContribution,
-	WorkbenchPhase.BlockRestore // registration only
+	WorkbenchPhase.BlockRestore
 );
 
 

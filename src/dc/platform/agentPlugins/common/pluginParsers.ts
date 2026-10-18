@@ -18,27 +18,15 @@ import { DEFAULT_MCP_APP } from '../../agentHost/common/state/protocol/mcpAppDef
 import { customizationId } from '../../agentHost/common/state/sessionState.js';
 import { readAgentPluginManifest } from './agentPluginParser.js';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
-/** A single hook command to execute. Platform resolution happens at conversion time. */
 export interface IParsedHookCommand {
-	/** Cross-platform default command. */
 	readonly command?: string;
-	/** Windows-specific command. */
 	readonly windows?: string;
-	/** Linux-specific command. */
 	readonly linux?: string;
-	/** macOS-specific command. */
 	readonly osx?: string;
-	/** Working directory. */
 	readonly cwd?: URI;
-	/** Environment variables. */
 	readonly env?: Record<string, string>;
-	/** Timeout in seconds. */
 	readonly timeout?: number;
-	/** URI of the file this hook was defined in. */
 	readonly sourceUri?: URI;
 }
 
@@ -61,21 +49,11 @@ export namespace IParsedHookCommand {
 	}
 }
 
-/** A group of hooks for a single lifecycle event. */
 export interface IParsedHookGroup {
-	/** Canonical hook type identifier (e.g. `'SessionStart'`, `'PreToolUse'`). */
 	readonly type: string;
-	/** The commands to execute for this hook type. */
 	readonly commands: readonly IParsedHookCommand[];
-	/** URI where this hook is defined. */
 	readonly uri: URI;
-	/** Original key as it appears in the hook file. */
 	readonly originalId: string;
-	/**
-	 * Protocol-level projection of this hook group as a child customization.
-	 * Multiple groups parsed from the same file share the same `customization.id`
-	 * so consumers can dedupe by id when collecting customizations.
-	 */
 	readonly customization: HookCustomization;
 }
 
@@ -84,22 +62,15 @@ export interface IMcpServerDefinition {
 	readonly configuration: IMcpServerConfiguration;
 	readonly defaultCwd?: URI;
 	readonly uri: URI;
-	/** Protocol-level projection of this MCP server as a child customization. */
 	readonly customization: McpServerCustomization;
 }
 
-/** A named resource (skill, agent, command, or instruction) within a plugin. */
 export interface INamedPluginResource {
 	readonly uri: URI;
 	readonly name: string;
-	/**
-	 * Optional short description, populated for resources whose readers
-	 * parse it from the file's YAML frontmatter (e.g. agents).
-	 */
 	readonly description?: string;
 }
 
-/** A parsed agent resource with the frontmatter metadata shared by providers. */
 export interface IAgentPluginResource extends INamedPluginResource {
 	readonly model?: string;
 	readonly tools?: readonly string[];
@@ -107,28 +78,23 @@ export interface IAgentPluginResource extends INamedPluginResource {
 	readonly disableUserInvocation?: boolean;
 }
 
-/** A parsed skill resource with normalized invocation metadata. */
 interface ISkillPluginResource extends INamedPluginResource {
 	readonly disableModelInvocation?: boolean;
 	readonly disableUserInvocation?: boolean;
 }
 
-/** A parsed agent paired with its protocol-level child customization. */
 export interface IParsedAgent extends IAgentPluginResource {
 	readonly customization: AgentCustomization;
 }
 
-/** A parsed skill paired with its protocol-level child customization. */
 export interface IParsedSkill extends ISkillPluginResource {
 	readonly customization: SkillCustomization;
 }
 
-/** A parsed rule (instruction) paired with its protocol-level child customization. */
 export interface IParsedRule extends INamedPluginResource {
 	readonly customization: RuleCustomization;
 }
 
-/** The result of parsing a single plugin directory. */
 export interface IParsedPlugin {
 	readonly format: PluginFormat;
 	readonly hooks: readonly IParsedHookGroup[];
@@ -138,9 +104,6 @@ export interface IParsedPlugin {
 	readonly instructions: readonly IParsedRule[];
 }
 
-// ---------------------------------------------------------------------------
-// Plugin format detection
-// ---------------------------------------------------------------------------
 
 export const enum PluginFormat {
 	Copilot,
@@ -158,7 +121,6 @@ export interface IPluginFormatConfig {
 	readonly requiresManifest?: boolean;
 	readonly pluginRootTokens: readonly string[];
 	readonly pluginRootEnvVars: readonly string[];
-	/** Parses hooks from a JSON object using the format's conventions. */
 	parseHooks(hookUri: URI, json: unknown, pluginUri: URI, workspaceRoot: URI | undefined, userHome: URI): IParsedHookGroup[];
 }
 
@@ -292,20 +254,7 @@ export function resolvePluginComponentDirs(
 	);
 }
 
-// ---------------------------------------------------------------------------
-// Child customization helpers
-// ---------------------------------------------------------------------------
 
-/**
- * Mints a child-customization id from a source uri plus an optional opaque
- * disambiguator. Used when multiple customizations are declared inline in
- * a single file (e.g. two MCP servers in one `.mcp.json`, or two hook
- * lifecycle groups in one hook file).
- *
- * Percent-encodes any pre-existing `#` in the URI before appending the
- * disambiguating fragment so the resulting id can never collide with a
- * URI that happens to already contain a matching fragment.
- */
 function buildChildId(uri: URI, disambiguator?: string): string {
 	const base = customizationId(uri.toString());
 	if (!disambiguator) {
@@ -362,19 +311,6 @@ function makeHookCustomization(hookUri: URI): HookCustomization {
 	};
 }
 
-/**
- * Builds the protocol {@link McpServerCustomization} for an MCP server
- * declared at `definitionUri` (the manifest / settings / `.mcp.json` file
- * the server is defined in). The id is disambiguated by server `name` so
- * multiple servers declared in one file get distinct ids, and the entry
- * carries {@link DEFAULT_MCP_APP} so MCP App support is advertised
- * consistently with every other MCP customization.
- *
- * The seed state is {@link McpServerStatus.Stopped}: a declared-but-not-yet
- * connected server has not been started by any SDK, so it must not claim to
- * be {@link McpServerStatus.Starting}. The live state is enriched from the
- * SDK's reported status once a session materializes.
- */
 export function makeMcpServerCustomization(definitionUri: URI, name: string): McpServerCustomization {
 	return {
 		type: CustomizationType.McpServer,
@@ -386,9 +322,6 @@ export function makeMcpServerCustomization(definitionUri: URI, name: string): Mc
 	};
 }
 
-// ---------------------------------------------------------------------------
-// Component path config
-// ---------------------------------------------------------------------------
 
 export interface IComponentPathConfig {
 	readonly paths: readonly string[];
@@ -397,10 +330,6 @@ export interface IComponentPathConfig {
 
 const emptyComponentPathConfig: IComponentPathConfig = { paths: [], exclusive: false };
 
-/**
- * Parses a manifest component path field into a normalized config.
- * Supports `undefined`, `string`, `string[]`, and `{ paths: string[], exclusive?: boolean }`.
- */
 export function parseComponentPathConfig(raw: unknown): IComponentPathConfig {
 	if (raw === undefined || raw === null) {
 		return emptyComponentPathConfig;
@@ -434,12 +363,6 @@ export function parseComponentPathConfig(raw: unknown): IComponentPathConfig {
 	return emptyComponentPathConfig;
 }
 
-/**
- * Resolves the directories to scan for a given component type, combining
- * the default directory with any custom paths from the manifest config.
- * Paths that resolve outside the boundary are silently ignored.
- * @param boundaryUri The outermost directory that resolved paths must stay within. Defaults to {@link pluginUri}.
- */
 export function resolveComponentDirs(pluginUri: URI, defaultDir: string, config: IComponentPathConfig, boundaryUri?: URI): readonly URI[] {
 	const boundary = (boundaryUri && isEqualOrParent(pluginUri, boundaryUri)) ? boundaryUri : pluginUri;
 	const dirs: URI[] = [];
@@ -455,14 +378,7 @@ export function resolveComponentDirs(pluginUri: URI, defaultDir: string, config:
 	return dirs;
 }
 
-// ---------------------------------------------------------------------------
-// MCP server helpers
-// ---------------------------------------------------------------------------
 
-/**
- * Extracts the MCP server map from a raw JSON value. Accepts both the
- * wrapped format `{ mcpServers: { … } }` and the flat format.
- */
 export function resolveMcpServersMap(raw: unknown): Record<string, unknown> | undefined {
 	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
 		return undefined;
@@ -473,9 +389,6 @@ export function resolveMcpServersMap(raw: unknown): Record<string, unknown> | un
 		: obj;
 }
 
-/**
- * Normalizes a raw JSON value into a typed MCP server configuration.
- */
 export function normalizeMcpServerConfiguration(rawConfig: unknown): IMcpServerConfiguration | undefined {
 	if (!rawConfig || typeof rawConfig !== 'object') {
 		return undefined;
@@ -527,16 +440,8 @@ export function normalizeMcpServerConfiguration(rawConfig: unknown): IMcpServerC
 	return undefined;
 }
 
-/**
- * Characters in a file path that require shell quoting to prevent
- * word splitting or interpretation by common shells.
- */
 const shellUnsafeChars = /[\s&|<>()^;!`"']/;
 
-/**
- * Replaces a plugin-root token in a shell command string with the
- * given fsPath, shell-quoting if the path contains special characters.
- */
 export function shellQuotePluginRootInCommand(command: string, fsPath: string, token: string) {
 	if (!command.includes(token)) {
 		return command;
@@ -561,10 +466,6 @@ export function shellQuotePluginRootInCommand(command: string, fsPath: string, t
 	});
 }
 
-/**
- * Replaces plugin-root token references in MCP server definition string fields
- * with the plugin root filesystem path.
- */
 export function interpolateMcpPluginRoot(
 	def: IMcpServerDefinition,
 	fsPath: string,
@@ -612,15 +513,8 @@ export function interpolateMcpPluginRoot(
 	return { ...def, configuration: interpolated };
 }
 
-/**
- * Regex matching bare `${VAR_NAME}` references (uppercase only) that are NOT
- * using VS Code's `${env:VAR}` colon-delimited syntax.
- */
 const BARE_ENV_VAR_RE = /\$\{(?![A-Za-z]+:)([A-Z_][A-Z0-9_]*)\}/g;
 
-/**
- * Converts bare `${VAR}` environment-variable references to VS Code `${env:VAR}` syntax.
- */
 export function convertBareEnvVarsToVsCodeSyntax(
 	def: IMcpServerDefinition,
 ): IMcpServerDefinition {
@@ -636,16 +530,8 @@ export function convertBareEnvVarsToVsCodeSyntax(
 	});
 }
 
-// ---------------------------------------------------------------------------
-// Hook parsing helpers
-// ---------------------------------------------------------------------------
 
-/**
- * Maps known hook type identifiers from all formats (VS Code PascalCase,
- * Copilot CLI camelCase, Claude PascalCase) to canonical identifiers.
- */
 const HOOK_TYPE_MAP: Record<string, string> = {
-	// PascalCase (VS Code / Claude)
 	'SessionStart': 'SessionStart',
 	'SessionEnd': 'SessionEnd',
 	'UserPromptSubmit': 'UserPromptSubmit',
@@ -656,7 +542,6 @@ const HOOK_TYPE_MAP: Record<string, string> = {
 	'SubagentStop': 'SubagentStop',
 	'Stop': 'Stop',
 	'ErrorOccurred': 'ErrorOccurred',
-	// camelCase (GitHub Copilot CLI)
 	'sessionStart': 'SessionStart',
 	'sessionEnd': 'SessionEnd',
 	'userPromptSubmitted': 'UserPromptSubmit',
@@ -667,12 +552,7 @@ const HOOK_TYPE_MAP: Record<string, string> = {
 	'errorOccurred': 'ErrorOccurred',
 };
 
-/**
- * Normalizes a raw hook command object, validating structure and mapping
- * legacy `bash`/`powershell` fields to platform-specific overrides.
- */
 function normalizeHookCommand(raw: Record<string, unknown>): IParsedHookCommand | undefined {
-	// Allow omitted type (Claude compatibility) — treat as 'command'
 	if (raw.type !== undefined && raw.type !== 'command') {
 		return undefined;
 	}
@@ -706,10 +586,6 @@ function normalizeHookCommand(raw: Record<string, unknown>): IParsedHookCommand 
 	};
 }
 
-/**
- * Resolves a raw hook command JSON object into a {@link IParsedHookCommand},
- * normalizing fields and resolving the working directory.
- */
 function resolveHookCommand(raw: Record<string, unknown>, workspaceRoot: URI | undefined, userHome: URI): IParsedHookCommand | undefined {
 	const normalized = normalizeHookCommand(raw);
 	if (!normalized) {
@@ -733,10 +609,6 @@ function resolveHookCommand(raw: Record<string, unknown>, workspaceRoot: URI | u
 	return { ...normalized, cwd: cwdUri };
 }
 
-/**
- * Extracts hook commands from an item that may be a direct command object
- * or a nested structure with a `matcher` (Claude format).
- */
 function extractHookCommands(item: unknown, workspaceRoot: URI | undefined, userHome: URI): IParsedHookCommand[] {
 	if (!item || typeof item !== 'object') {
 		return [];
@@ -745,7 +617,6 @@ function extractHookCommands(item: unknown, workspaceRoot: URI | undefined, user
 	const itemObj = item as Record<string, unknown>;
 	const commands: IParsedHookCommand[] = [];
 
-	// Nested hooks with matcher (Claude style): { matcher: "...", hooks: [...] }
 	const nestedHooks = itemObj.hooks;
 	if (nestedHooks !== undefined && Array.isArray(nestedHooks)) {
 		for (const nested of nestedHooks) {
@@ -767,16 +638,6 @@ function extractHookCommands(item: unknown, workspaceRoot: URI | undefined, user
 	return commands;
 }
 
-/**
- * Parses hooks from a JSON object (any supported format).
- *
- * Handles Claude's `disableAllHooks` short-circuit, the `HOOK_TYPE_MAP`
- * canonicalization, and the nested `{ matcher, hooks: [...] }` command
- * form. Returns one {@link IParsedHookGroup} per recognized lifecycle
- * event; all groups parsed from the same file share a single
- * {@link IParsedHookGroup.customization} (keyed on `hookUri`), so callers
- * that only need the file-level customization can read it off any group.
- */
 export function parseHooksJson(
 	hookUri: URI,
 	json: unknown,
@@ -789,7 +650,6 @@ export function parseHooksJson(
 
 	const root = json as Record<string, unknown>;
 
-	// Claude's disableAllHooks
 	if (root.disableAllHooks === true) {
 		return [];
 	}
@@ -825,10 +685,6 @@ export function parseHooksJson(
 	return result;
 }
 
-/**
- * Applies plugin-root token interpolation to hook commands for
- * Claude and OpenPlugin formats.
- */
 export function interpolateHookPluginRoot(
 	hookUri: URI,
 	json: unknown,
@@ -882,9 +738,6 @@ export function interpolateHookPluginRoot(
 	return parseHooksJson(hookUri, cloneAndChange(json, replacer), workspaceRoot, userHome);
 }
 
-// ---------------------------------------------------------------------------
-// Filesystem helpers
-// ---------------------------------------------------------------------------
 
 export async function readJsonFile(uri: URI, fileService: IFileService): Promise<unknown | undefined> {
 	try {
@@ -904,9 +757,6 @@ export async function pathExists(resource: URI, fileService: IFileService): Prom
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Component readers
-// ---------------------------------------------------------------------------
 
 const COMMAND_FILE_SUFFIX = '.md';
 const RULE_FILE_SUFFIX = '.mdc';
@@ -933,7 +783,6 @@ export async function readSkills(
 			name = parsedInfo.name || name;
 			invocationFlags = toSkillInvocationFlags(parsedInfo.userInvocable, parsedInfo.disableModelInvocation);
 		} catch {
-			// Keep the existing best-effort discovery behavior for malformed skills.
 		}
 		if (options?.deduplicateByName !== false && seen.has(name)) {
 			return;
@@ -1058,13 +907,6 @@ function getInstructionFileName(resource: URI): string | undefined {
 	return undefined;
 }
 
-/**
- * Reads rule/instruction files from plugin `rules` component directories.
- *
- * Open Plugins rules are conventionally `.mdc` files. We also accept
- * `.instructions.md` for compatibility with VS Code-discovered instructions
- * bundled as synthetic plugins.
- */
 export async function readInstructionComponents(
 	dirs: readonly URI[],
 	fileService: IFileService,
@@ -1118,11 +960,6 @@ export async function readInstructionComponents(
 	return items;
 }
 
-/**
- * Reads `.md` files in agent directories and enriches each entry with
- * the optional `name` / `description` from YAML frontmatter. Falls back
- * to the file-derived name when frontmatter is missing or unreadable.
- */
 export async function readAgentComponents(
 	dirs: readonly URI[],
 	fileService: IFileService,
@@ -1148,7 +985,6 @@ export async function readAgentComponents(
 			return file;
 		}
 	}));
-	// De-dupe again in case frontmatter `name` collides; first-seen wins.
 	const seen = new Set<string>();
 	const result: IAgentPluginResource[] = [];
 	for (const item of enriched) {
@@ -1163,7 +999,6 @@ export async function readAgentComponents(
 }
 
 export async function parseAgentFile(uri: URI, fileService: IFileService): Promise<{ name: string; description?: string; userInvocable?: boolean; model?: string; tools?: readonly string[]; disableModelInvocation?: boolean }> {
-	// Use regex to strip the trailing `.agent.md` or .md before parsing, so we can fall back to a cleaner name if frontmatter is missing or broken.
 	const nameFromFile = basename(uri).replace(/(\.agent)?\.md$/i, '');
 	try {
 		const content = await fileService.readFile(uri);
@@ -1181,7 +1016,6 @@ export async function parseAgentFile(uri: URI, fileService: IFileService): Promi
 	}
 }
 
-/** Resolves the deprecated `infer` field before its modern replacement, matching workspace-agent parsing. */
 export function resolveAgentDisableModelInvocation(infer: boolean | undefined, disableModelInvocation: boolean | undefined, fallback?: boolean): boolean | undefined {
 	return infer !== undefined ? !infer : (disableModelInvocation ?? fallback);
 }
@@ -1200,7 +1034,6 @@ export async function parseSkillFile(uri: URI, fileService: IFileService): Promi
 	}
 }
 
-/** Maps SKILL.md invocation metadata onto the restrictive protocol flags. */
 export function toSkillInvocationFlags(userInvocable: boolean | undefined, disableModelInvocation: boolean | undefined): { readonly disableUserInvocation?: boolean; readonly disableModelInvocation?: boolean } {
 	return {
 		...(userInvocable === false ? { disableUserInvocation: true } : {}),
@@ -1311,15 +1144,7 @@ export function parseMcpServerDefinitionMap(
 	return definitions;
 }
 
-// ---------------------------------------------------------------------------
-// Top-level parse function
-// ---------------------------------------------------------------------------
 
-/**
- * Parses a plugin directory to extract hooks, MCP servers, skills, agents,
- * and instructions.
- * This is the main entry point for the agent host to discover plugin contents.
- */
 export async function parsePlugin(
 	pluginUri: URI,
 	fileService: IFileService,
@@ -1329,13 +1154,11 @@ export async function parsePlugin(
 ): Promise<IParsedPlugin> {
 	const formatConfig = await detectPluginFormat(pluginUri, fileService);
 
-	// Read manifest
 	const manifest = await readPluginManifest(pluginUri, formatConfig, fileService);
 	if (formatConfig.requiresManifest && !manifest) {
 		throw new Error(`Plugin manifest '${joinPath(pluginUri, formatConfig.manifestPath).toString()}' is missing`);
 	}
 
-	// Resolve component directories from manifest
 	const hooksSection = getPluginManifestComponent(formatConfig, 'hooks', manifest);
 	const mcpSection = getPluginManifestComponent(formatConfig, 'mcpServers', manifest);
 	const skillsSection = getPluginManifestComponent(formatConfig, 'skills', manifest);
@@ -1347,7 +1170,6 @@ export async function parsePlugin(
 	const agentDirs = resolvePluginComponentDirs(pluginUri, formatConfig, 'agents', 'agents', agentsSection, boundaryUri);
 	const instructionDirs = resolvePluginComponentDirs(pluginUri, formatConfig, 'rules', 'rules', rulesSection, boundaryUri);
 
-	// Handle embedded MCP servers in manifest
 	let embeddedMcp: IMcpServerDefinition[] = [];
 	if (mcpSection && typeof mcpSection === 'object' && !Array.isArray(mcpSection) && !(hasKey(mcpSection, { paths: true }))) {
 		embeddedMcp = parseMcpServerDefinitionMap(
@@ -1358,7 +1180,6 @@ export async function parsePlugin(
 		);
 	}
 
-	// Handle embedded hooks in manifest
 	let embeddedHooks: IParsedHookGroup[] = [];
 	if (hooksSection && typeof hooksSection === 'object' && !Array.isArray(hooksSection) && !(hasKey(hooksSection, { paths: true }))) {
 		const manifestUri = joinPath(pluginUri, formatConfig.manifestPath);
@@ -1387,12 +1208,10 @@ export async function parsePlugin(
 	};
 }
 
-/** Pairs an agent {@link IAgentPluginResource} with its protocol-level {@link AgentCustomization}. */
 export function toParsedAgent(resource: IAgentPluginResource): IParsedAgent {
 	return { ...resource, customization: makeAgentCustomization(resource) };
 }
 
-/** Pairs a skill {@link ISkillPluginResource} with its protocol-level {@link SkillCustomization}. */
 export function toParsedSkill(resource: ISkillPluginResource): IParsedSkill {
 	return { ...resource, customization: makeSkillCustomization(resource) };
 }

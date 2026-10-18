@@ -13,8 +13,6 @@ import { IAuthenticationService } from '../../../services/authentication/common/
 import { IIssueFormService, IssueReporterData } from '../common/issue.js';
 import { BaseIssueReporterService } from './baseIssueReporterService.js';
 
-// GitHub has let us know that we could up our limit here to 8k. We chose 7500 to play it safe.
-// ref https://github.com/microsoft/vscode/issues/159191
 
 export class IssueWebReporter extends BaseIssueReporterService {
 	constructor(
@@ -57,7 +55,6 @@ export class IssueWebReporter extends BaseIssueReporterService {
 			const issueType = parseInt((<HTMLInputElement>event.target).value);
 			this.issueReporterModel.update({ issueType: issueType });
 
-			// Resets placeholder
 			// eslint-disable-next-line no-restricted-syntax
 			const descriptionTextArea = <HTMLInputElement>this.getElementById('issue-title');
 			if (descriptionTextArea) {

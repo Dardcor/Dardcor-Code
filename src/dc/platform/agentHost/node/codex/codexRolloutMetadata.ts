@@ -47,7 +47,6 @@ interface ICodexRolloutRecord {
 	};
 }
 
-/** Reads the model provenance needed to restore a persisted Codex Desktop thread. */
 export async function readCodexRolloutMetadata(fileService: IFileService, path: string): Promise<ICodexRolloutMetadata> {
 	const stream = (await fileService.readFileStream(URI.file(path))).value;
 	return new Promise<ICodexRolloutMetadata>((resolve, reject) => {

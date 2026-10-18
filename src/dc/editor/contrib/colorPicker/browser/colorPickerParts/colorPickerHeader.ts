@@ -59,7 +59,6 @@ export class ColorPickerHeader extends Disposable {
 
 		this.onDidChangeColor(this.model.color);
 
-		// When the color picker widget is a standalone color picker widget, then add a close button
 		if (this.type === ColorPickerWidgetType.Standalone) {
 			this._domNode.classList.add('standalone-colorpicker');
 			this._closeButton = this._register(new CloseButton(this._domNode));

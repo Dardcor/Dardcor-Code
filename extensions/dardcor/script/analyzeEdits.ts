@@ -7,10 +7,8 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 
-// Edit tool names we're tracking
 const EDIT_TOOL_NAMES = ['insert_edit_into_file', 'replace_string_in_file', 'multi_replace_string_in_file', 'apply_patch'];
 
-// Tool names that indicate a continuation/retry attempt
 const CONTINUATION_TOOL_NAMES = ['read_file'];
 
 interface ToolCall {
@@ -63,11 +61,10 @@ interface RunAnalysis {
 
 async function listRuns(amlOutPath: string): Promise<string[]> {
 	const entries = await fs.readdir(amlOutPath, { withFileTypes: true });
-	// Filter directories that are numeric run IDs
 	const runs = entries
 		.filter(e => e.isDirectory() && /^\d+$/.test(e.name))
 		.map(e => e.name)
-		.sort((a, b) => parseInt(b) - parseInt(a)); // Sort descending (newest first)
+		.sort((a, b) => parseInt(b) - parseInt(a));
 	return runs;
 }
 
@@ -136,28 +133,23 @@ async function analyzeConversation(conversationPath: string): Promise<Conversati
 			continue;
 		}
 
-		// Determine success based on response
 		const response = Array.isArray(toolCall.response) ? toolCall.response[0] : toolCall.response;
 		const success = typeof response === 'string' && response.includes('successfully edited');
 
-		// Get file path from edits if available
 		const filePath = toolCall.edits && toolCall.edits.length > 0
 			? toolCall.edits[0].path
 			: undefined;
 
-		// Detect retry pattern: failed edit -> continuation tool -> another edit
 		let isRetry = false;
 		let retrySucceeded: boolean | undefined;
 
 		if (!success) {
-			// Look ahead to see if there's a continuation tool followed by another edit
 			let j = i + 1;
 			let foundContinuationTool = false;
-			while (j < toolCalls.length && j < i + 10) { // Look ahead max 10 calls
+			while (j < toolCalls.length && j < i + 10) {
 				if (CONTINUATION_TOOL_NAMES.includes(toolCalls[j].tool)) {
 					foundContinuationTool = true;
 				} else if (foundContinuationTool && EDIT_TOOL_NAMES.includes(toolCalls[j].tool)) {
-					// Found a retry!
 					isRetry = true;
 					const retryResponse = Array.isArray(toolCalls[j].response)
 						? toolCalls[j].response[0]
@@ -165,7 +157,6 @@ async function analyzeConversation(conversationPath: string): Promise<Conversati
 					retrySucceeded = typeof retryResponse === 'string' && retryResponse.includes('successfully edited');
 					break;
 				} else if (EDIT_TOOL_NAMES.includes(toolCalls[j].tool)) {
-					// Another edit without continuation tool in between, not a retry
 					break;
 				}
 				j++;
@@ -174,7 +165,7 @@ async function analyzeConversation(conversationPath: string): Promise<Conversati
 
 		edits.push({
 			toolName: toolCall.tool,
-			timestamp: new Date().toISOString(), // Trajectory doesn't have timestamps, use current time
+			timestamp: new Date().toISOString(),
 			success,
 			filePath,
 			turnIndex: turnIndex++,
@@ -185,7 +176,6 @@ async function analyzeConversation(conversationPath: string): Promise<Conversati
 
 	const successfulEdits = edits.filter(e => e.success).length;
 
-	// Calculate success rate accounting for retries (final outcome only)
 	const editsWithRetries = edits.filter(e => !e.success && e.isRetry);
 	const retriedSuccesses = editsWithRetries.filter(e => e.retrySucceeded).length;
 	const successfulEditsWithRetries = successfulEdits + retriedSuccesses;
@@ -229,7 +219,6 @@ async function analyzeRun(runId: string, basePath: string): Promise<RunAnalysis>
 	const totalSuccessfulWithRetries = conversations.reduce((sum, c) => sum + c.successfulEditsWithRetries, 0);
 	const totalUniqueEdits = conversations.reduce((sum, c) => sum + c.totalUniqueEdits, 0);
 
-	// Get model name from first conversation that has one
 	const modelName = conversations.find(c => c.modelName)?.modelName;
 
 	return {
@@ -244,7 +233,6 @@ async function analyzeRun(runId: string, basePath: string): Promise<RunAnalysis>
 }
 
 function generateHTML(analysis: RunAnalysis, outputPath: string, includeRetries: boolean = false): string {
-	// Build Sankey data
 	const sankeyNodes: string[] = [];
 	const sankeyLinks: Array<{ source: number; target: number; value: number }> = [];
 
@@ -258,16 +246,13 @@ function generateHTML(analysis: RunAnalysis, outputPath: string, includeRetries:
 		return nodeMap.get(name)!;
 	};
 
-	// Track flows
 	const flows = new Map<string, number>();
 
 	for (const conv of analysis.conversations) {
 		for (const edit of conv.edits) {
 			const toolNode = edit.toolName;
 
-			// Check if this is a failed edit with a retry
 			if (includeRetries && !edit.success && edit.isRetry && edit.retrySucceeded !== undefined) {
-				// Show full retry flow: Tool -> Failed -> read_file -> Retry Edit -> Final Result
 				const failedNode = 'Failed (will retry)';
 				const readFileNode = 'read_file';
 				const retryEditNode = `${toolNode} (retry)`;
@@ -280,14 +265,12 @@ function generateHTML(analysis: RunAnalysis, outputPath: string, includeRetries:
 				continue;
 			}
 
-			// Tool -> Success/Fail
 			const resultNode = edit.success ? 'Success' : 'Failed';
 			const flowKey = `${toolNode}->${resultNode}`;
 			flows.set(flowKey, (flows.get(flowKey) || 0) + 1);
 		}
 	}
 
-	// Convert flows to Sankey links
 	for (const [flowKey, count] of flows.entries()) {
 		const [source, target] = flowKey.split('->');
 		sankeyLinks.push({
@@ -297,7 +280,6 @@ function generateHTML(analysis: RunAnalysis, outputPath: string, includeRetries:
 		});
 	}
 
-	// Build table rows
 	const tableRows = analysis.conversations.flatMap(conv =>
 		conv.edits.map(edit => ({
 			conversation: path.basename(conv.conversationPath),

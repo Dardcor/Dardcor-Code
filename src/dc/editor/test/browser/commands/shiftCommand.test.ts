@@ -19,9 +19,6 @@ import { TestLanguageConfigurationService } from '../../common/modes/testLanguag
 import { withEditorModel } from '../../common/testTextModel.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 
-/**
- * Create single edit operation
- */
 function createSingleEditOp(text: string, positionLineNumber: number, positionColumn: number, selectionLineNumber: number = positionLineNumber, selectionColumn: number = positionColumn): ISingleEditOperation {
 	return {
 		range: new Range(selectionLineNumber, selectionColumn, positionLineNumber, positionColumn),
@@ -85,7 +82,6 @@ suite('Editor Commands - ShiftCommand', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// --------- shift
 
 	test('Bug 9503: Shifting without any selection', () => {
 		testShiftCommand(
@@ -336,7 +332,6 @@ suite('Editor Commands - ShiftCommand', () => {
 		);
 	});
 
-	// --------- unshift
 
 	test('unshift on single line selection 1', () => {
 		testShiftCommand(
@@ -902,11 +897,8 @@ suite('Editor Commands - ShiftCommand', () => {
 			testIndent(tabSize, indentSize, false, lineText, expectedOnIndent);
 		};
 
-		// insertSpaces: true
-		// 0 => 0
 		testIndentation(4, 4, '', 0, 1);
 
-		// 1 => 0
 		testIndentation(4, 4, '\t', 0, 2);
 		testIndentation(4, 4, ' ', 0, 1);
 		testIndentation(4, 4, ' \t', 0, 2);
@@ -916,7 +908,6 @@ suite('Editor Commands - ShiftCommand', () => {
 		testIndentation(4, 4, '   \t', 0, 2);
 		testIndentation(4, 4, '    ', 0, 2);
 
-		// 2 => 1
 		testIndentation(4, 4, '\t\t', 1, 3);
 		testIndentation(4, 4, '\t ', 1, 2);
 		testIndentation(4, 4, '\t \t', 1, 3);
@@ -958,7 +949,6 @@ suite('Editor Commands - ShiftCommand', () => {
 		testIndentation(4, 4, '       \t', 1, 3);
 		testIndentation(4, 4, '        ', 1, 3);
 
-		// 3 => 2
 		testIndentation(4, 4, '         ', 2, 3);
 
 		function _assertUnshiftCommand(tabSize: number, indentSize: number, insertSpaces: boolean, text: string[], expected: ISingleEditOperation[]): void {

@@ -390,7 +390,6 @@ class ESRPReleaseService {
 
 			this.log(`Successfully submitted release ${submitReleaseResult.operationId}. Polling for completion...`);
 
-			// Poll every 5 seconds, wait 60 minutes max -> poll 60/5*60=720 times
 			for (let i = 0; i < 720; i++) {
 				await new Promise(c => setTimeout(c, 5000));
 				const releaseStatus = await this.getReleaseStatus(submitReleaseResult.operationId);
@@ -529,17 +528,13 @@ class ESRPReleaseService {
 	}
 
 	private async generateJwsToken(message: ReleaseRequestMessage): Promise<string> {
-		// Create header with properly typed properties, then override x5c with the non-standard string format
 		const header: jws.Header = {
 			alg: 'RS256',
 			crit: ['exp', 'x5t'],
-			// Release service uses ticks, not seconds :roll_eyes: (https://stackoverflow.com/a/7968483)
 			exp: ((Date.now() + (6 * 60 * 1000)) * 10000) + 621355968000000000,
-			// Release service uses hex format, not base64url :roll_eyes:
 			x5t: getThumbprint(this.requestSigningCertificates[0], 'sha1').toString('hex'),
 		};
 
-		// The Release service expects x5c as a '.' separated string, not the standard array format
 		(header as Record<string, unknown>)['x5c'] = this.requestSigningCertificates.map(c => getCertificateBuffer(c).toString('base64url')).join('.');
 
 		return jws.sign({
@@ -594,7 +589,6 @@ class State {
 
 const azdoFetchOptions = {
 	headers: {
-		// Pretend we're a web browser to avoid download rate limits
 		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
 		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
 		'Accept-Encoding': 'gzip, deflate, br',
@@ -715,7 +709,6 @@ interface Asset {
 	supportsFastUpdate?: boolean;
 }
 
-// Contains all of the logic for mapping details to our actual product names in CosmosDB
 function getPlatform(product: string, os: string, arch: string, type: string): string {
 	switch (os) {
 		case 'win32':
@@ -812,7 +805,6 @@ function getPlatform(product: string, os: string, arch: string, type: string): s
 	}
 }
 
-// Contains all of the logic for mapping types to our actual types in CosmosDB
 function getRealType(type: string) {
 	switch (type) {
 		case 'user-setup':
@@ -828,9 +820,9 @@ function getRealType(type: string) {
 async function withLease<T>(client: BlockBlobClient, fn: () => Promise<T>) {
 	const lease = client.getBlobLeaseClient();
 
-	for (let i = 0; i < 360; i++) { // Try to get lease for 30 minutes
+	for (let i = 0; i < 360; i++) {
 		try {
-			await client.uploadData(new ArrayBuffer()); // blob needs to exist for lease to be acquired
+			await client.uploadData(new ArrayBuffer());
 			await lease.acquireLease(60);
 
 			try {
@@ -950,12 +942,6 @@ async function processArtifact(
 	log(`Successfully released lease for: ${friendlyFileName}`);
 }
 
-// It is VERY important that we don't download artifacts too much too fast from AZDO.
-// AZDO throttles us SEVERELY if we do. Not just that, but they also close open
-// sockets, so the whole things turns to a grinding halt. So, downloading and extracting
-// happens serially in the main thread, making the downloads are spaced out
-// properly. For each extracted artifact, we spawn a worker thread to upload it to
-// the CDN and finally update the build in Cosmos DB.
 async function main() {
 	if (!isMainThread) {
 		const { artifact, artifactFilePath } = workerData;
@@ -1065,12 +1051,10 @@ async function main() {
 		}
 	}
 
-	// Fail the job if any of the artifacts failed to publish
 	if (results.some(r => r.status === 'rejected')) {
 		throw new Error('Some artifacts failed to publish');
 	}
 
-	// Also fail the job if any of the stages did not succeed
 	let shouldFail = false;
 
 	for (const stage of stages) {

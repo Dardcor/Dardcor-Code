@@ -30,8 +30,8 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 
 	private _terminalEditorActive: IContextKey<boolean>;
 
-	private _editorInputs: Map</*resource*/string, TerminalEditorInput> = new Map();
-	private _instanceDisposables: Map</*resource*/string, IDisposable[]> = new Map();
+	private _editorInputs: Map< string, TerminalEditorInput> = new Map();
+	private _instanceDisposables: Map< string, IDisposable[]> = new Map();
 
 	private readonly _onDidDisposeInstance = this._register(new Emitter<ITerminalInstance>());
 	readonly onDidDisposeInstance = this._onDidDisposeInstance.event;
@@ -75,7 +75,6 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 			}
 		}));
 		this._register(this._editorService.onDidVisibleEditorsChange(() => {
-			// add any terminal editors created via the editor service split command
 			const knownIds = this.instances.map(i => i.instanceId);
 			const terminalEditors = this._getActiveTerminalEditors();
 			const unknownEditor = terminalEditors.find(input => {
@@ -91,8 +90,6 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 			}
 		}));
 
-		// Remove the terminal from the managed instances when the editor closes. This fires when
-		// dragging and dropping to another editor or closing the editor via cmd/ctrl+w.
 		this._register(this._editorService.onDidCloseEditor(e => {
 			const instance = e.editor instanceof TerminalEditorInput ? e.editor.terminalInstance : undefined;
 			if (instance) {
@@ -214,7 +211,6 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 
 	async splitInstance(instanceToSplit: ITerminalInstance, shellLaunchConfig: IShellLaunchConfig = {}): Promise<ITerminalInstance> {
 		if (instanceToSplit.target === TerminalLocation.Editor) {
-			// Make sure the instance to split's group is active
 			const group = this._editorInputs.get(instanceToSplit.resource.path)?.group;
 			if (group) {
 				this._editorGroupsService.activateGroup(group);
@@ -248,7 +244,6 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 		const editorInput = this._editorInputs.get(inputKey);
 		editorInput?.detachInstance();
 		this._removeInstance(instance);
-		// Don't dispose the input when shutting down to avoid layouts in the editor area
 		if (!this._isShuttingDown) {
 			editorInput?.dispose();
 		}
@@ -263,7 +258,6 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 	}
 
 	private async _revealEditor(instance: ITerminalInstance, preserveFocus?: boolean): Promise<void> {
-		// If there is an active openEditor call for this instance it will be revealed by that
 		if (this._activeOpenEditorRequest?.instanceId === instance.instanceId) {
 			await this._activeOpenEditorRequest.promise;
 			return;

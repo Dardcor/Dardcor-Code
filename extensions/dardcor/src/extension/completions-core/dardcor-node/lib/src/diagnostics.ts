@@ -10,14 +10,12 @@ const os = {
 	EOL: '\n',
 };
 
-/** Diagnostics report made available in extension or agent. */
 interface Report {
 	sections: Section[];
 }
 
 type SectionItems = { [key: string]: boolean | string | number | undefined };
 
-/** Section of a diagnostics report. */
 interface Section {
 	name: string;
 	items: SectionItems;
@@ -25,9 +23,6 @@ interface Section {
 
 export function collectCompletionDiagnostics(accessor: ServicesAccessor, telemetry: TelemetryData | undefined, opportunityId?: string): Report {
 	const telemetryItems: SectionItems = {};
-	// The opportunity ID (VS Code core's `InlineCompletionContext.requestUuid`) is sourced from the shown
-	// item rather than `telemetry.properties.opportunityId`, since the latter can be stale for cached or
-	// typing-as-suggested completions whose telemetry is derived from an earlier request.
 	if (opportunityId) {
 		telemetryItems['Opportunity ID'] = opportunityId;
 	}

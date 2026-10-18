@@ -1,5 +1,3 @@
-// Shim → re-export from modular Full JSON DB layer (src/lib/db/)
-// Kept for backward compatibility with existing imports.
 export {
   getSettings, updateSettings, isCloudEnabled, getCloudUrl,
   getProviderConnections, getProviderConnectionById,
@@ -19,4 +17,4 @@ export {
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
   getAllProviderStatuses, getProviderStatus, setProviderStatus,
   exportDb, importDb,
-} from "@/lib/db/index.js";
+} from "./db/index.js";

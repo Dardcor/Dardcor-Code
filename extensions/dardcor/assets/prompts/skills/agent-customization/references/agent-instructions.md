@@ -1,4 +1,4 @@
-# [agent instructions](https://code.visualstudio.com/docs/dardcor/customization/custom-instructions)
+# [agent instructions](https://www.dardcor-code.web.id/docs/dardcor/customization/custom-instructions)
 
 Guidelines that automatically apply to all chat requests across your entire workspace.
 

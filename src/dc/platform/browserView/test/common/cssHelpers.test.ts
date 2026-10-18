@@ -7,7 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { collapseToShorthands, formatMatchedStyles, type IMatchedStyles } from '../../common/cssHelpers.js';
 
-/** Helper: build a Map from an object literal and run collapseToShorthands. */
 function collapse(props: Record<string, string>): string[] {
 	return collapseToShorthands(new Map(Object.entries(props)));
 }
@@ -16,7 +15,6 @@ suite('collapseToShorthands', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	// ── Box shorthands ──
 
 	test('margin: all sides equal → 1-value', () => {
 		assert.deepStrictEqual(collapse({
@@ -49,7 +47,6 @@ suite('collapseToShorthands', () => {
 		}), ['border-radius: 6px;']);
 	});
 
-	// ── Border ──
 
 	test('border: uniform sides → single shorthand', () => {
 		assert.deepStrictEqual(collapse({
@@ -72,7 +69,6 @@ suite('collapseToShorthands', () => {
 		]);
 	});
 
-	// ── Drop-when-all-default ──
 
 	test('border-image at defaults → dropped entirely', () => {
 		assert.deepStrictEqual(collapse({
@@ -89,7 +85,6 @@ suite('collapseToShorthands', () => {
 		}), ['display: block;']);
 	});
 
-	// ── Background ──
 
 	test('background: color-only when others at default', () => {
 		assert.deepStrictEqual(collapse({
@@ -100,7 +95,6 @@ suite('collapseToShorthands', () => {
 		}), ['background: rgb(255, 0, 0);']);
 	});
 
-	// ── Text-decoration ──
 
 	test('text-decoration: none', () => {
 		assert.deepStrictEqual(collapse({
@@ -116,7 +110,6 @@ suite('collapseToShorthands', () => {
 		}), ['text-decoration: underline wavy;']);
 	});
 
-	// ── White-space ──
 
 	test('white-space: nowrap', () => {
 		assert.deepStrictEqual(collapse({
@@ -130,7 +123,6 @@ suite('collapseToShorthands', () => {
 		}), ['white-space: pre-wrap;']);
 	});
 
-	// ── Transition ──
 
 	test('transition: single property with cubic-bezier', () => {
 		assert.deepStrictEqual(collapse({
@@ -152,7 +144,6 @@ suite('collapseToShorthands', () => {
 		}), ['transition: opacity 0.5s, transform 0.3s;']);
 	});
 
-	// ── Animation ──
 
 	test('animation: name and duration only', () => {
 		assert.deepStrictEqual(collapse({
@@ -174,7 +165,6 @@ suite('collapseToShorthands', () => {
 		}), ['animation: slideIn 0.5s ease-in-out forwards;']);
 	});
 
-	// ── Remaining properties pass through sorted ──
 
 	test('unknown properties pass through alphabetically', () => {
 		assert.deepStrictEqual(collapse({
@@ -182,7 +172,6 @@ suite('collapseToShorthands', () => {
 		}), ['color: red;', 'display: flex;', 'z-index: 1;']);
 	});
 
-	// ── Mixed: realistic GitHub-like element ──
 
 	test('realistic element with multiple shorthand groups', () => {
 		const result = collapse({
@@ -226,7 +215,6 @@ suite('collapseToShorthands', () => {
 	});
 });
 
-// ── Helper to build CDP-like rule matches ──
 
 function rule(selector: string, cssText: string, origin = 'regular'): { rule: { selectorList: { selectors: { text: string }[] }; origin: string; style: { cssText: string; cssProperties: { name: string; value: string }[] } } } {
 	const props = cssText.split(';').map(d => d.trim()).filter(Boolean).map(d => {
@@ -330,7 +318,6 @@ suite('formatAuthorStyles', () => {
 		const { authorPropertyNames } = formatMatchedStyles(matched);
 		assert.ok(authorPropertyNames.has('border-top-width'));
 		assert.ok(authorPropertyNames.has('border-top-style'));
-		// Always-shown properties
 		assert.ok(authorPropertyNames.has('display'));
 		assert.ok(authorPropertyNames.has('width'));
 	});

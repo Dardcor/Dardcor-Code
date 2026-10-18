@@ -126,7 +126,6 @@ suite('PromptFileRewriter', () => {
 		const toolsAttr = parsed.header!.getAttribute(PromptHeaderAttributes.tools);
 		assert.ok(toolsAttr);
 
-		// Verify that the attribute range is larger than the value range
 		assert.ok(
 			toolsAttr.range.startColumn < toolsAttr.value.range.startColumn ||
 			toolsAttr.range.startLineNumber < toolsAttr.value.range.startLineNumber,

@@ -15,9 +15,6 @@ type BackingStoreContext = CanvasRenderingContext2D & {
 	backingStorePixelRatio?: number;
 };
 
-/**
- * See https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio#monitoring_screen_resolution_or_zoom_level_changes
- */
 class DevicePixelRatioMonitor extends Disposable {
 
 	private readonly _onDidChange = this._register(new Emitter<void>());
@@ -114,11 +111,4 @@ class PixelRatioMonitorFacade {
 	}
 }
 
-/**
- * Returns the pixel ratio.
- *
- * This is useful for rendering <canvas> elements at native screen resolution or for being used as
- * a cache key when storing font measurements. Fonts might render differently depending on resolution
- * and any measurements need to be discarded for example when a window is moved from a monitor to another.
- */
 export const PixelRatio = new PixelRatioMonitorFacade();

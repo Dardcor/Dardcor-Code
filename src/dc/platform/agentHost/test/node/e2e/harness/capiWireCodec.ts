@@ -3,32 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Wire codecs for the CAPI record/replay proxy. Each dialect the agent host's
- * bundled SDK/CLI speaks can be parsed from its streamed SSE form into a small,
- * human-readable message object (for a clean YAML capture) and regenerated back
- * into an SSE stream on replay.
- *
- * Ported (lean) from the Copilot CLI e2e harness's dialect adapters — we keep
- * the messages in their native dialect shape rather than normalizing to OpenAI
- * chat-completions, which is enough for readable captures + faithful replay.
- *
- * Currently supports the Anthropic Messages dialect (`POST /v1/messages`),
- * which is what the Copilot and Claude providers use.
- */
 
-// #region SSE parsing
 
 export interface ISseEvent {
 	readonly type: string;
 	readonly [key: string]: unknown;
 }
 
-/**
- * Parse an SSE body into typed JSON events. Tolerant of `\r?\n` line endings and
- * multiple `data:` lines per event (joined with `\n` per the SSE spec). Skips
- * `[DONE]` sentinels and events without a string `type`.
- */
 export function parseSseEvents(body: string): ISseEvent[] {
 	const events: ISseEvent[] = [];
 	for (const block of body.split(/\r?\n\r?\n/)) {
@@ -52,22 +33,17 @@ export function parseSseEvents(body: string): ISseEvent[] {
 				events.push(parsed as ISseEvent);
 			}
 		} catch {
-			// skip malformed events
 		}
 	}
 	return events;
 }
 
-// #endregion
 
-// #region Anthropic Messages dialect
 
-/** Shared captured content; `format: 'custom'` preserves Responses freeform tool calls. */
 export type AnthropicContentBlock =
 	| { readonly type: 'text'; text: string }
 	| { readonly type: 'tool_use'; readonly id: string; readonly name: string; readonly format?: 'custom'; input: unknown };
 
-/** The captured/replayed shape of an Anthropic `/v1/messages` assistant reply. */
 export interface IAnthropicMessage {
 	readonly content: AnthropicContentBlock[];
 	readonly stopReason: string | null;
@@ -80,11 +56,6 @@ interface IMutableTextBlock { type: 'text'; text: string }
 interface IMutableToolUseBlock { type: 'tool_use'; id: string; name: string; format?: 'custom'; input: unknown }
 type MutableBlock = IMutableTextBlock | IMutableToolUseBlock;
 
-/**
- * Aggregate a streamed Anthropic `/v1/messages` SSE body into a single message
- * (content blocks + stop reason + usage). Returns undefined if the stream had
- * no `message_start`.
- */
 export function aggregateAnthropicSse(sseBody: string): IAnthropicMessage | undefined {
 	const events = parseSseEvents(sseBody);
 	let started = false;
@@ -159,13 +130,6 @@ export function aggregateAnthropicSse(sseBody: string): IAnthropicMessage | unde
 	};
 }
 
-/**
- * Regenerate an Anthropic `/v1/messages` SSE stream from a captured message.
- * Emits the full event sequence (`message_start` -> per-block
- * start/delta/stop -> `message_delta` -> `message_stop`) the SDK expects. Text
- * and tool inputs are each emitted as a single delta, which the runtime client
- * tolerates.
- */
 export function anthropicMessageToSse(message: IAnthropicMessage): string {
 	const id = `msg_replay_${randomHex()}`;
 	const chunks: string[] = [];
@@ -180,7 +144,6 @@ export function anthropicMessageToSse(message: IAnthropicMessage): string {
 			model: 'replay',
 			stop_reason: null,
 			stop_sequence: null,
-			// Real Anthropic emits output_tokens=1 here; corrected by message_delta.
 			usage: { input_tokens: message.usage?.inputTokens ?? 1, output_tokens: 1 },
 		},
 	}));
@@ -207,12 +170,6 @@ export function anthropicMessageToSse(message: IAnthropicMessage): string {
 	return chunks.join('');
 }
 
-/**
- * A compact, human-readable view of an Anthropic `/v1/messages` request, for
- * the YAML capture. The (large, model-catalog-bearing) system prompt is
- * replaced with a placeholder. Message content is collapsed to a bare string
- * when it is a single text block (see {@link collapseSingleText}).
- */
 export interface IReadableAnthropicRequest {
 	readonly model: string;
 	readonly system: string;
@@ -231,9 +188,6 @@ export function summarizeAnthropicRequest(requestBody: string): IReadableAnthrop
 	if (typeof parsed.model !== 'string' || !Array.isArray(parsed.messages)) {
 		return undefined;
 	}
-	// Drop harness-injected `system`-role messages (e.g. Claude Code's available
-	// -skills listing) — they are environment-specific boilerplate, not part of
-	// the conversation, and the real system prompt is already a placeholder.
 	const messages = parsed.messages
 		.filter(m => m.role !== 'system')
 		.map(m => ({ role: m.role ?? 'user', content: summarizeContent(m.content) }))
@@ -249,10 +203,6 @@ function isEmptyContent(content: unknown): boolean {
 	return content === '' || (Array.isArray(content) && content.length === 0);
 }
 
-/** Reduce message content to something readable: plain strings stay, block
- * arrays keep type + the salient field (text / tool name / tool_use_id). A
- * lone text block collapses to a bare string. Volatile per-run values (e.g. the
- * injected wall clock) are normalized so captures stay deterministic. */
 function summarizeContent(content: unknown): unknown {
 	if (typeof content === 'string') {
 		return normalizeVolatileText(content);
@@ -272,8 +222,6 @@ function summarizeContent(content: unknown): unknown {
 	return collapseSingleText(blocks);
 }
 
-/** Collapse a content array holding exactly one text block to its bare string,
- * so a plain message reads `content: hello` instead of a single-entry list. */
 function collapseSingleText(blocks: readonly unknown[]): unknown {
 	if (blocks.length === 1) {
 		const only = blocks[0] as { type?: string; text?: string };
@@ -284,11 +232,6 @@ function collapseSingleText(blocks: readonly unknown[]): unknown {
 	return blocks;
 }
 
-/**
- * Serialize an assistant reply's content for storage: a lone text block becomes
- * a bare string (`content: hello`); anything richer stays an explicit block
- * list. Inverse of {@link deserializeAnthropicContent}.
- */
 export function serializeAnthropicContent(content: AnthropicContentBlock[]): string | AnthropicContentBlock[] {
 	if (content.length === 1 && content[0].type === 'text') {
 		return content[0].text;
@@ -296,7 +239,6 @@ export function serializeAnthropicContent(content: AnthropicContentBlock[]): str
 	return content;
 }
 
-/** Expand a stored assistant reply's content back into an explicit block list. */
 export function deserializeAnthropicContent(content: string | AnthropicContentBlock[]): AnthropicContentBlock[] {
 	return typeof content === 'string' ? [{ type: 'text', text: content }] : content;
 }
@@ -305,11 +247,6 @@ const CURRENT_DATETIME_RE = /<current_datetime>.*?<\/current_datetime>/gs;
 const SYSTEM_REMINDER_RE = /<system[-_]reminder>.*?<\/system[-_]reminder>/gs;
 const ENVIRONMENT_CONTEXT_RE = /<environment_context>.*?<\/environment_context>/gs;
 
-/** Strip volatile / boilerplate wrappers the runtime injects around the real
- * user text (the `<current_datetime>` wall clock, `<system-reminder>` blocks,
- * and Codex's `<environment_context>` cwd/date preamble) so captures show just
- * the meaningful message and stay deterministic across re-records. Mirrors the
- * Copilot CLI harness, which normalizes the same injected blocks. */
 function normalizeVolatileText(text: string): string {
 	return text
 		.replace(CURRENT_DATETIME_RE, '')
@@ -319,23 +256,10 @@ function normalizeVolatileText(text: string): string {
 		.trim();
 }
 
-// #endregion
 
-// #region OpenAI Responses dialect
 
-/**
- * The OpenAI Responses API (`POST /responses`) used by the Codex provider. We
- * reuse the Anthropic readable shapes ({@link IReadableAnthropicRequest} /
- * {@link IAnthropicMessage}) since both dialects map cleanly to text / tool_use
- * / tool_result blocks — only the wire (SSE) parse and regeneration differ.
- */
 export const RESPONSES_PATH = '/responses';
 
-/**
- * Aggregate a streamed `/responses` SSE body into a message. Reads the
- * authoritative `response.output_item.done` items (messages and tool calls) and
- * the final usage; reasoning items (opaque encrypted content) are dropped.
- */
 export function aggregateResponsesSse(sseBody: string): IAnthropicMessage | undefined {
 	const events = parseSseEvents(sseBody);
 	const blocks: MutableBlock[] = [];
@@ -371,8 +295,6 @@ export function aggregateResponsesSse(sseBody: string): IAnthropicMessage | unde
 	return { content: blocks, stopReason, usage: (usage && (usage.inputTokens !== undefined || usage.outputTokens !== undefined)) ? usage : undefined };
 }
 
-/** Extract token usage from a `response.completed` event (native `usage` field
- * or Copilot's `copilot_usage.token_details`). */
 function usageFromResponsesEvent(evt: ISseEvent): { inputTokens?: number; outputTokens?: number } {
 	const response = evt['response'] as { usage?: { input_tokens?: number; output_tokens?: number } } | undefined;
 	if (response?.usage && (response.usage.input_tokens !== undefined || response.usage.output_tokens !== undefined)) {
@@ -391,7 +313,6 @@ function usageFromResponsesEvent(evt: ISseEvent): { inputTokens?: number; output
 	return {};
 }
 
-/** Summarize a `/responses` request into the shared readable request shape. */
 export function summarizeResponsesRequest(requestBody: string): IReadableAnthropicRequest | undefined {
 	let parsed: { model?: string; instructions?: unknown; input?: unknown };
 	try {
@@ -409,7 +330,6 @@ export function summarizeResponsesRequest(requestBody: string): IReadableAnthrop
 	};
 }
 
-/** Map a `/responses` request `input` (string or item list) to readable messages. */
 function responsesInputToMessages(input: unknown): Array<{ role: string; content: unknown }> {
 	if (typeof input === 'string') {
 		const text = normalizeVolatileText(input);
@@ -423,9 +343,6 @@ function responsesInputToMessages(input: unknown): Array<{ role: string; content
 		const item = raw as { type?: string; role?: string; content?: unknown; name?: string; arguments?: string; input?: string; call_id?: string; output?: unknown };
 		switch (item.type) {
 			case 'message': {
-				// Skip harness-injected instruction messages (Codex uses the
-				// `developer` / `system` roles for its permissions + environment
-				// preamble); the real system prompt is already a placeholder.
 				if (item.role === 'system' || item.role === 'developer') {
 					break;
 				}
@@ -448,13 +365,11 @@ function responsesInputToMessages(input: unknown): Array<{ role: string; content
 			case 'custom_tool_call_output':
 				messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: item.call_id, content: summarizeResponsesOutput(item.output) }] });
 				break;
-			// reasoning / other items are dropped from the readable capture
 		}
 	}
 	return messages;
 }
 
-/** Flatten Responses `content` parts (`input_text` / `output_text`) to text blocks. */
 function responsesTextParts(content: unknown): unknown {
 	if (typeof content === 'string') {
 		return content;
@@ -468,7 +383,6 @@ function responsesTextParts(content: unknown): unknown {
 	});
 }
 
-/** Normalize a `function_call_output` `output` to readable text. */
 function summarizeResponsesOutput(output: unknown): unknown {
 	if (typeof output === 'string') {
 		return normalizeVolatileText(output);
@@ -476,14 +390,6 @@ function summarizeResponsesOutput(output: unknown): unknown {
 	return summarizeContent(output);
 }
 
-/**
- * Regenerate a `/responses` SSE stream from a captured message. Emits the event
- * sequence the Codex app-server expects (`response.created` -> per-item
- * added/delta/done -> `response.completed`) with synthetic, stable item ids.
- * The `response` envelope carries the full set of required OpenAI Responses
- * fields so the client accepts the turn as complete (a partial envelope makes
- * it retry).
- */
 export function responsesMessageToSse(message: IAnthropicMessage): string {
 	const responseId = `resp_replay_${randomHex()}`;
 	let seq = 0;
@@ -519,10 +425,6 @@ export function responsesMessageToSse(message: IAnthropicMessage): string {
 	chunks.push(sseEvent('response.in_progress', { type: 'response.in_progress', sequence_number: seq++, response: skeleton }));
 
 	outputItems.forEach((item, index) => {
-		// An item is *announced* here and streamed below, so it must arrive
-		// empty: a consumer that accumulates this content and then the deltas
-		// would otherwise count the same text twice (`SHELL_VALUE_73` replayed
-		// as `SHELL_VALUE_73SHELL_VALUE_73`).
 		const addedItem = item.type === 'message'
 			? { ...item, status: 'in_progress' as const, content: [] }
 			: item.type === 'custom_tool_call'
@@ -555,9 +457,7 @@ type ResponsesOutputItem =
 	| { readonly id: string; readonly type: 'custom_tool_call'; readonly name: string; readonly call_id: string; readonly input: string; readonly status: 'completed' }
 	| { readonly id: string; readonly type: 'function_call'; readonly name: string; readonly call_id: string; readonly arguments: string; readonly status: 'completed' };
 
-// #endregion
 
-// #region helpers
 
 function sseEvent(eventName: string, data: unknown): string {
 	return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -575,4 +475,3 @@ function randomHex(): string {
 	return Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0');
 }
 
-// #endregion

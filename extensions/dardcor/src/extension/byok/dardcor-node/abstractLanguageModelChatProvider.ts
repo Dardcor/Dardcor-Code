@@ -11,7 +11,7 @@ import { IFetcherService } from '../../../platform/networking/common/fetcherServ
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { IStringDictionary } from '../../../util/dardcor/base/common/collections';
 import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
-import { CopilotLanguageModelWrapper } from '../../conversation/dardcor-node/languageModelAccess';
+import { DardcorLanguageModelWrapper } from '../../conversation/dardcor-node/languageModelAccess';
 import { BYOKAuthType, BYOKKnownModels, BYOKModelCapabilities, resolveModelInfo } from '../common/byokProvider';
 import { OpenAIEndpoint } from '../node/openAIEndpoint';
 import { byokKnownModelsToAPIInfoWithEffort } from './byokModelInfo';
@@ -44,7 +44,6 @@ export abstract class AbstractLanguageModelChatProvider<C extends LanguageModelC
 		this._knownModels = { ...this._knownModels, ...knownModels };
 	}
 
-	// TODO: Remove this after 6 months
 	protected async configureDefaultGroupWithApiKeyOnly(): Promise<string | undefined> {
 		const apiKey = await this._byokStorageService.getAPIKey(this._name);
 		if (apiKey) {
@@ -83,7 +82,7 @@ export interface OpenAICompatibleLanguageModelChatInformation<C extends Language
 }
 
 export abstract class AbstractOpenAICompatibleLMProvider<T extends LanguageModelChatConfiguration = LanguageModelChatConfiguration> extends AbstractLanguageModelChatProvider<T, OpenAICompatibleLanguageModelChatInformation<T>> {
-	protected readonly _lmWrapper: CopilotLanguageModelWrapper;
+	protected readonly _lmWrapper: DardcorLanguageModelWrapper;
 
 	constructor(
 		id: string,
@@ -97,7 +96,7 @@ export abstract class AbstractOpenAICompatibleLMProvider<T extends LanguageModel
 		@IExperimentationService protected readonly _expService: IExperimentationService
 	) {
 		super(id, name, knownModels, byokStorageService, logService);
-		this._lmWrapper = this._instantiationService.createInstance(CopilotLanguageModelWrapper);
+		this._lmWrapper = this._instantiationService.createInstance(DardcorLanguageModelWrapper);
 	}
 
 	async provideLanguageModelChatResponse(model: OpenAICompatibleLanguageModelChatInformation<T>, messages: Array<LanguageModelChatMessage | LanguageModelChatMessage2>, options: ProvideLanguageModelChatResponseOptions, progress: Progress<LanguageModelResponsePart2>, token: CancellationToken): Promise<void> {

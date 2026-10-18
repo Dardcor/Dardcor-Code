@@ -7,7 +7,6 @@ import { makeStyles, shorthands } from '@fluentui/react-components';
 
 export const useInternalToolbarPickerStyles = makeStyles({
 	root: {
-		// Stack the label above the field with a gap
 		display: 'grid',
 		gridTemplateRows: 'repeat(1fr)',
 		justifyItems: 'start',

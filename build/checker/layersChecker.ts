@@ -8,21 +8,7 @@ import { isExportSpecifier, isIdentifier, isImportSpecifier, isPropertyAccessExp
 import { dirname, join, relative, resolve } from 'path';
 import minimatch from 'minimatch';
 
-//
-// #############################################################################################
-//
-// A custom typescript checker for the specific task of detecting the use of certain types in a
-// layer that does not allow such use.
-//
-// Make changes to below RULES to lift certain files from these checks only if absolutely needed
-//
-// NOTE: Most layer checks are done via tsconfig.<layer>.json files.
-//
-// #############################################################################################
-//
 
-// Types that are defined in a common layer but are known to be only
-// available in native environments should not be allowed in browser
 const NATIVE_TYPES = [
 	'NativeParsedArgs',
 	'INativeEnvironmentService',
@@ -35,13 +21,11 @@ const NATIVE_TYPES = [
 
 export const RULES: IRule[] = [
 
-	// Tests: skip
 	{
 		target: '**/dc/**/test/**',
-		skip: true // -> skip all test files
+		skip: true
 	},
 
-	// Common: dc/platform services that can access native types
 	{
 		target: `**/dc/platform/{${[
 			'environment/common/*.ts',
@@ -50,61 +34,49 @@ export const RULES: IRule[] = [
 			'native/common/nativeHostService.ts',
 			'ipc/common/mainProcessService.ts'
 		].join(',')}}`,
-		disallowedTypes: [/* Ignore native types that are defined from here */],
+		disallowedTypes: [],
 	},
 
-	// Common: dc/base/parts/sandbox/electron-browser/preload{,-aux}.ts
 	{
 		target: '**/dc/base/parts/sandbox/electron-browser/preload{,-aux}.ts',
 		disallowedTypes: NATIVE_TYPES,
 	},
 
-	// Browser view preload script
 	{
 		target: '**/dc/platform/browserView/electron-browser/preload-browserView.ts',
 		disallowedTypes: NATIVE_TYPES,
 	},
 
-	// Validated IPC wrapper
 	{
 		target: '**/dc/base/parts/ipc/electron-main/ipcMain.ts',
 		disallowedTypes: [],
 	},
 
-	// Common
 	{
 		target: '**/dc/**/common/**',
 		disallowedTypes: NATIVE_TYPES,
 	},
 
-	// Common
 	{
 		target: '**/dc/**/worker/**',
 		disallowedTypes: NATIVE_TYPES,
 	},
 
-	// Browser
 	{
 		target: '**/dc/**/browser/**',
 		disallowedTypes: NATIVE_TYPES,
 	},
 
-	// Electron (main, utility)
 	{
 		target: '**/dc/**/{electron-main,electron-utility}/**',
 		disallowedTypes: [
-			'ipcMain' // not allowed, use validatedIpcMain instead
+			'ipcMain'
 		]
 	}
 ];
 
 const TS_CONFIG_PATH = join(import.meta.dirname, '../../', 'src', 'tsconfig.json');
 
-/**
- * Upper bound on how many nodes are sent to the checker in a single request.
- * Batching is what makes this checker fast: resolving symbols one at a time
- * would mean a round trip to the compiler for every single identifier.
- */
 const SYMBOL_BATCH_SIZE = 20_000;
 
 export interface IRule {
@@ -127,12 +99,6 @@ interface ICandidate {
 	readonly rule: IRule;
 }
 
-/**
- * The disallowed types resolved into symbols: `symbolIds` maps the id of a type
- * symbol and of each of its members to the name of the disallowed type,
- * `memberNames` holds the names of those members and `resolvedTypes` the names
- * of the disallowed types that have been resolved so far.
- */
 interface IDisallowedSymbols {
 	readonly symbolIds: Map<number, string>;
 	readonly memberNames: Set<string>;
@@ -152,10 +118,6 @@ function forEachNode(node: Node, callback: (node: Node) => void): void {
 	});
 }
 
-/**
- * Collects every identifier that names a disallowed type, either directly or
- * through an import or export alias.
- */
 function collectNamedReferences(sourceFile: SourceFile, disallowedTypes: ReadonlySet<string>): Identifier[] {
 	const candidateNames = new Set(disallowedTypes);
 	const identifiers: Identifier[] = [];
@@ -175,11 +137,6 @@ function collectNamedReferences(sourceFile: SourceFile, disallowedTypes: Readonl
 	return identifiers;
 }
 
-/**
- * Collects every property access whose name matches a member of a disallowed
- * type. These are accesses on values of an inferred type, so the name alone is
- * not conclusive and the symbol still has to be resolved.
- */
 function collectMemberReferences(sourceFile: SourceFile, memberNames: ReadonlySet<string>): Identifier[] {
 	const identifiers: Identifier[] = [];
 
@@ -206,28 +163,22 @@ async function getSymbols(checker: Checker, nodes: readonly Node[]): Promise<(Sy
 	return symbols;
 }
 
-/**
- * Expands the symbols the disallowed types resolved to into the set of symbols
- * that a reference to such a type can produce. Doing this once up front turns
- * the per-reference check into a local id lookup instead of walking the alias
- * and containment chain of every symbol.
- */
 async function addDisallowedSymbols(checker: Checker, symbols: readonly Symbol[], disallowedTypes: ReadonlySet<string>, disallowed: IDisallowedSymbols): Promise<void> {
 	for (const symbol of symbols) {
 		if (disallowed.symbolIds.has(symbol.id)) {
-			continue; // already seen through another reference to the same type
+			continue;
 		}
 
 		const declaration = symbol.flags & SymbolFlags.Alias ? await checker.getAliasedSymbol(symbol) : symbol;
 		if (!disallowedTypes.has(declaration.name)) {
-			continue; // the name matched but the symbol is an unrelated declaration
+			continue;
 		}
 
 		disallowed.symbolIds.set(symbol.id, declaration.name);
 		disallowed.symbolIds.set(declaration.id, declaration.name);
 
 		if (disallowed.resolvedTypes.has(declaration.name)) {
-			continue; // members already collected via another reference to this type
+			continue;
 		}
 		disallowed.resolvedTypes.add(declaration.name);
 
@@ -252,12 +203,6 @@ function toViolation(candidate: ICandidate, type: string): ILayerViolation {
 	};
 }
 
-/**
- * Resolves disallowed types that no checked file happens to reference by name,
- * because a type that is never named there can still leak in through inference.
- * Their declarations are searched for in the files no rule applies to, which is
- * skipped entirely as long as every disallowed type is already accounted for.
- */
 async function resolveRemainingTypes(program: Program, checker: Checker, fileNames: readonly string[], disallowedTypes: ReadonlySet<string>, disallowed: IDisallowedSymbols): Promise<void> {
 	const remaining = new Set([...disallowedTypes].filter(type => !disallowed.resolvedTypes.has(type)));
 	if (!remaining.size) {
@@ -299,15 +244,11 @@ function toViolations(candidates: readonly ICandidate[], symbols: readonly (Symb
 			continue;
 		}
 
-		// The name check catches references the compiler could not resolve to a
-		// declaration, where the disallowed type is still spelled out in the source.
 		if (disallowedTypes.includes(symbol.name)) {
 			violations.push(toViolation(candidate, symbol.name));
 			continue;
 		}
 
-		// Otherwise the symbol matches if it is (or aliases) a disallowed type or
-		// one of its members.
 		const type = disallowed.symbolIds.get(symbol.id);
 		if (type && disallowedTypes.includes(type)) {
 			violations.push(toViolation(candidate, type));
@@ -335,10 +276,6 @@ export async function checkProject(project: Project, fileNames: readonly string[
 		}
 	}
 
-	// Pass 1: identifiers that name a disallowed type. Files matched by a rule
-	// that disallows nothing are visited too, because that is where those types
-	// are declared and where their members are read from. Files that are skipped
-	// or match no rule at all are left to resolveRemainingTypes below.
 	const disallowedTypes = new Set(rules.flatMap(rule => rule.disallowedTypes ?? []));
 	const namedCandidates: ICandidate[] = [];
 	for (const { sourceFile, rule } of sourceFiles) {
@@ -352,7 +289,6 @@ export async function checkProject(project: Project, fileNames: readonly string[
 	await addDisallowedSymbols(checker, namedSymbols.filter(isSymbol), disallowedTypes, disallowed);
 	await resolveRemainingTypes(program, checker, otherFileNames, disallowedTypes, disallowed);
 
-	// Pass 2: property accesses that may resolve to a member of a disallowed type.
 	const memberCandidates: ICandidate[] = [];
 	for (const { sourceFile, rule } of sourceFiles) {
 		if (!rule.disallowedTypes?.length) {

@@ -14,15 +14,6 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { IChatWidgetService } from '../chat.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 
-/**
- * Shared implementation of "Open Agent Host State File". Asks the Agent Host
- * connection that owns the session for its provider-owned state file,
- * optionally targeting a chat within that session.
- *
- * Both the workbench-side action (uses `IChatWidgetService`) and the
- * sessions-app-side action (uses `ISessionsService`) call into
- * this helper after resolving the active Agent Host session resource.
- */
 export async function openAgentHostStateFile(
 	accessor: ServicesAccessor,
 	sessionResource: URI | undefined,
@@ -59,11 +50,6 @@ export async function openAgentHostStateFile(
 	}
 }
 
-/**
- * Workbench-side action. Uses the last-focused chat widget's view model to
- * find the active Agent Host chat session. Suitable for vscode where the
- * agents-window-specific `ISessionsService` is not present.
- */
 export class OpenAgentHostStateFileAction extends Action2 {
 
 	static readonly ID = 'workbench.action.chat.openCopilotCliStateFile';

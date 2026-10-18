@@ -70,16 +70,10 @@ function getParameterListParts(
 
 			case PConst.DisplayPartKind.parameterName:
 				if (parenCount === 1 && braceCount === 0 && isInMethod) {
-					// Only take top level paren names
 					const next = displayParts[i + 1];
-					// Skip optional parameters
 					const nameIsFollowedByOptionalIndicator = next && next.text === '?';
-					// Skip this parameter
 					const nameIsThis = part.text === 'this';
 
-					/* Add optional param to temp array. Once a non-optional param is encountered,
-					this means that previous optional params were mid-list ones, thus they should
-					be displayed */
 					if (nameIsFollowedByOptionalIndicator) {
 						optionalParams.push(part);
 					} else {
@@ -103,7 +97,6 @@ function getParameterListParts(
 						break outer;
 					}
 				} else if (part.text === '...' && parenCount === 1) {
-					// Found rest parmeter. Do not fill in any further arguments
 					hasOptionalParameters = true;
 					break outer;
 				} else if (part.text === '{') {

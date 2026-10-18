@@ -9,29 +9,6 @@ import * as path from 'path';
 import { parseTikTokenBinary } from '../../src/platform/tokenizer/node/parseTikTokens';
 import { writeVariableLengthQuantity } from '../../src/util/common/variableLengthQuantity';
 
-/**
- * Compresses a `.tiktoken` file into a much more compact binary format.
- *
- * A tiktoken file is a list of base64 encoded terms, followed by a space
- * and (rather unnecessarily) by their index, like
- * ```
- * IQ== 0
- * Ig== 1
- * Iw== 2
- * JA== 3
- * JQ== 4
- * Jg== 5
- * Jw== 6
- * KA== 7
- * ```
- *
- * This compression takes advantage of the fact that term lengths increase
- * monotonically with their index. Each term is represented by a VLQ-encoded
- * length followed by the term itself.
- *
- * I explored doing a fancier format with "runs" of certain lengths, however
- * the difference was only a byte or two in exchange for much higher complexity.
- */
 export async function compressTikToken(inputFile: string, outputFile: string) {
 	const raw = await readFile(inputFile, 'utf-8');
 	const terms: Buffer[] = [];

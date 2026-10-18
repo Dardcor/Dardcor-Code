@@ -10,55 +10,20 @@ import { ChatErrorLevel } from '../../../dardcorTypes';
 import { GitHubOutageStatus } from '../../github/common/githubService';
 import { APIErrorResponse, APIUsage, FilterReason } from '../../networking/common/openai';
 
-/**
- * The location of a chat request.
- */
 export enum ChatLocation {
-	/**
-	 * The chat panel
-	 */
 	Panel = 1,
-	/**
-	 * Terminal inline chat
-	 */
 	Terminal = 2,
-	/**
-	 * Notebook inline chat
-	 */
 	Notebook = 3,
-	/**
-	 * Code editor inline chat
-	 */
 	Editor = 4,
-	/**
-	 * Chat is happening in an editing session.
-	 * This location doesn't exist in vscode API, but is still used to compute the location sent for some intents.
-	 */
 	EditingSession = 5,
-	/**
-	 * The chat request does not correspond directly to a user chat request.
-	 */
 	Other = 6,
-	/**
-	 * The chat is an agent mode edit session.
-	 */
 	Agent = 7,
-	/**
-	 * A request coming through the OpenAILanguageModelServer
-	 */
 	ResponsesProxy = 8,
-	/**
-	 * A request coming through the ClaudeLanguageModelServer (Messages API)
-	 */
 	MessagesProxy = 9
 }
 
 export namespace ChatLocation {
 
-	/**
-	 * Use this for passing uiKind to github telemetry, which we don't want to impact.
-	 * Also known as UIKind in the telemetry data.
-	 */
 	export function toString(chatLocation: ChatLocation): string {
 		switch (chatLocation) {
 			case ChatLocation.Editor:
@@ -74,9 +39,6 @@ export namespace ChatLocation {
 		}
 	}
 
-	/**
-	 * This goes to logs and msft telemetry and is ok to change
-	 */
 	export function toStringShorter(chatLocation: ChatLocation): string {
 		switch (chatLocation) {
 			case ChatLocation.Editor:
@@ -116,77 +78,24 @@ export enum ChatFetchResponseType {
 export const RESPONSE_CONTAINED_NO_CHOICES = 'Response contained no choices.';
 
 export type ChatFetchError =
-	/**
-	 * We requested conversation, but the message was deemed off topic by the intent classifier.
-	 */
 	{ type: ChatFetchResponseType.OffTopic; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * Communication with a third party agent failed.
-	 * The error message provides further details, usually indicating either an invocation timeout or an improper response.
-	 */
 	| { type: ChatFetchResponseType.AgentFailedDependency; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * User authorization is required to proceed.
-	 */
 	| { type: ChatFetchResponseType.AgentUnauthorized; reason: string; reasonDetail?: string; authorizationUrl: string; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * We requested conversation, but we decided to cancel mid-way, for example because the
-	 * user requested cancelation.
-	 */
 	| { type: ChatFetchResponseType.Canceled; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * We requested conversation, but the response was filtered by RAI.
-	 */
 	| { type: ChatFetchResponseType.Filtered; reason: string; reasonDetail?: string; category: FilterReason; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * We requested conversation, but the prompt was filtered by RAI.
-	 */
 	| { type: ChatFetchResponseType.PromptFiltered; reason: string; reasonDetail?: string; category: FilterReason; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * We requested conversation, but the response was too long.
-	 */
 	| { type: ChatFetchResponseType.Length; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined; truncatedValue: string }
-	/**
-	 * We requested conversation, but didn't come up with any results because the rate limit was exceeded.
-	 */
 	| { type: ChatFetchResponseType.RateLimited; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined; retryAfter: number | undefined; rateLimitKey: string; isAuto: boolean; capiError?: { code?: string; message?: string } }
-	/**
-	 * We requested conversation, but didn't come up with any results because the free tier quota was exceeded.
-	 */
 	| { type: ChatFetchResponseType.QuotaExceeded; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined; retryAfter: Date | undefined; capiError?: { code?: string; message?: string } }
-	/**
-	 * We requested conversation, but the extension is blocked
-	 */
 	| { type: ChatFetchResponseType.ExtensionBlocked; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined; retryAfter: number; learnMoreLink: string }
-	/**
-	 * We requested conversation, but didn't come up with any results because of a bad request
-	 */
 	| { type: ChatFetchResponseType.BadRequest; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined }
 	| { type: ChatFetchResponseType.NotFound; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * We requested conversation, but didn't come up with any results because something
-	 * unexpected went wrong.
-	 */
 	| { type: ChatFetchResponseType.Failed; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined; streamError?: APIErrorResponse }
-	/**
-	 * We requested conversation, but didn't come up with any results because of a network error
-	 */
 	| { type: ChatFetchResponseType.NetworkError; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined; streamError?: APIErrorResponse; isNetworkProcessCrash?: boolean }
-	/**
-	 * We requested conversation, but didn't come up with any results for some "unknown"
-	 * reason, such as slur redaction or snippy.
-	 */
 	| { type: ChatFetchResponseType.Unknown; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined }
-	/**
-	 * The `statefulMarker` present in the request was invalid or expired. The
-	 * request may be retried without that marker to resubmit it anew.
-	 */
 	| { type: ChatFetchResponseType.InvalidStatefulMarker; reason: string; reasonDetail?: string; requestId: string; serverRequestId: string | undefined };
 
 export type ChatFetchRetriableError<T> =
-	/**
-	 * We requested conversation, the response was filtered by RAI, but we want to retry.
-	 */
 	{ type: ChatFetchResponseType.FilteredRetry; reason: string; category: FilterReason; value: T; requestId: string; serverRequestId: string | undefined };
 
 export type FetchSuccess<T> =
@@ -203,7 +112,7 @@ function getRateLimitMessage(fetchResult: ChatFetchError, dardcorPlan: string | 
 		throw new Error('Expected RateLimited error');
 	}
 	const retryAfterString = fetchResult.retryAfter ? secondsToHumanReadableTime(fetchResult.retryAfter) : 'a moment';
-	if (fetchResult.capiError?.code?.startsWith('agent_mode_limit_exceeded')) { // Rate limited in agent mode
+	if (fetchResult.capiError?.code?.startsWith('agent_mode_limit_exceeded')) {
 		return l10n.t({
 			message: 'Sorry, you have exceeded the agent mode rate limit. Please switch to ask mode and try again in {0}. [Learn More]({1})',
 			args: [retryAfterString, 'https://aka.ms/github-dardcor-rate-limit-error'],
@@ -376,7 +285,7 @@ function getQuotaHitMessage(fetchResult: ChatFetchError, dardcorPlan: string | u
 		throw new Error('Expected QuotaExceeded error');
 	}
 	if (fetchResult.capiError?.code === 'free_quota_exceeded') {
-		fetchResult.capiError.code = 'quota_exceeded'; // Remap this to the generic quota code so we get per plan handling
+		fetchResult.capiError.code = 'quota_exceeded';
 	}
 	if (fetchResult.capiError?.code === 'quota_exceeded') {
 		return getQuotaMessageForPlan(dardcorPlan, isUsageBasedBilling, quotaResetDate);
@@ -471,7 +380,6 @@ function getErrorDetailsFromChatFetchErrorInner(fetchResult: ChatFetchError, dar
 			details = { message: l10n.t(`Sorry, something went wrong.`) };
 			break;
 		case ChatFetchResponseType.InvalidStatefulMarker:
-			// should be unreachable, retried within the endpoint
 			details = { message: l10n.t(`Your chat session state is invalid, please start a new chat.`) };
 			break;
 	}
@@ -524,9 +432,6 @@ export function getFilteredMessage(category: FilterReason, supportsMarkdown: boo
 	}
 }
 
-/**
- * Not localized because it's used in the same way that the CancellationError name is used.
- */
 export const CanceledMessage = { message: 'Canceled' };
 
 export const CanceledResult: ChatResult = { errorDetails: CanceledMessage, };

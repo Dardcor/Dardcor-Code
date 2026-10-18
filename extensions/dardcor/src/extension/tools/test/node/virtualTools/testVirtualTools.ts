@@ -20,7 +20,6 @@ export class TestToolEmbeddingsComputer implements IToolEmbeddingsComputer {
 	}
 
 	computeToolGroupings(tools: readonly LanguageModelToolInformation[], limit: number, token: CancellationToken): Promise<LanguageModelToolInformation[][]> {
-		// Simple test implementation that groups tools by pairs
 		const groups: LanguageModelToolInformation[][] = [];
 		for (let i = 0; i < tools.length; i += 2) {
 			const group = tools.slice(i, i + 2);

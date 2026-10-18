@@ -36,7 +36,6 @@ workbench.registerWorkbenchContribution(DefaultAccountUpdateContribution, Lifecy
 workbench.registerWorkbenchContribution(UpdateTitleBarContribution, LifecyclePhase.Restored);
 workbench.registerWorkbenchContribution(PostUpdateWidgetContribution, LifecyclePhase.Restored);
 
-// Release notes
 
 export class ShowReleaseNotesAction extends Action2 {
 
@@ -108,7 +107,6 @@ if (ShowReleaseNotesAction.AVAILABLE) {
 }
 registerAction2(ShowCurrentReleaseNotesFromCurrentFileAction);
 
-// Update
 
 export class CheckForUpdateAction extends Action2 {
 
@@ -185,7 +183,7 @@ class DownloadAction extends Action2 {
 		super({
 			id: DownloadAction.ID,
 			title: localize2('openDownloadPage', "Download {0}", product.nameLong),
-			precondition: IsWebContext, // Only show when running in a web browser
+			precondition: IsWebContext,
 			f1: true,
 			menu: [{
 				id: MenuId.StatusBarWindowIndicatorMenu,
@@ -262,7 +260,7 @@ registerAction2(class ShowUpdateInfoAction extends Action2 {
 		const quickInputService = accessor.get(IQuickInputService);
 		const markdown = await quickInputService.input({ prompt: localize('showUpdateInfo.prompt', "Enter markdown to render, or JSON with markdown/buttons (leave empty to load from URL)") });
 		if (markdown === undefined) {
-			return; // cancelled
+			return;
 		}
 		await commandService.executeCommand('_update.showUpdateInfo', markdown || undefined);
 	}

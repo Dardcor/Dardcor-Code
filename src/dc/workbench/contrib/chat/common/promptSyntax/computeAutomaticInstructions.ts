@@ -40,10 +40,6 @@ export interface InstructionsCollectionResult {
 	readonly debugInfo: InstructionsCollectionDebugInfo;
 }
 
-/**
- * The result of the most recent {@link ComputeAutomaticInstructions.collect} call.
- * Consumed by debug contributions for logging; not sent as telemetry.
- */
 export let lastInstructionsCollectionResult: InstructionsCollectionResult | undefined;
 
 type InstructionsCollectionClassification = {
@@ -108,13 +104,10 @@ export class ComputeAutomaticInstructions {
 		const debugInfo: InstructionsCollectionDebugInfo = newInstructionsCollectionDebugInfo();
 		const context = this._getContext(variables);
 
-		// find instructions where the `applyTo` matches the attached context
 		await this.addApplyingInstructions(instructionFiles, context, variables, telemetryEvent, debugInfo, token);
 
-		// add all instructions referenced by all instruction files that are in the context
 		await this._addReferencedInstructions(variables, telemetryEvent, debugInfo, token);
 
-		// get copilot instructions
 		await this._addAgentInstructions(variables, telemetryEvent, debugInfo, token);
 
 		const customizationsIndexVariable = await this._getCustomizationsIndex(instructionFiles, variables, telemetryEvent, debugInfo, token);
@@ -129,7 +122,6 @@ export class ComputeAutomaticInstructions {
 	}
 
 	private sendTelemetry(telemetryEvent: InstructionsCollectionEvent): void {
-		// Emit telemetry
 		telemetryEvent.totalInstructionsCount = telemetryEvent.agentInstructionsCount + telemetryEvent.referencedInstructionsCount + telemetryEvent.applyingInstructionsCount + telemetryEvent.listedInstructionsCount;
 		this._telemetryService.publicLog2<InstructionsCollectionEvent, InstructionsCollectionClassification>('instructionsCollected', telemetryEvent);
 	}
@@ -156,7 +148,6 @@ export class ComputeAutomaticInstructions {
 		};
 
 		try {
-			// Build map of plugin URI to plugin metadata for provenance
 			const pluginByUri = new ResourceMap<IAgentPlugin>();
 			const allPlugins = this._agentPluginService.plugins.get();
 			for (const plugin of allPlugins) {
@@ -183,7 +174,6 @@ export class ComputeAutomaticInstructions {
 		}
 	}
 
-	/** public for testing */
 	public async addApplyingInstructions(instructionFiles: readonly IInstructionFile[], context: { files: ResourceSet; instructions: ResourceSet }, variables: ChatRequestVariableSet, telemetryEvent: InstructionsCollectionEvent, debugInfo: InstructionsCollectionDebugInfo, token: CancellationToken): Promise<void> {
 		const includeApplyingInstructions = this._configurationService.getValue(PromptsConfig.INCLUDE_APPLYING_INSTRUCTIONS);
 		if (!includeApplyingInstructions && this._modeKind !== ChatModeKind.Edit) {
@@ -213,7 +203,6 @@ export class ComputeAutomaticInstructions {
 			const isClaudeRules = isInClaudeRulesFolder(uri);
 
 			if (context.instructions.has(uri)) {
-				// the instruction file is already part of the input or has already been processed
 				this._logService.trace(`[InstructionsContextComputer] Skipping already processed instruction file: ${uri}`);
 				debugInfo.debugDetails.push({ category: 'skipped', name: basename(uri).toString(), uri, reason: localize('debugDetail.alreadyProcessed', 'already processed') });
 				continue;
@@ -281,7 +270,6 @@ export class ComputeAutomaticInstructions {
 			logger.logInfo(`Agent instruction file added: ${uri.toString()}`);
 		}
 
-		// Process referenced instructions from copilot files (maintaining original behavior)
 		if (copilotEntries.length > 0) {
 			await this._addReferencedInstructions(copilotEntries, telemetryEvent, debugInfo, token);
 			for (const entry of copilotEntries.asArray()) {
@@ -299,25 +287,18 @@ export class ComputeAutomaticInstructions {
 		const patterMatches = (pattern: string): { pattern: string; file?: URI } | undefined => {
 			pattern = pattern.trim();
 			if (pattern.length === 0) {
-				// if glob pattern is empty, skip it
 				return undefined;
 			}
 			if (pattern === '**' || pattern === '**/*' || pattern === '*') {
-				// if glob pattern is one of the special wildcard values,
-				// add the instructions file event if no files are attached
 				return { pattern };
 			}
 			if (!pattern.startsWith('/') && !pattern.startsWith('**/')) {
-				// support relative glob patterns, e.g. `src/**/*.js`
 				pattern = '**/' + pattern;
 			}
 
-			// match each attached file with each glob pattern and
-			// add the instructions file if its rule matches the file
 			for (const file of files) {
-				// if the file is not a valid URI, skip it
 				if (match(pattern, file.path, { ignoreCase: true })) {
-					return { pattern, file }; // return the matched pattern and file URI
+					return { pattern, file };
 				}
 			}
 			return undefined;
@@ -325,7 +306,7 @@ export class ComputeAutomaticInstructions {
 		for (const pattern of patterns) {
 			const matchResult = patterMatches(pattern);
 			if (matchResult) {
-				return matchResult; // return the first matched pattern and file URI
+				return matchResult;
 			}
 		}
 		return undefined;
@@ -398,15 +379,12 @@ export class ComputeAutomaticInstructions {
 			}
 
 			if (!hasContent) {
-				entries.length = 0; // clear entries
+				entries.length = 0;
 			} else {
-				entries.push('</instructions>', '', ''); // add trailing newline
+				entries.push('</instructions>', '', '');
 			}
 
 			const agentSkills = await this._promptsService.findAgentSkills(token);
-			// Filter out skills with disableModelInvocation=true (they can only be triggered manually via /name)
-			// Also filter by session type in consumers outside the prompts service
-			// Also filter out the troubleshoot skill when  agent debug log file logging setting is disabled
 			const isFileLoggingEnabled = this._configurationService.getValue<boolean>(AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING);
 			const modelInvocableSkills = agentSkills?.filter(skill => {
 				if (!skill.description) {
@@ -428,20 +406,15 @@ export class ComputeAutomaticInstructions {
 				return true;
 			});
 			if (modelInvocableSkills && modelInvocableSkills.length > 0) {
-				// Log per-skill telemetry for each skill loaded into context
 				this._logSkillLoadedTelemetry(modelInvocableSkills);
 				for (const skill of modelInvocableSkills) {
 					debugInfo.debugDetails.push({ category: 'skill', name: skill.name, uri: skill.uri, reason: skill.storage });
 				}
 
 				const useSkillAdherencePrompt = this._configurationService.getValue(PromptsConfig.USE_SKILL_ADHERENCE_PROMPT);
-				// When the skill tool is available, direct the model to use it by name
-				// instead of reading SKILL.md files directly. This keeps file paths out of
-				// the listing and routes through the proper skill loading pipeline.
 				const skillLoadTool = skillTool ?? fileReadTool;
 				entries.push('<skills>');
 				if (useSkillAdherencePrompt) {
-					// Stronger skill adherence prompt for experimental feature
 					entries.push('Skills provide specialized capabilities, domain knowledge, and refined workflows for producing high-quality outputs. Each skill folder contains tested instructions for specific domains like testing strategies, API design, or performance optimization. Multiple skills can be combined when a task spans different domains.');
 					if (skillTool) {
 						entries.push(`BLOCKING REQUIREMENT: When a skill applies to the user's request, you MUST invoke it IMMEDIATELY as your first action, BEFORE generating any other response or taking action on the task. Use ${skillTool.variable} with the skill name to load the relevant skill(s).`);
@@ -480,7 +453,7 @@ export class ComputeAutomaticInstructions {
 					}
 					skillEntry.push(`<file>${filePath(skill.uri)}</file>`);
 					skillEntry.push(`</skill>`);
-					const entryLength = skillEntry.join('\n').length + 1; // +1 for joining newline
+					const entryLength = skillEntry.join('\n').length + 1;
 					if (skillTool && skillCharCount + entryLength > SKILL_DESCRIPTION_CHAR_BUDGET) {
 						truncatedAtIndex = i;
 						break;
@@ -488,8 +461,6 @@ export class ComputeAutomaticInstructions {
 					skillCharCount += entryLength;
 					entries.push(...skillEntry);
 				}
-				// When skills are truncated by the character budget, include remaining
-				// skill names so the model can still discover and invoke them.
 				if (truncatedAtIndex < modelInvocableSkills.length) {
 					const truncatedSkills = modelInvocableSkills.slice(truncatedAtIndex);
 					const names: string[] = [];
@@ -509,7 +480,7 @@ export class ComputeAutomaticInstructions {
 						? `Additional skills available (invoke by name): ${nameList}... and ${remaining} more`
 						: `Additional skills available (invoke by name): ${nameList}`);
 				}
-				entries.push('</skills>', '', ''); // add trailing newline
+				entries.push('</skills>', '', '');
 			}
 		}
 		if (runSubagentTool) {
@@ -548,7 +519,7 @@ export class ComputeAutomaticInstructions {
 						debugInfo.debugDetails.push({ category: 'skipped', name: agent.name, uri: agent.uri, reason: localize('debugDetail.agentNotInvocable', 'not invocable by model') });
 					}
 				}
-				entries.push('</agents>', '', ''); // add trailing newline
+				entries.push('</agents>', '', '');
 			}
 		}
 		if (entries.length === 0) {
@@ -601,7 +572,6 @@ export class ComputeAutomaticInstructions {
 					}
 					const url = result.body.resolveFilePath(ref.content, userHome);
 					if (url && !seen.has(url) && (isPromptOrInstructionsFile(url) || this._workspaceService.getWorkspaceFolder(url) !== undefined)) {
-						// only add references that are either prompt or instruction files or are part of the workspace
 						refsToCheck.push({ resource: url });
 						seen.add(url);
 					}
@@ -613,7 +583,6 @@ export class ComputeAutomaticInstructions {
 						const uri = refsToCheck[i].resource;
 						if (stat.success && stat.stat?.isFile) {
 							if (isPromptOrInstructionsFile(uri)) {
-								// only recursively parse instruction files
 								todo.push(uri);
 							}
 							const reason = localize('instruction.file.reason.referenced', 'Referenced by {0}', basename(next));
@@ -632,18 +601,11 @@ export class ComputeAutomaticInstructions {
 
 
 export function getFilePath(uri: URI, remoteOS: OperatingSystem | undefined, isRemote = false): string {
-	// When connected to a remote, local file:// URIs must be represented using
-	// the vscode-local scheme so the remote extension host can read them via the
-	// local file bridge. This works for WSL, SSH, and dev containers without
-	// any cache migration.
 	if (isRemote && uri.scheme === Schemas.file) {
 		return uri.with({ scheme: 'vscode-local' }).toString();
 	}
 	if (uri.scheme === Schemas.file || uri.scheme === Schemas.vscodeRemote) {
 		const fsPath = uri.fsPath;
-		// uri.fsPath uses the local OS's path separators, but the path
-		// may belong to a remote with a different OS. Normalize separators
-		// to match the remote OS (idempotent when local and remote match).
 		if (remoteOS !== undefined) {
 			if (remoteOS === OperatingSystem.Windows) {
 				return fsPath.replace(/\//g, '\\');

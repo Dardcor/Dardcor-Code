@@ -11,12 +11,6 @@ import { AbstractText } from '../../../../common/core/text/abstractText.js';
 import { TextLength } from '../../../../common/core/text/textLength.js';
 import { ITextModel } from '../../../../common/model.js';
 
-/**
- * An immutable view of a text model at a specific version.
- * Like TextModelText but throws if the underlying model has changed.
- * This ensures data read from the reference is consistent with
- * the version at construction time.
- */
 export class TextModelValueReference extends AbstractText {
 	private readonly _version: number;
 
@@ -40,7 +34,6 @@ export class TextModelValueReference extends AbstractText {
 	private _assertValid(): void {
 		if (this._textModel.getVersionId() !== this._version) {
 			onUnexpectedError(new Error(`TextModel has changed: expected version ${this._version}, got ${this._textModel.getVersionId()}`));
-			// TODO: throw here!
 		}
 	}
 

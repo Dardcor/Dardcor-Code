@@ -8,7 +8,7 @@ import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
-import { getProviderConnections, getCombos, getCustomModels, getModelAliases, getAllProviderStatuses } from "@/lib/localDb";
+import { getProviderConnections, getCombos, getCustomModels, getModelAliases, getAllProviderStatuses, setProviderStatus } from "@/lib/localDb";
 import { getDisabledModels } from "@/lib/disabledModelsDb";
 import { FILTERS } from "@/app/api/providers/suggested-models/filters.js";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
@@ -23,9 +23,6 @@ import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { capabilitiesFromServiceKind, getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 
-// Per-provider live model resolvers. Each receives a connection record and
-// returns { models: [{ id, name? }, ...] } | null on failure.
-// Adding a provider here makes /v1/models prefer the live catalog for it.
 const LIVE_MODEL_RESOLVERS = {
   opencode: async () => {
     try {
@@ -63,45 +60,6 @@ const LIVE_MODEL_RESOLVERS = {
       return null;
     }
   },
-  "chatgpt-web": async (conn) => {
-    const plan = String(conn?.providerSpecificData?.chatgptPlanType || "free").toLowerCase();
-    if (plan === "pro") {
-      return {
-        models: [
-          { id: "auto", name: "ChatGPT Auto (Default)" },
-          { id: "gpt-4o", name: "GPT-4o (Unlimited)" },
-          { id: "o1", name: "OpenAI o1" },
-          { id: "o1-pro", name: "OpenAI o1 Pro Mode" },
-          { id: "o3-mini", name: "OpenAI o3 Mini" },
-          { id: "gpt-4.5", name: "GPT 4.5" },
-        ],
-      };
-    }
-    if (plan === "plus" || plan === "team") {
-      return {
-        models: [
-          { id: "auto", name: "ChatGPT Auto (Default)" },
-          { id: "gpt-4o", name: "GPT-4o" },
-          { id: "gpt-4o-mini", name: "GPT-4o Mini" },
-          { id: "o1", name: "OpenAI o1" },
-          { id: "o1-mini", name: "OpenAI o1 Mini" },
-          { id: "o3-mini", name: "OpenAI o3 Mini" },
-          { id: "gpt-4.5", name: "GPT 4.5 Preview" },
-        ],
-      };
-    }
-    return {
-      models: [
-        { id: "gpt-5.6-luna", name: "GPT-5.6 Luna (Reasoning)" },
-        { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
-        { id: "gpt-5.5", name: "GPT-5.5" },
-        { id: "auto", name: "ChatGPT Auto (Default)" },
-        { id: "gpt-4o", name: "GPT-4o (Free Tier)" },
-        { id: "gpt-4o-mini", name: "GPT-4o Mini" },
-        { id: "o3-mini", name: "OpenAI o3 Mini" },
-      ],
-    };
-  },
   kiro: async (conn) => {
     const result = await resolveKiroModels({
       accessToken: conn.accessToken,
@@ -113,26 +71,15 @@ const LIVE_MODEL_RESOLVERS = {
   qoder: async (conn) => {
     const result = await resolveQoderModels({
       accessToken: conn.accessToken,
-      // PAT (pt-...) connections keep the token in apiKey; without it the live
-      // catalog silently fails and /v1/models falls back to the static list.
       apiKey: conn.apiKey,
       refreshToken: conn.refreshToken,
       email: conn.email,
       displayName: conn.displayName,
       providerSpecificData: conn.providerSpecificData || {}
     });
-    // Visible + hidden (enable:false) catalog keys — chat routes all of them.
     const models = routableQoderModels(result);
     if (!models.length) return null;
     return { models: models.map((m) => ({ id: m.id, name: m.name })) };
-  },
-  kimchi: async (conn) => {
-    const result = await resolveKimchiModels({
-      accessToken: conn.accessToken,
-      apiKey: conn.apiKey,
-      providerSpecificData: conn.providerSpecificData || {}
-    }, { log: console });
-    return result?.models?.length ? { models: result.models } : null;
   },
   github: async (conn) => {
     const result = await resolveCopilotModels({
@@ -149,6 +96,14 @@ const LIVE_MODEL_RESOLVERS = {
         });
       },
     });
+    return result?.models?.length ? { models: result.models } : null;
+  },
+  kimchi: async (conn) => {
+    const result = await resolveKimchiModels({
+      accessToken: conn.accessToken,
+      apiKey: conn.apiKey,
+      providerSpecificData: conn.providerSpecificData || {}
+    }, { log: console });
     return result?.models?.length ? { models: result.models } : null;
   },
   clinepass: async (conn) => {
@@ -218,15 +173,10 @@ const parseOpenAIStyleModels = (data) => {
   return data?.data || data?.models || data?.results || [];
 };
 
-// Header sent by fetchCompatibleModelIds to detect cross-instance /models fetches
-// and break recursive loops between dardcor-code instances connected to each other.
 const INTERNAL_MODELS_FETCH_HEADER = "x-9r-internal-models-fetch";
 
-// LLM kind sentinel — combos/models with no explicit kind default to LLM
 const LLM_KIND = "llm";
 
-// Map per-model `type` field (in PROVIDER_MODELS) to service kind.
-// Models without `type` are treated as LLM.
 const MODEL_TYPE_TO_KIND = {
   image: "image",
   tts: "tts",
@@ -242,8 +192,6 @@ function modelKind(model) {
   return MODEL_TYPE_TO_KIND[k] || LLM_KIND;
 }
 
-// For dynamic/unknown model IDs (compatible providers, alias map, custom models)
-// fall back to provider-level kind matching when per-model type is unavailable.
 function inferKindFromUnknownModelId(modelId) {
   const lower = String(modelId).toLowerCase();
   if (/embed/.test(lower)) return "embedding";
@@ -309,8 +257,6 @@ async function fetchCompatibleModelIds(connection) {
   }
 }
 
-// Provider matches kindFilter when its serviceKinds intersect the requested kinds.
-// LLM is the default kind for providers missing serviceKinds.
 function providerMatchesKinds(providerId, kindFilter) {
   const provider = AI_PROVIDERS[providerId];
   const kinds = Array.isArray(provider?.serviceKinds) && provider.serviceKinds.length > 0
@@ -319,21 +265,12 @@ function providerMatchesKinds(providerId, kindFilter) {
   return kindFilter.some((k) => kinds.includes(k));
 }
 
-// Combo matches kindFilter when its `kind` field is in the list.
-// Combos with no kind are treated as LLM.
 function comboMatchesKinds(combo, kindFilter) {
   const kind = combo?.kind || LLM_KIND;
   return kindFilter.includes(kind);
 }
 
-/**
- * Build OpenAI-format models list filtered by service kinds.
- * @param {string[]} kindFilter - List of service kinds to include (e.g. ["llm"], ["webSearch","webFetch"]).
- */
 export async function buildModelsList(kindFilter, options = {}) {
-  // When this header is present, the /v1/models request came from another
-  // dardcor-code instance's fetchCompatibleModelIds — skip dynamic fetch to break
-  // cross-instance recursive loops.
   const skipDynamicFetch = options.skipDynamicFetch === true;
   let connections = [];
   try {
@@ -386,7 +323,6 @@ export async function buildModelsList(kindFilter, options = {}) {
     }
   }
 
-  // Include noAuth / free providers if their status is enabled (providerStatuses[id] === true)
   for (const provider of Object.values(AI_PROVIDERS)) {
     if (provider.noAuth && !activeConnectionByProvider.has(provider.id)) {
       if (providerStatuses[provider.id.toLowerCase()] === true) {
@@ -402,7 +338,6 @@ export async function buildModelsList(kindFilter, options = {}) {
 
   const models = [];
 
-  // Combos first (filtered by kind). Web combos expose `kind` so AI knows search vs fetch.
   for (const combo of combos) {
     if (!comboMatchesKinds(combo, kindFilter)) continue;
     const entry = {
@@ -417,7 +352,6 @@ export async function buildModelsList(kindFilter, options = {}) {
   }
 
   if (activeConnectionByProvider.size === 0) {
-    // DB unavailable -> return static models, filtered by per-model kind
     const aliasToProviderId = Object.fromEntries(
       Object.entries(PROVIDER_ID_TO_ALIAS).map(([id, alias]) => [alias, id])
     );
@@ -438,7 +372,6 @@ export async function buildModelsList(kindFilter, options = {}) {
 
     for (const customModel of customModels) {
       if (!customModel?.id || (customModel.type && customModel.type !== "llm")) continue;
-      // Custom models without active connection are LLM-only by current schema
       if (!kindFilter.includes(LLM_KIND)) continue;
       const providerAlias = customModel.providerAlias;
       if (!providerAlias) continue;
@@ -455,7 +388,10 @@ export async function buildModelsList(kindFilter, options = {}) {
     }
   } else {
     for (const [providerId, conn] of activeConnectionByProvider.entries()) {
-      if (providerStatuses[providerId.toLowerCase()] !== true) continue;
+      if (providerStatuses[providerId.toLowerCase()] !== true) {
+        providerStatuses[providerId.toLowerCase()] = true;
+        setProviderStatus(providerId, true).catch(() => {});
+      }
       if (!providerMatchesKinds(providerId, kindFilter)) continue;
 
       const staticAlias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
@@ -471,7 +407,6 @@ export async function buildModelsList(kindFilter, options = {}) {
       const isCompatibleProvider =
         isOpenAICompatibleProvider(providerId) || isAnthropicCompatibleProvider(providerId);
 
-      // Build kind lookup for static models so we can filter even when only IDs are exposed
       const staticModelKindById = new Map(
         providerModels.map((m) => [m.id, modelKind(m)])
       );
@@ -492,9 +427,6 @@ export async function buildModelsList(kindFilter, options = {}) {
         rawModelIds = await fetchCompatibleModelIds(conn);
       }
 
-      // Config-driven live catalog override (e.g. Kiro returns dynamic
-      // -thinking/-agentic variants per account). On failure, fall back to
-      // whatever rawModelIds already holds.
       const liveResolver = LIVE_MODEL_RESOLVERS[providerId];
       if (liveResolver && !hasExplicitEnabledModels) {
         try {
@@ -537,8 +469,6 @@ export async function buildModelsList(kindFilter, options = {}) {
         .filter((m) => {
           if (!m?.id) return false;
           const kind = getModelKind(m) || LLM_KIND;
-          // imageToText custom models are vision-capable chat models: expose them
-          // both in the default LLM list and in /v1/models/image-to-text.
           if (!kindFilter.includes(kind) && !(kind === "imageToText" && kindFilter.includes(LLM_KIND))) return false;
           const alias = m.providerAlias;
           return alias === staticAlias || alias === outputAlias || alias === providerId;
@@ -574,43 +504,45 @@ export async function buildModelsList(kindFilter, options = {}) {
         .filter((modelId) => typeof modelId === "string" && modelId.trim() !== "");
 
       const mergedModelIds = Array.from(new Set([...modelIds, ...customModelIds, ...aliasModelIds]));
+      mergedModelIds.sort((a, b) => {
+        const aFree = a.startsWith("cline-free/") || a.includes(":free") || a.endsWith("-free") || a === "kilo-auto/free" || a === "stepfun/step-5-preview-free";
+        const bFree = b.startsWith("cline-free/") || b.includes(":free") || b.endsWith("-free") || b === "kilo-auto/free" || b === "stepfun/step-5-preview-free";
+        if (aFree && !bFree) return -1;
+        if (!aFree && bFree) return 1;
+        return 0;
+      });
 
       for (const modelId of mergedModelIds) {
-        // Resolve kind: prefer custom/live metadata, then static, then ID heuristics.
         const customKind = customModelKindById.get(modelId);
         const liveKind = liveModelKindById.get(modelId);
         const kind = customKind || liveKind || staticModelKindById.get(modelId) || inferKindFromUnknownModelId(modelId);
-        // imageToText custom models stay in the LLM list (vision-capable chat models)
         const allowAsLlm = kind === "imageToText" && kindFilter.includes(LLM_KIND);
         if (!kindFilter.includes(kind) && !allowAsLlm) continue;
         if (isDisabled(outputAlias, modelId) || isDisabled(staticAlias, modelId)) continue;
+
+        const isFree = Boolean(
+          modelId.startsWith("cline-free/") ||
+          modelId.includes(":free") ||
+          modelId.endsWith("-free") ||
+          modelId === "big-pickle" ||
+          modelId === "kilo-auto/free" ||
+          modelId === "stepfun/step-5-preview-free" ||
+          providerId === "antigravity"
+        );
 
         const model = {
           id: `${outputAlias}/${modelId}`,
           object: "model",
           owned_by: outputAlias,
+          ...(isFree ? { is_free: true } : {})
         };
-        // Live-catalog resolvers (kiro/qoder/github/clinepass) mostly only return
-        // { id, name } — no per-model capability data. Fall back to the same
-        // pattern-matched capabilities the dashboard uses (useModelCaps.js) so
-        // dynamically-discovered LLM models still surface vision/reasoning/search/tools.
         const caps = liveCapabilitiesById.get(modelId)
           || capabilitiesFromServiceKind(customKind || liveKind)
           || (kind === LLM_KIND ? getCapabilitiesForModel(providerId, modelId) : null);
         if (caps) model.capabilities = caps;
-        // Token limits under the snake_case names the OpenAI/OpenRouter
-        // convention uses. `capabilities.contextWindow` is camelCase and nested,
-        // so clients matching context_length find nothing, fall back to guessing
-        // the window from the model name, and guess high — a 372k model read as
-        // 1.05M never reaches its compaction threshold and hard-fails upstream.
-        // Emitted at top level because not every client recurses into nested
-        // objects; the camelCase `capabilities` block stays for compatibility.
         if (kind === LLM_KIND || allowAsLlm) {
           let contextWindow = caps?.contextWindow;
           let maxOutput = caps?.maxOutput;
-          // Live-catalog and service-kind capabilities are usually partial
-          // (often just { tools: true }), so fill the gaps from the static
-          // table rather than emitting null and leaving clients to guess.
           if (!Number.isFinite(contextWindow) || !Number.isFinite(maxOutput)) {
             const fallback = getCapabilitiesForModel(providerId, modelId);
             if (!Number.isFinite(contextWindow)) contextWindow = fallback.contextWindow;
@@ -622,7 +554,6 @@ export async function buildModelsList(kindFilter, options = {}) {
         models.push(model);
       }
 
-      // Web search/fetch — provider IS the model, expose as {alias}/search and/or {alias}/fetch with explicit kind
       const providerInfo = AI_PROVIDERS[providerId];
       if (kindFilter.includes("webSearch") && providerInfo?.searchConfig) {
         models.push({
@@ -654,9 +585,6 @@ export async function buildModelsList(kindFilter, options = {}) {
   return dedupedModels;
 }
 
-/**
- * Handle CORS preflight
- */
 export async function OPTIONS() {
   return new Response(null, {
     headers: {
@@ -667,13 +595,8 @@ export async function OPTIONS() {
   });
 }
 
-/**
- * GET /v1/models - OpenAI compatible models list (LLM/chat models only by default).
- * For other capabilities use /v1/models/{kind} (image, tts, stt, embedding, image-to-text, web).
- */
 export async function GET(request) {
   try {
-    // Detect cross-instance recursive /models fetch (another dardcor-code fetching our /models)
     const skipDynamicFetch = request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1";
     const data = await buildModelsList([LLM_KIND], { skipDynamicFetch });
     return Response.json({ object: "list", data }, {

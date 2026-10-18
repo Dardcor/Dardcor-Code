@@ -336,7 +336,6 @@ class ToggleScreencastModeAction extends Action2 {
 			const event = new StandardKeyboardEvent(e);
 			const shortcut = keybindingService.softDispatch(event, event.target);
 
-			// Hide the single arrow key pressed
 			if (shortcut.kind === ResultKind.KbFound && shortcut.commandId && !(options.showSingleEditorCursorMoves ?? true) && (
 				['cursorLeft', 'cursorRight', 'cursorUp', 'cursorDown'].includes(shortcut.commandId))
 			) {
@@ -380,7 +379,6 @@ class ToggleScreencastModeAction extends Action2 {
 			}
 
 			if ((options.showKeys ?? true) || ((options.showKeybindings ?? true) && this._isKbFound(shortcut))) {
-				// Fix label for arrow keys
 				keyLabel = keyLabel?.replace('UpArrow', '↑')
 					?.replace('DownArrow', '↓')
 					?.replace('LeftArrow', '←')
@@ -481,7 +479,7 @@ class LogWorkingCopiesAction extends Action2 {
 
 class RemoveLargeStorageEntriesAction extends Action2 {
 
-	private static SIZE_THRESHOLD = 1024 * 16; // 16kb
+	private static SIZE_THRESHOLD = 1024 * 16;
 
 	constructor() {
 		super({
@@ -510,13 +508,13 @@ class RemoveLargeStorageEntriesAction extends Action2 {
 
 		for (const scope of [StorageScope.APPLICATION, StorageScope.PROFILE, StorageScope.WORKSPACE]) {
 			if (scope === StorageScope.PROFILE && userDataProfileService.currentProfile.isDefault) {
-				continue; // avoid duplicates
+				continue;
 			}
 
 			for (const target of [StorageTarget.MACHINE, StorageTarget.USER]) {
 				for (const key of storageService.keys(scope, target)) {
 					const value = storageService.get(key, scope);
-					if (value && (!environmentService.isBuilt /* show all keys in dev */ || value.length > RemoveLargeStorageEntriesAction.SIZE_THRESHOLD)) {
+					if (value && (!environmentService.isBuilt || value.length > RemoveLargeStorageEntriesAction.SIZE_THRESHOLD)) {
 						items.push({
 							key,
 							scope,
@@ -673,7 +671,6 @@ class StopTrackDisposables extends Action2 {
 	}
 }
 
-/** Human-readable label for a managed-settings {@link ManagedSettingsSource} in the diagnostics report. */
 function managedSettingsSourceLabel(source: ManagedSettingsSource): string {
 	switch (source) {
 		case 'server': return 'GitHub Server API';
@@ -683,7 +680,6 @@ function managedSettingsSourceLabel(source: ManagedSettingsSource): string {
 	}
 }
 
-/** Compact label for the "Policy Source" column, where the adjacent "Managed Settings" column already lists the key. */
 function managedSettingsSourceShortLabel(source: ManagedSettingsSource): string {
 	switch (source) {
 		case 'server': return 'Server';
@@ -706,7 +702,6 @@ function policyValueSourceLabel(source: PolicyValueSource | undefined): string {
 	}
 }
 
-/** Render a value as a fenced JSON code block for the diagnostics report. */
 function jsonBlock(value: unknown): string {
 	return '```json\n' + JSON.stringify(value ?? {}, null, 2) + '\n```\n\n';
 }
@@ -721,7 +716,6 @@ function managedSettingsPipeline(rawLabel: string, raw: unknown | undefined, nor
 	return content;
 }
 
-/** Render a managed-settings value for a Markdown table cell: compact JSON with pipes escaped, or a dash when absent. */
 function managedValueCell(value: ManagedSettingValue | undefined): string {
 	if (value === undefined) {
 		return '—';
@@ -729,7 +723,6 @@ function managedValueCell(value: ManagedSettingValue | undefined): string {
 	return `\`${JSON.stringify(value).replace(/\|/g, '\\|')}\``;
 }
 
-/** Header row + separator for the report's two-column `Property | Value` tables. */
 const PROPERTY_VALUE_TABLE_HEADER = '| Property | Value |\n|----------|-------|\n';
 
 class PolicyDiagnosticsAction extends Action2 {
@@ -754,22 +747,15 @@ class PolicyDiagnosticsAction extends Action2 {
 		const accountPolicyGateService = accessor.get(IAccountPolicyGateService);
 		const agentHostService = accessor.get(IAgentHostService);
 		const agentHostEnablementService = accessor.get(IAgentHostEnablementService);
-		// Native MDM is a desktop-only channel, registered in the renderer service collection on
-		// desktop and Agents windows but absent in web. Resolve it now, synchronously, because the
-		// accessor is only valid before the first `await` below.
 		let nativeManagedSettingsService: INativeManagedSettingsService | undefined;
 		try {
 			nativeManagedSettingsService = accessor.get(INativeManagedSettingsService);
 		} catch {
-			// no native MDM channel in this window (e.g. web)
 		}
-		// File-based managed settings is likewise a desktop-only channel registered in the renderer
-		// service collection on desktop and Agents windows, absent in web.
 		let fileManagedSettingsService: IFileManagedSettingsService | undefined;
 		try {
 			fileManagedSettingsService = accessor.get(IFileManagedSettingsService);
 		} catch {
-			// no file channel in this window (e.g. web)
 		}
 
 		const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
@@ -782,13 +768,11 @@ class PolicyDiagnosticsAction extends Action2 {
 		content += `| Product | ${productService.nameLong} ${productService.version} |\n`;
 		content += `| Commit | ${productService.commit || 'n/a'} |\n\n`;
 
-		// Account information
 		content += '## Account Information\n\n';
 		try {
 			const account = await defaultAccountService.getDefaultAccount();
 			const sensitiveKeys = ['sessionId', 'analytics_tracking_id'];
 			if (account) {
-				// Try to get username/display info from the authentication session
 				let username = 'Unknown';
 				let accountLabel = 'Unknown';
 				try {
@@ -803,7 +787,6 @@ class PolicyDiagnosticsAction extends Action2 {
 						}
 					}
 				} catch (error) {
-					// Fallback to just session info
 				}
 
 				content += '### Default Account Summary\n\n';
@@ -813,12 +796,10 @@ class PolicyDiagnosticsAction extends Action2 {
 				content += '### Detailed Account Properties\n\n';
 				content += PROPERTY_VALUE_TABLE_HEADER;
 
-				// Iterate through all properties of the account object
 				for (const [key, value] of Object.entries(account)) {
 					if (value !== undefined && value !== null) {
 						let displayValue: string;
 
-						// Mask sensitive information
 						if (sensitiveKeys.includes(key)) {
 							displayValue = '***';
 						} else if (typeof value === 'object') {
@@ -840,8 +821,6 @@ class PolicyDiagnosticsAction extends Action2 {
 			content += `*Error retrieving account information: ${error}*\n\n`;
 		}
 
-		// Account Policy Gate (forces AI features off until an admin-approved
-		// GitHub account is signed in AND its account-side policy data has resolved).
 		content += '## Account Policy Gate\n\n';
 		try {
 			const gateInfo = accountPolicyGateService.gateInfo;
@@ -880,16 +859,11 @@ class PolicyDiagnosticsAction extends Action2 {
 				}
 			}
 
-			// Reuse the exact per-key resolution that policy evaluation applies so this report can
-			// never drift from what AccountPolicyService actually enforces.
 			const pick = pickManagedSettings(nativeManagedSettings, serverManagedSettings, fileManagedSettings);
 
 			content += `**Active sources** (in precedence order): ${pick.activeSources.length > 0 ? pick.activeSources.map(managedSettingsSourceLabel).join(', ') : managedSettingsSourceLabel('none')}\n\n`;
 			content += '*Precedence is resolved per key: native MDM wins over the server endpoint, which wins over the file on disk. A key left unset by a higher channel is still filled in by a lower one.*\n\n';
 
-			// Collect non-fatal issues from every managed-settings parsing/normalization callback
-			// (adapt, projection, JSON payload) so the report explains *why* a key was dropped.
-			// jsonc-style: accumulate every error instead of failing on the first.
 			const parseErrors: { stage: string; message: string }[] = [];
 			const projectChannel = (channel: ManagedSettingsChannel, values: ManagedSettingsData): ManagedSettingsData => projectManagedSettings(
 				values,
@@ -897,7 +871,6 @@ class PolicyDiagnosticsAction extends Action2 {
 				message => parseErrors.push({ stage: `${channel}: project`, message })
 			);
 
-			// Whether a channel supplied at least one *winning* key in the per-key resolution.
 			const channelContributes = (channel: ManagedSettingsChannel) => pick.activeSources.includes(channel);
 			const nativeProjected = projectChannel('nativeMdm', nativeManagedSettings);
 			const serverProjected = projectChannel('server', serverManagedSettings);
@@ -908,8 +881,6 @@ class PolicyDiagnosticsAction extends Action2 {
 			content += '*Only keys declared here can reach VS Code policy callbacks. Runtime-owned keys may still be enforced by the Copilot runtime even when absent from the projections below.*\n\n';
 			content += jsonBlock(declaredDefinitions);
 
-			// Sections are listed in precedence order (highest first): native MDM wins over the
-			// server endpoint, which in turn wins over the file on disk.
 			content += '### Native MDM\n\n';
 			content += PROPERTY_VALUE_TABLE_HEADER;
 			content += `| Available | ${nativeManagedSettingsService ? 'yes' : 'no'} |\n`;
@@ -951,8 +922,6 @@ class PolicyDiagnosticsAction extends Action2 {
 				content += managedSettingsPipeline('Raw parsed file', fileRawManagedSettings, fileManagedSettings, fileProjected);
 			}
 
-			// Per-key resolution: what each channel supplied, which won, and (struck through) which
-			// were overridden — the authoritative "what came from where, what's effective, and why".
 			content += '### Effective Resolution\n\n';
 			content += '**Merged normalized bag**\n\n';
 			content += jsonBlock(pick.values);
@@ -967,7 +936,6 @@ class PolicyDiagnosticsAction extends Action2 {
 					if (!contribution) {
 						return '—';
 					}
-					// Strike through overridden contributions so the report explains *why* they don't apply.
 					const cell = managedValueCell(contribution.value);
 					return channel === resolution.source ? cell : `~~${cell}~~`;
 				};
@@ -1004,9 +972,6 @@ class PolicyDiagnosticsAction extends Action2 {
 				}
 			}
 
-			// JSON payloads: the structured keys carry a JSON string that PolicyConfiguration parses
-			// back into the object/array-typed setting on read. Re-parse exactly those keys with the
-			// same jsonc parser so a malformed value surfaces here instead of being silently rejected.
 			for (const key of [COPILOT_ENABLED_PLUGINS_KEY, COPILOT_STRICT_MARKETPLACES_KEY, COPILOT_EXTRA_MARKETPLACES_KEY]) {
 				const value = effective[key];
 				if (typeof value !== 'string') {
@@ -1114,7 +1079,6 @@ class PolicyDiagnosticsAction extends Action2 {
 			content += '*No policy-controlled settings found*\n\n';
 		}
 
-		// Authentication diagnostics
 		content += '## Authentication Information\n\n';
 		try {
 			const providerIds = authenticationService.getProviderIds();
@@ -1137,7 +1101,6 @@ class PolicyDiagnosticsAction extends Action2 {
 				}
 				content += '\n';
 
-				// Detailed session information
 				content += '### Detailed Session Information\n\n';
 				for (const providerId of providerIds) {
 					try {
@@ -1152,7 +1115,6 @@ class PolicyDiagnosticsAction extends Action2 {
 								const accountName = session.account.label;
 								const scopes = session.scopes.join(', ') || 'Default';
 
-								// Get extensions with access to this account
 								try {
 									const allowedExtensions = authenticationAccessService.readAllowedExtensions(providerId, accountName);
 									const extensionNames = allowedExtensions
@@ -1217,7 +1179,6 @@ class SyncAccountPolicyAction extends Action2 {
 	}
 }
 
-// --- Actions Registration
 registerAction2(InspectContextKeysAction);
 registerAction2(ToggleScreencastModeAction);
 registerAction2(LogStorageAction);
@@ -1231,9 +1192,7 @@ if (!product.commit) {
 	registerAction2(StopTrackDisposables);
 }
 
-// --- Configuration
 
-// Screen Cast Mode
 const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 configurationRegistry.registerConfiguration({
 	id: 'screencastMode',

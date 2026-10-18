@@ -44,21 +44,6 @@ interface IRenderResult {
 	initRenderIsSynchronous: false;
 }
 
-// DOM structure
-//
-//  #output
-//  |
-//  |  #output-inner-container
-//  |                        |  #cell-output-toolbar
-//  |                        |  #output-element
-//  |                        |  #output-element
-//  |                        |  #output-element
-//  |  #output-inner-container
-//  |                        |  #cell-output-toolbar
-//  |                        |  #output-element
-//  |  #output-inner-container
-//  |                        |  #cell-output-toolbar
-//  |                        |  #output-element
 class CellOutputElement extends Disposable {
 	private readonly toolbarDisposables = this._register(new DisposableStore());
 
@@ -131,11 +116,9 @@ class CellOutputElement extends Disposable {
 			this.renderResult &&
 			this.renderResult.type === RenderOutputType.Extension
 		) {
-			// Output rendered by extension renderer got an update
 			const [mimeTypes, pick] = this.output.resolveMimeTypes(this.notebookEditor.textModel, this.notebookEditor.activeKernel?.preloadProvides);
 			const pickedMimeType = mimeTypes[pick];
 			if (pickedMimeType.mimeType === this.renderResult.mimeType && pickedMimeType.rendererId === this.renderResult.renderer.id) {
-				// Same mimetype, same renderer, call the extension renderer to update
 				const index = this.viewCell.outputsViewModels.indexOf(this.output);
 				this.notebookEditor.updateOutput(this.viewCell, this.renderResult, this.viewCell.getOutputOffset(index));
 				return;
@@ -143,14 +126,12 @@ class CellOutputElement extends Disposable {
 		}
 
 		if (!this.innerContainer) {
-			// init rendering didn't happen
 			const currOutputIndex = this.cellOutputContainer.renderedOutputEntries.findIndex(entry => entry.element === this);
 			const previousSibling = currOutputIndex > 0 && !!(this.cellOutputContainer.renderedOutputEntries[currOutputIndex - 1].element.innerContainer?.parentElement)
 				? this.cellOutputContainer.renderedOutputEntries[currOutputIndex - 1].element.innerContainer
 				: undefined;
 			this.render(previousSibling);
 		} else {
-			// Another mimetype or renderer is picked, we need to clear the current output and re-render
 			const nextElement = this.innerContainer.nextElementSibling;
 			this.toolbarDisposables.clear();
 			const element = this.innerContainer;
@@ -165,7 +146,6 @@ class CellOutputElement extends Disposable {
 		this._relayoutCell();
 	}
 
-	// insert after previousSibling
 	private _generateInnerOutputContainer(previousSibling: HTMLElement | undefined, pickedMimeTypeRenderer: IOrderedMimeType) {
 		this.innerContainer = DOM.$('.output-inner-container');
 
@@ -285,7 +265,6 @@ class CellOutputElement extends Disposable {
 			const index = cellViewModel.outputsViewModels.indexOf(this.output);
 			if (index > 0) {
 				const previousOutput = cellViewModel.model.outputs[index - 1];
-				// if the previous output was also a stream, the copy command will be in that output instead
 				return !isTextStreamMime(previousOutput.outputs[0].mime);
 			}
 		}
@@ -297,7 +276,6 @@ class CellOutputElement extends Disposable {
 		const hasMultipleMimeTypes = mimeTypes.filter(mimeType => mimeType.isTrusted).length > 1;
 		const isCopyEnabled = this.shouldEnableCopy(mimeTypes);
 		if (index > 0 && !hasMultipleMimeTypes && !isCopyEnabled) {
-			// nothing to put in the toolbar
 			return;
 		}
 
@@ -321,7 +299,6 @@ class CellOutputElement extends Disposable {
 			$mid: MarshalledId.NotebookCellActionContext
 		};
 
-		// TODO: This could probably be a real registered action, but it has to talk to this output element
 		const pickAction = this.toolbarDisposables.add(new Action('notebook.output.pickMimetype', nls.localize('pickMimeType', "Change Presentation"), ThemeIcon.asClassName(mimetypeIcon), undefined,
 			async _context => this._pickActiveMimeTypeRenderer(outputItemDiv, notebookTextModel, kernel, this.output)));
 
@@ -407,7 +384,6 @@ class CellOutputElement extends Disposable {
 			return;
 		}
 
-		// user chooses another mimetype
 		const nextElement = outputItemDiv.nextElementSibling;
 		this.toolbarDisposables.clear();
 		const element = this.innerContainer;
@@ -549,14 +525,10 @@ export class CellOutputContainer extends CellContentPart {
 		try {
 			this._doRender();
 		} finally {
-			// TODO@rebornix, this is probably not necessary at all as cell layout change would send the update request.
 			this._relayoutCell();
 		}
 	}
 
-	/**
-	 * Notify that an output may have been swapped out without the model getting rendered.
-	 */
 	flagAsStale() {
 		this._hasStaleOutputs = true;
 	}
@@ -582,7 +554,6 @@ export class CellOutputContainer extends CellContentPart {
 
 			this._validateFinalOutputHeight(false);
 		} else {
-			// noop
 			DOM.hide(this.templateData.outputContainer.domNode);
 		}
 
@@ -643,7 +614,6 @@ export class CellOutputContainer extends CellContentPart {
 	private _updateOutputs(splice: NotebookCellOutputsSplice, context: CellOutputUpdateContext = CellOutputUpdateContext.Other) {
 		const previousOutputHeight = this.viewCell.layoutInfo.outputTotalHeight;
 
-		// for cell output update, we make sure the cell does not shrink before the new outputs are rendered.
 		this.viewCell.updateOutputMinHeight(previousOutputHeight);
 
 		if (this.viewCell.outputsViewModels.length) {
@@ -658,7 +628,6 @@ export class CellOutputContainer extends CellContentPart {
 
 	private _renderNow(splice: NotebookCellOutputsSplice, context: CellOutputUpdateContext) {
 		if (splice.start >= this.options.limit) {
-			// splice items out of limit
 			return;
 		}
 
@@ -667,10 +636,7 @@ export class CellOutputContainer extends CellContentPart {
 		const secondGroupEntries = this._outputEntries.slice(splice.start + splice.deleteCount);
 		let newlyInserted = this.viewCell.outputsViewModels.slice(splice.start, splice.start + splice.newOutputs.length);
 
-		// [...firstGroup, ...deletedEntries, ...secondGroupEntries]  [...restInModel]
-		// [...firstGroup, ...newlyInserted, ...secondGroupEntries, restInModel]
 		if (firstGroupEntries.length + newlyInserted.length + secondGroupEntries.length > this.options.limit) {
-			// exceeds limit again
 			if (firstGroupEntries.length + newlyInserted.length > this.options.limit) {
 				[...deletedEntries, ...secondGroupEntries].forEach(entry => {
 					entry.element.detach();
@@ -684,20 +650,16 @@ export class CellOutputContainer extends CellContentPart {
 
 				this._outputEntries = [...firstGroupEntries, ...newlyInsertedEntries];
 
-				// render newly inserted outputs
 				for (let i = firstGroupEntries.length; i < this._outputEntries.length; i++) {
 					this._outputEntries[i].element.render(undefined);
 				}
 			} else {
-				// part of secondGroupEntries are pushed out of view
-				// now we have to be creative as secondGroupEntries might not use dedicated containers
 				const elementsPushedOutOfView = secondGroupEntries.slice(this.options.limit - firstGroupEntries.length - newlyInserted.length);
 				[...deletedEntries, ...elementsPushedOutOfView].forEach(entry => {
 					entry.element.detach();
 					entry.element.dispose();
 				});
 
-				// exclusive
 				const reRenderRightBoundary = firstGroupEntries.length + newlyInserted.length;
 
 				const newlyInsertedEntries = newlyInserted.map(insert => {
@@ -712,7 +674,6 @@ export class CellOutputContainer extends CellContentPart {
 				}
 			}
 		} else {
-			// after splice, it doesn't exceed
 			deletedEntries.forEach(entry => {
 				entry.element.detach();
 				entry.element.dispose();
@@ -756,9 +717,6 @@ export class CellOutputContainer extends CellContentPart {
 		}
 
 		this._relayoutCell();
-		// if it's clearing all outputs, or outputs are all rendered synchronously
-		// shrink immediately as the final output height will be zero.
-		// if it's rerun, then the output clearing might be temporary, so we don't shrink immediately
 		this._validateFinalOutputHeight(context === CellOutputUpdateContext.Other && this.viewCell.outputsViewModels.length === 0);
 	}
 

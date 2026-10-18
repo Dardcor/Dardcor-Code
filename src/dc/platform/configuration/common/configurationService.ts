@@ -124,7 +124,6 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
 			throw new Error(`Unable to write ${key} because it is configured in system policy.`);
 		}
 
-		// Remove the setting, if the value is same as default value
 		if (equals(value, inspect.defaultValue)) {
 			value = undefined;
 		}
@@ -200,7 +199,7 @@ class ConfigurationEditing {
 	}
 
 	write(path: JSONPath, value: unknown): Promise<void> {
-		return this.queue.queue(() => this.doWriteConfiguration(path, value)); // queue up writes to prevent race conditions
+		return this.queue.queue(() => this.doWriteConfiguration(path, value));
 	}
 
 	private async doWriteConfiguration(path: JSONPath, value: unknown): Promise<void> {
@@ -231,7 +230,6 @@ class ConfigurationEditing {
 	private getEdits(content: string, path: JSONPath, value: unknown): Edit[] {
 		const { tabSize, insertSpaces, eol } = this.formattingOptions;
 
-		// With empty path the entire file is being replaced, so we just use JSON.stringify
 		if (!path.length) {
 			const content = JSON.stringify(value, null, insertSpaces ? ' '.repeat(tabSize) : '\t');
 			return [{

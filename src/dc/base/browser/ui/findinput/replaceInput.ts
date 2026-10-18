@@ -41,7 +41,6 @@ const NLS_PRESERVE_CASE_LABEL = nls.localize('label.preserveCaseToggle', "Preser
 class PreserveCaseToggle extends Toggle {
 	constructor(opts: IFindInputToggleOpts) {
 		super({
-			// TODO: does this need its own icon?
 			icon: Codicon.preserveCase,
 			title: NLS_PRESERVE_CASE_LABEL + opts.appendTitle,
 			isChecked: opts.isChecked,
@@ -69,7 +68,7 @@ export class ReplaceInput extends Widget {
 	public inputBox: HistoryInputBox;
 
 	private readonly _onDidOptionChange = this._register(new Emitter<boolean>());
-	public get onDidOptionChange(): Event<boolean /* via keyboard */> { return this._onDidOptionChange.event; }
+	public get onDidOptionChange(): Event<boolean > { return this._onDidOptionChange.event; }
 
 	private readonly _onKeyDown = this._register(new Emitter<IKeyboardEvent>());
 	public get onKeyDown(): Event<IKeyboardEvent> { return this._onKeyDown.event; }
@@ -139,7 +138,6 @@ export class ReplaceInput extends Widget {
 			this.cachedOptionsWidth = 0;
 		}
 
-		// Arrow-Key support to navigate between options
 		const indexes = [this.preserveCase.domNode];
 		this.onkeydown(this.domNode, (event: IKeyboardEvent) => {
 			navigateToggles(event, this.domNode, () => indexes, () => this.inputBox.focus());

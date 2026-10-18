@@ -21,91 +21,39 @@ import { isUNCAccessRestrictionsDisabled, getUNCHostAllowlist } from '../../../b
 
 export interface IUtilityProcessConfiguration {
 
-	/**
-	 * A way to group utility processes of same type together.
-	 */
 	readonly type: string;
 
-	/**
-	 * A human-readable name for the utility process.
-	 */
 	readonly name: string;
 
-	/**
-	 * The entry point to load in the utility process.
-	 */
 	readonly entryPoint: string;
 
-	/**
-	 * An optional serializable object to be sent into the utility process
-	 * as first message alongside the message port.
-	 */
 	readonly payload?: unknown;
 
-	/**
-	 * Environment key-value pairs. Default is `process.env`.
-	 */
 	readonly env?: { [key: string]: string | undefined };
 
-	/**
-	 * List of string arguments that will be available as `process.argv`
-	 * in the child process.
-	 */
 	readonly args?: string[];
 
-	/**
-	 * List of string arguments passed to the executable.
-	 */
 	readonly execArgv?: string[];
 
-	/**
-	 * Allow the utility process to load unsigned libraries.
-	 */
 	readonly allowLoadingUnsignedLibraries?: boolean;
 
-	/**
-	 * Used in log messages to correlate the process
-	 * with other components.
-	 */
 	readonly correlationId?: string;
 
-	/**
-	 * Optional pid of the parent process. If set, the
-	 * utility process will be terminated when the parent
-	 * process exits.
-	 */
 	readonly parentLifecycleBound?: number;
 
-	/**
-	 * HTTP 401 and 407 requests created via electron:net module
-	 * will be redirected to the main process and can be handled
-	 * via the app#login event.
-	 */
 	readonly respondToAuthRequestsFromMainProcess?: boolean;
 }
 
 export interface IWindowUtilityProcessConfiguration extends IUtilityProcessConfiguration {
 
-	// --- message port response related
 
 	readonly responseWindowId: number;
 	readonly responseChannel: string;
 	readonly responseNonce: string;
 
-	// --- utility process options
 
-	/**
-	 * If set to `true`, will terminate the utility process
-	 * when the associated browser window closes or reloads.
-	 */
 	readonly windowLifecycleBound?: boolean;
 
-	/**
-	 * Optional period in milliseconds to allow for graceful shutdown
-	 * before forcefully killing the process when the window lifecycle ends.
-	 * If not set or 0, the process will be killed immediately.
-	 * This is useful for extension hosts that need time to deactivate extensions.
-	 */
 	readonly windowLifecycleGraceTime?: number;
 }
 
@@ -117,31 +65,18 @@ function isWindowUtilityProcessConfiguration(config: IUtilityProcessConfiguratio
 
 interface IUtilityProcessExitBaseEvent {
 
-	/**
-	 * The process id of the process that exited.
-	 */
 	readonly pid: number;
 
-	/**
-	 * The exit code of the process.
-	 */
 	readonly code: number;
 }
 
 export interface IUtilityProcessExitEvent extends IUtilityProcessExitBaseEvent {
 
-	/**
-	 * The signal that caused the process to exit is unknown
-	 * for utility processes.
-	 */
 	readonly signal: 'unknown';
 }
 
 export interface IUtilityProcessCrashEvent extends IUtilityProcessExitBaseEvent {
 
-	/**
-	 * The reason of the utility process crash.
-	 */
 	readonly reason: 'clean-exit' | 'abnormal-exit' | 'killed' | 'crashed' | 'oom' | 'launch-failed' | 'integrity-failure' | 'memory-eviction';
 }
 
@@ -257,17 +192,15 @@ export class UtilityProcess extends Disposable {
 
 		this.log('creating new...', Severity.Info);
 
-		// Fork utility process
 		this.process = utilityProcess.fork(modulePath, args, {
 			serviceName,
 			env,
-			execArgv, // !!! Add `--trace-warnings` for node.js tracing !!!
+			execArgv,
 			allowLoadingUnsignedLibraries,
 			respondToAuthRequestsFromMainProcess,
 			stdio
 		});
 
-		// Register to events
 		this.registerListeners(this.process, this.configuration, serviceName);
 
 		return true;
@@ -296,10 +229,8 @@ export class UtilityProcess extends Disposable {
 			}
 		}
 
-		// Remove any environment variables that are not allowed
 		removeDangerousEnvVariables(env);
 
-		// Ensure all values are strings, otherwise the process will not start
 		for (const key of Object.keys(env)) {
 			env[key] = String(env[key]);
 		}
@@ -309,22 +240,18 @@ export class UtilityProcess extends Disposable {
 
 	private registerListeners(process: ElectronUtilityProcess, configuration: IUtilityProcessConfiguration, serviceName: string): void {
 
-		// Stdout
 		if (process.stdout) {
 			const stdoutDecoder = new StringDecoder('utf-8');
 			this._register(Event.fromNodeEventEmitter<string | Buffer>(process.stdout, 'data')(chunk => this._onStdout.fire(typeof chunk === 'string' ? chunk : stdoutDecoder.write(chunk))));
 		}
 
-		// Stderr
 		if (process.stderr) {
 			const stderrDecoder = new StringDecoder('utf-8');
 			this._register(Event.fromNodeEventEmitter<string | Buffer>(process.stderr, 'data')(chunk => this._onStderr.fire(typeof chunk === 'string' ? chunk : stderrDecoder.write(chunk))));
 		}
 
-		// Messages
 		this._register(Event.fromNodeEventEmitter(process, 'message')(msg => this._onMessage.fire(msg)));
 
-		// Spawn
 		this._register(Event.fromNodeEventEmitter<void>(process, 'spawn')(() => {
 			this.processPid = process.pid;
 
@@ -336,23 +263,18 @@ export class UtilityProcess extends Disposable {
 			this._onSpawn.fire(process.pid);
 		}));
 
-		// Exit
 		this._register(Event.fromNodeEventEmitter<number>(process, 'exit')(code => {
 			this.log(`received exit event with code ${code}`, Severity.Info);
 
-			// Event
 			this._onExit.fire({ pid: this.processPid!, code, signal: 'unknown' });
 
-			// Cleanup
 			this.onDidExitOrCrashOrKill();
 		}));
 
-		// Child process gone
 		this._register(Event.fromNodeEventEmitter<{ details: Details }>(app, 'child-process-gone', (event, details) => ({ event, details }))(({ details }) => {
 			if (details.type === 'Utility' && details.name === serviceName) {
 				this.log(`crashed with code ${details.exitCode} and reason '${details.reason}'`, Severity.Error);
 
-				// Telemetry
 				type UtilityProcessCrashClassification = {
 					type: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'The type of utility process to understand the origin of the crash better.' };
 					reason: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth'; comment: 'The reason of the utility process crash to understand the nature of the crash better.' };
@@ -371,10 +293,8 @@ export class UtilityProcess extends Disposable {
 					code: details.exitCode
 				});
 
-				// Event
 				this._onCrash.fire({ pid: this.processPid!, code: details.exitCode, reason: details.reason });
 
-				// Cleanup
 				this.onDidExitOrCrashOrKill();
 			}
 		}));
@@ -392,7 +312,7 @@ export class UtilityProcess extends Disposable {
 
 	postMessage(message: unknown, transfer?: Electron.MessagePortMain[]): boolean {
 		if (!this.process) {
-			return false; // already killed, crashed or never started
+			return false;
 		}
 
 		this.process.postMessage(message, transfer);
@@ -418,7 +338,6 @@ export class UtilityProcess extends Disposable {
 			_debugProcess?(pid: number): unknown;
 		}
 
-		// use (undocumented) _debugProcess feature of node if available
 		const processExt = <ProcessExt>process;
 		if (typeof processExt._debugProcess === 'function') {
 			processExt._debugProcess(this.processPid);
@@ -426,13 +345,12 @@ export class UtilityProcess extends Disposable {
 			return true;
 		}
 
-		// not supported...
 		return false;
 	}
 
 	kill(): void {
 		if (!this.process) {
-			return; // already killed, crashed or never started
+			return;
 		}
 
 		this.log('attempting to kill the process...', Severity.Info);
@@ -455,7 +373,7 @@ export class UtilityProcess extends Disposable {
 
 	async waitForExit(maxWaitTimeMs: number): Promise<void> {
 		if (!this.process) {
-			return; // already killed, crashed or never started
+			return;
 		}
 
 		this.log('waiting to exit...', Severity.Info);
@@ -487,16 +405,13 @@ export class WindowUtilityProcess extends UtilityProcess {
 			return true;
 		}
 
-		// Start utility process
 		const started = super.doStart(configuration);
 		if (!started) {
 			return false;
 		}
 
-		// Register to window events
 		this.registerWindowListeners(responseWindow.win, configuration);
 
-		// Establish & exchange message ports
 		const windowPort = this.connect(configuration.payload);
 		responseWindow.win.webContents.postMessage(configuration.responseChannel, configuration.responseNonce, [windowPort]);
 
@@ -505,10 +420,6 @@ export class WindowUtilityProcess extends UtilityProcess {
 
 	private registerWindowListeners(window: BrowserWindow, configuration: IWindowUtilityProcessConfiguration): void {
 
-		// If the lifecycle of the utility process is bound to the window,
-		// we terminate the process if the window closes or changes.
-		// If a grace period is configured, we wait for the process to exit
-		// before terminating (e.g. extensions need time to deactivate).
 
 		if (configuration.windowLifecycleBound) {
 			const graceTime = configuration.windowLifecycleGraceTime;

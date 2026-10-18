@@ -48,15 +48,30 @@ async function isExpectedElectronInstalled(): Promise<boolean> {
 }
 
 async function ensureCompiled() {
-	const requiredFiles = [
+	const coreFiles = [
 		path.join('out', 'main.js'),
-		path.join('out', '.build-done'),
 		path.join('out', 'dc', 'platform', 'environment', 'node', 'userDataPath.js'),
 		path.join('out', 'dc', 'workbench', 'workbench.desktop.main.js'),
 	];
 
+	const requiredFiles = [
+		...coreFiles,
+		path.join('out', '.build-done'),
+	];
+
 	let isComplete = await exists('out');
 	if (isComplete) {
+		const hasCoreFiles = (await Promise.all(coreFiles.map(f => exists(f)))).every(Boolean);
+		if (hasCoreFiles && !(await exists(path.join('out', '.build-done')))) {
+			try {
+				await fs.writeFile(
+					path.join(rootDir, 'out', '.build-done'),
+					JSON.stringify({ timestamp: new Date().toISOString(), status: 'complete', source: 'compile' }, null, 2),
+					'utf8'
+				);
+			} catch {}
+		}
+
 		for (const file of requiredFiles) {
 			if (!(await exists(file))) {
 				isComplete = false;

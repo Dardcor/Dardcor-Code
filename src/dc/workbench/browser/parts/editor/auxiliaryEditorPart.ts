@@ -188,10 +188,8 @@ export class AuxiliaryEditorPart {
 			}
 		}
 
-		// Auxiliary Window
 		const auxiliaryWindow = disposables.add(await this.auxiliaryWindowService.open(options));
 
-		// Editor Part
 		const editorPartContainer = $('.part.editor', { role: 'main' });
 		editorPartContainer.style.position = 'relative';
 		auxiliaryWindow.container.appendChild(editorPartContainer);
@@ -205,10 +203,9 @@ export class AuxiliaryEditorPart {
 			[IEditorService, this.editorService.createScoped(editorPart, disposables)]
 		)));
 
-		// Titlebar
 		let titlebarPart: IAuxiliaryTitlebarPart | undefined = undefined;
 		let titlebarVisible = false;
-		const useCustomTitle = isNative && hasCustomTitlebar(this.configurationService); // custom title in aux windows only enabled in native
+		const useCustomTitle = isNative && hasCustomTitlebar(this.configurationService);
 		if (useCustomTitle) {
 			titlebarPart = disposables.add(this.titleService.createAuxiliaryTitlebarPart(auxiliaryWindow.container, editorPart, scopedEditorPartInstantiationService));
 			titlebarPart.updateOptions({ compact });
@@ -226,7 +223,7 @@ export class AuxiliaryEditorPart {
 			disposables.add(this.layoutService.onDidChangePartVisibility(() => handleTitleBarVisibilityEvent()));
 			disposables.add(onDidChangeFullscreen(windowId => {
 				if (windowId !== auxiliaryWindow.window.vscodeWindowId) {
-					return; // ignore all but our window
+					return;
 				}
 
 				handleTitleBarVisibilityEvent();
@@ -237,7 +234,6 @@ export class AuxiliaryEditorPart {
 			disposables.add(scopedEditorPartInstantiationService.createInstance(WindowTitle, auxiliaryWindow.window));
 		}
 
-		// Statusbar
 		const statusbarPart = disposables.add(this.statusbarService.createAuxiliaryStatusbarPart(auxiliaryWindow.container, scopedEditorPartInstantiationService));
 		let statusbarVisible = !compact && this.configurationService.getValue<boolean>(AuxiliaryEditorPart.STATUS_BAR_VISIBILITY) !== false;
 		disposables.add(this.configurationService.onDidChangeConfiguration(e => {
@@ -250,11 +246,10 @@ export class AuxiliaryEditorPart {
 
 		updateStatusbarVisibility(false);
 
-		// Lifecycle
 		const editorCloseListener = disposables.add(Event.once(editorPart.onWillClose)(() => auxiliaryWindow.window.close()));
 		disposables.add(Event.once(auxiliaryWindow.onUnload)(() => {
 			if (disposables.isDisposed) {
-				return; // the close happened as part of an earlier dispose call
+				return;
 			}
 
 			editorCloseListener.dispose();
@@ -265,10 +260,6 @@ export class AuxiliaryEditorPart {
 		disposables.add(auxiliaryWindow.onBeforeUnload(event => {
 			for (const group of editorPart.groups) {
 				for (const editor of group.editors) {
-					// Closing an auxiliary window with opened editors
-					// will move the editors to the main window. As such,
-					// we need to validate that we can move and otherwise
-					// prevent the window from closing.
 					const canMoveVeto = editor.canMove(group.id, this.editorPartsView.mainPart.activeGroup.id);
 					if (typeof canMoveVeto === 'string') {
 						group.openEditor(editor);
@@ -279,9 +270,6 @@ export class AuxiliaryEditorPart {
 			}
 		}));
 
-		// Layout: specifically `onWillLayout` to have a chance
-		// to build the aux editor part before other components
-		// have a chance to react.
 		disposables.add(auxiliaryWindow.onWillLayout(dimension => {
 			const titlebarPartHeight = titlebarPart?.height ?? 0;
 			titlebarPart?.layout(dimension.width, titlebarPartHeight, 0, 0);
@@ -293,7 +281,6 @@ export class AuxiliaryEditorPart {
 		}));
 		auxiliaryWindow.layout();
 
-		// Compact mode
 		disposables.add(compactWindowEmitter.event(e => {
 			if (e.windowId === auxiliaryWindow.window.vscodeWindowId) {
 				let newCompact: boolean;
@@ -307,22 +294,21 @@ export class AuxiliaryEditorPart {
 		}));
 
 		disposables.add(editorPart.onDidAddGroup(group => {
-			updateCompact(false); // leave compact mode when a group is added
+			updateCompact(false);
 
 			disposables.add(group.onDidActiveEditorChange(() => {
 				if (group.count > 1) {
-					updateCompact(false); // leave compact mode when more than 1 editor is active
+					updateCompact(false);
 				}
 			}));
 		}));
 
 		disposables.add(editorPart.activeGroup.onDidActiveEditorChange(() => {
 			if (editorPart.activeGroup.count > 1) {
-				updateCompact(false); // leave compact mode when more than 1 editor is active
+				updateCompact(false);
 			}
 		}));
 
-		// Have a scoped instantiation service that is scoped to the auxiliary window
 		const scopedInstantiationService = disposables.add(scopedEditorPartInstantiationService.createChild(new ServiceCollection(
 			[IStatusbarService, this.statusbarService.createScoped(statusbarPart, disposables)]
 		)));
@@ -387,8 +373,6 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 
 	override addGroup(location: IEditorGroupView | GroupIdentifier, direction: GroupDirection, groupToCopy?: IEditorGroupView): IEditorGroupView {
 		if (this.isCompact) {
-			// When in compact mode, we prefer to open groups in the main part
-			// as compact mode is typically meant for showing just 1 editor.
 			location = this.editorPartsView.mainPart.activeGroup;
 		}
 
@@ -397,13 +381,11 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 
 	override removeGroup(group: number | IEditorGroupView, preserveFocus?: boolean): void {
 
-		// Close aux window when last group removed
 		const groupView = this.assertGroupView(group);
 		if (this.count === 1 && this.activeGroup === groupView) {
 			this.doRemoveLastGroup(preserveFocus);
 		}
 
-		// Otherwise delegate to parent implementation
 		else {
 			super.removeGroup(group, preserveFocus);
 		}
@@ -412,16 +394,12 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 	private doRemoveLastGroup(preserveFocus?: boolean): void {
 		const restoreFocus = !preserveFocus && this.shouldRestoreFocus(this.container);
 
-		// Activate next group when closing
 		const mostRecentlyActiveGroups = this.editorPartsView.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE);
-		const nextActiveGroup = mostRecentlyActiveGroups[1]; // [0] will be the current group we are about to dispose
+		const nextActiveGroup = mostRecentlyActiveGroups[1];
 		if (nextActiveGroup) {
 			nextActiveGroup.groupsView.activateGroup(nextActiveGroup, undefined, GroupActivationReason.PART_CLOSE);
 		}
 
-		// Deal with focus: focus the next recently used group but skip
-		// this if the next group is in the main part and the main part
-		// is currently hidden, as that would make it visible.
 		if (nextActiveGroup && restoreFocus) {
 			const nextGroupInHiddenMainPart = nextActiveGroup.groupsView === this.editorPartsView.mainPart && !this.layoutService.isVisible(Parts.EDITOR_PART, mainWindow);
 			if (!nextGroupInHiddenMainPart) {
@@ -429,7 +407,7 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 			}
 		}
 
-		this.doClose(false /* do not merge any confirming editors to main part */);
+		this.doClose(false );
 	}
 
 	protected override loadState(): IEditorPartUIState | undefined {
@@ -437,26 +415,24 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 	}
 
 	protected override saveState(): void {
-		return; // disabled, auxiliary editor part state is tracked outside
+		return;
 	}
 
 	close(): boolean {
-		return this.doClose(true /* merge all confirming editors to main part */);
+		return this.doClose(true );
 	}
 
 	private doClose(mergeConfirmingEditorsToMainPart: boolean): boolean {
 		let result = true;
 		if (mergeConfirmingEditorsToMainPart) {
 
-			// First close all editors that are non-confirming
 			for (const group of this.groups) {
 				group.closeAllEditors({ excludeConfirming: true, force: true });
 			}
 
-			// Then merge remaining to main part
 			result = this.mergeGroupsToMainPart();
 			if (!result) {
-				return false; // Do not close when editors could not be merged back
+				return false;
 			}
 		}
 
@@ -467,10 +443,9 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 
 	private mergeGroupsToMainPart(): boolean {
 		if (!this.groups.some(group => group.count > 0)) {
-			return true; // skip if we have no editors opened
+			return true;
 		}
 
-		// Find the most recent group that is not locked
 		let targetGroup: IEditorGroupView | undefined = undefined;
 		for (const group of this.editorPartsView.mainPart.getGroups(GroupsOrder.MOST_RECENTLY_ACTIVE)) {
 			if (!group.isLocked) {
@@ -484,9 +459,6 @@ class AuxiliaryEditorPartImpl extends EditorPart implements IAuxiliaryEditorPart
 		}
 
 		const result = this.mergeAllGroups(targetGroup, {
-			// Try to reduce the impact of closing the auxiliary window
-			// as much as possible by not changing existing editors
-			// in the main window.
 			preserveExistingIndex: true
 		});
 		targetGroup.focus();

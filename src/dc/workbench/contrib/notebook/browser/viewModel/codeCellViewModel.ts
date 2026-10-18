@@ -115,10 +115,6 @@ export class CodeCellViewModel extends BaseCellViewModel implements ICellViewMod
 		return this._outputMinHeight;
 	}
 
-	/**
-	 * The minimum height of the output region. It's only set to non-zero temporarily when replacing an output with a new one.
-	 * It's reset to 0 when the new output is rendered, or in one second.
-	 */
 	private set outputMinHeight(newMin: number) {
 		this._outputMinHeight = newMin;
 	}
@@ -229,7 +225,6 @@ export class CodeCellViewModel extends BaseCellViewModel implements ICellViewMod
 	}
 
 	layoutChange(state: CodeCellLayoutChangeEvent, source?: string) {
-		// recompute
 		this._ensureOutputsTop();
 		const notebookLayoutConfiguration = this.viewContext.notebookOptions.getLayoutConfiguration();
 		const bottomToolbarDimensions = this.viewContext.notebookOptions.computeBottomToolbarDimensions(this.viewType);
@@ -245,14 +240,12 @@ export class CodeCellViewModel extends BaseCellViewModel implements ICellViewMod
 			let hasHorizontalScrolling = false;
 			const chatHeight = state.chatHeight ? this._chatHeight : this._layoutInfo.chatHeight;
 			if (!state.editorHeight && this._layoutInfo.layoutState === CellLayoutState.FromCache && !state.outputHeight) {
-				// No new editorHeight info - keep cached totalHeight and estimate editorHeight
 				const estimate = this.estimateEditorHeight(state.font?.lineHeight ?? this._layoutInfo.fontInfo?.lineHeight);
 				editorHeight = estimate.editorHeight;
 				hasHorizontalScrolling = estimate.hasHorizontalScrolling;
 				totalHeight = this._layoutInfo.totalHeight;
 				newState = CellLayoutState.FromCache;
 			} else if (state.editorHeight || this._layoutInfo.layoutState === CellLayoutState.Measured) {
-				// Editor has been measured
 				editorHeight = this._editorHeight;
 				totalHeight = this.computeTotalHeight(this._editorHeight, outputTotalHeight, outputShowMoreContainerHeight, chatHeight);
 				newState = CellLayoutState.Measured;
@@ -269,7 +262,7 @@ export class CodeCellViewModel extends BaseCellViewModel implements ICellViewMod
 			const codeIndicatorHeight = editorHeight + statusBarHeight;
 			const outputIndicatorHeight = outputTotalHeight + outputShowMoreContainerHeight;
 			const outputContainerOffset = notebookLayoutConfiguration.editorToolbarHeight
-				+ notebookLayoutConfiguration.cellTopMargin // CELL_TOP_MARGIN
+				+ notebookLayoutConfiguration.cellTopMargin
 				+ chatHeight
 				+ editorHeight
 				+ statusBarHeight;
@@ -313,8 +306,8 @@ export class CodeCellViewModel extends BaseCellViewModel implements ICellViewMod
 			const totalHeight =
 				notebookLayoutConfiguration.cellTopMargin
 				+ notebookLayoutConfiguration.collapsedIndicatorHeight
-				+ notebookLayoutConfiguration.cellBottomMargin //CELL_BOTTOM_MARGIN
-				+ bottomToolbarDimensions.bottomToolbarGap //BOTTOM_CELL_TOOLBAR_GAP
+				+ notebookLayoutConfiguration.cellBottomMargin
+				+ bottomToolbarDimensions.bottomToolbarGap
 				+ chatHeight
 				+ commentHeight
 				+ outputTotalHeight + outputShowMoreContainerHeight;
@@ -401,11 +394,11 @@ export class CodeCellViewModel extends BaseCellViewModel implements ICellViewMod
 			}
 		}
 
-		const verticalScrollbarHeight = hasHorizontalScrolling ? 12 : 0; // take zoom level into account
+		const verticalScrollbarHeight = hasHorizontalScrolling ? 12 : 0;
 		const editorPadding = this.viewContext.notebookOptions.computeEditorPadding(this.internalMetadata, this.uri);
 		const editorHeight = this.lineCount * lineHeight
 			+ editorPadding.top
-			+ editorPadding.bottom // EDITOR_BOTTOM_PADDING
+			+ editorPadding.bottom
 			+ verticalScrollbarHeight;
 		return {
 			editorHeight,

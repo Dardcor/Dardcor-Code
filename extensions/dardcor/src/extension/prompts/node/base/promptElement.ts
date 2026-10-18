@@ -10,9 +10,6 @@ export interface PromptElementCtor<P extends BasePromptElementProps = BasePrompt
 }
 
 export interface EmbeddedInsideUserMessage {
-	/**
-	 * Upcoming deprecation: Wrap with UserMessage instead.
-	 */
 	readonly embeddedInsideUserMessage?: false;
 }
 

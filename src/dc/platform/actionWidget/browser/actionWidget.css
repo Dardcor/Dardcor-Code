@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 .action-widget {
+	box-sizing: border-box;
 	font-size: 13px;
 	min-width: 100px;
 	max-width: 80vw;
@@ -92,7 +93,6 @@
 	overflow: visible;
 }
 
-/** Styles for each row in the list element **/
 .action-widget .monaco-list .monaco-list-row {
 	padding: 0 12px 0 6px;
 	white-space: nowrap;
@@ -143,7 +143,6 @@
 	margin-top: 0;
 }
 
-/* Separators with text labels (titled section headers) */
 .action-widget .monaco-list-row.separator > span:not(:empty) {
 	display: flex;
 	align-items: center;
@@ -178,17 +177,14 @@
 	font-size: 16px;
 }
 
-/* Compact icon modifier: render the leading row codicon at the compact size */
 .action-widget .actionList.compact-icons .monaco-list-row.action .codicon {
 	font-size: var(--vscode-codiconFontSize-compact, 12px);
 }
 
-/* Toolbar codicons keep the regular codicon size even in compact lists */
 .action-widget .actionList.compact-icons .monaco-list-row.action .action-list-item-toolbar .codicon {
 	font-size: var(--vscode-codiconFontSize, 16px);
 }
 
-/* The submenu indicator keeps the regular codicon size even in compact lists */
 .action-widget .actionList.compact-icons .monaco-list-row.action .action-list-submenu-indicator.codicon {
 	font-size: var(--vscode-codiconFontSize, 16px);
 }
@@ -245,7 +241,6 @@
 	box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow);
 }
 
-/* Action bar */
 
 .action-widget .action-widget-action-bar {
 	background-color: var(--vscode-menu-background);
@@ -282,7 +277,6 @@
 }
 
 .monaco-action-bar .actions-container.highlight-toggled .action-label.checked {
-	/* The important gives this rule precedence over the hover rule. */
 	background: var(--vscode-actionBar-toggledBackground) !important;
 }
 
@@ -309,7 +303,6 @@
 	flex-shrink: 0;
 }
 
-/* Items with detail — show detail as subtext below the title */
 .action-widget .monaco-list .monaco-list-row.action {
 	&:has(.detail:not([style*="display: none"])) {
 		flex-wrap: wrap;
@@ -322,7 +315,6 @@
 	}
 }
 
-/* Items with an inline toggle — wrap so the toggle sits on its own row */
 .action-widget .monaco-list-row.action.has-inline-toggle {
 	flex-wrap: wrap;
 	align-content: center;
@@ -355,7 +347,6 @@
 	color: var(--vscode-foreground);
 }
 
-/* Inline pill switch (restyles the base Toggle as an iOS-style switch) */
 .action-widget .action-list-item-inline-toggle .monaco-custom-toggle.action-list-inline-switch {
 	position: relative;
 	flex-shrink: 0;
@@ -407,9 +398,7 @@
 }
 
 
-/* Inline description mode — description rendered right after the label */
 .action-widget .inline-description .monaco-list-row.action {
-	/* Override the row gap so group-title and toolbar sit flush */
 	gap: 0;
 
 	.title {
@@ -434,17 +423,12 @@
 		margin-right: 10px;
 	}
 
-	/* When description is hidden (e.g. items with only a submenu), push the
-	 * submenu chevron to the far right using an auto left margin. When
-	 * description is visible it already consumes all available space via
-	 * flex:1, so the auto margin has no additional effect. */
 	.action-list-submenu-indicator {
 		margin-left: auto;
 		margin-right: 10px;
 	}
 }
 
-/* Item toolbar - shows on hover/focus */
 .action-widget .monaco-list-row.action .action-list-item-toolbar {
 	display: none;
 }
@@ -465,7 +449,6 @@
 	font-size: 12px;
 }
 
-/* Filter input */
 .action-widget .action-list-filter {
 	padding: 2px 2px 4px 2px;
 }
@@ -494,7 +477,6 @@
 	border-radius: 3px;
 	background-color: var(--vscode-input-background);
 	color: var(--vscode-input-foreground);
-	/* The themed border below replaces the browser's native focus outline. */
 	outline: none;
 }
 
@@ -506,7 +488,6 @@
 	color: var(--vscode-input-placeholderForeground);
 }
 
-/* Filter action buttons remain quiet until the pointer reveals them. */
 .action-widget .action-list-filter-actions .action-label {
 	padding: 3px;
 	border-radius: 3px;
@@ -523,42 +504,33 @@
 	margin-right: 2px;
 }
 
-/* Footer text */
 .action-widget .action-list-footer {
 	color: var(--vscode-descriptionForeground);
 	font-size: 11px;
-	/* Left padding matches the list row padding so the text aligns with the section headings. */
 	padding: 4px 10px 2px 6px;
-	/* Space between the last list item and the divider above the footer. */
 	margin-top: 4px;
 	border-top: 1px solid var(--vscode-editorHoverWidget-border);
 }
 
-/* Header banner */
 .action-widget .action-list-header {
 	display: flex;
 	align-items: flex-start;
-	/* Match the row gap so the text aligns with the item labels. */
 	gap: 6px;
 	color: var(--vscode-foreground);
 	font-size: 12px;
 	line-height: 16px;
-	/* Match the row padding so the icon sits in the item icon column and the text aligns with the item labels. Top padding matches the left so the icon is evenly inset. */
 	padding: 6px 12px 6px 6px;
-	/* No horizontal margin so the rounded box matches the item hover outline. */
 	margin-bottom: 2px;
 	background-color: var(--vscode-chat-requestBubbleBackground);
 	border-radius: var(--vscode-cornerRadius-medium);
 }
 
-/* Give widgets with a header banner more room so the banner text reads well. */
 .action-widget:has(.action-list-header) {
 	min-width: 160px;
 }
 
 .action-widget .action-list-header .action-list-header-icon {
 	flex-shrink: 0;
-	/* Match the row icon column so the icon centers on the item icon column and the text lines up with the item labels. The filled info glyph reads optically heavier than the item check icon, so render it slightly smaller. */
 	width: 12px;
 	text-align: center;
 	font-size: 12px !important;
@@ -589,7 +561,6 @@
 	border-radius: var(--vscode-cornerRadius-small);
 }
 
-/* Anchor for the absolutely-positioned submenu panel */
 .action-widget .actionList {
 	position: relative;
 }

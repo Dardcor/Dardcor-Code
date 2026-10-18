@@ -30,7 +30,6 @@ suite('claudeAgentSkillScan', () => {
 	test('scans agents, skills, and commands (commands folded into skills) with real URIs', async () => {
 		const agent = await seed('/home/.claude/agents/a.md', '---\nname: a-agent\ndescription: Agent A\n---\nbody');
 		const skill = await seed('/workspace/.claude/skills/s/SKILL.md', '---\nname: s-skill\ndescription: Skill S\n---\nbody');
-		// Slash commands are a variant of skills (spec §3) — discovered as Skill kind.
 		const command = await seed('/workspace/.claude/commands/c.md', '---\nname: c-cmd\ndescription: Command C\n---\nbody');
 
 		const discovered = await scanClaudeDiskCustomizations(workspace, userHome, fileService);
@@ -86,11 +85,7 @@ suite('claudeAgentSkillScan', () => {
 	});
 
 	test('a `.claude/skills/<name>` dir that is a native plugin is not surfaced as a standalone skill (PB-8)', async () => {
-		// A plain on-disk skill is surfaced normally.
 		const realSkill = await seed('/workspace/.claude/skills/real/SKILL.md', '---\nname: real\ndescription: Real\n---\nbody');
-		// A `@skills-dir` plugin dir holds a plugin manifest (and may also carry a
-		// top-level SKILL.md) — it belongs to its PluginCustomization, not the
-		// standalone skill list.
 		await seed('/workspace/.claude/skills/tg/.claude-plugin/plugin.json', JSON.stringify({ name: 'tg' }));
 		await seed('/workspace/.claude/skills/tg/SKILL.md', '---\nname: tg\ndescription: plugin\n---\nbody');
 

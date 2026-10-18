@@ -8,12 +8,12 @@ import fs from 'fs';
 import path from 'path';
 
 const MACHO_MAGIC_NUMBERS = new Set([
-	0xFEEDFACE, // MH_MAGIC (32-bit)
-	0xCEFAEDFE, // MH_CIGAM (32-bit, byte-swapped)
-	0xFEEDFACF, // MH_MAGIC_64 (64-bit)
-	0xCFFAEDFE, // MH_CIGAM_64 (64-bit, byte-swapped)
-	0xCAFEBABE, // FAT_MAGIC (universal binary)
-	0xBEBAFECA, // FAT_CIGAM (universal binary, byte-swapped)
+	0xFEEDFACE,
+	0xCEFAEDFE,
+	0xFEEDFACF,
+	0xCFFAEDFE,
+	0xCAFEBABE,
+	0xBEBAFECA,
 ]);
 
 function isMachOBinary(filePath: string): boolean {

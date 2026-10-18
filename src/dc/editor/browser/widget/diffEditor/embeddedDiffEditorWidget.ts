@@ -33,7 +33,6 @@ export class EmbeddedDiffEditorWidget extends DiffEditorWidget {
 		this._parentEditor = parentEditor;
 		this._overwriteOptions = options;
 
-		// Overwrite parent's options
 		super.updateOptions(this._overwriteOptions);
 
 		this._register(parentEditor.onDidChangeConfiguration(e => this._onParentConfigurationChanged(e)));

@@ -53,11 +53,6 @@ Format:
 
 The list must cover the whole user request so the user can see at a glance what is done, what is happening now, and what is still ahead.`;
 
-/**
- * Extra system instruction appended on the final background pass of a turn.
- * Signals that the main agent has stopped running — whether it completed its
- * work or halted on an error — so this is the last chance to reconcile the list.
- */
 const BACKGROUND_TODO_FINAL_REVIEW_NOTE = `This is the FINAL pass for this turn. The main agent has stopped - it either finished or halted on an error - and no further activity will follow.
 
 Reconcile the list one last time against the full trajectory:
@@ -68,15 +63,10 @@ Reconcile the list one last time against the full trajectory:
 
 
 export interface BackgroundTodoPromptProps extends BasePromptElementProps {
-	/** Current todo list state as rendered markdown, or undefined if no todos exist yet. */
 	readonly currentTodos: string | undefined;
-	/** Final todo list carried over from the previous turn as rendered markdown, or undefined if the previous turn had none. */
 	readonly previousTurnTodos: string | undefined;
-	/** The user's original request message. */
 	readonly userRequest: string | undefined;
-	/** Round-first conversation history for the background todo agent. */
 	readonly history: ReadOnlyTurnHistory;
-	/** When true, this is the last pass for the turn because the main agent has finished running. */
 	readonly isFinalReview?: boolean;
 }
 
@@ -144,13 +134,6 @@ interface PreviousContextRoundChunkProps extends BasePromptElementProps {
 	readonly totalPreviousRounds: number;
 }
 
-/**
- * Prompt element rendering a single previous-context round as its own
- * Chunk so that prompt-tsx can drop older rounds independently under
- * budget pressure.  Each chunk is self-contained: it wraps its round
- * in `<turn>` tags so that pruning any subset of rounds never produces
- * unbalanced or mis-nested tags.
- */
 class PreviousContextRoundChunk extends PromptElement<PreviousContextRoundChunkProps> {
 	render() {
 		const priority = computeRoundPriority(this.props.round, this.props.totalPreviousRounds);
@@ -174,10 +157,6 @@ export function renderRounds(rounds: readonly BGToolCallRound[]): string {
 	return lines.join('\n');
 }
 
-/**
- * Render a round into a stable, parseable text block. Used by the
- * prompt-tsx round chunk so the model sees a uniform shape per round.
- */
 export function renderBackgroundTodoRound(round: BGToolCallRound): string {
 	const lines: string[] = [`<round index="${round.index}">`];
 
@@ -208,13 +187,6 @@ export function renderBackgroundTodoRound(round: BGToolCallRound): string {
 	return lines.join('\n');
 }
 
- /*
- * Neutralize angle brackets in user-controllable text so it cannot
- * forge or close any of the tags emitted around the trajectory
- * (`<round>`, `<thinking>`, `<tool-calls>`, `<response>`,
- * `<previous-context>`, `<new-activity>`, `<full-trajectory>`,
- * `<previous-turn-todos>`).
- */
 function escapeForPromptTag(text: string): string {
 	return text.replace(/</g, '\u2039').replace(/>/g, '\u203A');
 }
@@ -223,16 +195,6 @@ function escapeInlineForPromptTag(text: string): string {
 	return escapeForPromptTag(text.replace(/\s+/g, ' ').trim());
 }
 
-/**
- * Compute a prompt-tsx priority for a previous-context round so newer
- * rounds survive budget pressure ahead of older history. Values are
- * clamped to the [700, 879] range so they stay below the system
- * message (1000), user request (950), current todos (900), and the
- * new-activity block (880). New-activity rounds are rendered without
- * pruning so they don't need a priority helper.
- */
 export function computeRoundPriority(round: BGToolCallRound, totalPreviousRounds: number): number {
-	// 700 base + monotonic index boost so newer context survives longer,
-	// capped strictly below the new-activity priority.
 	return Math.min(879, 700 + Math.min(round.index, totalPreviousRounds));
 }

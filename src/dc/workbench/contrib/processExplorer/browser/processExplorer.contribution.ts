@@ -22,7 +22,6 @@ import { RemoteNameContext } from '../../../common/contextkeys.js';
 import { IsWebContext } from '../../../../platform/contextkey/common/contextkeys.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 
-//#region --- process explorer
 
 class ProcessExplorerEditorContribution implements IWorkbenchContribution {
 
@@ -76,11 +75,9 @@ class ProcessExplorerEditorInputSerializer implements IEditorSerializer {
 
 Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEditorSerializer(ProcessExplorerEditorInput.ID, ProcessExplorerEditorInputSerializer);
 
-//#endregion
 
-//#region --- process explorer commands
 
-const supported = ContextKeyExpr.or(IsWebContext.negate(), RemoteNameContext.notEqualsTo('')); // only on desktop or in web with a remote
+const supported = ContextKeyExpr.or(IsWebContext.negate(), RemoteNameContext.notEqualsTo(''));
 
 interface IProcessExplorerWindowState {
 	readonly bounds: Partial<IRectangle>;
@@ -170,4 +167,3 @@ MenuRegistry.appendMenuItem(MenuId.MenubarHelpMenu, {
 	order: 2
 });
 
-//#endregion

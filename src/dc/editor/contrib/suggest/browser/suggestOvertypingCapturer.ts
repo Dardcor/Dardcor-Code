@@ -25,7 +25,6 @@ export class OvertypingCapturer implements IDisposable {
 			const selections = editor.getSelections();
 			const selectionsLength = selections.length;
 
-			// Check if it will overtype any selections
 			let willOvertype = false;
 			for (let i = 0; i < selectionsLength; i++) {
 				if (!selections[i].isEmpty()) {
@@ -44,7 +43,6 @@ export class OvertypingCapturer implements IDisposable {
 			const model = editor.getModel();
 			for (let i = 0; i < selectionsLength; i++) {
 				const selection = selections[i];
-				// Check for overtyping capturer restrictions
 				if (model.getValueLengthInRange(selection) > OvertypingCapturer._maxSelectionLength) {
 					return;
 				}

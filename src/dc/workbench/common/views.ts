@@ -58,77 +58,31 @@ type OpenCommandActionDescriptor = {
 	readonly keybindings?: IKeybindings & { when?: ContextKeyExpression };
 };
 
-/**
- * Specifies in which window a view or view container should be visible.
- */
 export const enum WindowEnablement {
-	/**
-	 * Visible only in the editor window
-	 */
 	Editor = 1,
-	/**
-	 * Visible only in agent sessions window
-	 */
 	Sessions = 2,
-	/**
-	 * Visible in both editor and agent sessions windows
-	 */
 	Both = 3,
 }
 
-/**
- * View Container Contexts
- */
 
 export interface IViewContainerDescriptor {
 
-	/**
-	 * The id of the view container
-	 */
 	readonly id: string;
 
-	/**
-	 * The title of the view container
-	 */
 	readonly title: ILocalizedString;
 
-	/**
-	 * Icon representation of the View container
-	 */
 	readonly icon?: ThemeIcon | URI;
 
-	/**
-	 * Order of the view container.
-	 */
 	readonly order?: number;
 
-	/**
-	 * IViewPaneContainer Ctor to instantiate
-	 */
 	readonly ctorDescriptor: SyncDescriptor<IViewPaneContainer>;
 
-	/**
-	 * Descriptor for open view container command
-	 * If not provided, view container info (id, title) is used.
-	 *
-	 * Note: To prevent registering open command, use `doNotRegisterOpenCommand` flag while registering the view container
-	 */
 	readonly openCommandActionDescriptor?: OpenCommandActionDescriptor;
 
-	/**
-	 * Storage id to use to store the view container state.
-	 * If not provided, it will be derived.
-	 */
 	readonly storageId?: string;
 
-	/**
-	 * If enabled, view container is not shown if it has no active views.
-	 */
 	readonly hideIfEmpty?: boolean;
 
-	/**
-	 * Id of the extension that contributed the view container
-	 */
 	readonly extensionId?: ExtensionIdentifier;
 
 	readonly alwaysUseContainerInfo?: boolean;
@@ -137,68 +91,28 @@ export interface IViewContainerDescriptor {
 
 	readonly rejectAddedViews?: boolean;
 
-	/**
-	 * Specifies in which window this view container should be enabled.
-	 * Defaults to WindowEnablement.Editor
-	 */
 	readonly windowEnablement?: WindowEnablement;
 
 	requestedIndex?: number;
 }
 
 export interface IViewContainersRegistry {
-	/**
-	 * An event that is triggered when a view container is registered.
-	 */
 	readonly onDidRegister: Event<{ viewContainer: ViewContainer; viewContainerLocation: ViewContainerLocation }>;
 
-	/**
-	 * An event that is triggered when a view container is deregistered.
-	 */
 	readonly onDidDeregister: Event<{ viewContainer: ViewContainer; viewContainerLocation: ViewContainerLocation }>;
 
-	/**
-	 * All registered view containers
-	 */
 	readonly all: ViewContainer[];
 
-	/**
-	 * Registers a view container to given location.
-	 * No op if a view container is already registered.
-	 *
-	 * @param viewContainerDescriptor descriptor of view container
-	 * @param location location of the view container
-	 *
-	 * @returns the registered ViewContainer.
-	 */
 	registerViewContainer(viewContainerDescriptor: IViewContainerDescriptor, location: ViewContainerLocation, options?: { isDefault?: boolean; doNotRegisterOpenCommand?: boolean }): ViewContainer;
 
-	/**
-	 * Deregisters the given view container
-	 * No op if the view container is not registered
-	 */
 	deregisterViewContainer(viewContainer: ViewContainer): void;
 
-	/**
-	 * Returns the view container with given id.
-	 *
-	 * @returns the view container with given id.
-	 */
 	get(id: string): ViewContainer | undefined;
 
-	/**
-	 * Returns all view containers in the given location
-	 */
 	getViewContainers(location: ViewContainerLocation): ViewContainer[];
 
-	/**
-	 * Returns the view container location
-	 */
 	getViewContainerLocation(container: ViewContainer): ViewContainerLocation;
 
-	/**
-	 * Return the default view containers from the given location
-	 */
 	getDefaultViewContainers(location: ViewContainerLocation): ViewContainer[];
 }
 
@@ -307,14 +221,12 @@ export interface IViewDescriptor {
 
 	readonly singleViewPaneContainerTitle?: string;
 
-	// Applies only to newly created views
 	readonly hideByDefault?: boolean;
 
 	readonly workspace?: boolean;
 
 	readonly focusCommand?: { id: string; keybindings?: IKeybindings };
 
-	// For contributed remote explorer views
 	readonly group?: string;
 
 	readonly remoteAuthority?: string | string[];
@@ -324,10 +236,6 @@ export interface IViewDescriptor {
 
 	readonly accessibilityHelpContent?: MarkdownString;
 
-	/**
-	 * Specifies in which window this view should be visible.
-	 * Defaults to WindowEnablement.Workbench (main workbench only).
-	 */
 	readonly windowEnablement?: WindowEnablement;
 }
 
@@ -394,10 +302,6 @@ export enum ViewContentGroups {
 
 export interface IViewContentDescriptor {
 	readonly content: string;
-	/**
-	 * Whether to render all but the first button as secondary
-	 * if there are buttons in the `content` property.
-	 */
 	readonly renderSecondaryButtons?: boolean;
 	readonly when?: ContextKeyExpression | 'default';
 	readonly group?: string;
@@ -613,7 +517,6 @@ export interface IViewDescriptorService {
 
 	readonly _serviceBrand: undefined;
 
-	// ViewContainers
 	readonly viewContainers: ReadonlyArray<ViewContainer>;
 	readonly onDidChangeViewContainers: Event<{ added: ReadonlyArray<{ container: ViewContainer; location: ViewContainerLocation }>; removed: ReadonlyArray<{ container: ViewContainer; location: ViewContainerLocation }> }>;
 
@@ -631,7 +534,6 @@ export interface IViewDescriptorService {
 	getViewContainerBadgeEnablementState(id: string): boolean;
 	setViewContainerBadgeEnablementState(id: string, badgesEnabled: boolean): void;
 
-	// Views
 	getViewDescriptorById(id: string): IViewDescriptor | null;
 	getViewContainerByViewId(id: string): ViewContainer | null;
 	getDefaultContainerById(id: string): ViewContainer | null;
@@ -648,7 +550,6 @@ export interface IViewDescriptorService {
 	reset(): void;
 }
 
-// Custom views
 
 export interface ITreeView extends IDisposable {
 
@@ -690,9 +591,8 @@ export interface ITreeView extends IDisposable {
 
 	readonly onDidChangeCheckboxState: Event<readonly ITreeItem[]>;
 
-	readonly container: unknown /* HTMLElement */ | undefined;
+	readonly container: unknown | undefined;
 
-	// checkboxesChanged is a subset of treeItems
 	refresh(treeItems?: readonly ITreeItem[], checkboxesChanged?: readonly ITreeItem[]): Promise<void>;
 
 	setVisibility(visible: boolean): void;
@@ -715,7 +615,7 @@ export interface ITreeView extends IDisposable {
 
 	setFocus(item?: ITreeItem): void;
 
-	show(container: unknown /* HTMLElement */): void;
+	show(container: unknown ): void;
 }
 
 export interface IRevealOptions {
@@ -825,7 +725,6 @@ export class ResolvableTreeItem implements ITreeItem {
 			if (resolve && !this.resolved) {
 				const resolvedItem = await resolve(token);
 				if (resolvedItem) {
-					// Resolvable elements. Currently tooltip and command.
 					this.tooltip = this.tooltip ?? resolvedItem.tooltip;
 					this.command = this.command ?? resolvedItem.command;
 				}

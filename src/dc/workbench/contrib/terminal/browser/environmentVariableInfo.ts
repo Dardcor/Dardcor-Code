@@ -87,7 +87,7 @@ export class EnvironmentVariableInfoChangesActive implements IEnvironmentVariabl
 		return {
 			id: TerminalStatus.EnvironmentVariableInfoChangesActive,
 			severity: Severity.Info,
-			tooltip: undefined, // The action is present when details aren't shown
+			tooltip: undefined,
 			detailedTooltip: this._getInfo(scope),
 			hoverActions: this._getActions(scope)
 		};
@@ -106,7 +106,6 @@ function getMergedDescription(collection: IMergedEnvironmentVariableCollection, 
 		}
 		const workspaceDescription = workspaceDescriptions.get(ext);
 		if (workspaceDescription) {
-			// Only show '(workspace)' suffix if there is already a description for the extension.
 			const workspaceSuffix = globalDescription ? ` (${localize('ScopedEnvironmentContributionInfo', 'workspace')})` : '';
 			message.push(`\n- \`${getExtensionName(ext, extensionService)}${workspaceSuffix}\``);
 			message.push(`: ${workspaceDescription}`);

@@ -197,21 +197,15 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 			await this.progressService.withProgress(resumeProgressOptions, async (progress) => await this.resumeEditSession(this.environmentService.editSessionId, undefined, undefined, undefined, progress).finally(() => this.environmentService.editSessionId = undefined));
 		} else if (shouldAutoResumeOnReload && this.editSessionsStorageService.isSignedIn) {
 			this.logService.info('Resuming cloud changes, reason: cloud changes enabled...');
-			// Attempt to resume edit session based on edit workspace identifier
-			// Note: at this point if the user is not signed into edit sessions,
-			// we don't want them to be prompted to sign in and should just return early
 			await this.progressService.withProgress(resumeProgressOptions, async (progress) => await this.resumeEditSession(undefined, true, undefined, undefined, progress));
 		} else if (shouldAutoResumeOnReload) {
-			// The application has previously launched via a protocol URL Continue On flow
 			const hasApplicationLaunchedFromContinueOnFlow = this.storageService.getBoolean(EditSessionsContribution.APPLICATION_LAUNCHED_VIA_CONTINUE_ON_STORAGE_KEY, StorageScope.APPLICATION, false);
 			this.logService.info(`Prompting to enable cloud changes, has application previously launched from Continue On flow: ${hasApplicationLaunchedFromContinueOnFlow}`);
 
 			const handlePendingEditSessions = () => {
-				// display a badge in the accounts menu but do not prompt the user to sign in again
 				this.logService.info('Showing badge to enable cloud changes in accounts menu...');
 				this.updateAccountsMenuBadge();
 				this.pendingEditSessionsContext.set(true);
-				// attempt a resume if we are in a pending state and the user just signed in
 				const disposable = this.editSessionsStorageService.onDidSignIn(async () => {
 					disposable.dispose();
 					this.logService.info('Showing badge to enable cloud changes in accounts menu succeeded, resuming cloud changes...');
@@ -223,10 +217,8 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 
 			if ((this.environmentService.continueOn !== undefined) &&
 				!this.editSessionsStorageService.isSignedIn &&
-				// and user has not yet been prompted to sign in on this machine
 				hasApplicationLaunchedFromContinueOnFlow === false
 			) {
-				// store the fact that we prompted the user
 				this.storageService.store(EditSessionsContribution.APPLICATION_LAUNCHED_VIA_CONTINUE_ON_STORAGE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
 				this.logService.info('Prompting to enable cloud changes...');
 				await this.editSessionsStorageService.initialize('read');
@@ -237,7 +229,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 					handlePendingEditSessions();
 				}
 			} else if (!this.editSessionsStorageService.isSignedIn &&
-				// and user has been prompted to sign in on this machine
 				hasApplicationLaunchedFromContinueOnFlow === true
 			) {
 				handlePendingEditSessions();
@@ -344,7 +335,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 					hashedId?: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The hash of the stored edit session id, for correlating success of stores and resumes.' };
 				};
 
-				// First ask the user to pick a destination, if necessary
 				let uri: URI | 'noDestinationUri' | undefined = workspaceUri;
 				if (!destination && !uri) {
 					destination = await that.pickContinueEditSessionDestination();
@@ -354,10 +344,8 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 					}
 				}
 
-				// Determine if we need to store an edit session, asking for edit session auth if necessary
 				const shouldStoreEditSession = await that.shouldContinueOnWithEditSession();
 
-				// Run the store action to get back a ref
 				let ref: string | undefined;
 				if (shouldStoreEditSession) {
 					type ContinueWithEditSessionEvent = {};
@@ -392,7 +380,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 					}
 				}
 
-				// Append the ref to the URI
 				uri = destination ? await that.resolveDestination(destination) : uri;
 				if (uri === undefined) {
 					return;
@@ -404,11 +391,9 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 						query: uri.query.length > 0 ? (uri.query + `&${queryParamName}=${encodedRef}&continueOn=1`) : `${queryParamName}=${encodedRef}&continueOn=1`
 					});
 
-					// Open the URI
 					that.logService.info(`Opening ${uri.toString()}`);
 					await that.openerService.open(uri, { openExternal: true });
 				} else if ((!shouldStoreEditSession || ref === undefined) && uri !== 'noDestinationUri') {
-					// Open the URI without an edit session ref
 					that.logService.info(`Opening ${uri.toString()}`);
 					await that.openerService.open(uri, { openExternal: true });
 				} else if (ref === undefined && shouldStoreEditSession) {
@@ -488,11 +473,8 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 	}
 
 	async resumeEditSession(ref?: string, silent?: boolean, forceApplyUnrelatedChange?: boolean, applyPartialMatch?: boolean, progress?: IProgress<IProgressStep>, serializedData?: string): Promise<void> {
-		// Wait for the remote environment to become available, if any
 		await this.remoteAgentService.getEnvironment();
 
-		// Edit sessions are not currently supported in empty workspaces
-		// https://github.com/microsoft/vscode/issues/159220
 		if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 			return;
 		}
@@ -541,9 +523,7 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 				return;
 			}
 
-			// TODO@joyceerhl Provide the option to diff files which would be overwritten by edit session contents
 			if (conflictingChanges.length > 0) {
-				// Allow to show edit sessions
 
 				const { confirmed } = await this.dialogService.confirm({
 					type: Severity.Warning,
@@ -591,7 +571,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 			let folderRoot: IWorkspaceFolder | undefined;
 
 			if (folder.canonicalIdentity) {
-				// Look for an edit session identifier that we can use
 				for (const f of workspaceFolders) {
 					const identity = await this.editSessionIdentityService.getEditSessionIdentifier(f, cancellationTokenSource.token);
 					this.logService.info(`Matching identity ${identity} against edit session folder identity ${folder.canonicalIdentity}...`);
@@ -610,7 +589,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 							this.configurationService.getValue('workbench.experimental.cloudChanges.partialMatches.enabled') === true
 						) {
 							if (!applyPartialMatch) {
-								// Surface partially matching edit session
 								this.notificationService.prompt(
 									Severity.Info,
 									localize('editSessionPartialMatch', 'You have pending working changes in the cloud for this workspace. Would you like to resume them?'),
@@ -687,11 +665,8 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 		let editSessionSize = 0;
 		let hasEdits = false;
 
-		// Save all saveable editors before building edit session contents
 		await this.editorService.saveAll();
 
-		// Do a first pass over all repositories to ensure that the edit session identity is created for each.
-		// This may change the working changes that need to be stored later
 		const createdEditSessionIdentities = new ResourceSet();
 		for (const repository of this.scmService.repositories) {
 			const changedResources = this.getChangedResources(repository);
@@ -709,8 +684,7 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 		}
 
 		for (const repository of this.scmService.repositories) {
-			// Look through all resource groups and compute which files were added/modified/deleted
-			const trackedUris = this.getChangedResources(repository); // A URI might appear in more than one resource group
+			const trackedUris = this.getChangedResources(repository);
 
 			const workingChanges: Change[] = [];
 
@@ -729,7 +703,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 				name = name ?? workspaceFolder.name;
 				const relativeFilePath = relativePath(workspaceFolder.uri, uri) ?? uri.path;
 
-				// Only deal with file contents for now
 				try {
 					if (!(await this.fileService.stat(uri)).isFile) {
 						continue;
@@ -749,7 +722,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 
 					workingChanges.push({ type: ChangeType.Addition, fileType: FileType.File, contents: contents, relativeFilePath: relativeFilePath });
 				} else {
-					// Assume it's a deletion
 					workingChanges.push({ type: ChangeType.Deletion, fileType: FileType.File, contents: undefined, relativeFilePath: relativeFilePath });
 				}
 			}
@@ -759,11 +731,9 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 				canonicalIdentity = await this.editSessionIdentityService.getEditSessionIdentifier(workspaceFolder, cancellationToken);
 			}
 
-			// TODO@joyceerhl debt: don't store working changes as a child of the folder
 			folders.push({ workingChanges, name: name ?? '', canonicalIdentity: canonicalIdentity ?? undefined, absoluteUri: workspaceFolder?.uri.toString() });
 		}
 
-		// Store contributed workspace state
 		await this.workspaceStateSynchronizer?.sync();
 
 		if (!hasEdits) {
@@ -793,7 +763,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 			if (ex instanceof UserDataSyncStoreError) {
 				switch (ex.code) {
 					case UserDataSyncErrorCode.TooLarge:
-						// Uploading a payload can fail due to server size limits
 						this.telemetryService.publicLog2<UploadFailedEvent, UploadFailedClassification>('editSessions.upload.failed', { reason: 'TooLarge' });
 						this.notificationService.error(localize('payload too large', 'Your working changes exceed the size limit and cannot be stored.'));
 						break;
@@ -812,7 +781,7 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 		return repository.provider.groups.reduce((resources, resourceGroups) => {
 			resourceGroups.resources.forEach((resource) => resources.add(resource.sourceUri));
 			return resources;
-		}, new Set<URI>()); // A URI might appear in more than one resource group
+		}, new Set<URI>());
 	}
 
 	private hasEditSession() {
@@ -831,18 +800,15 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 			outcome: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The outcome of checking whether we can store an edit session as part of the Continue On flow.' };
 		};
 
-		// If the user is already signed in, we should store edit session
 		if (this.editSessionsStorageService.isSignedIn) {
 			return this.hasEditSession();
 		}
 
-		// If the user has been asked before and said no, don't use edit sessions
 		if (this.configurationService.getValue(useEditSessionsWithContinueOn) === 'off') {
 			this.telemetryService.publicLog2<EditSessionsAuthCheckEvent, EditSessionsAuthCheckClassification>('continueOn.editSessions.canStore.outcome', { outcome: 'disabledEditSessionsViaSetting' });
 			return false;
 		}
 
-		// Prompt the user to use edit sessions if they currently could benefit from using it
 		if (this.hasEditSession()) {
 			const disposables = new DisposableStore();
 			const quickpick = disposables.add(this.quickInputService.createQuickPick<IQuickPickItem>());
@@ -880,7 +846,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 		return false;
 	}
 
-	//#region Continue Edit Session extension contribution point
 
 	private registerContributedEditSessionOptions() {
 		continueEditSessionExtPoint.setHandler(extensions => {
@@ -1038,9 +1003,6 @@ export class EditSessionsContribution extends Disposable implements IWorkbenchCo
 		try {
 			const uri = await this.commandService.executeCommand(command);
 
-			// Some continue on commands do not return a URI
-			// to support extensions which want to be in control
-			// of how the destination is opened
 			if (uri === undefined) {
 				this.telemetryService.publicLog2<EvaluateContinueOnDestinationEvent, EvaluateContinueOnDestinationClassification>('continueOn.openDestination.outcome', { selection: command, outcome: 'noDestinationUri' });
 				return 'noDestinationUri';
@@ -1147,7 +1109,6 @@ const continueEditSessionExtPoint = ExtensionsRegistry.registerExtensionPoint<IC
 	}
 });
 
-//#endregion
 
 const workbenchRegistry = Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench);
 workbenchRegistry.registerWorkbenchContribution(EditSessionsContribution, LifecyclePhase.Restored);

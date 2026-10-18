@@ -40,7 +40,6 @@ import { ClaudeToolNames } from '../claudeTools';
 import { IClaudePlanFileTracker } from '../claudePlanFileTracker';
 import { IClaudeSessionStateService } from '../claudeSessionStateService';
 
-// #region Test helpers
 
 const TEST_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' as `${string}-${string}-${string}-${string}-${string}`;
 const TEST_SESSION = 'test-session';
@@ -117,11 +116,6 @@ function createState(): MessageHandlerState {
 	};
 }
 
-/**
- * Test stub that mimics the real `extractToolParameters` for the small set of
- * Claude tool inputs exercised in these tests. Keeps the test in the `common/`
- * layer (the real implementation lives in `node/` and cannot be imported here).
- */
 function stubExtractToolParameters(toolName: string, input: unknown): { attrs: Record<string, string>; gatedAttrs: Record<string, string> } {
 	const attrs: Record<string, string> = {};
 	const gatedAttrs: Record<string, string> = {};
@@ -155,10 +149,6 @@ function createMockSpan(): ISpanHandle {
 	};
 }
 
-/**
- * Creates a minimal BetaUsage satisfying the SDK type.
- * New required fields from SDK upgrades get added here once.
- */
 function makeBetaUsage(): Anthropic.Beta.Messages.BetaUsage {
 	return {
 		input_tokens: 10,
@@ -174,9 +164,6 @@ function makeBetaUsage(): Anthropic.Beta.Messages.BetaUsage {
 	};
 }
 
-/**
- * Creates a NonNullableUsage (all fields non-null) for SDKResult factories.
- */
 function makeNonNullableUsage(): NonNullableUsage {
 	return {
 		input_tokens: 10,
@@ -339,9 +326,7 @@ function makeHookProgress(
 	};
 }
 
-// #endregion
 
-// #region messageKey
 
 describe('messageKey', () => {
 	it('returns type for non-system messages', () => {
@@ -356,9 +341,7 @@ describe('messageKey', () => {
 	});
 });
 
-// #endregion
 
-// #region dispatchMessage
 
 describe('dispatchMessage', () => {
 	let services: TestServices;
@@ -376,7 +359,7 @@ describe('dispatchMessage', () => {
 	it('dispatches assistant messages', () => {
 		const message = makeAssistantMessage([{ type: 'text', text: 'Hello', citations: null }]);
 		const result = dispatchMessage(accessor, message, TEST_SESSION_ID, request, state);
-		expect(result).toBeUndefined(); // assistant handler returns void
+		expect(result).toBeUndefined();
 		expect(request.stream.markdown).toHaveBeenCalledWith('Hello');
 	});
 
@@ -398,9 +381,7 @@ describe('dispatchMessage', () => {
 	});
 });
 
-// #endregion
 
-// #region handleAssistantMessage
 
 describe('handleAssistantMessage', () => {
 	let services: TestServices;
@@ -488,11 +469,6 @@ describe('handleAssistantMessage', () => {
 	});
 
 	it('records plan-directory writes on the plan file tracker', () => {
-		// The plan file tracker decides whether the path actually lives in
-		// `~/.claude/plans/`; the dispatch layer's job is just to forward
-		// every affected URI for an edit tool. Two writes — one inside the
-		// plan dir and one outside — should both be forwarded so the
-		// tracker can decide.
 		handleAssistantMessage(
 			makeAssistantMessage([
 				{ type: 'tool_use', id: 'w1', name: ClaudeToolNames.Write, input: { file_path: '/home/testuser/.claude/plans/plan.md', content: '# plan' } },
@@ -504,9 +480,6 @@ describe('handleAssistantMessage', () => {
 		expect(services.planFileTracker.recordIfPlanFile).toHaveBeenCalledTimes(2);
 		const calls = services.planFileTracker.recordIfPlanFile.mock.calls;
 		expect(calls[0][0]).toBe(TEST_SESSION_ID);
-		// Dispatch forwards `uri.fsPath`, which uses backslashes on Windows;
-		// compare against the same `URI.file(...).fsPath` round-trip rather
-		// than the raw posix string to keep the assertion platform-agnostic.
 		expect(calls[0][1]).toBe(URI.file('/home/testuser/.claude/plans/plan.md').fsPath);
 		expect(calls[1][1]).toBe(URI.file('/tmp/other.md').fsPath);
 	});
@@ -525,9 +498,6 @@ describe('handleAssistantMessage', () => {
 		const msg = makeAssistantMessage([{ type: 'text', text: 'error', citations: null }]);
 		(msg as SDKAssistantMessage & { error: string }).error = 'billing_error';
 		handleAssistantMessage(msg, accessor, TEST_SESSION_ID, request, state);
-		// Assistant message error tracking is no longer used for quota detection;
-		// the proxy embeds error codes in the result text instead.
-		// Verify the handler doesn't crash on messages with error fields.
 		expect(request.stream.markdown).toHaveBeenCalledWith('error');
 	});
 
@@ -539,9 +509,7 @@ describe('handleAssistantMessage', () => {
 	});
 });
 
-// #endregion
 
-// #region handleUserMessage
 
 describe('handleUserMessage', () => {
 	let services: TestServices;
@@ -644,7 +612,6 @@ describe('handleUserMessage', () => {
 			parent_tool_use_id: null,
 			session_id: TEST_SESSION,
 		};
-		// Should not throw
 		handleUserMessage(message, accessor, TEST_SESSION_ID, request, state);
 	});
 
@@ -772,9 +739,7 @@ describe('handleUserMessage', () => {
 	});
 });
 
-// #endregion
 
-// #region handleCompactBoundary
 
 describe('handleCompactBoundary', () => {
 	it('streams compact notification markdown', () => {
@@ -784,9 +749,7 @@ describe('handleCompactBoundary', () => {
 	});
 });
 
-// #endregion
 
-// #region handleHookStarted / handleHookResponse
 
 describe('handleHookStarted', () => {
 	let services: TestServices;
@@ -830,7 +793,7 @@ describe('handleHookResponse', () => {
 
 		handleHookResponse(makeHookResponse('hook-1', 'success'), accessor, request, state);
 
-		expect(mockSpan.setStatus).toHaveBeenCalledWith(expect.anything()); // SpanStatusCode.OK
+		expect(mockSpan.setStatus).toHaveBeenCalledWith(expect.anything());
 		expect(mockSpan.end).toHaveBeenCalled();
 		expect(state.otelHookSpans.has('hook-1')).toBe(false);
 	});
@@ -899,16 +862,13 @@ describe('handleHookResponse', () => {
 	});
 
 	it('handles response without a matching started span gracefully', () => {
-		// No span in otelHookSpans — should not throw
 		handleHookResponse(
 			makeHookResponse('nonexistent', 'error', { stderr: 'some error', hook_name: 'my-hook', hook_event: 'PreToolUse' }),
 			accessor, request, state,
 		);
-		// Still surfaces the error via hookProgress
 		expect(request.stream.hookProgress).toHaveBeenCalledWith('PreToolUse', expect.stringContaining('some error'));
 	});
 
-	// #region Exit code handling
 
 	it('exit code 2 — blocking error via hookProgress with stderr', () => {
 		handleHookResponse(
@@ -928,7 +888,6 @@ describe('handleHookResponse', () => {
 			}),
 			accessor, request, state,
 		);
-		// Should use stderr, not JSON
 		expect(request.stream.hookProgress).toHaveBeenCalledWith('PostToolUse', expect.stringContaining('real error'));
 	});
 
@@ -948,9 +907,7 @@ describe('handleHookResponse', () => {
 		expect(request.stream.hookProgress).not.toHaveBeenCalled();
 	});
 
-	// #endregion
 
-	// #region JSON output parsing (exit code 0)
 
 	it('exit code 0 — JSON with continue:false calls hookProgress with stopReason', () => {
 		handleHookResponse(
@@ -1034,12 +991,9 @@ describe('handleHookResponse', () => {
 		expect(request.stream.hookProgress).not.toHaveBeenCalled();
 	});
 
-	// #endregion
 });
 
-// #endregion
 
-// #region handleHookProgress
 
 describe('handleHookProgress', () => {
 	let services: TestServices;
@@ -1087,9 +1041,7 @@ describe('handleHookProgress', () => {
 	});
 });
 
-// #endregion
 
-// #region parseHookJsonOutput
 
 describe('parseHookJsonOutput', () => {
 	it('parses valid JSON with all fields', () => {
@@ -1160,16 +1112,12 @@ describe('parseHookJsonOutput', () => {
 			decision: 'allow',
 			systemMessage: 'hello',
 		}));
-		// decision: 'allow' fails vLiteral('block'), but systemMessage succeeds
 		expect(result).toEqual({ systemMessage: 'hello' });
 	});
 });
 
-// #endregion
 
-// #region handleResultMessage
 
-/** Encodes a ChatFetchError the same way the proxy does: prefix + base64(JSON). */
 function encodeProxyError(error: ChatFetchError): string {
 	return `${PROXY_ERROR_PREFIX}${Buffer.from(JSON.stringify(error)).toString('base64')}`;
 }
@@ -1279,9 +1227,7 @@ describe('handleResultMessage', () => {
 	});
 });
 
-// #endregion
 
-// #region ALL_KNOWN_MESSAGE_KEYS coverage
 
 describe('ALL_KNOWN_MESSAGE_KEYS', () => {
 	it('contains entries for all non-system SDKMessage type values', () => {
@@ -1308,4 +1254,3 @@ describe('ALL_KNOWN_MESSAGE_KEYS', () => {
 	});
 });
 
-// #endregion

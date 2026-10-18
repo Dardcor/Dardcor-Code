@@ -57,7 +57,6 @@ suite('NotebookExecutionService', () => {
 
 		instantiationService.stub(INotebookLoggingService, new class extends mock<INotebookLoggingService>() {
 			override debug(category: string, output: string): void {
-				//
 			}
 		});
 
@@ -93,12 +92,7 @@ suite('NotebookExecutionService', () => {
 		return _withTestNotebook(cells, (editor, viewModel, disposables) => callback(viewModel, viewModel.notebookDocument, disposables));
 	}
 
-	// test('ctor', () => {
-	// 	instantiationService.createInstance(NotebookEditorKernelManager, { activeKernel: undefined, viewModel: undefined });
-	// 	const contextKeyService = instantiationService.get(IContextKeyService);
 
-	// 	assert.strictEqual(contextKeyService.getContextKeyValue(NOTEBOOK_KERNEL_COUNT.key), 0);
-	// });
 
 	test('cell is not runnable when no kernel is selected', async () => {
 		await withTestNotebook(

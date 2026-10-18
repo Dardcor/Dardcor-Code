@@ -46,17 +46,15 @@ line 5
 line 6
 line 7`;
 		const snapshot = createSnapshot(content);
-		const position = new Position(3, 2); // after "li" in "line 4"
+		const position = new Position(3, 2);
 
 		const element = new FileContextElement({ snapshot, position });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
 
 		const output = typeof rendered === 'string' ? rendered : JSON.stringify(rendered) ?? '';
 		expect(output).toContain('$CURSOR$');
-		// Should include lines before and after cursor
 		expect(output).toContain('line 2');
 		expect(output).toContain('line 3');
-		// Cursor position (3, 2) splits "line 4" into "li" + "$CURSOR$" + "ne 4"
 		expect(output).toContain('li$CURSOR$ne 4');
 		expect(output).toContain('line 5');
 		expect(output).toContain('line 6');
@@ -69,7 +67,7 @@ line 3
 line 4
 line 5`;
 		const snapshot = createSnapshot(content);
-		const position = new Position(4, 6); // end of "line 5"
+		const position = new Position(4, 6);
 
 		const element = new FileContextElement({ snapshot, position });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
@@ -89,7 +87,7 @@ line 4
 
 `;
 		const snapshot = createSnapshot(content);
-		const position = new Position(2, 0); // start of "line 3"
+		const position = new Position(2, 0);
 
 		const element = new FileContextElement({ snapshot, position });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
@@ -103,7 +101,7 @@ line 4
 	test('single line file', async () => {
 		const content = `only one line`;
 		const snapshot = createSnapshot(content);
-		const position = new Position(0, 5); // middle of line
+		const position = new Position(0, 5);
 
 		const element = new FileContextElement({ snapshot, position });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
@@ -115,7 +113,7 @@ line 4
 	test('cursor position splits text correctly', async () => {
 		const content = `hello world`;
 		const snapshot = createSnapshot(content);
-		const position = new Position(0, 6); // after "hello "
+		const position = new Position(0, 6);
 
 		const element = new FileContextElement({ snapshot, position });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
@@ -134,7 +132,7 @@ line 3
 line 4
 line 5`;
 		const snapshot = createSnapshot(content);
-		const selection = new Range(1, 0, 1, 6); // "line 2"
+		const selection = new Range(1, 0, 1, 6);
 
 		const element = new FileSelectionElement({ snapshot, selection });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
@@ -152,7 +150,7 @@ line 3
 line 4
 line 5`;
 		const snapshot = createSnapshot(content);
-		const selection = new Range(1, 0, 3, 6); // "line 2" through "line 4"
+		const selection = new Range(1, 0, 3, 6);
 
 		const element = new FileSelectionElement({ snapshot, selection });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
@@ -170,14 +168,12 @@ line 5`;
 line 2
 line 3`;
 		const snapshot = createSnapshot(content);
-		// Select from middle of line 2 to middle of line 2 (partial)
 		const selection = new Range(1, 2, 1, 4);
 
 		const element = new FileSelectionElement({ snapshot, selection });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
 
 		const output = typeof rendered === 'string' ? rendered : JSON.stringify(rendered) ?? '';
-		// Should include the full line, not just "ne"
 		expect(output).toContain('line 2');
 	});
 
@@ -216,14 +212,12 @@ line 3`;
 second line here
 third line here`;
 		const snapshot = createSnapshot(content);
-		// Select from middle of "first" to middle of "second"
 		const selection = new Range(0, 6, 1, 7);
 
 		const element = new FileSelectionElement({ snapshot, selection });
 		const rendered = await element.render(undefined, { tokenBudget: 1000, countTokens: () => Promise.resolve(0), endpoint: {} as any });
 
 		const output = typeof rendered === 'string' ? rendered : JSON.stringify(rendered) ?? '';
-		// Should include full lines
 		expect(output).toContain('first line here');
 		expect(output).toContain('second line here');
 		expect(output).not.toContain('third line here');
@@ -242,7 +236,6 @@ third line here`;
 	});
 });
 
-// --- Helpers for ToolCallRoundsElement tests
 
 function makeToolCall(id: string, name: string = 'replace_string_in_file', args: string = '{}') {
 	return { id, name, arguments: args };
@@ -293,7 +286,6 @@ suite('ToolCallRoundsElement', () => {
 			filepath: '/workspace/file.ts',
 		});
 		const output = JSON.stringify(await element.render());
-		// tool call id and result text both appear
 		expect(output).toContain('call-1');
 		expect(output).toContain('result-one');
 	});
@@ -319,7 +311,7 @@ suite('ToolCallRoundsElement', () => {
 			previousRounds: [makeRound(['call-1', 'error'])],
 			hasFailedEdits: true,
 			data: { document: doc.document, selection: new Range(0, 0, 0, 0) } as any,
-			documentVersionAtRequest: doc.document.version, // same version = no change
+			documentVersionAtRequest: doc.document.version,
 			isLargeFile: false,
 			selection: new Range(0, 0, 0, 0),
 			filepath: '/workspace/file.ts',
@@ -327,18 +319,17 @@ suite('ToolCallRoundsElement', () => {
 		const output = JSON.stringify(await element.render());
 		expect(output).toContain('feedback');
 		expect(output).toContain('No changes were made');
-		// should NOT include the file content block
 		expect(output).not.toContain('current file content');
 	});
 
 	test('hasFailedEdits: true + document changed + small file - feedback with full file content', async () => {
 		const doc = makeDocument('const x = 1;');
-		setDocText(doc, 'const x = 2;'); // bumps version
+		setDocText(doc, 'const x = 2;');
 		const element = new ToolCallRoundsElement({
 			previousRounds: [makeRound(['call-1', 'error'])],
 			hasFailedEdits: true,
 			data: { document: doc.document, selection: new Range(0, 0, 0, 0) } as any,
-			documentVersionAtRequest: doc.document.version - 1, // old version
+			documentVersionAtRequest: doc.document.version - 1,
 			isLargeFile: false,
 			selection: new Range(0, 0, 0, 0),
 			filepath: '/workspace/file.ts',
@@ -350,7 +341,6 @@ suite('ToolCallRoundsElement', () => {
 	});
 
 	test('hasFailedEdits: true + document changed + large file - feedback uses CroppedFileContentElement', async () => {
-		// Build a document that exceeds the large-file threshold
 		const lines = Array.from({ length: LARGE_FILE_LINE_THRESHOLD + 10 }, (_, i) => `let line${i} = ${i};`);
 		const content = lines.join('\n');
 		const doc = makeDocument(content);
@@ -368,8 +358,6 @@ suite('ToolCallRoundsElement', () => {
 		const output = JSON.stringify(await element.render());
 		expect(output).toContain('feedback');
 		expect(output).toContain('current file content');
-		// CroppedFileContentElement receives 'filepath' as a plain string prop (distinguishes it
-		// from the small-file path which uses CodeBlock with a 'code' prop instead)
 		expect(output).toContain('"filepath":"/workspace/file.ts"');
 	});
 
@@ -410,7 +398,6 @@ suite('ToolCallRoundsElement', () => {
 			filepath: '/workspace/file.ts',
 		});
 		const output = JSON.stringify(await element.render());
-		// The interleaving invariant: round1 call → round1 result → round2 call → round2 result
 		const idxCall1 = output.indexOf('round1-call');
 		const idxResult1 = output.indexOf('round1-result');
 		const idxCall2 = output.indexOf('round2-call');
@@ -419,11 +406,8 @@ suite('ToolCallRoundsElement', () => {
 		expect(idxResult1).toBeGreaterThan(-1);
 		expect(idxCall2).toBeGreaterThan(-1);
 		expect(idxResult2).toBeGreaterThan(-1);
-		// call comes before its own result
 		expect(idxCall1).toBeLessThan(idxResult1);
-		// round 1's result comes before round 2's call (not batched)
 		expect(idxResult1).toBeLessThan(idxCall2);
-		// round 2's call comes before its own result
 		expect(idxCall2).toBeLessThan(idxResult2);
 	});
 
@@ -445,10 +429,8 @@ suite('ToolCallRoundsElement', () => {
 			filepath: '/workspace/file.ts',
 		});
 		const output = JSON.stringify(await element.render());
-		// Both call ids appear
 		expect(output).toContain('read-call');
 		expect(output).toContain('edit-call');
-		// Both results appear
 		expect(output).toContain('file contents');
 		expect(output).toContain('edit result');
 	});

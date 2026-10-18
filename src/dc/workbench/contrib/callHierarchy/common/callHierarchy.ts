@@ -125,7 +125,6 @@ export class CallHierarchyModel {
 	}
 }
 
-// --- API command support
 
 const _models = new Map<string, CallHierarchyModel>();
 
@@ -149,7 +148,6 @@ CommandsRegistry.registerCommand('_executePrepareCallHierarchy', async (accessor
 		if (!model) {
 			return [];
 		}
-		//
 		_models.set(model.id, model);
 		_models.forEach((value, key, map) => {
 			if (map.size > 10) {
@@ -172,7 +170,6 @@ CommandsRegistry.registerCommand('_executeProvideIncomingCalls', async (_accesso
 	const [item] = args;
 	assertType(isCallHierarchyItemDto(item));
 
-	// find model
 	const model = _models.get(item._sessionId);
 	if (!model) {
 		return [];
@@ -185,7 +182,6 @@ CommandsRegistry.registerCommand('_executeProvideOutgoingCalls', async (_accesso
 	const [item] = args;
 	assertType(isCallHierarchyItemDto(item));
 
-	// find model
 	const model = _models.get(item._sessionId);
 	if (!model) {
 		return [];

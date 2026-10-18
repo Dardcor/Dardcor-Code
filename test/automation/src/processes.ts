@@ -22,10 +22,10 @@ export async function teardown(p: ChildProcess, logger: Logger, retryCount = 3):
 			return await promisify(treekill)(pid);
 		} catch (error) {
 			try {
-				process.kill(pid, 0); // throws an exception if the process doesn't exist anymore
+				process.kill(pid, 0);
 				logger.log(`Error tearing down process (pid: ${pid}, attempt: ${retries}): ${error}`);
 			} catch (error) {
-				return; // Expected when process is gone
+				return;
 			}
 		}
 	}

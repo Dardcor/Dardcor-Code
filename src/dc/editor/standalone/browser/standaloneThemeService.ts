@@ -138,7 +138,6 @@ class StandaloneTheme implements IStandaloneTheme {
 					encodedTokensColors = baseData.encodedTokensColors;
 				}
 			}
-			// Pick up default colors from `editor.foreground` and `editor.background` if available
 			const editorForeground = this.themeData.colors['editor.foreground'];
 			const editorBackground = this.themeData.colors['editor.background'];
 			if (editorForeground || editorBackground) {
@@ -161,7 +160,6 @@ class StandaloneTheme implements IStandaloneTheme {
 	}
 
 	public getTokenStyleMetadata(type: string, modifiers: string[], modelLanguage: string): ITokenStyle | undefined {
-		// use theme rules match
 		const style = this.tokenTheme._match([type].concat(modifiers).join('.'));
 		const metadata = style.metadata;
 		const foreground = TokenMetadata.getForeground(metadata);
@@ -267,7 +265,6 @@ export class StandaloneThemeService extends Disposable implements IStandaloneThe
 		}));
 
 		addMatchMediaChangeListener(mainWindow, '(forced-colors: active)', () => {
-			// Update theme selection for auto-detecting high contrast
 			this._onOSSchemeChanged();
 		});
 	}
@@ -315,7 +312,6 @@ export class StandaloneThemeService extends Disposable implements IStandaloneThe
 		if (!isBuiltinTheme(themeData.base) && !isBuiltinTheme(themeName)) {
 			throw new Error('Illegal theme base!');
 		}
-		// set or replace theme
 		this._knownThemes.set(themeName, new StandaloneTheme(themeName, themeData));
 
 		if (isBuiltinTheme(themeName)) {
@@ -326,7 +322,7 @@ export class StandaloneThemeService extends Disposable implements IStandaloneThe
 			});
 		}
 		if (this._theme.themeName === themeName) {
-			this.setTheme(themeName); // refresh theme
+			this.setTheme(themeName);
 		}
 	}
 
@@ -351,7 +347,6 @@ export class StandaloneThemeService extends Disposable implements IStandaloneThe
 
 	private _updateActualTheme(desiredTheme: IStandaloneTheme | undefined): void {
 		if (!desiredTheme || this._theme === desiredTheme) {
-			// Nothing to do
 			return;
 		}
 		this._theme = desiredTheme;
@@ -362,7 +357,6 @@ export class StandaloneThemeService extends Disposable implements IStandaloneThe
 		if (this._autoDetectHighContrast) {
 			const wantsHighContrast = mainWindow.matchMedia(`(forced-colors: active)`).matches;
 			if (wantsHighContrast !== isHighContrast(this._theme.type)) {
-				// switch to high contrast or non-high contrast but stick to dark or light
 				let newThemeName;
 				if (isDark(this._theme.type)) {
 					newThemeName = wantsHighContrast ? HC_BLACK_THEME_NAME : VS_DARK_THEME_NAME;
@@ -404,9 +398,6 @@ export class StandaloneThemeService extends Disposable implements IStandaloneThe
 		const colorMap = this._colorMapOverride || this._theme.tokenTheme.getColorMap();
 		ruleCollector.addRule(generateTokensCSSForColorMap(colorMap));
 
-		// If the OS has forced-colors active, disable forced color adjustment for
-		// Monaco editor elements so that VS Code's built-in high contrast themes
-		// (hc-black / hc-light) are used instead of the OS forcing system colors.
 		ruleCollector.addRule(`.monaco-editor, .monaco-diff-editor, .monaco-component { forced-color-adjust: none; }`);
 
 		this._themeCSS = cssRules.join('\n');

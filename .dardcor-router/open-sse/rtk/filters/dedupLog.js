@@ -1,4 +1,3 @@
-// Generic fallback: collapse consecutive duplicate lines + blank-line dedupe + hard line cap
 import { DEDUP_LINE_MAX } from "../constants.js";
 
 export function dedupLog(input) {

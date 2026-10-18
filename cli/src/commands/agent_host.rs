@@ -35,33 +35,10 @@ use super::output;
 use super::tunnels::fulfill_existing_tunnel_args;
 use super::CommandContext;
 
-/// Internal env var that flips `code agent host` into supervisor mode:
-/// the body that actually binds the TCP listener, writes the lockfile,
-/// owns the proxy sidecar, and manages the AH backend's lifecycle. The
-/// foreground `code agent host` invocation re-execs itself detached with
-/// this variable set so the supervisor outlives the user's terminal.
 const SUPERVISOR_ENV: &str = "VSCODE_AGENT_HOST_SUPERVISOR";
-/// Single-line sentinel the supervisor prints once the listener is bound,
-/// the lockfile is written, and the banner has been flushed. The
-/// foreground process watches for this on the supervisor's stdout, then
-/// either exits (`--detach`) or starts forwarding output.
 const SUPERVISOR_READY_LINE: &str = "__VSCODE_AGENT_HOST_READY__";
-/// Cap on how long the foreground waits for the supervisor to become
-/// ready before giving up and surfacing a failure.
 const SUPERVISOR_READY_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
-/// Runs the `code agent host` command. Acts in one of two modes:
-///
-/// * **Foreground** (the default): classifies the canonical lockfile and
-///   either prints info about the live supervisor (`Reuse`), or daemonizes
-///   a new supervisor child (`SpawnFresh`) and either exits (`--detach`)
-///   or follows the supervisor's stdout until Ctrl-C.
-///
-/// * **Supervisor** (when [`SUPERVISOR_ENV`] is set): binds the public TCP
-///   listener, writes the lockfile recording this process's PID + port,
-///   runs the proxy accept loop, and manages the underlying VS Code server
-///   as a regular child process so the supervisor can kill+respawn it on
-///   update.
 pub async fn agent_host(ctx: CommandContext, args: AgentHostArgs) -> Result<i32, AnyError> {
 	if std::env::var_os(SUPERVISOR_ENV).is_some() {
 		return run_supervisor(ctx, args).await;
@@ -69,9 +46,6 @@ pub async fn agent_host(ctx: CommandContext, args: AgentHostArgs) -> Result<i32,
 	run_foreground(ctx, args).await
 }
 
-/// Foreground entry point: decides whether to reuse an existing supervisor
-/// or daemonize a fresh one, then prints / streams supervisor output until
-/// the user hits Ctrl-C.
 async fn run_foreground(ctx: CommandContext, args: AgentHostArgs) -> Result<i32, AnyError> {
 	let started = Instant::now();
 	let lockfile_path = ctx.paths.agent_host_lockfile();
@@ -86,8 +60,6 @@ async fn run_foreground(ctx: CommandContext, args: AgentHostArgs) -> Result<i32,
 		tunnel_name,
 	} = &decision
 	{
-		// User asked to replace explicitly: kill + spawn fresh, regardless
-		// of whether the running config matches.
 		if args.replace {
 			info!(
 				ctx.log,
@@ -99,10 +71,6 @@ async fn run_foreground(ctx: CommandContext, args: AgentHostArgs) -> Result<i32,
 			return daemonize_supervisor(&args).await;
 		}
 
-		// No `--replace`: check whether the requested network config
-		// matches the running supervisor. If it differs, error out with a
-		// clear message instead of silently sharing a differently-bound
-		// supervisor.
 		if let Some(conflict) = detect_config_conflict(
 			&args,
 			host.as_deref(),
@@ -133,20 +101,9 @@ async fn run_foreground(ctx: CommandContext, args: AgentHostArgs) -> Result<i32,
 	daemonize_supervisor(&args).await
 }
 
-/// Body of the detached supervisor process. Starts an
-/// [`AgentHostManager`], binds an [`AgentHostSidecar`] on the user's
-/// chosen `--host`/`--port`, optionally exposes it over a dev tunnel,
-/// prints the readiness banner / sentinel, then services connections
-/// until killed.
 async fn run_supervisor(mut ctx: CommandContext, mut args: AgentHostArgs) -> Result<i32, AnyError> {
 	let started = Instant::now();
 
-	// Attach a file log sink before anything else, so download progress,
-	// AH child crashes, update-loop errors, and post-handoff diagnostics
-	// are captured even after we redirect stdio to null. The file always
-	// records at Trace level — the foreground stdio sink keeps its
-	// caller-supplied level so the parent doesn't see noise on its
-	// terminal.
 	let log_file = ctx.paths.agent_host_log_file();
 	if let Some(parent) = log_file.parent() {
 		let _ = fs::create_dir_all(parent);
@@ -193,20 +150,12 @@ async fn run_supervisor(mut ctx: CommandContext, mut args: AgentHostArgs) -> Res
 		Arc::new(ReqwestSimpleHttp::with_client(ctx.http.clone())),
 		AgentHostConfig {
 			server_data_dir: args.server_data_dir.clone(),
-			// The AH backend runs on an internal-only unix socket / named
-			// pipe between this supervisor and its child, so we
-			// deliberately disable the backend's token check; this
-			// supervisor's loopback accept loop enforces the user-facing
-			// token at the proxy edge.
 			without_connection_token: true,
 			connection_token: None,
 			connection_token_file: None,
 		},
 	);
 
-	// Eagerly resolve the latest version so the first connection is fast,
-	// and kick off the background update loop. Skip when using a dev
-	// override since updates don't apply.
 	if option_env!("VSCODE_CLI_OVERRIDE_SERVER_PATH").is_none() {
 		match manager.get_latest_release().await {
 			Ok(release) => {
@@ -287,9 +236,6 @@ async fn run_supervisor(mut ctx: CommandContext, mut args: AgentHostArgs) -> Res
 	if let (Some(base), Some(name)) = (constants::EDITOR_WEB_URL, &tunnel_name) {
 		output::print_banner_line("Tunnel", &format!("{base}/agents/tunnel/{name}"));
 	}
-	// Resolve the user's `--host` choice into an `IpAddr` so the banner can
-	// either suggest exposing the agent host or enumerate the bound
-	// interfaces. Defaults to loopback when `--host` was omitted.
 	let banner_listen_ip = args
 		.host
 		.as_deref()
@@ -300,9 +246,6 @@ async fn run_supervisor(mut ctx: CommandContext, mut args: AgentHostArgs) -> Res
 	output::print_banner_footer();
 	let _ = std::io::stdout().flush();
 
-	// Signal readiness to the foreground parent (if any) and then sever
-	// the inherited stdio so subsequent writes don't `BrokenPipe` once
-	// the parent exits.
 	println!("{SUPERVISOR_READY_LINE}");
 	let _ = std::io::stdout().flush();
 	let _ = std::io::stderr().flush();
@@ -321,8 +264,6 @@ async fn run_supervisor(mut ctx: CommandContext, mut args: AgentHostArgs) -> Res
 	Ok(0)
 }
 
-/// Resolve the user's `--host`/`--port` choice into a single
-/// [`SocketAddr`]. Defaults to loopback when `--host` is unset.
 fn resolve_listen_addr(args: &AgentHostArgs) -> Result<SocketAddr, AnyError> {
 	let host = args.host.as_deref().unwrap_or("127.0.0.1");
 	let ip: std::net::IpAddr = match host.parse() {
@@ -359,10 +300,6 @@ fn print_reuse_banner(
 	if let (Some(base), Some(name)) = (constants::EDITOR_WEB_URL, tunnel_name) {
 		output::print_banner_line("Tunnel", &format!("{base}/agents/tunnel/{name}"));
 	}
-	// Surface the host the supervisor was actually bound to (older
-	// lockfiles omit it; fall back to loopback). This lets the network
-	// hint correctly say "use --host to expose" only when the supervisor
-	// really is loopback-only.
 	let banner_listen_ip = host
 		.and_then(|h| h.parse::<std::net::IpAddr>().ok())
 		.unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST));
@@ -376,15 +313,6 @@ fn print_reuse_banner(
 	));
 }
 
-/// Compare the user's requested supervisor configuration with what's
-/// recorded in the lockfile. Returns a short human description of the
-/// first conflict found (e.g. `"--host 0.0.0.0 conflicts with the
-/// running supervisor (bound to 127.0.0.1)"`), or `None` when the
-/// requested config is compatible with sharing the existing supervisor.
-///
-/// `lockfile_host` may be `None` when the lockfile was written by an
-/// older CLI; in that case we conservatively skip the host comparison
-/// (the supervisor is most likely loopback, which is the default).
 fn detect_config_conflict(
 	args: &AgentHostArgs,
 	lockfile_host: Option<&str>,
@@ -436,8 +364,6 @@ fn detect_config_conflict(
 	None
 }
 
-/// Kill the existing supervisor process tree and drop the lockfile so the
-/// subsequent supervisor start writes a clean record.
 async fn replace_existing(log: &log::Logger, lockfile: &Path, pid: u32) -> Result<(), AnyError> {
 	if let Err(e) = kill_tree(pid).await {
 		warning!(
@@ -451,18 +377,9 @@ async fn replace_existing(log: &log::Logger, lockfile: &Path, pid: u32) -> Resul
 	Ok(())
 }
 
-/// Re-launch the current `code agent host` invocation in a detached
-/// background process with [`SUPERVISOR_ENV`] set, and wait on the
-/// child's stdout for the readiness sentinel before returning. The
-/// foreground always exits as soon as the supervisor is up — the
-/// supervisor is shared and outlives any individual invocation, and the
-/// user manages it via `code agent kill` / `code agent ps`.
 async fn daemonize_supervisor(args: &AgentHostArgs) -> Result<i32, AnyError> {
 	let exe = std::env::current_exe().map_err(|e| wrap(e, "could not resolve current_exe"))?;
 	let mut cmd = tokio::process::Command::new(&exe);
-	// Forward our argv unchanged so the supervisor child sees the same
-	// `--host`/`--port`/`--without-connection-token`/etc. flags the user
-	// passed in foreground.
 	cmd.args(std::env::args_os().skip(1));
 	cmd.env(SUPERVISOR_ENV, "1");
 	cmd.stdin(std::process::Stdio::null());
@@ -471,7 +388,7 @@ async fn daemonize_supervisor(args: &AgentHostArgs) -> Result<i32, AnyError> {
 	cmd.kill_on_drop(false);
 	cmd.detach_from_parent();
 
-	let _ = args; // argv was already forwarded above; explicit `args` use is unnecessary
+	let _ = args;
 
 	let mut child = cmd
 		.spawn()
@@ -487,8 +404,6 @@ async fn daemonize_supervisor(args: &AgentHostArgs) -> Result<i32, AnyError> {
 			r = stdout.next_line() => match r {
 				Ok(Some(line)) => {
 					if line == SUPERVISOR_READY_LINE {
-						// With `kill_on_drop` false the supervisor keeps
-						// running independently after we return.
 						return Ok(0);
 					}
 					println!("{line}");
@@ -514,10 +429,6 @@ async fn daemonize_supervisor(args: &AgentHostArgs) -> Result<i32, AnyError> {
 	}
 }
 
-/// Ensure an agent host supervisor is running on this machine and return
-/// the live endpoint to dial. Used by callers that want to reuse the
-/// supervisor regardless of who started it (e.g. `code tunnel`'s
-/// SpawnFresh branch).
 pub async fn ensure_supervisor_running(
 	launcher_paths: &LauncherPaths,
 	log: &log::Logger,
@@ -614,35 +525,18 @@ pub async fn ensure_supervisor_running(
 	}
 }
 
-/// Endpoint of a running agent host supervisor, as recorded in the
-/// lockfile and consumed by tunnel + bridge callers.
 pub struct ActiveAgentHost {
 	pub pid: u32,
-	/// Host the supervisor was bound to (e.g. `"0.0.0.0"`, `"::1"`,
-	/// `"localhost"`, a specific IP). `None` for lockfiles written by
-	/// older CLIs. Consumers should pair this with [`dial_host`] to
-	/// pick the right loopback target when the supervisor was bound to
-	/// a wildcard.
 	pub host: Option<String>,
 	pub port: u16,
 	pub token: Option<String>,
 }
 
 impl ActiveAgentHost {
-	/// Loopback address callers should dial to reach this supervisor.
-	/// Maps IPv4/IPv6 wildcards (`0.0.0.0` / `::`) to the corresponding
-	/// loopback; passes specific hosts (e.g. `::1`, `localhost`,
-	/// `10.0.0.5`) through unchanged. Missing host (older lockfile)
-	/// falls back to IPv4 loopback to preserve the prior behaviour.
 	pub fn dial_host(&self) -> &str {
 		dial_host(self.host.as_deref())
 	}
 
-	/// Populate the `--agent-host-bridge-*` fields on a [`CodeServerArgs`]
-	/// so the spawned VS Code server's `agentHostProxy` channel dials this
-	/// supervisor. Uses [`dial_host`] for the host so a supervisor bound
-	/// to a wildcard (`0.0.0.0` / `::`) is reached via loopback rather
-	/// than the wildcard itself.
 	pub fn apply_to_bridge(&self, csa: &mut CodeServerArgs) {
 		csa.agent_host_bridge_host = Some(self.dial_host().to_string());
 		csa.agent_host_bridge_port = Some(self.port);
@@ -650,7 +544,6 @@ impl ActiveAgentHost {
 	}
 }
 
-/// See [`ActiveAgentHost::dial_host`].
 pub fn dial_host(bound: Option<&str>) -> &str {
 	match bound {
 		Some("0.0.0.0") | Some("::") | Some("[::]") | None => "127.0.0.1",
@@ -658,10 +551,6 @@ pub fn dial_host(bound: Option<&str>) -> &str {
 	}
 }
 
-/// After the detach child has signalled ready, sever its inherited stdio
-/// so subsequent writes (banner footer, info!/warning! from the update
-/// loop, etc.) don't fail with `BrokenPipe` once the parent exits and
-/// closes the read end of the pipes.
 fn redirect_stdio_to_null() -> std::io::Result<()> {
 	let null_path = if cfg!(windows) { "NUL" } else { "/dev/null" };
 	let null = std::fs::OpenOptions::new()
@@ -673,8 +562,6 @@ fn redirect_stdio_to_null() -> std::io::Result<()> {
 	{
 		use std::os::unix::io::AsRawFd as _;
 		let fd = null.as_raw_fd();
-		// SAFETY: dup2 is async-signal-safe and only mutates the calling
-		// process's fd table. Failure is reported via -1 + errno.
 		unsafe {
 			if libc::dup2(fd, 0) < 0 || libc::dup2(fd, 1) < 0 || libc::dup2(fd, 2) < 0 {
 				return Err(std::io::Error::last_os_error());
@@ -688,8 +575,6 @@ fn redirect_stdio_to_null() -> std::io::Result<()> {
 			SetStdHandle, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE,
 		};
 		let handle = null.as_raw_handle();
-		// SAFETY: SetStdHandle only updates the process's per-stdio
-		// handles. The handle stays valid because we leak the file below.
 		unsafe {
 			if SetStdHandle(STD_INPUT_HANDLE, handle as _) == 0
 				|| SetStdHandle(STD_OUTPUT_HANDLE, handle as _) == 0
@@ -698,8 +583,6 @@ fn redirect_stdio_to_null() -> std::io::Result<()> {
 				return Err(std::io::Error::last_os_error());
 			}
 		}
-		// Keep the handle alive past `null`'s drop on Windows (where the
-		// std handles store the raw handle without taking ownership).
 		std::mem::forget(null);
 	}
 	Ok(())
@@ -742,12 +625,10 @@ mod tests {
 		let dir = tempfile::tempdir().unwrap();
 		let path = dir.path().join("token");
 
-		// First call with no preference generates a UUID and persists it
 		let token1 = mint_connection_token(&path, None).unwrap();
 		assert!(!token1.is_empty());
 		assert_eq!(fs::read_to_string(&path).unwrap(), token1);
 
-		// Second call with no preference reads the existing token
 		let token2 = mint_connection_token(&path, None).unwrap();
 		assert_eq!(token1, token2);
 	}
@@ -757,7 +638,6 @@ mod tests {
 		let dir = tempfile::tempdir().unwrap();
 		let path = dir.path().join("token");
 
-		// Providing a preferred token writes it to the file
 		let token = mint_connection_token(&path, Some("my-token".to_string())).unwrap();
 		assert_eq!(token, "my-token");
 		assert_eq!(fs::read_to_string(&path).unwrap(), "my-token");
@@ -770,7 +650,6 @@ mod tests {
 
 		mint_connection_token(&path, None).unwrap();
 
-		// Providing a preference overwrites any existing token
 		let token = mint_connection_token(&path, Some("override".to_string())).unwrap();
 		assert_eq!(token, "override");
 		assert_eq!(fs::read_to_string(&path).unwrap(), "override");

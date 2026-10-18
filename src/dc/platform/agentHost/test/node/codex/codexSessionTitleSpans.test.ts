@@ -27,18 +27,13 @@ import { IAgentSdkDownloader } from '../../../node/agentSdkDownloader.js';
 import { RecordingAgentSdkDownloader } from '../testAgentSdkDownloader.js';
 import { CodexAgent } from '../../../node/codex/codexAgent.js';
 import { ICodexProxyService } from '../../../node/codex/codexProxyService.js';
-import { ICopilotApiService } from '../../../node/shared/copilotApiService.js';
+import { IDardcorRouterService } from '../../../node/shared/dardcorRouterService.js';
 import { createNoopCustomizationEnablementService } from '../testCustomizationEnablementService.js';
 import { IAgentHostGitHubEndpointService } from '../../../node/agentHostGitHubEndpointService.js';
 import { IAgentHostProxyResolver } from '../../../node/agentHostProxyResolver.js';
 import { createTestGitHubEndpointService } from '../testGitHubEndpointService.js';
 import { createTestAgentHostProxyResolver } from '../agentServiceTestUtils.js';
 
-/**
- * Records `emitSessionTitleChanged` invocations so the OTel title-span wiring
- * test can assert what the agent forwarded to the host telemetry pipeline. All
- * other {@link IAgentHostOTelService} members are inert no-ops.
- */
 class RecordingOTelService implements IAgentHostOTelService {
 	readonly _serviceBrand: undefined;
 	readonly titleChanges: Array<{ conversationId: string; sessionUri: string; title: string }> = [];
@@ -55,19 +50,13 @@ class RecordingOTelService implements IAgentHostOTelService {
 	async flush(): Promise<void> { }
 }
 
-/**
- * Builds a Codex agent whose only host input is the narrow session-title seam,
- * driven end to end from a real {@link AgentHostStateManager}: the agent itself
- * never sees the state manager, so a passing test proves the telemetry survives
- * on the seam alone.
- */
 function createTestContext(disposables: Pick<DisposableStore, 'add'>): { stateManager: AgentHostStateManager; otelService: RecordingOTelService } {
 	const instantiationService = new TestInstantiationService();
 	const logService = new NullLogService();
 	const stateManager = disposables.add(new AgentHostStateManager(logService));
 	const otelService = new RecordingOTelService();
 	instantiationService.stub(ISessionDataService, { _serviceBrand: undefined });
-	instantiationService.stub(ICopilotApiService, { _serviceBrand: undefined });
+	instantiationService.stub(IDardcorRouterService, { _serviceBrand: undefined });
 	instantiationService.stub(ICodexProxyService, { _serviceBrand: undefined });
 	instantiationService.stub(IAgentConfigurationService, {
 		_serviceBrand: undefined,

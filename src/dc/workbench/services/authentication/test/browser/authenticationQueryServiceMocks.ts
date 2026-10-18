@@ -12,9 +12,6 @@ import { IAuthenticationAccessService } from '../../browser/authenticationAccess
 import { IAuthenticationMcpAccessService, urlsEqual } from '../../browser/authenticationMcpAccessService.js';
 import { IAuthenticationMcpService } from '../../browser/authenticationMcpService.js';
 
-/**
- * Helper function to create a mock authentication provider
- */
 export function createProvider(overrides: Partial<IAuthenticationProvider> = {}): IAuthenticationProvider {
 	return {
 		id: 'test-provider',
@@ -28,9 +25,6 @@ export function createProvider(overrides: Partial<IAuthenticationProvider> = {})
 	};
 }
 
-/**
- * Helper function to create a mock authentication session
- */
 export function createSession(): AuthenticationSession {
 	return {
 		id: 'test-session',
@@ -41,18 +35,12 @@ export function createSession(): AuthenticationSession {
 	};
 }
 
-/**
- * Interface for tracking method calls in mock services
- */
 interface MethodCall {
 	method: string;
 	args: any[];
 	timestamp: number;
 }
 
-/**
- * Base class for test services with common functionality and call tracking
- */
 export abstract class BaseTestService extends Disposable {
 	protected readonly data = new Map<string, any>();
 	private readonly _methodCalls: MethodCall[] = [];
@@ -61,9 +49,6 @@ export abstract class BaseTestService extends Disposable {
 		return parts.join('::');
 	}
 
-	/**
-	 * Track a method call for verification in tests
-	 */
 	protected trackCall(method: string, ...args: unknown[]): void {
 		this._methodCalls.push({
 			method,
@@ -72,39 +57,24 @@ export abstract class BaseTestService extends Disposable {
 		});
 	}
 
-	/**
-	 * Get all method calls for verification
-	 */
 	getMethodCalls(): readonly MethodCall[] {
 		return [...this._methodCalls];
 	}
 
-	/**
-	 * Get calls for a specific method
-	 */
 	getCallsFor(method: string): readonly MethodCall[] {
 		return this._methodCalls.filter(call => call.method === method);
 	}
 
-	/**
-	 * Clear method call history
-	 */
 	clearCallHistory(): void {
 		this._methodCalls.length = 0;
 	}
 
-	/**
-	 * Get the last call for a specific method
-	 */
 	getLastCallFor(method: string): MethodCall | undefined {
 		const calls = this.getCallsFor(method);
 		return calls[calls.length - 1];
 	}
 }
 
-/**
- * Test implementation that actually stores and retrieves data
- */
 export class TestUsageService extends BaseTestService implements IAuthenticationUsageService {
 	declare readonly _serviceBrand: undefined;
 
@@ -126,7 +96,6 @@ export class TestUsageService extends BaseTestService implements IAuthentication
 		this.data.delete(this.getKey(providerId, accountName));
 	}
 
-	// Stub implementations for missing methods
 	async initializeExtensionUsageCache(): Promise<void> { }
 	async extensionUsesAuth(extensionId: string): Promise<boolean> { return false; }
 }
@@ -152,7 +121,6 @@ export class TestMcpUsageService extends BaseTestService implements IAuthenticat
 		this.data.delete(this.getKey(providerId, accountName));
 	}
 
-	// Stub implementations for missing methods
 	async initializeUsageCache(): Promise<void> { }
 	async hasUsedAuth(mcpServerId: string): Promise<boolean> { return false; }
 }
@@ -179,7 +147,6 @@ export class TestAccessService extends BaseTestService implements IAuthenticatio
 		const key = this.getKey(providerId, accountName);
 		const existing = this.data.get(key) || [];
 
-		// Merge with existing data, updating or adding extensions
 		const merged = [...existing];
 		for (const ext of extensions) {
 			const existingIndex = merged.findIndex(e => e.id === ext.id);
@@ -224,7 +191,6 @@ export class TestMcpAccessService extends BaseTestService implements IAuthentica
 		if (mcpServerUrl !== undefined && !urlsEqual(server.url, mcpServerUrl)) {
 			return undefined;
 		}
-		// Matches production: presence in the list with an undefined `allowed` indicates allowance.
 		return server.allowed !== undefined ? server.allowed : true;
 	}
 
@@ -238,7 +204,6 @@ export class TestMcpAccessService extends BaseTestService implements IAuthentica
 		const key = this.getKey(providerId, accountName);
 		const existing = this.data.get(key) || [];
 
-		// Merge with existing data, updating or adding MCP servers
 		const merged = [...existing];
 		for (const server of mcpServers) {
 			const existingIndex = merged.findIndex(s => s.id === server.id);
@@ -280,7 +245,6 @@ export class TestPreferencesService extends BaseTestService {
 export class TestExtensionsService extends TestPreferencesService implements IAuthenticationExtensionsService {
 	declare readonly _serviceBrand: undefined;
 
-	// Stub implementations for methods we don't test
 	updateSessionPreference(): void { }
 	getSessionPreference(): string | undefined { return undefined; }
 	removeSessionPreference(): void { }
@@ -293,7 +257,6 @@ export class TestExtensionsService extends TestPreferencesService implements IAu
 export class TestMcpService extends TestPreferencesService implements IAuthenticationMcpService {
 	declare readonly _serviceBrand: undefined;
 
-	// Stub implementations for methods we don't test
 	updateSessionPreference(): void { }
 	getSessionPreference(): string | undefined { return undefined; }
 	removeSessionPreference(): void { }
@@ -302,9 +265,6 @@ export class TestMcpService extends TestPreferencesService implements IAuthentic
 	requestNewSession(): Promise<void> { return Promise.resolve(); }
 }
 
-/**
- * Minimal authentication service mock that only implements what we need
- */
 export class TestAuthenticationService extends BaseTestService implements IAuthenticationService {
 	declare readonly _serviceBrand: undefined;
 
@@ -345,7 +305,6 @@ export class TestAuthenticationService extends BaseTestService implements IAuthe
 		return this.accountsMap.get(providerId) || [];
 	}
 
-	// All other methods are stubs since we don't test them
 	get declaredProviders(): any[] { return []; }
 	isDynamicAuthenticationProvider(): boolean { return false; }
 	async getSessions(): Promise<readonly AuthenticationSession[]> { return []; }

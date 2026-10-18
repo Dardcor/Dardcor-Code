@@ -60,10 +60,8 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 		const editor = context.editor;
 		const disposables = new DisposableStore();
 
-		// Set initial ariaLabel for screen readers
 		picker.ariaLabel = localize('gotoLine.ariaLabel', "Go to line. Type a line number, optionally followed by colon and column number.");
 
-		// Goto line once picked
 		disposables.add(picker.onDidAccept(event => {
 			const [item] = picker.selectedItems;
 			if (item) {
@@ -79,7 +77,6 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 			}
 		}));
 
-		// Add a toggle to switch between 1- and 0-based offsets.
 		const offsetButton: IQuickInputButton = {
 			iconClass: ThemeIcon.asClassName(Codicon.indexZero),
 			tooltip: localize('gotoLineToggleButton', "Toggle Zero-Based Offset"),
@@ -87,15 +84,12 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 			toggle: { checked: this.useZeroBasedOffset }
 		};
 
-		// React to picker changes
 		const updatePickerAndEditor = () => {
 			const inputText = picker.value.trim().substring(AbstractGotoLineQuickAccessProvider.GO_TO_LINE_PREFIX.length);
 			const { inOffsetMode, lineNumber, column, label } = this.parsePosition(editor, inputText);
 
-			// Show toggle only when input text starts with '::'.
 			picker.buttons = inOffsetMode ? [offsetButton] : [];
 
-			// Picker
 			picker.items = [{
 				lineNumber,
 				column,
@@ -105,17 +99,14 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 					: label,
 			}];
 
-			// Clear decorations for invalid range
 			if (!lineNumber) {
 				this.clearDecorations(editor);
 				return;
 			}
 
-			// Reveal
 			const range = this.toRange(lineNumber, column);
 			editor.revealRangeInCenter(range, ScrollType.Smooth);
 
-			// Decorate
 			this.addDecorations(editor, range);
 		};
 
@@ -129,7 +120,6 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 		updatePickerAndEditor();
 		disposables.add(picker.onDidChangeValue(() => updatePickerAndEditor()));
 
-		// Adjust line number visibility as needed
 		const codeEditor = getCodeEditor(editor);
 		if (codeEditor) {
 			const options = codeEditor.getOptions();
@@ -161,12 +151,10 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 			};
 		}
 
-		// Support ::<offset> notation to navigate to a specific offset in the model.
 		if (value.startsWith(':')) {
 			let offset = parseInt(value.substring(1), 10);
 			const maxOffset = model.getValueLength();
 			if (isNaN(offset)) {
-				// No valid offset specified.
 				return {
 					inOffsetMode: true,
 					label: this.useZeroBasedOffset ?
@@ -176,12 +164,10 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 			} else {
 				const reverse = offset < 0;
 				if (!this.useZeroBasedOffset) {
-					// Convert 1-based offset to model's 0-based.
 					offset -= Math.sign(offset);
 				}
 
 				if (reverse) {
-					// Offset from the end of the buffer
 					offset += maxOffset;
 				}
 
@@ -198,7 +184,6 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 				};
 			}
 		} else {
-			// Support line-col formats of `line,col`, `line:col`, `line#col`
 			const parts = value.split(/,|:|#/);
 
 			const maxLine = model.getLineCount();
@@ -209,11 +194,9 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 				};
 			}
 
-			// Handle negative line numbers and clip to valid range.
 			lineNumber = lineNumber >= 0 ? lineNumber : (maxLine + 1) + lineNumber;
 			lineNumber = Math.min(Math.max(1, lineNumber), maxLine);
 
-			// Treat column number as visible column
 			const tabSize = model.getOptions().tabSize;
 			const lineContent = model.getLineContent(lineNumber);
 			const maxColumn = CursorColumns.visibleColumnFromColumn(lineContent, model.getLineMaxColumn(lineNumber), tabSize) + 1;
@@ -229,7 +212,6 @@ export abstract class AbstractGotoLineQuickAccessProvider extends AbstractEditor
 				};
 			}
 
-			// Handle negative column numbers and clip to valid range.
 			column = column >= 0 ? column : maxColumn + column;
 			column = Math.min(Math.max(1, column), maxColumn);
 

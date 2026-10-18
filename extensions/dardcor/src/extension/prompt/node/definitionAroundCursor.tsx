@@ -17,7 +17,6 @@ import { IDocumentContext } from './documentContext';
 export type Props = PromptElementProps<{
 	documentContext: IDocumentContext;
 	endpointInfo: IChatEndpoint;
-	/** if not provided, the component will compute based on `documentContext` */
 	nodeToDocument?: NodeToDocument;
 }>;
 
@@ -44,7 +43,7 @@ export class DefinitionAroundCursor extends PromptElement<Props, State> {
 	}
 
 	override async prepare(sizing: PromptSizing, progress?: vscode.Progress<vscode.ChatResponseProgressPart | vscode.ChatResponseReferencePart> | undefined, token?: vscode.CancellationToken | undefined): Promise<State> {
-		if (await this._ignoreService.isCopilotIgnored(this.props.documentContext.document.uri)) {
+		if (await this._ignoreService.isIgnored(this.props.documentContext.document.uri)) {
 			return { k: 'ignored' };
 		}
 		const nodeToDocument = this.props.nodeToDocument ?? await determineNodeToDocument(this._parserService, this._telemetryService, this.props.documentContext);
@@ -104,14 +103,12 @@ function generateDocContext(endpoint: IChatEndpoint, ctx: IDocumentContext, rang
 	const tracker = new CodeContextTracker((endpoint.modelMaxPromptTokens * 4) / 3);
 	const rangeInfo = new CodeContextRegion(tracker, ctx.document, ctx.language);
 
-	// we only want to include the code that's being documented but we need `above` and `below` for the return value's type
-	// so we just make these code regions empty
 	const above = new CodeContextRegion(new CodeContextTracker(0), ctx.document, ctx.language);
 	const below = new CodeContextRegion(new CodeContextTracker(0), ctx.document, ctx.language);
 
 	for (let i = range.start.line, len = range.end.line; i <= len; ++i) {
-		if ((i === len && range.end.character === 0) // we don't want to include the end line if it's (end.line, 0)
-			|| !rangeInfo.appendLine(i) // didn't fit
+		if ((i === len && range.end.character === 0)
+			|| !rangeInfo.appendLine(i)
 		) {
 			break;
 		}
@@ -135,21 +132,6 @@ function sendNodeToDocumentTelemetry(
 	timeSpentMs: number
 ) {
 
-	/* __GDPR__
-		"getNodeToDocument" : {
-			"owner": "ulugbekna",
-			"comment": "Info on success and properties of detecting AST node to document",
-			"languageId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The language ID of the document" },
-			"typeOfNodeToDocument": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Type of the AST node offered to be documented (type defined by tree-sitter grammar for that language)" },
-			"nodeToDocumentStart": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Start offset of the AST node offered to be documented (type defined by tree-sitter grammar for that language)" },
-			"nodeToDocumentEnd": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "End offset of the AST node offered to be documented (type defined by tree-sitter grammar for that language)" },
-			"selectionOffsetRangeStart": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The start offset range of the selection in the document" },
-			"selectionOffsetRangeEnd": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The end offset range of the selection in the document" },
-			"wholeRangeOffsetRangeStart": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The start offset range of the inline-chat wholeRange" },
-			"wholeRangeOffsetRangeEnd": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The end offset range of the inline-chat wholeRange" },
-			"timeSpentMs": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "Time (in milliseconds) spent on finding the AST node to document (approximate as it's an async call)" }
-		}
-	*/
 	telemetryService.sendMSFTTelemetryEvent('getNodeToDocument',
 		{
 			languageId,

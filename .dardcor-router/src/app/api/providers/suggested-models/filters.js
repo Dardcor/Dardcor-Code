@@ -1,8 +1,15 @@
-// Free OpenCode models that don't use the "-free" id suffix
 const KNOWN_FREE_OPENCODE_MODELS = ["big-pickle"];
 
-// Upstream returns "Model is unavailable" for this id (2026-09-02) — re-enable when fixed
-const DEAD_FREE_OPENCODE_MODELS = new Set(["deepseek-v4-flash-free"]);
+const DEAD_OR_NON_CHAT_FREE_OPENCODE_MODELS = new Set([
+  "jev-1.13",
+  "jev-1.13-free",
+  "deepseek-v4-flash-free",
+  "exo-free",
+  "ling-3.0-flash-fin-free",
+  "nemotron-3-ultra-free",
+  "mimo-v2.5-free",
+  "union-alpha",
+]);
 
 export const FILTERS = {
   "openrouter-free": (models) =>
@@ -13,15 +20,18 @@ export const FILTERS = {
           m.pricing?.completion === "0" &&
           m.context_length >= 200000
       )
-      .map((m) => ({ id: m.id, name: m.name, contextLength: m.context_length }))
+      .map((m) => ({ id: m.id, name: m.id, contextLength: m.context_length }))
       .sort((a, b) => b.contextLength - a.contextLength),
 
   "opencode-free": (models) =>
     models
-      .filter((m) => (m.id?.endsWith("-free") || KNOWN_FREE_OPENCODE_MODELS.includes(m.id)) && !DEAD_FREE_OPENCODE_MODELS.has(m.id))
+      .filter(
+        (m) =>
+          (m.id?.endsWith("-free") || KNOWN_FREE_OPENCODE_MODELS.includes(m.id)) &&
+          !DEAD_OR_NON_CHAT_FREE_OPENCODE_MODELS.has(m.id)
+      )
       .map((m) => ({ id: m.id, name: m.id })),
 
-  // models.dev returns a large catalog; keep only mimo models
   "mimo-free": (models) =>
     (Array.isArray(models) ? models : [])
       .filter((m) => m.id?.startsWith("mimo") || m.name?.toLowerCase().includes("mimo"))

@@ -36,8 +36,6 @@ import { ContextViewService } from '../../../contextview/browser/contextViewServ
 import { IAccessibilityService } from '../../../accessibility/common/accessibility.js';
 import { TestAccessibilityService } from '../../../accessibility/test/common/testAccessibilityService.js';
 
-// Sets up an `onShow` listener to allow us to wait until the quick pick is shown (useful when triggering an `accept()` right after launching a quick pick)
-// kick this off before you launch the picker and then await the promise returned after you launch the picker.
 async function setupWaitTilShownListener(controller: QuickInputController): Promise<void> {
 	const result = await raceTimeout(new Promise<boolean>(resolve => {
 		const event = controller.onShow(_ => {
@@ -51,7 +49,7 @@ async function setupWaitTilShownListener(controller: QuickInputController): Prom
 	}
 }
 
-suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
+suite('QuickInput', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 	let controller: QuickInputController;
 	let fixture: HTMLElement;
@@ -63,7 +61,6 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 
 		const instantiationService = new TestInstantiationService();
 
-		// Stub the services the quick input controller needs to function
 		instantiationService.stub(IThemeService, new TestThemeService());
 		instantiationService.stub(IConfigurationService, new TestConfigurationService());
 		instantiationService.stub(IAccessibilityService, new TestAccessibilityService());
@@ -120,7 +117,6 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 			}
 		));
 
-		// initial layout
 		controller.layout({ height: 20, width: 40 }, 0);
 	});
 
@@ -265,7 +261,6 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 		let value: string | undefined = undefined;
 		store.add(quickpick.onDidChangeValue((e) => value = e));
 
-		// Trigger a change
 		quickpick.value = 'changed';
 
 		try {
@@ -283,7 +278,6 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 			items.push({ label: `item ${i}` });
 		}
 		quickpick.items = items;
-		// setting the active item should cause the quick pick to scroll to the bottom
 		quickpick.activeItems = [items[items.length - 1]];
 		quickpick.show();
 
@@ -308,7 +302,6 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 			items.push({ label: `item ${i}` });
 		}
 		quickpick.items = items;
-		// setting the active item should cause the quick pick to scroll to the bottom
 		quickpick.activeItems = [items[items.length - 1]];
 		quickpick.show();
 
@@ -336,21 +329,17 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 				resolve();
 			}));
 
-			// accept 'step 1'
 			controller.accept();
 		}));
 
-		// accept in multi-select
 		controller.accept();
 
-		// Since we don't select any items, the selected items should be empty
 		assert.strictEqual(quickpick.selectedItems.length, 0);
 	});
 
 	test('activeItems - verify onDidChangeActive is triggered after setting items', async () => {
 		const quickpick = store.add(controller.createQuickPick());
 
-		// Setup listener for verification
 		const activeItemsFromEvent: IQuickPickItem[] = [];
 		store.add(quickpick.onDidChangeActive(items => activeItemsFromEvent.push(...items)));
 
@@ -372,11 +361,9 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 		quickpick.show();
 		assert.strictEqual(quickpick.activeItems[0], item);
 
-		// Setup listener for verification
 		const activeItemsFromEvent: IQuickPickItem[] = [];
 		store.add(quickpick.onDidChangeActive(items => activeItemsFromEvent.push(...items)));
 
-		// Trigger a change
 		quickpick.itemActivation = ItemActivation.NONE;
 		quickpick.items = [item];
 

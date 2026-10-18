@@ -99,7 +99,6 @@ export class ChatDebugLogsView extends Disposable {
 		this.container = DOM.append(parent, $('.chat-debug-logs'));
 		DOM.hide(this.container);
 
-		// Breadcrumb
 		const breadcrumbContainer = DOM.append(this.container, $('.chat-debug-breadcrumb'));
 		this.breadcrumbWidget = this._register(new BreadcrumbsWidget(breadcrumbContainer, 3, undefined, Codicon.chevronRight, defaultBreadcrumbsWidgetStyles));
 		this._register(setupBreadcrumbKeyboardNavigation(breadcrumbContainer, this.breadcrumbWidget));
@@ -116,10 +115,8 @@ export class ChatDebugLogsView extends Disposable {
 			}
 		}));
 
-		// Header (filter)
 		this.headerContainer = DOM.append(this.container, $('.chat-debug-editor-header'));
 
-		// Scoped context key service for filter menu items
 		const scopedContextKeyService = this._register(this.contextKeyService.createScoped(this.headerContainer));
 		const syncContextKeys = bindFilterContextKeys(this.filterState, scopedContextKeyService);
 		syncContextKeys();
@@ -132,7 +129,6 @@ export class ChatDebugLogsView extends Disposable {
 			ariaLabel: localize('chatDebug.filterAriaLabel', "Filter debug events"),
 		}));
 
-		// View mode toggle
 		this.viewModeToggle = this._register(new Button(this.headerContainer, { ...defaultButtonStyles, secondary: true, title: localize('chatDebug.toggleViewMode', "Toggle between list and tree view") }));
 		this.viewModeToggle.element.classList.add('chat-debug-view-mode-toggle', 'monaco-text-button');
 		this.updateViewModeToggle();
@@ -147,7 +143,6 @@ export class ChatDebugLogsView extends Disposable {
 			this.filterState.setTextFilter(text);
 		}));
 
-		// React to shared filter state changes
 		this._register(this.filterState.onDidChange(() => {
 			syncContextKeys();
 			this.updateMoreFiltersChecked();
@@ -156,32 +151,25 @@ export class ChatDebugLogsView extends Disposable {
 			this.refreshList();
 		}));
 
-		// Content wrapper (flex row: main column + detail panel)
 		const contentContainer = DOM.append(this.container, $('.chat-debug-logs-content'));
 
-		// Main column (table header + list/tree body)
 		const mainColumn = DOM.append(contentContainer, $('.chat-debug-logs-main'));
 
-		// Table header
 		this.tableHeader = DOM.append(mainColumn, $('.chat-debug-table-header'));
 		DOM.append(this.tableHeader, $('span.chat-debug-col-created', undefined, localize('chatDebug.col.created', "Created")));
 		DOM.append(this.tableHeader, $('span.chat-debug-col-name', undefined, localize('chatDebug.col.name', "Name")));
 		DOM.append(this.tableHeader, $('span.chat-debug-col-details', undefined, localize('chatDebug.col.details', "Details")));
 
-		// Progress bar (shown when session is in progress)
 		this.progressBar = this._register(new ProgressBar(mainColumn, {
 			...defaultProgressBarStyles,
 			ariaLabel: localize('chatDebug.progressAriaLabel', "Chat debug logs loading progress")
 		}));
 
-		// Body container
 		this.bodyContainer = DOM.append(mainColumn, $('.chat-debug-logs-body'));
 
-		// "Show More" container (below the body, shown when events exceed the visible limit)
 		this.showMoreContainer = DOM.append(mainColumn, $('.chat-debug-logs-show-more'));
 		DOM.hide(this.showMoreContainer);
 
-		// List container (initially hidden — tree view is default)
 		this.listContainer = DOM.append(this.bodyContainer, $('.chat-debug-list-container'));
 		DOM.hide(this.listContainer);
 
@@ -226,7 +214,6 @@ export class ChatDebugLogsView extends Disposable {
 			{ identityProvider, accessibilityProvider }
 		));
 
-		// Tree container (default view)
 		this.treeContainer = DOM.append(this.bodyContainer, $('.chat-debug-list-container'));
 
 		this.tree = this._register(this.instantiationService.createInstance(
@@ -238,7 +225,6 @@ export class ChatDebugLogsView extends Disposable {
 			{ identityProvider, accessibilityProvider }
 		));
 
-		// Detail panel (sibling of main column so it aligns with table header)
 		this.detailPanel = this._register(this.instantiationService.createInstance(ChatDebugDetailPanel, contentContainer));
 		this._register(this.detailPanel.onDidChangeWidth(() => {
 			if (this.currentDimension) {
@@ -257,7 +243,6 @@ export class ChatDebugLogsView extends Disposable {
 			}
 		}));
 
-		// Context menu
 		this._register(this.list.onContextMenu(e => {
 			if (e.element) {
 				this.showEventContextMenu(e.element, e.browserEvent);
@@ -269,7 +254,6 @@ export class ChatDebugLogsView extends Disposable {
 			}
 		}));
 
-		// Resolve event details on selection
 		this._register(this.list.onDidChangeSelection(e => {
 			const selected = e.elements[0];
 			if (selected) {
@@ -352,18 +336,11 @@ export class ChatDebugLogsView extends Disposable {
 	}
 
 	refreshList(): void {
-		// Rebuild the filtered list from scratch only when filter criteria
-		// changed or events were bulk-reloaded. During streaming backfill
-		// the filtered list is kept up-to-date incrementally via addEvent(),
-		// making each refresh O(1) instead of O(n).
 		if (this.filterDirty) {
 			this.filteredEvents = this.events.filter(e => this.passesCurrentFilter(e));
 			this.filterDirty = false;
 		}
 
-		// Paginate: show only the first `visibleLimit` events to keep the UI
-		// responsive for large sessions. The "Show More" button loads the
-		// next page.
 		const totalFiltered = this.filteredEvents.length;
 		const display = totalFiltered > this.visibleLimit ? this.filteredEvents.slice(0, this.visibleLimit) : this.filteredEvents;
 
@@ -375,21 +352,14 @@ export class ChatDebugLogsView extends Disposable {
 
 		this.updateShowMore(totalFiltered);
 
-		// Re-layout when show-more visibility changed so the list/tree
-		// height accounts for the footer.
 		if (this.currentDimension) {
 			this.layout(this.currentDimension);
 		}
 	}
 
 	addEvent(event: IChatDebugEvent): void {
-		// Binary-insert into the unfiltered array to maintain chronological
-		// order. Events almost always arrive in order, so the insertion
-		// point is typically at the end (O(log n) comparison, O(1) splice).
 		this.binaryInsert(this.events, event);
 
-		// Incrementally update the filtered list so refreshList() does not
-		// need to re-scan the entire events array on every debounced tick.
 		if (!this.filterDirty && this.passesCurrentFilter(event)) {
 			this.binaryInsert(this.filteredEvents, event);
 		}
@@ -416,24 +386,16 @@ export class ChatDebugLogsView extends Disposable {
 		}
 	}
 
-	/**
-	 * Tests whether a single event passes the current kind + text + timestamp
-	 * filters. Used for incremental filtering on each addEvent() call.
-	 */
 	private passesCurrentFilter(event: IChatDebugEvent): boolean {
-		// Kind filter
 		const category = event.kind === 'generic' ? event.category : undefined;
 		if (!this.filterState.isKindVisible(event.kind, category)) {
 			return false;
 		}
 
-		// Timestamp filter
 		if (!this.filterState.isTimestampVisible(event.created)) {
 			return false;
 		}
 
-		// Text filter — use cached parsed terms to avoid re-splitting on
-		// every addEvent() call during rapid backfill.
 		this.ensureCachedTerms();
 		if (this.cachedExcludeTerms.length > 0 && this.cachedExcludeTerms.some(term => debugEventMatchesText(event, term))) {
 			return false;
@@ -477,18 +439,10 @@ export class ChatDebugLogsView extends Disposable {
 			}
 		});
 
-		// Reload events when provider events are cleared (before re-invoking providers)
 		const clearEventsDisposable = this.chatDebugService.onDidClearProviderEvents(sessionResource => {
 			if (!this.currentSessionResource || sessionResource.toString() === this.currentSessionResource.toString()) {
 				this.events = [...this.chatDebugService.getEvents(this.currentSessionResource || undefined)];
 				this.filterDirty = true;
-				// Coalesce with the re-added events that follow in the same
-				// invokeProviders() pass instead of refreshing synchronously:
-				// a synchronous refresh here would momentarily collapse the
-				// list to the (near-empty) core-only set before the provider
-				// events are re-added, causing a visible flicker. Deferring
-				// lets the debounced refresh rebuild the list once with the
-				// full set.
 				this.scheduleRefresh();
 			}
 		});
@@ -573,7 +527,6 @@ export class ChatDebugLogsView extends Disposable {
 			return;
 		}
 
-		// Create the status label and button once, then reuse.
 		if (!this.showMoreStatusLabel) {
 			this.showMoreStatusLabel = DOM.append(this.showMoreContainer, $('span.chat-debug-logs-show-more-status'));
 		}

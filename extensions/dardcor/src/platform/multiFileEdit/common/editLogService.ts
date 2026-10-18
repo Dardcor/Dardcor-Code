@@ -17,37 +17,12 @@ export const IEditLogService = createServiceIdentifier<IEditLogService>('IEditLo
 export interface IEditLogService {
 	_serviceBrand: undefined;
 
-	/**
-	 * Logs a chat request made during an edit session.
-	 * @param turnId - The unique identifier for the turn.
-	 * @param prompt - The chat messages that were part of the request.
-	 * @param response - The response generated for the chat request.
-	 */
 	logEditChatRequest(turnId: string, prompt: ReadonlyArray<Raw.ChatMessage>, response: string): void;
 
-	/**
-	 * Logs a speculation request made during an edit session.
-	 * @param turnId - The unique identifier for the turn.
-	 * @param uri - The URI of the file being edited.
-	 * @param prompt - The prompt provided for the speculation request.
-	 * @param originalContent - The original content of the file before the edit.
-	 * @param editedContent - The content of the file after the edit.
-	 */
 	logSpeculationRequest(turnId: string, uri: Uri, prompt: string, originalContent: string, editedContent: string): void;
 
-	/**
-	 * Marks a turn as completed with the given outcome.
-	 * @param turnId - The unique identifier for the turn.
-	 * @param outcome - The outcome of the turn, either 'success' or 'error'.
-	 * @returns A promise that resolves when the operation is complete.
-	 */
 	markCompleted(turnId: string, outcome: 'success' | 'error'): Promise<void>;
 
-	/**
-	 * Retrieves the edit log for a given turn.
-	 * @param turnId - The unique identifier for the turn.
-	 * @returns A promise that resolves to the edit log entries, or undefined if not found.
-	 */
 	getEditLog(turnId: string): Promise<{ prompt: string; response: string }[] | undefined>;
 }
 
@@ -116,7 +91,6 @@ export class EditLogService implements IEditLogService {
 
 		const edit = this._edits.get(turnId);
 		if (!edit) {
-			// No edit happened in this turn
 			return;
 		}
 		if (edit.edits.length) {

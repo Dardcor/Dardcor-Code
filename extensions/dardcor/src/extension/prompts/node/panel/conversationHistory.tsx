@@ -20,28 +20,11 @@ import { ChatToolCalls } from './toolCalling';
 interface ConversationHistoryProps extends BasePromptElementProps {
 	history: readonly Turn[];
 	priority: number;
-	/**
-	 * Signal that is used to roll up the history into a single message, only requests
-	 * are considered (and historical responses are assumed to be source code).
-	 */
 	inline?: boolean;
 	currentTurnVars?: ChatVariablesCollection;
 	omitPromptVariables?: boolean;
 }
 
-/**
- * This element should wrap instructions specific to any given model. It should
- * include any {@link InstructionMessage}, and depending on the model it
- * either includes the history before or after the instruction message.
- *
- * You should use `passPriority` with this: https://github.com/microsoft/vscode-prompt-tsx?tab=readme-ov-file#passing-priority
- *
- * @example
- *
- * <HistoryWithInstructions passPriority priority={700} history={history}>
- *   <InstructionMessage>Do the thing</InstructionMessage>
- * </HistoryWithInstructions>
- */
 export class HistoryWithInstructions extends PromptElement<Omit<ConversationHistoryProps, 'priority'> & { historyPriority: number }> {
 	constructor(
 		props: Omit<ConversationHistoryProps, 'priority'> & { historyPriority: number },
@@ -53,8 +36,6 @@ export class HistoryWithInstructions extends PromptElement<Omit<ConversationHist
 		const ep = this.promptEndpoint;
 		const { children, ...props } = this.props;
 		if (!children?.some(c => typeof c === 'object' && c.ctor === InstructionMessage)) {
-			// This is a sanity check, and could be removed if we eventually want to
-			// have wrappers around InstructionMessages, but for now this is useful.
 			throw new Error(`HistoryWithInstructions must have an InstructionMessage child`);
 		}
 
@@ -67,12 +48,8 @@ export class HistoryWithInstructions extends PromptElement<Omit<ConversationHist
 	}
 }
 
-/**
- * @deprecated use `HistoryWithInstructions` instead
- */
 export class ConversationHistory extends PromptElement<ConversationHistoryProps> {
 	override render(_state: void, _sizing: PromptSizing): PromptPiece<any, any> | undefined {
-		// exclude turns from the history that errored due to prompt filtration
 		let turnHistory = this.props.history.filter(turn => turn.responseStatus !== TurnStatus.PromptFiltered);
 
 		if (this.props.inline && turnHistory.length > 0) {
@@ -92,8 +69,6 @@ export class ConversationHistory extends PromptElement<ConversationHistoryProps>
 		});
 
 		return (
-			// Conversation history is currently limited to 32k tokens to avoid
-			// unnecessarily pushing into the larger and slower token SKUs
 			<TokenLimit max={32768}>
 				<PrioritizedList priority={this.props.priority} descending={false}>{history}</PrioritizedList>
 			</TokenLimit>
@@ -101,8 +76,6 @@ export class ConversationHistory extends PromptElement<ConversationHistoryProps>
 	}
 
 	private removeDuplicateVars(historyVars: ChatVariablesCollection, currentTurnVars: ChatVariablesCollection | undefined, followingMessages: Turn[]): ChatVariablesCollection {
-		// TODO this is very simple, maybe we could use getUniqueReferences to merge ranges and be smarter. But it would take some rewriting of history for the model to
-		// understand what each history message was referring to.
 		return historyVars.filter(v1 => {
 			if (followingMessages.some(m => m.promptVariables?.find(v2 => variableEquals(v1, v2)))) {
 				return false;
@@ -138,9 +111,6 @@ export interface ConversationHistoryWithToolsProps extends BasePromptElementProp
 	readonly promptContext: IBuildPromptContext;
 }
 
-/**
- * This is conversation history including tool calls, but not summaries. New usages should use SummarizedConversationHistory instead.
- */
 export class ConversationHistoryWithTools extends PromptElement<ConversationHistoryWithToolsProps> {
 	override async render(state: void, sizing: PromptSizing) {
 		const history: PromptElement[] = [];
@@ -155,8 +125,6 @@ export class ConversationHistoryWithTools extends PromptElement<ConversationHist
 			}
 
 			if (Array.isArray(metadata?.toolCallRounds) && metadata.toolCallRounds?.length > 0) {
-				// If a tool call limit is exceeded, the tool call from this turn will
-				// have been aborted and any result should be found in the next turn.
 				const toolCallResultInNextTurn = metadata.maxToolCallsExceeded;
 				let toolCallResults = metadata.toolCallResults;
 				if (toolCallResultInNextTurn) {

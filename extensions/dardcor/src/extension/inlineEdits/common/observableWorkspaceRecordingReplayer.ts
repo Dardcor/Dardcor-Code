@@ -60,7 +60,6 @@ export class ObservableWorkspaceRecordingReplayer extends Disposable {
 
 	async finishReplaySimulateTime() {
 		while (await this.stepSimulateTime()) {
-			// noop
 		}
 	}
 
@@ -99,7 +98,6 @@ export class ObservableWorkspaceRecordingReplayer extends Disposable {
 			if (!nextEdit) {
 				return false;
 			}
-			// we assume that the next edit refers to the last document! This might be wrong.
 			const range = deserializeStringEdit(nextEdit.edit).replacements[0]?.replaceRange;
 			if (!this._lastId) {
 				throw new BugIndicatingError();
@@ -252,7 +250,6 @@ export class ObservableWorkspaceRecordingReplayer extends Disposable {
 }
 
 function joinUriWithRelativePath(baseUri: string, relativePath: string): string {
-	// TODO@hediet: use return URI.parse(join(baseUri, relativePath).replaceAll('\\', '/'));
 	if (baseUri.endsWith('/')) {
 		baseUri = baseUri.substring(0, baseUri.length - 1);
 	}
@@ -260,7 +257,6 @@ function joinUriWithRelativePath(baseUri: string, relativePath: string): string 
 }
 
 
-// TODO: This should be centralized in languages.ts
 function guessLanguageId(docId: DocumentId): LanguageId {
 	const extension = docId.extension;
 

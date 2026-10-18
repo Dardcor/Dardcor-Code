@@ -10,7 +10,6 @@ fi
 
 cd "$ROOT"
 
-# Parse arguments
 EXTRA_ARGS=()
 RUN_FILE=""
 RUN_GLOB=""
@@ -50,7 +49,6 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-# Known suite names (used for help text and validation)
 KNOWN_SUITES="api-folder api-workspace colorize terminal-suggest typescript markdown emmet git git-base ipynb notebook-renderers configuration-editing github-authentication copilot css html"
 
 if $HELP; then
@@ -99,16 +97,14 @@ if [[ -n "$RUN_FILE" || -n "$RUN_GLOB" ]]; then
 	HAS_FILTER=true
 fi
 
-# Check whether a given suite name matches the --suite filter.
-# Supports comma-separated patterns with shell globbing (e.g. "git*,api*").
 should_run_suite() {
 	if [[ -z "$SUITE_FILTER" ]]; then
 		return 0
 	fi
 	IFS=',' read -ra PATTERNS <<< "$SUITE_FILTER"
 	for pattern in "${PATTERNS[@]}"; do
-		pattern="${pattern## }"  # trim leading spaces
-		pattern="${pattern%% }"  # trim trailing spaces
+		pattern="${pattern## }"
+		pattern="${pattern%% }"
 		if [[ "$1" == $pattern ]]; then
 			return 0
 		fi
@@ -120,7 +116,6 @@ VSCODEUSERDATADIR=`mktemp -d 2>/dev/null`
 VSCODECRASHDIR=$ROOT/.build/crashes
 VSCODELOGSDIR=$ROOT/.build/logs/integration-tests
 
-# Seed user settings to disable OS notifications (dock bounce, toast, etc.)
 mkdir -p "$VSCODEUSERDATADIR/User"
 cat > "$VSCODEUSERDATADIR/User/settings.json" <<EOF
 {
@@ -129,7 +124,6 @@ cat > "$VSCODEUSERDATADIR/User/settings.json" <<EOF
 }
 EOF
 
-# Figure out which Electron to use for running tests
 if [ -z "$INTEGRATION_TEST_ELECTRON_PATH" ]
 then
 	INTEGRATION_TEST_ELECTRON_PATH="./scripts/code.sh"
@@ -146,7 +140,6 @@ echo "Storing crash reports into '$VSCODECRASHDIR'."
 echo "Storing log files into '$VSCODELOGSDIR'."
 
 
-# Validate --suite filter matches at least one known suite
 if [[ -n "$SUITE_FILTER" ]]; then
 	SUITE_MATCHED=false
 	for suite in $KNOWN_SUITES; do
@@ -164,7 +157,6 @@ if [[ -n "$SUITE_FILTER" ]]; then
 fi
 
 
-# Unit tests
 
 if [[ -z "$SUITE_FILTER" ]]; then
 	echo
@@ -177,7 +169,6 @@ if [[ -z "$SUITE_FILTER" ]]; then
 	fi
 fi
 
-# Skip extension host tests when a non-suite filter is active
 if [[ -z "$SUITE_FILTER" ]] && $HAS_FILTER; then
 	echo ""
 	echo "Filter active, skipping extension host tests."
@@ -186,9 +177,7 @@ if [[ -z "$SUITE_FILTER" ]] && $HAS_FILTER; then
 fi
 
 
-# Tests in the extension host
 
-# Forward grep pattern to extension test runners
 GREP_ARGS=()
 if [[ -n "$GREP_PATTERN" ]]; then
 	export MOCHA_GREP="$GREP_PATTERN"
@@ -315,7 +304,6 @@ npm run test-extension -- -l copilot "${GREP_ARGS[@]}"
 kill_app
 fi
 
-# Tests standalone (CommonJS)
 
 if should_run_suite css; then
 echo
@@ -332,6 +320,5 @@ cd "$ROOT/extensions/html-language-features/server" && "$ROOT/scripts/node-elect
 fi
 
 
-# Cleanup
 
 rm -rf -- "$VSCODEUSERDATADIR"

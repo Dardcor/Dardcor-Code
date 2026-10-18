@@ -16,7 +16,7 @@ export class HoverColorPickerContribution extends Disposable implements IEditorC
 
 	public static readonly ID: string = 'editor.contrib.colorContribution';
 
-	static readonly RECOMPUTE_TIME = 1000; // ms
+	static readonly RECOMPUTE_TIME = 1000;
 
 	constructor(private readonly _editor: ICodeEditor,
 	) {

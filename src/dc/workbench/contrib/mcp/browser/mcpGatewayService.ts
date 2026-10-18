@@ -10,15 +10,6 @@ import { IMcpGatewayServerInfo, McpGatewayChannelName } from '../../../../platfo
 import { IRemoteAgentService } from '../../../services/remote/common/remoteAgentService.js';
 import { IMcpGatewayResult, IMcpGatewayResultServer, IWorkbenchMcpGatewayService } from '../common/mcpGatewayService.js';
 
-/**
- * Browser implementation of the MCP Gateway Service.
- *
- * In browser/serverless web environments without a remote connection,
- * there is no Node.js process available to create an HTTP server.
- *
- * When running with a remote connection, the gateway is created on the
- * remote server via IPC.
- */
 export class BrowserMcpGatewayService implements IWorkbenchMcpGatewayService {
 	declare readonly _serviceBrand: undefined;
 
@@ -30,7 +21,6 @@ export class BrowserMcpGatewayService implements IWorkbenchMcpGatewayService {
 	async createGateway(inRemote: boolean, chatSessionResource?: URI): Promise<IMcpGatewayResult | undefined> {
 		this._logService.debug(`[McpGateway][BrowserWorkbench] createGateway requested (inRemote=${inRemote})`);
 
-		// Browser can only create gateways in remote environment
 		if (!inRemote) {
 			this._logService.info('[McpGateway][BrowserWorkbench] Cannot create local gateway in browser environment');
 			return undefined;
@@ -43,7 +33,6 @@ export class BrowserMcpGatewayService implements IWorkbenchMcpGatewayService {
 		}
 
 		this._logService.info('[McpGateway][BrowserWorkbench] Creating remote gateway via remote server');
-		// Use the remote server's gateway service
 		return connection.withChannel(McpGatewayChannelName, async channel => {
 			const info = await channel.call<{ gatewayId: string; servers: readonly IMcpGatewayServerInfo[] }>(
 				'createGateway',

@@ -1,16 +1,10 @@
-// Strip multimodal content blocks a model cannot read, BEFORE translation.
-// Driven by getCapabilitiesForModel: vision/audioInput/pdf. Replaces removed
-// media with a short text placeholder so messages never become empty.
 import { FORMATS } from "../formats.js";
 
-// Placeholder text inserted where a media block was removed.
-// Current turn: explain the active model can't read what the user just sent.
 const PLACEHOLDER_CURRENT = {
   vision: "[image omitted: model has no vision support]",
   audioInput: "[audio omitted: model has no audio support]",
   pdf: "[file omitted: model has no document support]",
 };
-// Earlier turns: neutral (a combo may route to a different model each turn).
 const PLACEHOLDER_PREV = {
   vision: "[Previous image omitted from context.]",
   audioInput: "[Previous audio omitted from context.]",
@@ -18,7 +12,6 @@ const PLACEHOLDER_PREV = {
 };
 const ph = (cap, isLast) => (isLast ? PLACEHOLDER_CURRENT : PLACEHOLDER_PREV)[cap];
 
-// Map gemini inlineData/fileData mime prefix -> capability it requires.
 function capForMime(mime) {
   if (typeof mime !== "string") return null;
   if (mime.startsWith("image/")) return "vision";
@@ -27,7 +20,6 @@ function capForMime(mime) {
   return null;
 }
 
-// OpenAI chat content block -> required capability (null = plain text/other, keep).
 function capForOpenAIBlock(block) {
   const t = block?.type;
   if (t === "image_url" || t === "image") return "vision";
@@ -36,7 +28,6 @@ function capForOpenAIBlock(block) {
   return null;
 }
 
-// Claude content block -> required capability.
 function capForClaudeBlock(block) {
   const t = block?.type;
   if (t === "image") return "vision";
@@ -44,8 +35,6 @@ function capForClaudeBlock(block) {
   return null;
 }
 
-// Filter an array of content blocks; drop unsupported, inject one placeholder per kind.
-// isLast = block belongs to the current user turn (picks the explanatory placeholder).
 function filterBlocks(blocks, capOf, caps, removed, isLast) {
   const out = [];
   for (const block of blocks) {
@@ -57,7 +46,6 @@ function filterBlocks(blocks, capOf, caps, removed, isLast) {
   return out;
 }
 
-// OpenAI / OpenAI-compatible chat messages[].content[].
 function stripOpenAI(body, caps) {
   if (!Array.isArray(body.messages)) return;
   const last = body.messages.length - 1;
@@ -81,7 +69,6 @@ function stripOpenAI(body, caps) {
   });
 }
 
-// Claude messages[].content[].
 function stripClaude(body, caps) {
   if (!Array.isArray(body.messages)) return;
   const last = body.messages.length - 1;
@@ -92,7 +79,6 @@ function stripClaude(body, caps) {
   });
 }
 
-// OpenAI Responses input[].content[] (input_image / input_file).
 function stripResponses(body, caps) {
   if (!Array.isArray(body.input)) return;
   const last = body.input.length - 1;
@@ -108,7 +94,6 @@ function stripResponses(body, caps) {
   });
 }
 
-// Gemini / gemini-cli contents[].parts[] (inlineData / fileData by mime).
 function stripGeminiParts(contents, caps) {
   if (!Array.isArray(contents)) return;
   const last = contents.length - 1;
@@ -125,16 +110,8 @@ function stripGeminiParts(contents, caps) {
   });
 }
 
-/**
- * Remove media blocks the model can't read, in-place on the source-format body.
- * @param {object} body - request body (source format)
- * @param {string} sourceFormat - one of FORMATS
- * @param {object} caps - capabilities from getCapabilitiesForModel
- * @returns {boolean} true if anything was stripped-eligible (cap false for some modality)
- */
 export function stripUnsupportedModalities(body, sourceFormat, caps) {
   if (!body || !caps) return false;
-  // Fast exit: model supports everything we'd strip.
   if (caps.vision !== false && caps.audioInput !== false && caps.pdf !== false) return false;
 
   switch (sourceFormat) {

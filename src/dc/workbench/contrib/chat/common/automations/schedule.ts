@@ -16,12 +16,6 @@ export const DAYS_OF_WEEK: readonly string[] = [
 	localize('automation.day.sat', "Saturday"),
 ];
 
-/**
- * Computes the next fire time for a schedule. Daily/weekly times are
- * local wall-clock (not UTC) so DST transitions don't shift them.
- * Day advances use `Date` constructor overflow, not milliseconds, to
- * avoid skipping spring-forward days. Returns `undefined` for `manual`.
- */
 export function computeNextRunAt(schedule: IAutomationSchedule, now: Date): Date | undefined {
 	const { interval, scheduleHour, scheduleMinute, scheduleDay } = schedule;
 
@@ -40,9 +34,6 @@ export function computeNextRunAt(schedule: IAutomationSchedule, now: Date): Date
 			if (today.getTime() > now.getTime()) {
 				return today;
 			}
-			// Advance by calendar date, not milliseconds, so spring-forward
-			// days are not skipped (a `+ 24 * 60 * 60 * 1000` jump on the
-			// DST day can land on the day after the target).
 			return buildLocalDate(now.getFullYear(), now.getMonth(), now.getDate() + 1, scheduleHour, scheduleMinute);
 		}
 
@@ -73,13 +64,6 @@ function isValidHourMinute(hour: number, minute: number): boolean {
 		&& Number.isInteger(minute) && minute >= 0 && minute <= 59;
 }
 
-/**
- * Builds a Date for a specific local wall-clock time. If the requested time
- * falls in a DST spring-forward gap (e.g. 2:30 AM on a day that jumps from
- * 2:00 to 3:00), shifts forward in 1-hour increments until a valid time is
- * found. Ambiguous fall-back times are resolved to the first occurrence,
- * matching JavaScript's default behavior.
- */
 function buildLocalDate(year: number, monthIndex: number, day: number, hour: number, minute: number): Date {
 	const candidate = new Date(year, monthIndex, day, hour, minute, 0, 0);
 	if (candidate.getHours() === hour && candidate.getMinutes() === minute) {

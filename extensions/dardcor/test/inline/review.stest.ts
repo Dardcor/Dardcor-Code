@@ -95,14 +95,11 @@ function assertComment(comments: ReviewComment[], expectedLines: number | number
 	assert.ok(lineComment, `Expected comment for line(s) ${lines.join(', ')}.`);
 	const message = typeof lineComment.body === 'string' ? lineComment.body : lineComment.body.value;
 	assert.ok(message.includes(expectedContent), `Expected comment for line(s) ${lines.join(', ')} to contain "${expectedContent}"`);
-	// assert.ok(typeof lineComment.relevance === 'number' && lineComment.relevance >= expectedMinRelevance, `Expected comment to have relevance >= ${expectedMinRelevance}, was: ${lineComment.relevance}`);
 	const kinds = Array.isArray(expectedKind) ? expectedKind : [expectedKind];
 	assert.ok(kinds.indexOf(lineComment.kind) !== -1, `Expected ${kinds.join(', ')} comment, was: ${lineComment.kind}`);
 }
 
 function assertNoHighPriorityCommentOrBug(comments: ReviewComment[]) {
-	// const highPriority = comments.filter(d => d.relevance === 10);
-	// assert.strictEqual(highPriority.length, 0, `Expected no high priority comment`);
 	const bugs = comments.filter(d => d.kind === 'bug');
 	assert.strictEqual(bugs.length, 0, `Expected no bug comment`);
 }

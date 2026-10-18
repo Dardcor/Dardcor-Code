@@ -13,9 +13,6 @@ import { SSHRelayTransport } from '../../electron-browser/sshRelayTransport.js';
 import type { ISSHRemoteAgentHostMainService, ISSHConnectProgress, ISSHConnectResult, ISSHAgentHostConfig, ISSHResolvedConfig } from '../../common/sshRemoteAgentHost.js';
 import type { IRelayMessage } from '../../common/relayTransport.js';
 
-/**
- * Minimal mock of ISSHRemoteAgentHostMainService for testing the relay transport.
- */
 class MockSSHMainService {
 	private readonly _onDidRelayMessage = new Emitter<IRelayMessage>();
 	readonly onDidRelayMessage = this._onDidRelayMessage.event;
@@ -47,7 +44,6 @@ class MockSSHMainService {
 		throw new Error('Not implemented');
 	}
 
-	// Test helpers
 	fireRelayMessage(msg: IRelayMessage): void {
 		this._onDidRelayMessage.fire(msg);
 	}
@@ -104,7 +100,6 @@ suite('SSHRelayTransport', () => {
 		const received: unknown[] = [];
 		disposables.add(transport.onMessage(msg => received.push(msg)));
 
-		// Should not throw
 		mockService.fireRelayMessage({ connectionId: 'conn-1', data: 'not-json{{{' });
 
 		assert.strictEqual(received.length, 0);
@@ -138,7 +133,6 @@ suite('SSHRelayTransport', () => {
 		const msg = { jsonrpc: '2.0' as const, method: 'test', id: 42 };
 		transport.send(msg as never);
 
-		// Give the async relaySend a tick to register
 		await new Promise<void>(r => queueMicrotask(r));
 
 		assert.strictEqual(mockService.sentMessages.length, 1);

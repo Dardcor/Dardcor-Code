@@ -188,7 +188,7 @@ export class ExplorerViewPaneContainer extends ViewPaneContainer {
 				...options, delegate: {
 					willOpenElement: e => {
 						if (!isMouseEvent(e)) {
-							return; // only delay when user clicks
+							return;
 						}
 
 						const openEditorsView = this.getOpenEditorsView();
@@ -197,12 +197,6 @@ export class ExplorerViewPaneContainer extends ViewPaneContainer {
 
 							const config = this.configurationService.getValue<IFilesConfiguration>();
 							if (config.workbench?.editor?.enablePreview) {
-								// delay open editors view when preview is enabled
-								// to accomodate for the user doing a double click
-								// to pin the editor.
-								// without this delay a double click would be not
-								// possible because the next element would move
-								// under the mouse after the first click.
 								delay = 250;
 							}
 
@@ -211,7 +205,7 @@ export class ExplorerViewPaneContainer extends ViewPaneContainer {
 					},
 					didOpenElement: e => {
 						if (!isMouseEvent(e)) {
-							return; // only delay when user clicks
+							return;
 						}
 
 						const openEditorsView = this.getOpenEditorsView();
@@ -251,9 +245,6 @@ export class ExplorerViewPaneContainer extends ViewPaneContainer {
 
 const viewContainerRegistry = Registry.as<IViewContainersRegistry>(Extensions.ViewContainersRegistry);
 
-/**
- * Explorer viewlet container.
- */
 export const VIEW_CONTAINER: ViewContainer = viewContainerRegistry.registerViewContainer({
 	id: VIEWLET_ID,
 	title: localize2('explore', "Explorer"),
@@ -287,9 +278,7 @@ viewsRegistry.registerViewWelcomeContent(EmptyView.ID, {
 	content: localize({ key: 'noWorkspaceHelp', comment: ['Please do not translate the word "command", it is part of our internal syntax which must not change'] },
 		"You have not yet added a folder to the workspace.\n{0}", addRootFolderButton),
 	when: ContextKeyExpr.and(
-		// inside a .code-workspace
 		WorkbenchStateContext.isEqualTo('workspace'),
-		// unless we cannot enter or open workspaces (e.g. web serverless)
 		OpenFolderWorkspaceSupportContext
 	),
 	group: ViewContentGroups.Open,
@@ -300,9 +289,7 @@ viewsRegistry.registerViewWelcomeContent(EmptyView.ID, {
 	content: localize({ key: 'noFolderHelpWeb', comment: ['Please do not translate the word "command", it is part of our internal syntax which must not change'] },
 		"You have not yet opened a folder.\n{0}\n{1}", openFolderViaWorkspaceButton, openRecentButton),
 	when: ContextKeyExpr.and(
-		// inside a .code-workspace
 		WorkbenchStateContext.isEqualTo('workspace'),
-		// we cannot enter workspaces (e.g. web serverless)
 		OpenFolderWorkspaceSupportContext.toNegated()
 	),
 	group: ViewContentGroups.Open,
@@ -313,11 +300,8 @@ viewsRegistry.registerViewWelcomeContent(EmptyView.ID, {
 	content: localize({ key: 'remoteNoFolderHelp', comment: ['Please do not translate the word "command", it is part of our internal syntax which must not change'] },
 		"Connected to remote.\n{0}", openFolderButton),
 	when: ContextKeyExpr.and(
-		// not inside a .code-workspace
 		WorkbenchStateContext.notEqualsTo('workspace'),
-		// connected to a remote
 		RemoteNameContext.notEqualsTo(''),
-		// but not in web
 		IsWebContext.toNegated()),
 	group: ViewContentGroups.Open,
 	order: 1
@@ -327,12 +311,9 @@ viewsRegistry.registerViewWelcomeContent(EmptyView.ID, {
 	content: localize({ key: 'noFolderButEditorsHelp', comment: ['Please do not translate the word "command", it is part of our internal syntax which must not change'] },
 		"You have not yet opened a folder.\n{0}\nOpening a folder will close all currently open editors. To keep them open, {1} instead.", openFolderButton, addAFolderButton),
 	when: ContextKeyExpr.and(
-		// editors are opened
 		ContextKeyExpr.has('editorIsOpen'),
 		ContextKeyExpr.or(
-			// not inside a .code-workspace and local
 			ContextKeyExpr.and(WorkbenchStateContext.notEqualsTo('workspace'), RemoteNameContext.isEqualTo('')),
-			// not inside a .code-workspace and web
 			ContextKeyExpr.and(WorkbenchStateContext.notEqualsTo('workspace'), IsWebContext)
 		)
 	),
@@ -344,12 +325,9 @@ viewsRegistry.registerViewWelcomeContent(EmptyView.ID, {
 	content: localize({ key: 'noFolderHelp', comment: ['Please do not translate the word "command", it is part of our internal syntax which must not change'] },
 		"You have not yet opened a folder.\n{0}", openFolderButton),
 	when: ContextKeyExpr.and(
-		// no editor is open
 		ContextKeyExpr.has('editorIsOpen')?.negate(),
 		ContextKeyExpr.or(
-			// not inside a .code-workspace and local
 			ContextKeyExpr.and(WorkbenchStateContext.notEqualsTo('workspace'), RemoteNameContext.isEqualTo('')),
-			// not inside a .code-workspace and web
 			ContextKeyExpr.and(WorkbenchStateContext.notEqualsTo('workspace'), IsWebContext)
 		)
 	),

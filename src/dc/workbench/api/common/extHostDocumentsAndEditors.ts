@@ -81,8 +81,6 @@ export class ExtHostDocumentsAndEditors implements ExtHostDocumentsAndEditorsSha
 				const resource = URI.revive(data.uri);
 				let ref = this._documents.get(resource);
 
-				// double check -> only notebook cell documents should be
-				// referenced/opened more than once...
 				if (ref) {
 					if (resource.scheme !== Schemas.vscodeNotebookCell && resource.scheme !== Schemas.vscodeInteractiveInput) {
 						throw new Error(`document '${resource} already exists!'`);
@@ -146,7 +144,6 @@ export class ExtHostDocumentsAndEditors implements ExtHostDocumentsAndEditorsSha
 		dispose(removedDocuments);
 		dispose(removedEditors);
 
-		// now that the internal state is complete, fire events
 		if (delta.removedDocuments) {
 			this._onDidRemoveDocuments.fire(removedDocuments);
 		}

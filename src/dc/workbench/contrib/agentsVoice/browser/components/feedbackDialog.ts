@@ -29,7 +29,6 @@ export function createFeedbackDialog(): FeedbackDialogComponent {
 	const container = dom.$('div');
 	container.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:4px 0;';
 
-	// Success view
 	const successView = dom.$('div');
 	successView.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 14px;gap:8px;flex:1;';
 	const successIcon = dom.$('span.codicon.codicon-check');
@@ -39,7 +38,6 @@ export function createFeedbackDialog(): FeedbackDialogComponent {
 	successText.textContent = localize('agentsVoice.feedbackThanks', "Thank you for your feedback!");
 	successView.append(successIcon, successText);
 
-	// Form view
 	const formView = dom.$('div');
 	formView.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:4px 0;';
 
@@ -119,10 +117,6 @@ export function createFeedbackDialog(): FeedbackDialogComponent {
 	};
 }
 
-/**
- * Mount the feedback dialog into a container, returning a controller to
- * update state and unmount.
- */
 export class FeedbackDialogController extends Disposable {
 	private _state: FeedbackDialogState = { isSubmitting: false, submitted: false };
 	private readonly _dialog: FeedbackDialogComponent;

@@ -282,7 +282,6 @@ class ResourceEditStack {
 	}
 
 	public pushElement(element: StackElement): void {
-		// remove the future
 		for (const futureElement of this._future) {
 			if (futureElement.type === UndoRedoElementType.Workspace) {
 				futureElement.removeResource(this.resourceLabel, this.strResource, RemovedResourceReason.NoParallelUniverses);
@@ -388,10 +387,8 @@ class ResourceEditStack {
 		for (let j = this._past.length - 1; j >= 0; j--) {
 			if (this._past[j] === toRemove) {
 				if (individualMap.has(this.strResource)) {
-					// gets replaced
 					this._past[j] = individualMap.get(this.strResource)!;
 				} else {
-					// gets deleted
 					this._past.splice(j, 1);
 				}
 				break;
@@ -404,10 +401,8 @@ class ResourceEditStack {
 		for (let j = this._future.length - 1; j >= 0; j--) {
 			if (this._future[j] === toRemove) {
 				if (individualMap.has(this.strResource)) {
-					// gets replaced
 					this._future[j] = individualMap.get(this.strResource)!;
 				} else {
-					// gets deleted
 					this._future.splice(j, 1);
 				}
 				break;
@@ -650,7 +645,6 @@ export class UndoRedoService implements IUndoRedoService {
 			editStack.restoreSnapshot(snapshot);
 
 			if (!editStack.hasPastElements() && !editStack.hasFutureElements()) {
-				// the edit stack is now empty, just remove it entirely
 				editStack.dispose();
 				this._editStacks.delete(strResource);
 			}
@@ -674,7 +668,6 @@ export class UndoRedoService implements IUndoRedoService {
 			return [null, null];
 		}
 
-		// find an element with the sourceId and with the highest sourceOrder ready to be undone
 		let matchedElement: StackElement | null = null;
 		let matchedStrResource: string | null = null;
 
@@ -709,7 +702,6 @@ export class UndoRedoService implements IUndoRedoService {
 
 	private _onError(err: Error, element: StackElement): void {
 		onUnexpectedError(err);
-		// An error occurred while undoing or redoing => drop the undo/redo stack for all affected resources
 		for (const strResource of element.strResources) {
 			this.removeElements(strResource);
 		}
@@ -717,20 +709,17 @@ export class UndoRedoService implements IUndoRedoService {
 	}
 
 	private _acquireLocks(editStackSnapshot: EditStackSnapshot): () => void {
-		// first, check if all locks can be acquired
 		for (const editStack of editStackSnapshot.editStacks) {
 			if (editStack.locked) {
 				throw new Error('Cannot acquire edit stack lock');
 			}
 		}
 
-		// can acquire all locks
 		for (const editStack of editStackSnapshot.editStacks) {
 			editStack.locked = true;
 		}
 
 		return () => {
-			// release all locks
 			for (const editStack of editStackSnapshot.editStacks) {
 				editStack.locked = false;
 			}
@@ -750,7 +739,6 @@ export class UndoRedoService implements IUndoRedoService {
 		}
 
 		if (result) {
-			// result is Promise<void>
 			return result.then(
 				() => {
 					releaseLocks();
@@ -764,7 +752,6 @@ export class UndoRedoService implements IUndoRedoService {
 				}
 			);
 		} else {
-			// result is void
 			releaseLocks();
 			cleanup.dispose();
 			return continuation();
@@ -784,13 +771,11 @@ export class UndoRedoService implements IUndoRedoService {
 
 	private _invokeResourcePrepare(element: ResourceStackElement, callback: (disposable: IDisposable) => Promise<void> | void): void | Promise<void> {
 		if (element.actual.type !== UndoRedoElementType.Workspace || typeof element.actual.prepareUndoRedo === 'undefined') {
-			// no preparation needed
 			return callback(Disposable.None);
 		}
 
 		const r = element.actual.prepareUndoRedo();
 		if (!r) {
-			// nothing to clean up
 			return callback(Disposable.None);
 		}
 
@@ -817,7 +802,6 @@ export class UndoRedoService implements IUndoRedoService {
 			this._notificationService.warn(message);
 			return new WorkspaceVerificationError(this._undo(strResource, 0, true));
 		} else {
-			// Cannot safely split this workspace element => flush all undo/redo stacks
 			for (const strResource of element.strResources) {
 				this.removeElements(strResource);
 			}
@@ -850,7 +834,6 @@ export class UndoRedoService implements IUndoRedoService {
 			);
 		}
 
-		// this must be the last past element in all the impacted resources!
 		const cannotUndoDueToResources: string[] = [];
 		for (const editStack of editStackSnapshot.editStacks) {
 			if (editStack.getClosestPastElement() !== element) {
@@ -887,7 +870,6 @@ export class UndoRedoService implements IUndoRedoService {
 			);
 		}
 
-		// check if new stack elements were added in the meantime...
 		if (!editStackSnapshot.isValid()) {
 			return this._tryToSplitAndUndo(
 				strResource,
@@ -905,7 +887,7 @@ export class UndoRedoService implements IUndoRedoService {
 
 	private _workspaceUndo(strResource: string, element: WorkspaceStackElement, undoConfirmed: boolean): Promise<void> | void {
 		const affectedEditStacks = this._getAffectedEditStacks(element);
-		const verificationError = this._checkWorkspaceUndo(strResource, element, affectedEditStacks, /*invalidated resources will be checked after the prepare call*/false);
+		const verificationError = this._checkWorkspaceUndo(strResource, element, affectedEditStacks, false);
 		if (verificationError) {
 			return verificationError.returnValue;
 		}
@@ -916,7 +898,6 @@ export class UndoRedoService implements IUndoRedoService {
 		if (!element.groupId) {
 			return false;
 		}
-		// check that there is at least another element with the same groupId ready to be undone
 		for (const [, editStack] of this._editStacks) {
 			const pastElement = editStack.getClosestPastElement();
 			if (!pastElement) {
@@ -925,12 +906,10 @@ export class UndoRedoService implements IUndoRedoService {
 			if (pastElement === element) {
 				const secondPastElement = editStack.getSecondClosestPastElement();
 				if (secondPastElement && secondPastElement.groupId === element.groupId) {
-					// there is another element with the same group id in the same stack!
 					return true;
 				}
 			}
 			if (pastElement.groupId === element.groupId) {
-				// there is another element with the same group id in another stack!
 				return true;
 			}
 		}
@@ -940,7 +919,6 @@ export class UndoRedoService implements IUndoRedoService {
 	private async _confirmAndExecuteWorkspaceUndo(strResource: string, element: WorkspaceStackElement, editStackSnapshot: EditStackSnapshot, undoConfirmed: boolean): Promise<void> {
 
 		if (element.canSplit() && !this._isPartOfUndoGroup(element)) {
-			// this element can be split
 
 			enum UndoChoice {
 				All = 0,
@@ -967,20 +945,16 @@ export class UndoRedoService implements IUndoRedoService {
 			});
 
 			if (result === UndoChoice.Cancel) {
-				// choice: cancel
 				return;
 			}
 
 			if (result === UndoChoice.This) {
-				// choice: undo this file
 				this._splitPastWorkspaceElement(element, null);
 				return this._undo(strResource, 0, true);
 			}
 
-			// choice: undo in all files
 
-			// At this point, it is possible that the element has been made invalid in the meantime (due to the confirmation await)
-			const verificationError1 = this._checkWorkspaceUndo(strResource, element, editStackSnapshot, /*invalidated resources will be checked after the prepare call*/false);
+			const verificationError1 = this._checkWorkspaceUndo(strResource, element, editStackSnapshot, false);
 			if (verificationError1) {
 				return verificationError1.returnValue;
 			}
@@ -988,7 +962,6 @@ export class UndoRedoService implements IUndoRedoService {
 			undoConfirmed = true;
 		}
 
-		// prepare
 		let cleanup: IDisposable;
 		try {
 			cleanup = await this._invokeWorkspacePrepare(element);
@@ -996,8 +969,7 @@ export class UndoRedoService implements IUndoRedoService {
 			return this._onError(err, element);
 		}
 
-		// At this point, it is possible that the element has been made invalid in the meantime (due to the prepare await)
-		const verificationError2 = this._checkWorkspaceUndo(strResource, element, editStackSnapshot, /*now also check that there are no more invalidated resources*/true);
+		const verificationError2 = this._checkWorkspaceUndo(strResource, element, editStackSnapshot, true);
 		if (verificationError2) {
 			cleanup.dispose();
 			return verificationError2.returnValue;
@@ -1011,7 +983,6 @@ export class UndoRedoService implements IUndoRedoService {
 
 	private _resourceUndo(editStack: ResourceEditStack, element: ResourceStackElement, undoConfirmed: boolean): Promise<void> | void {
 		if (!element.isValid) {
-			// invalid element => immediately flush edit stack!
 			editStack.flushAllElements();
 			return;
 		}
@@ -1034,7 +1005,6 @@ export class UndoRedoService implements IUndoRedoService {
 			return [null, null];
 		}
 
-		// find another element with the same groupId and with the highest groupOrder ready to be undone
 		let matchedElement: StackElement | null = null;
 		let matchedStrResource: string | null = null;
 
@@ -1088,17 +1058,14 @@ export class UndoRedoService implements IUndoRedoService {
 		}
 
 		if (element.groupId) {
-			// this element is a part of a group, we need to make sure undoing in a group is in order
 			const [matchedElement, matchedStrResource] = this._findClosestUndoElementInGroup(element.groupId);
 			if (element !== matchedElement && matchedStrResource) {
-				// there is an element in the same group that should be undone before this one
 				return this._undo(matchedStrResource, sourceId, undoConfirmed);
 			}
 		}
 
 		const shouldPromptForConfirmation = (element.sourceId !== sourceId || element.confirmBeforeUndo);
 		if (shouldPromptForConfirmation && !undoConfirmed) {
-			// Hit a different source or the element asks for prompt before undo, prompt for confirmation
 			return this._confirmAndContinueUndo(strResource, sourceId, element);
 		}
 
@@ -1134,7 +1101,6 @@ export class UndoRedoService implements IUndoRedoService {
 			return [null, null];
 		}
 
-		// find an element with sourceId and with the lowest sourceOrder ready to be redone
 		let matchedElement: StackElement | null = null;
 		let matchedStrResource: string | null = null;
 
@@ -1173,7 +1139,6 @@ export class UndoRedoService implements IUndoRedoService {
 			this._notificationService.warn(message);
 			return new WorkspaceVerificationError(this._redo(strResource));
 		} else {
-			// Cannot safely split this workspace element => flush all undo/redo stacks
 			for (const strResource of element.strResources) {
 				this.removeElements(strResource);
 			}
@@ -1206,7 +1171,6 @@ export class UndoRedoService implements IUndoRedoService {
 			);
 		}
 
-		// this must be the last future element in all the impacted resources!
 		const cannotRedoDueToResources: string[] = [];
 		for (const editStack of editStackSnapshot.editStacks) {
 			if (editStack.getClosestFutureElement() !== element) {
@@ -1243,7 +1207,6 @@ export class UndoRedoService implements IUndoRedoService {
 			);
 		}
 
-		// check if new stack elements were added in the meantime...
 		if (!editStackSnapshot.isValid()) {
 			return this._tryToSplitAndRedo(
 				strResource,
@@ -1261,7 +1224,7 @@ export class UndoRedoService implements IUndoRedoService {
 
 	private _workspaceRedo(strResource: string, element: WorkspaceStackElement): Promise<void> | void {
 		const affectedEditStacks = this._getAffectedEditStacks(element);
-		const verificationError = this._checkWorkspaceRedo(strResource, element, affectedEditStacks, /*invalidated resources will be checked after the prepare call*/false);
+		const verificationError = this._checkWorkspaceRedo(strResource, element, affectedEditStacks, false);
 		if (verificationError) {
 			return verificationError.returnValue;
 		}
@@ -1269,7 +1232,6 @@ export class UndoRedoService implements IUndoRedoService {
 	}
 
 	private async _executeWorkspaceRedo(strResource: string, element: WorkspaceStackElement, editStackSnapshot: EditStackSnapshot): Promise<void> {
-		// prepare
 		let cleanup: IDisposable;
 		try {
 			cleanup = await this._invokeWorkspacePrepare(element);
@@ -1277,8 +1239,7 @@ export class UndoRedoService implements IUndoRedoService {
 			return this._onError(err, element);
 		}
 
-		// At this point, it is possible that the element has been made invalid in the meantime (due to the prepare await)
-		const verificationError = this._checkWorkspaceRedo(strResource, element, editStackSnapshot, /*now also check that there are no more invalidated resources*/true);
+		const verificationError = this._checkWorkspaceRedo(strResource, element, editStackSnapshot, true);
 		if (verificationError) {
 			cleanup.dispose();
 			return verificationError.returnValue;
@@ -1292,7 +1253,6 @@ export class UndoRedoService implements IUndoRedoService {
 
 	private _resourceRedo(editStack: ResourceEditStack, element: ResourceStackElement): Promise<void> | void {
 		if (!element.isValid) {
-			// invalid element => immediately flush edit stack!
 			editStack.flushAllElements();
 			return;
 		}
@@ -1316,7 +1276,6 @@ export class UndoRedoService implements IUndoRedoService {
 			return [null, null];
 		}
 
-		// find another element with the same groupId and with the lowest groupOrder ready to be redone
 		let matchedElement: StackElement | null = null;
 		let matchedStrResource: string | null = null;
 
@@ -1370,10 +1329,8 @@ export class UndoRedoService implements IUndoRedoService {
 		}
 
 		if (element.groupId) {
-			// this element is a part of a group, we need to make sure redoing in a group is in order
 			const [matchedElement, matchedStrResource] = this._findClosestRedoElementInGroup(element.groupId);
 			if (element !== matchedElement && matchedStrResource) {
-				// there is an element in the same group that should be redone before this one
 				return this._redo(matchedStrResource);
 			}
 		}

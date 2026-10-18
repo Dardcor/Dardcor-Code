@@ -280,9 +280,6 @@ export class TunnelAgentHostMainService extends Disposable implements ITunnelAge
 	}
 }
 
-/**
- * Registers a pending gateway selection directly for node service tests.
- */
 export function setPendingGatewaySelectionForTests(
 	service: TunnelAgentHostMainService,
 	selectionId: string,
@@ -291,9 +288,6 @@ export function setPendingGatewaySelectionForTests(
 	(service as unknown as { _connector: TunnelAgentHostConnector })._connector.setPendingGatewaySelectionForTests(selectionId, pending);
 }
 
-/**
- * Removes and disposes a pending gateway selection directly for node service tests.
- */
 export function deletePendingGatewaySelectionForTests(
 	service: TunnelAgentHostMainService,
 	selectionId: string,

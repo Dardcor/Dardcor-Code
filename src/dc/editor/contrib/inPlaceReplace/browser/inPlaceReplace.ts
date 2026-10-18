@@ -54,7 +54,6 @@ class InPlaceReplaceController implements IEditorContribution {
 
 	public run(source: string, up: boolean): Promise<void> | undefined {
 
-		// cancel any pending request
 		this.currentRequest?.cancel();
 
 		const editorSelection = this.editor.getSelection();
@@ -64,7 +63,6 @@ class InPlaceReplaceController implements IEditorContribution {
 		}
 		let selection = editorSelection;
 		if (selection.startLineNumber !== selection.endLineNumber) {
-			// Can't accept multiline selection
 			return undefined;
 		}
 
@@ -79,21 +77,17 @@ class InPlaceReplaceController implements IEditorContribution {
 		return this.currentRequest.then(result => {
 
 			if (!result || !result.range || !result.value) {
-				// No proper result
 				return;
 			}
 
 			if (!state.validate(this.editor)) {
-				// state has changed
 				return;
 			}
 
-			// Selection
 			const editRange = Range.lift(result.range);
 			let highlightRange = result.range;
 			const diff = result.value.length - (selection.endColumn - selection.startColumn);
 
-			// highlight
 			highlightRange = {
 				startLineNumber: highlightRange.startLineNumber,
 				startColumn: highlightRange.startColumn,
@@ -104,20 +98,17 @@ class InPlaceReplaceController implements IEditorContribution {
 				selection = new Selection(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn + diff - 1);
 			}
 
-			// Insert new text
 			const command = new InPlaceReplaceCommand(editRange, selection, result.value);
 
 			this.editor.pushUndoStop();
 			this.editor.executeCommand(source, command);
 			this.editor.pushUndoStop();
 
-			// add decoration
 			this.decorations.set([{
 				range: highlightRange,
 				options: InPlaceReplaceController.DECORATION
 			}]);
 
-			// remove decoration after delay
 			this.decorationRemover?.cancel();
 			this.decorationRemover = timeout(350);
 			this.decorationRemover.then(() => this.decorations.clear()).catch(onUnexpectedError);

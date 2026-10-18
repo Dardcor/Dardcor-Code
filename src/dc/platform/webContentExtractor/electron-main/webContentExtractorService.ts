@@ -17,8 +17,6 @@ import { WebPageLoader } from './webPageLoader.js';
 export class NativeWebContentExtractorService extends Disposable implements IWebContentExtractorService {
 	_serviceBrand: undefined;
 
-	// Only allow 3 windows to be opened at a time
-	// to avoid overwhelming the system with too many processes.
 	private _limiter = new Limiter<WebContentExtractResult>(3);
 	private _webContentsCache = new WebContentCache();
 

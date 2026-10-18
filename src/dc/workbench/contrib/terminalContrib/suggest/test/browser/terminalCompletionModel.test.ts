@@ -43,7 +43,7 @@ function createFolderItemsModel(...labels: string[]): TerminalCompletionModel {
 
 function assertItems(model: TerminalCompletionModel, labels: (string | CompletionItemLabel)[]): void {
 	assert.deepStrictEqual(model.items.map(i => i.completion.label), labels);
-	assert.strictEqual(model.items.length, labels.length); // sanity check
+	assert.strictEqual(model.items.length, labels.length);
 }
 
 suite('TerminalCompletionModel', function () {
@@ -113,8 +113,6 @@ suite('TerminalCompletionModel', function () {
 		});
 
 		test('should handle many files and folders correctly', function () {
-			// This is VS Code's root directory with some python items added that have special
-			// sorting
 			const items = [
 				...createFolderItems(
 					'__pycache',

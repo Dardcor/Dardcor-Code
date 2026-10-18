@@ -17,14 +17,11 @@ export class CommandLinePwshChainOperatorRewriter extends Disposable implements 
 	}
 
 	async rewrite(options: ICommandLineRewriterOptions): Promise<ICommandLineRewriterResult | undefined> {
-		// TODO: This should just be Windows PowerShell in the future when the powershell grammar
-		// supports chain operators https://github.com/airbus-cert/tree-sitter-powershell/issues/27
 		if (isPowerShell(options.shell, options.os)) {
 			let doubleAmpersandCaptures: QueryCapture[] | undefined;
 			try {
 				doubleAmpersandCaptures = await this._treeSitterCommandParser.extractPwshDoubleAmpersandChainOperators(options.commandLine);
 			} catch {
-				// Swallow tree sitter failures
 			}
 
 			if (doubleAmpersandCaptures && doubleAmpersandCaptures.length > 0) {
@@ -35,6 +32,17 @@ export class CommandLinePwshChainOperatorRewriter extends Disposable implements 
 				return {
 					rewritten,
 					reasoning: '&& re-written to ;'
+				};
+			}
+
+			if (options.commandLine.includes('&&') || /\bcd\s+\/d\b/i.test(options.commandLine)) {
+				const rewritten = options.commandLine
+					.replace(/\bcd\s+\/d\s+("[^"]+"|\S+)\s*(?:&&|;)\s*/gi, 'Set-Location $1; ')
+					.replace(/\bcd\s+\/d\s+("[^"]+"|\S+)/gi, 'Set-Location $1')
+					.replace(/\s*&&\s*/g, ' ; ');
+				return {
+					rewritten,
+					reasoning: '&& re-written to ; (regex fallback)'
 				};
 			}
 		}

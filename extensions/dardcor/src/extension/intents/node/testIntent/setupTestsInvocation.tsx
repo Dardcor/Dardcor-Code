@@ -87,9 +87,6 @@ export class SetupTestsInvocation implements IIntentInvocation {
 		const pushTokens = (tokens: Iterable<IToken<State>>) => {
 			for (const token of tokens) {
 				if (token.transitionTo === State.FileTree) {
-					// tokens are accumulated into a file tree is seen (generally the first
-					// thing in the response) to avoid printing a generic "what framework are
-					// you using?" if the user gave a generic questioning prompt
 					outputStream.markdown(grammar.accumulate(0, grammar.tokens.length - 1));
 				} else if (token.transitionTo === State.FoundTree) {
 					const tree = grammar.accumulate(undefined, undefined, State.FileTree);
@@ -116,12 +113,10 @@ export class SetupTestsInvocation implements IIntentInvocation {
 
 		const command = this.setupConfirmation?.command || this.delegatedSetup?.command;
 		if (command) {
-			// prompt will already include the `message` at the end, just add the button as needed
 			outputStream.button(command);
 		} else if (grammar.visited(State.FileTree)) {
 			await this.recommendExtension(grammar.accumulate(undefined, undefined, State.LookingForTree), outputStream, token);
 		} else {
-			// if we never saw a file tree, automatically do the generic test setup
 			await this.doFrameworkQuery(context, outputStream, token);
 		}
 	}
@@ -157,7 +152,6 @@ export class SetupTestsInvocation implements IIntentInvocation {
 		try {
 			result = await this.commandService.executeCommand(command);
 		} catch {
-			// ignored
 		}
 
 		return result;
@@ -184,7 +178,7 @@ export class SetupTestsInvocation implements IIntentInvocation {
 		}
 
 		if (extensionInfo && this.extensionsService.getExtension(extensionInfo.id)) {
-			return; // extension already installed
+			return;
 		}
 
 		outputStream.markdown('\n\n');
@@ -228,10 +222,8 @@ export class SetupTestsInvocation implements IIntentInvocation {
 			return;
 		}
 
-		// todo: make the preview URI a diff for existing files
 		const { chatResponseTree } = convertFileTreeToChatResponseFileTree(tree, () => makePreviewUri(requestId));
 
-		// Handle a root '[project-name]' or similar fake root node
 		const first = chatResponseTree.value[0];
 		if (chatResponseTree.value.length === 1 && /^\[.+\]$/.test(first.name) && first.children) {
 			chatResponseTree.value = first.children!;

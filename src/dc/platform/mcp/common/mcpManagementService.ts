@@ -71,7 +71,6 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 
 	getMcpServerConfigurationFromManifest(manifest: IGalleryMcpServerConfiguration, packageType: RegistryType): McpServerConfigurationParseResult {
 
-		// remote
 		if (packageType === RegistryType.REMOTE && manifest.remotes?.length) {
 			const url = manifest.remotes[0].url;
 			const headers = manifest.remotes[0].headers ?? [];
@@ -89,7 +88,6 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 			};
 		}
 
-		// local
 		const serverPackage = manifest.packages?.find(p => p.registryType === packageType) ?? manifest.packages?.[0];
 		if (!serverPackage) {
 			throw new Error(`No server package found`);
@@ -149,7 +147,7 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 				}
 			case RegistryType.NUGET:
 				args.push(serverPackage.version ? `${serverPackage.identifier}@${serverPackage.version}` : serverPackage.identifier);
-				args.push('--yes'); // installation is confirmed by the UI, so --yes is appropriate here
+				args.push('--yes');
 				if (serverPackage.registryBaseUrl) {
 					args.push('--source', serverPackage.registryBaseUrl);
 				}
@@ -214,14 +212,12 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 			const inputVariables = input.variables ? this.getVariables(input.variables) : [];
 			let value = input.value || '';
 
-			// If explicit variables exist, use them regardless of value
 			if (inputVariables.length) {
 				for (const variable of inputVariables) {
 					value = value.replace(`{${variable.id}}`, `\${input:${variable.id}}`);
 				}
 				variables.push(...inputVariables);
 			} else if (!value && (input.description || input.choices || input.default !== undefined)) {
-				// Only create auto-generated input variable if no explicit variables and no value
 				variables.push({
 					id: input.name,
 					type: input.choices ? McpServerVariableType.PICK : McpServerVariableType.PROMPT,
@@ -257,7 +253,6 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 						variables.push(...argVariables);
 					}
 				} else if (arg.valueHint && (arg.description || arg.default !== undefined)) {
-					// Create input variable for positional argument without value
 					variables.push({
 						id: arg.valueHint,
 						type: McpServerVariableType.PROMPT,
@@ -267,7 +262,6 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 					});
 					args.push(`\${input:${arg.valueHint}}`);
 				} else {
-					// Fallback to value_hint as literal
 					args.push(arg.valueHint ?? '');
 				}
 			} else if (arg.type === 'named') {
@@ -286,7 +280,6 @@ export abstract class AbstractCommonMcpManagementService extends Disposable impl
 						variables.push(...argVariables);
 					}
 				} else if (arg.description || arg.default !== undefined) {
-					// Create input variable for named argument without value
 					const variableId = arg.name.replace(/^--?/, '');
 					variables.push({
 						id: variableId,
@@ -339,13 +332,6 @@ export abstract class AbstractMcpResourceManagementService extends AbstractCommo
 		this.reloadConfigurationScheduler = this._register(new RunOnceScheduler(() => this.updateLocal(), 50));
 	}
 
-	/**
-	 * Enforces the enterprise allow/deny policy at the point of persistence. Called by every
-	 * install path (installable and each gallery override) against the fully resolved server
-	 * configuration, so a caller that goes straight to the management API cannot bypass the
-	 * `canInstall` UI check, and a gallery entry cannot slip through if its resolved command/URL
-	 * differs from the pre-resolution metadata.
-	 */
 	protected ensureServerAllowed(server: IGalleryMcpServer | IInstallableMcpServer): void {
 		const result = this.allowedMcpServersService.isAllowed(server);
 		if (result !== true) {
@@ -591,7 +577,6 @@ export class McpUserResourceManagementService extends AbstractMcpResourceManagem
 				const content = await this.fileService.readFile(manifestLocation);
 				storedMcpServerInfo = JSON.parse(content.value.toString()) as ILocalMcpServerInfo;
 
-				// migrate
 				if (storedMcpServerInfo.galleryUrl?.includes('/v0/')) {
 					storedMcpServerInfo.galleryUrl = storedMcpServerInfo.galleryUrl.substring(0, storedMcpServerInfo.galleryUrl.indexOf('/v0/'));
 					await this.fileService.writeFile(manifestLocation, VSBuffer.fromString(JSON.stringify(storedMcpServerInfo)));

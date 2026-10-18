@@ -23,14 +23,12 @@ import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 
-// duplicate of IExtensionsViewPaneContainer in contrib
 interface IExtensionsViewPaneContainer extends IViewPaneContainer {
 	readonly searchValue: string | undefined;
 	search(text: string): void;
 	refresh(): Promise<void>;
 }
 
-// duplicate of VIEWLET_ID in contrib/extensions
 const EXTENSIONS_VIEWLET_ID = 'workbench.view.extensions';
 
 class NativeLocaleService implements ILocaleService {
@@ -55,8 +53,6 @@ class NativeLocaleService implements ILocaleService {
 		try {
 			const content = await this.textFileService.read(this.environmentService.argvResource, { encoding: 'utf8' });
 
-			// This is the same logic that we do where argv.json is parsed so mirror that:
-			// https://github.com/microsoft/vscode/blob/32d40cf44e893e87ac33ac4f08de1e5f7fe077fc/src/main.js#L238-L246
 			parse(content.value);
 		} catch (error) {
 			this.notificationService.notify({
@@ -93,14 +89,9 @@ class NativeLocaleService implements ILocaleService {
 		const installedLanguages = await this.languagePackService.getInstalledLanguages();
 		try {
 
-			// Only Desktop has the concept of installing language packs so we only do this for Desktop
-			// and only if the language pack is not installed
 			if (!installedLanguages.some(installedLanguage => installedLanguage.id === languagePackItem.id)) {
 
-				// Only actually install a language pack from Microsoft
 				if (languagePackItem.galleryExtension?.publisher.toLowerCase() !== 'ms-ceintl') {
-					// Show the view so the user can see the language pack that they should install
-					// as of now, there are no 3rd party language packs available on the Marketplace.
 					const viewlet = await this.paneCompositePartService.openPaneComposite(EXTENSIONS_VIEWLET_ID, ViewContainerLocation.Sidebar);
 					(viewlet?.getViewPaneContainer() as IExtensionsViewPaneContainer).search(`@id:${languagePackItem.extensionId}`);
 					return;
@@ -112,7 +103,6 @@ class NativeLocaleService implements ILocaleService {
 						title: localize('installing', "Installing {0} language support...", languagePackItem.label),
 					},
 					progress => this.extensionManagementService.installFromGallery(languagePackItem.galleryExtension!, {
-						// Setting this to false is how you get the extension to be synced with Settings Sync (if enabled).
 						isMachineScoped: false,
 					})
 				);
@@ -155,8 +145,6 @@ class NativeLocaleService implements ILocaleService {
 	}
 }
 
-// This is its own service because the localeService depends on IJSONEditingService which causes a circular dependency
-// Once that's ironed out, we can fold this into the localeService.
 class NativeActiveLanguagePackService implements IActiveLanguagePackService {
 	_serviceBrand: undefined;
 

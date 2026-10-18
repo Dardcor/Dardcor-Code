@@ -34,7 +34,7 @@ suite('applyAgentHostCompletionAction', () => {
 	setup(() => resetShownWarnings());
 
 	test('applies a non-elevated (mode) change without a dialog', async () => {
-		const dialog = new TestDialogService(); // default confirms if prompted
+		const dialog = new TestDialogService();
 		const storage = store.add(new InMemoryStorageService());
 		let applied: Record<string, string> | undefined;
 		const result = await applyAgentHostCompletionAction(
@@ -48,7 +48,7 @@ suite('applyAgentHostCompletionAction', () => {
 	});
 
 	test('applies an elevated autoApprove change when the confirmation is accepted', async () => {
-		const dialog = new TestDialogService(); // first (confirm) button returns true
+		const dialog = new TestDialogService();
 		const storage = store.add(new InMemoryStorageService());
 		let applied: Record<string, string> | undefined;
 		const result = await applyAgentHostCompletionAction(

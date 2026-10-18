@@ -104,7 +104,7 @@ function createTerminalProfileMarkdownDescription(platform: Platform.Linux | Pla
 		PlatformToString(platform),
 		'```json\n"terminal.integrated.profile.' + key + '": {\n  "bash": null\n}\n```',
 		'[',
-		'](https://code.visualstudio.com/docs/terminal/profiles)'
+		'](https://www.dardcor-code.web.id/docs/terminal/profiles)'
 	);
 }
 
@@ -418,10 +418,8 @@ const terminalPlatformConfiguration: IConfigurationNode = {
 				uniqueItems: true
 			},
 			default: [
-				// Popular prompt programs, these should not count as child processes
 				'starship',
 				'oh-my-posh',
-				// Git bash may runs a subprocess of itself (bin\bash.exe -> usr\bin\bash.exe)
 				'bash',
 				'zsh',
 			]
@@ -429,9 +427,6 @@ const terminalPlatformConfiguration: IConfigurationNode = {
 	}
 };
 
-/**
- * Registers terminal configurations required by shared process and remote server.
- */
 export function registerTerminalPlatformConfiguration() {
 	Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration(terminalPlatformConfiguration);
 	registerTerminalDefaultProfileConfiguration();

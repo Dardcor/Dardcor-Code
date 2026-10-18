@@ -31,9 +31,6 @@ const enum Refilter {
 	Incr = 2
 }
 
-/**
- * Sorted, filtered completion view model
- * */
 export class CompletionModel {
 
 	private readonly _items: CompletionItem[];
@@ -130,13 +127,9 @@ export class CompletionModel {
 		let word = '';
 		let wordLow = '';
 
-		// incrementally filter less
 		const source = this._refilterKind === Refilter.All ? this._items : this._filteredItems!;
 		const target: StrictCompletionItem[] = [];
 
-		// picks a score function based on the number of
-		// items that we have to score/filter and based on the
-		// user-configuration
 		const scoreFn: FuzzyScorer = (!this._options.filterGraceful || source.length > 2000) ? fuzzyScore : fuzzyScoreGracefulAggressive;
 
 		for (let i = 0; i < source.length; i++) {
@@ -144,10 +137,9 @@ export class CompletionModel {
 			const item = source[i];
 
 			if (item.isInvalid) {
-				continue; // SKIP invalid items
+				continue;
 			}
 
-			// keep all items by their provider
 			const arr = this._itemsByProvider.get(item.provider);
 			if (arr) {
 				arr.push(item);
@@ -155,9 +147,6 @@ export class CompletionModel {
 				this._itemsByProvider.set(item.provider, [item]);
 			}
 
-			// 'word' is that remainder of the current line that we
-			// filter and score against. In theory each suggestion uses a
-			// different word, but in practice not - that's why we cache
 			const overwriteBefore = item.position.column - item.editStart.column;
 			const wordLen = overwriteBefore + characterCountDelta - (item.position.column - this._column);
 			if (word.length !== wordLen) {
@@ -165,21 +154,12 @@ export class CompletionModel {
 				wordLow = word.toLowerCase();
 			}
 
-			// remember the word against which this item was
-			// scored
 			item.word = word;
 
 			if (wordLen === 0) {
-				// when there is nothing to score against, don't
-				// event try to do. Use a const rank and rely on
-				// the fallback-sort using the initial sort order.
-				// use a score of `-100` because that is out of the
-				// bound of values `fuzzyScore` will return
 				item.score = FuzzyScore.Default;
 
 			} else {
-				// skip word characters that are whitespace until
-				// we have hit the replace range (overwriteBefore)
 				let wordPos = 0;
 				while (wordPos < overwriteBefore) {
 					const ch = word.charCodeAt(wordPos);
@@ -191,34 +171,24 @@ export class CompletionModel {
 				}
 
 				if (wordPos >= wordLen) {
-					// the wordPos at which scoring starts is the whole word
-					// and therefore the same rules as not having a word apply
 					item.score = FuzzyScore.Default;
 
 				} else if (typeof item.completion.filterText === 'string') {
-					// when there is a `filterText` it must match the `word`.
-					// if it matches we check with the label to compute highlights
-					// and if that doesn't yield a result we have no highlights,
-					// despite having the match
 					const match = scoreFn(word, wordLow, wordPos, item.completion.filterText, item.filterTextLow!, 0, this._fuzzyScoreOptions);
 					if (!match) {
-						continue; // NO match
+						continue;
 					}
 					if (compareIgnoreCase(item.completion.filterText, item.textLabel) === 0) {
-						// filterText and label are actually the same -> use good highlights
 						item.score = match;
 					} else {
-						// re-run the scorer on the label in the hope of a result BUT use the rank
-						// of the filterText-match
 						item.score = anyScore(word, wordLow, wordPos, item.textLabel, item.labelLow, 0);
-						item.score[0] = match[0]; // use score from filterText
+						item.score[0] = match[0];
 					}
 
 				} else {
-					// by default match `word` against the `label`
 					const match = scoreFn(word, wordLow, wordPos, item.textLabel, item.labelLow, 0, this._fuzzyScoreOptions);
 					if (!match) {
-						continue; // NO match
+						continue;
 					}
 					item.score = match;
 				}
@@ -228,7 +198,6 @@ export class CompletionModel {
 			item.distance = this._wordDistance.distance(item.position, item.completion);
 			target.push(item as StrictCompletionItem);
 
-			// update stats
 			labelLengths.push(item.textLabel.length);
 		}
 

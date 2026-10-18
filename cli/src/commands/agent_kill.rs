@@ -13,7 +13,6 @@ use crate::util::machine::process_exists;
 
 use super::CommandContext;
 
-/// Forcefully kills the running agent host process tree and cleans up.
 pub async fn agent_kill(ctx: CommandContext) -> Result<i32, AnyError> {
 	let lockfile_path = ctx.paths.agent_host_lockfile();
 

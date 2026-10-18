@@ -16,7 +16,6 @@ import { JSONSchemaCache } from './schemaCache';
 
 let client: AsyncDisposable | undefined;
 
-// this method is called when vs code is activated
 export async function activate(context: ExtensionContext) {
 	const clientPackageJSON = await getPackageInfo(context);
 	const telemetry = new TelemetryReporter(clientPackageJSON.aiKey);
@@ -28,11 +27,8 @@ export async function activate(context: ExtensionContext) {
 	const serverMain = `./server/${clientPackageJSON.main.indexOf('/dist/') !== -1 ? 'dist' : 'out'}/node/jsonServerMain`;
 	const serverModule = context.asAbsolutePath(serverMain);
 
-	// The debug options for the server
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=' + (6000 + Math.round(Math.random() * 999))] };
 
-	// If the extension is launch in debug mode the debug server options are use
-	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
@@ -49,7 +45,6 @@ export async function activate(context: ExtensionContext) {
 		}
 	};
 
-	// pass the location of the localization bundle to the server
 	process.env['VSCODE_L10N_BUNDLE_LOCATION'] = l10n.uri?.toString() ?? '';
 
 	const schemaRequests = await getSchemaRequestService(context, logOutputChannel);
@@ -81,7 +76,7 @@ async function getPackageInfo(context: ExtensionContext): Promise<IPackageInfo> 
 	}
 }
 
-const retryTimeoutInHours = 2 * 24; // 2 days
+const retryTimeoutInHours = 2 * 24;
 
 async function getSchemaRequestService(context: ExtensionContext, log: LogOutputChannel): Promise<SchemaRequestService> {
 	let cache: JSONSchemaCache | undefined = undefined;

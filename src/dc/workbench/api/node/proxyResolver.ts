@@ -118,7 +118,7 @@ export function connectProxyResolver(
 					}));
 				} else {
 					extHostLogService.trace('ProxyResolver#loadAdditionalCertificates: Loading certificates from main process');
-					const certs = extHostWorkspace.loadCertificates(); // Loading from main process to share cache.
+					const certs = extHostWorkspace.loadCertificates();
 					certs.then(certs => extHostLogService.trace('ProxyResolver#loadAdditionalCertificates: Loaded certificates from main process', certs.length));
 					promises.push(certs);
 				}
@@ -180,13 +180,10 @@ function patchGlobalFetch(params: ProxyAgentParams, configProvider: ExtHostConfi
 				}
 			}));
 		}
-		// https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 		globalThis.fetch = async function fetch(input: string | URL | Request, init?: RequestInit) {
 			function getRequestProperty(name: keyof Request & keyof RequestInit) {
 				return init && name in init ? init[name] : typeof input === 'object' && 'cache' in input ? input[name] : undefined;
 			}
-			// Limitations: https://github.com/electron/electron/pull/36733#issuecomment-1405615494
-			// net.fetch fails on manual redirect: https://github.com/electron/electron/issues/43715
 			const urlString = typeof input === 'string' ? input : 'cache' in input ? input.url : input.toString();
 			const isDataUrl = urlString.startsWith('data:');
 			if (isDataUrl) {
@@ -209,7 +206,6 @@ function patchGlobalFetch(params: ProxyAgentParams, configProvider: ExtHostConfi
 				monitorResponseProperties(mainThreadTelemetry, response, urlString);
 				return response;
 			}
-			// Unsupported headers: https://source.chromium.org/chromium/chromium/src/+/main:services/network/public/cpp/header_util.cc;l=32;drc=ee7299f8961a1b05a3554efcc496b6daa0d7f6e1
 			if (init?.headers) {
 				const headers = new Headers(init.headers);
 				for (const header of unsafeHeaders) {
@@ -217,7 +213,6 @@ function patchGlobalFetch(params: ProxyAgentParams, configProvider: ExtHostConfi
 				}
 				init = { ...init, headers };
 			}
-			// Support for URL: https://github.com/electron/electron/issues/43712
 			const electronInput = input instanceof URL ? input.toString() : input;
 			const electron = require('electron');
 			const response = await electron.net.fetch(electronInput, init);
@@ -292,7 +287,7 @@ function recordFetchFeatureUse(mainThreadTelemetry: MainThreadTelemetryShape, fe
 		}
 		timer = setTimeout(() => {
 			mainThreadTelemetry.$publicLog2<FetchFeatureUseEvent, FetchFeatureUseClassification>('fetchFeatureUse', fetchFeatureUse);
-		}, 10000); // collect additional features for 10 seconds
+		}, 10000);
 		(timer as unknown as NodeJS.Timeout).unref?.();
 	}
 }
@@ -342,7 +337,7 @@ const proxyResolveStats = {
 	lastSentTime: 0,
 };
 
-const telemetryInterval = 60 * 60 * 1000; // 1 hour
+const telemetryInterval = 60 * 60 * 1000;
 
 function proxyResolveType(proxy: string | undefined): string {
 	const type = proxy ? String(proxy).trim().split(/\s+/, 1)[0] : 'EMPTY';
@@ -363,7 +358,6 @@ function sendProxyResolveStats(mainThreadTelemetry: MainThreadTelemetryShape) {
 			avgDuration,
 			type: [...proxyResolveStats.types].sort().join(','),
 		});
-		// Reset stats after sending
 		proxyResolveStats.count = 0;
 		proxyResolveStats.totalDuration = 0;
 		proxyResolveStats.minDuration = Number.MAX_SAFE_INTEGER;
@@ -388,7 +382,6 @@ function createTimedResolveProxy(extHostWorkspace: IExtHostWorkspaceProvider, ma
 			proxyResolveStats.maxDuration = Math.max(proxyResolveStats.maxDuration, duration);
 			proxyResolveStats.types.add(proxyResolveType(proxy));
 
-			// Send telemetry if at least an hour has passed since last send
 			const now = Date.now();
 			if (now - proxyResolveStats.lastSentTime >= telemetryInterval) {
 				sendProxyResolveStats(mainThreadTelemetry);
@@ -452,7 +445,7 @@ function configureModuleLoading(extensionService: ExtHostExtensionService, looku
 						cache[request] = undici;
 					} else {
 						const mod = lookup[request];
-						cache[request] = { ...mod }; // Copy to work around #93167.
+						cache[request] = { ...mod };
 					}
 				}
 				return cache[request];

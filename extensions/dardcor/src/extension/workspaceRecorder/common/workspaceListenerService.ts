@@ -15,7 +15,6 @@ export interface IWorkspaceListenerService {
 
 	onStructuredData: Event<IRecordableLogEntry | IRecordableEditorLogEntry>;
 
-	// If it fires, it is guaranteed to fire 10 seconds after the corresponding model version.
 	onHandleChangeReason: Event<{ documentUri: string; documentVersion: number; reason: string; metadata: ITextModelEditReasonMetadata }>;
 }
 

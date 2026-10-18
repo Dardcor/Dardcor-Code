@@ -36,7 +36,6 @@ export async function reviewEdits(accessor: ServicesAccessor, editor: ICodeEdito
 	const store = new DisposableStore();
 	store.add(chatModelRef);
 
-	// STREAM
 	const chatRequest = chatModel?.addRequest({ text: '', parts: [] }, { variables: [] }, 0, {
 		kind: undefined,
 		telemetryModeId: 'applyCodeBlock',
@@ -88,7 +87,6 @@ export async function reviewNotebookEdits(accessor: ServicesAccessor, uri: URI, 
 	const store = new DisposableStore();
 	store.add(chatModelRef);
 
-	// STREAM
 	const chatRequest = chatModel?.addRequest({ text: '', parts: [] }, { variables: [] }, 0);
 	assertType(chatRequest.response);
 	if (isNotebook) {

@@ -18,7 +18,6 @@ suite('keyCodes', () => {
 	}
 
 	test('mapping for Minus', () => {
-		// [147, 83, 0, ScanCode.Minus, 'Minus', KeyCode.US_MINUS, '-', 189, 'VK_OEM_MINUS', '-', 'OEM_MINUS'],
 		assert.strictEqual(EVENT_KEY_CODE_MAP[189], KeyCode.Minus);
 		assert.strictEqual(NATIVE_WINDOWS_KEY_CODE_TO_KEY_CODE['VK_OEM_MINUS'], KeyCode.Minus);
 		assert.strictEqual(ScanCodeUtils.lowerCaseToEnum('minus'), ScanCode.Minus);
@@ -36,7 +35,6 @@ suite('keyCodes', () => {
 	});
 
 	test('mapping for Space', () => {
-		// [21, 10, 1, ScanCode.Space, 'Space', KeyCode.Space, 'Space', 32, 'VK_SPACE', empty, empty],
 		assert.strictEqual(EVENT_KEY_CODE_MAP[32], KeyCode.Space);
 		assert.strictEqual(NATIVE_WINDOWS_KEY_CODE_TO_KEY_CODE['VK_SPACE'], KeyCode.Space);
 		assert.strictEqual(ScanCodeUtils.lowerCaseToEnum('space'), ScanCode.Space);

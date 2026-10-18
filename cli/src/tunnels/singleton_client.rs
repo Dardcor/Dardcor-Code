@@ -56,8 +56,6 @@ const CONTROL_INSTRUCTIONS_INTERACTIVE: &str = concatcp!(
 "
 );
 
-/// Serves a client singleton. Returns true if the process should exit after
-/// this returns, instead of trying to start a tunnel.
 pub async fn start_singleton_client(args: SingletonClientArgs) -> bool {
 	let mut rpc = new_json_rpc();
 	let (msg_tx, msg_rx) = mpsc::unbounded_channel();
@@ -75,7 +73,7 @@ pub async fn start_singleton_client(args: SingletonClientArgs) -> bool {
 			loop {
 				input.truncate(0);
 				match std::io::stdin().read_line(&mut input) {
-					Err(_) | Ok(0) => return, // EOF or not a tty
+					Err(_) | Ok(0) => return,
 					_ => {}
 				};
 
@@ -121,9 +119,6 @@ pub async fn start_singleton_client(args: SingletonClientArgs) -> bool {
 					protocol::EmptyObject {},
 				);
 
-			// we want to ensure the "listening" string always gets printed for
-			// consumers (i.e. VS Code). Ask for it. If the tunnel is not currently
-			// connected though, it will be soon, and that'll be in the log replays.
 			if let Ok(Ok(s)) = res.await {
 				if let Some(name) = s.name {
 					print_listening(&c.log, &name);

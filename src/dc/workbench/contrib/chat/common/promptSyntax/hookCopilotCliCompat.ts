@@ -8,10 +8,6 @@ import { Target } from './promptTypes.js';
 
 const COPILOT_CLI_HOOK_TYPE_MAP: Record<string, HookType> = HOOKS_BY_TARGET[Target.GitHubCopilot];
 
-/**
- * Cached inverse mapping from HookType to Copilot CLI hook type name.
- * Lazily computed on first access.
- */
 let _hookTypeToCopilotCliName: Map<HookType, string> | undefined;
 
 function getHookTypeToCopilotCliNameMap(): Map<HookType, string> {
@@ -24,17 +20,10 @@ function getHookTypeToCopilotCliNameMap(): Map<HookType, string> {
 	return _hookTypeToCopilotCliName;
 }
 
-/**
- * Resolves a Copilot CLI hook type name to our abstract HookType.
- */
 export function resolveCopilotCliHookType(name: string): HookType | undefined {
 	return (COPILOT_CLI_HOOK_TYPE_MAP as Record<string, HookType>)[name];
 }
 
-/**
- * Gets the Copilot CLI hook type name for a given abstract HookType.
- * Returns undefined if the hook type is not supported in Copilot CLI.
- */
 export function getCopilotCliHookTypeName(hookType: HookType): string | undefined {
 	return getHookTypeToCopilotCliNameMap().get(hookType);
 }

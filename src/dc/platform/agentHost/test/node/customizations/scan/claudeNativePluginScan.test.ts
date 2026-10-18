@@ -42,9 +42,6 @@ suite('claudeNativePluginScan', () => {
 	});
 
 	test('resolves an Open-Plugins-format plugin (.plugin/plugin.json), not just the Claude layout', async () => {
-		// Marketplace plugins can ship the Open Plugins manifest layout
-		// (`.plugin/plugin.json`) rather than `.claude-plugin/plugin.json`; the
-		// runtime still loads them, so the scanner must surface them too.
 		await seed('/home/.claude/settings.json', JSON.stringify({ enabledPlugins: { 'github-inbox@team-kit': true } }));
 		await seed('/home/.claude/plugins/cache/team-kit/github-inbox/1.0.0/.plugin/plugin.json', manifest('github-inbox'));
 
@@ -59,7 +56,6 @@ suite('claudeNativePluginScan', () => {
 	test('picks the newest-mtime version dir when several are cached', async () => {
 		await seed('/home/.claude/settings.json', JSON.stringify({ enabledPlugins: { 'p@m': true } }));
 		await seed('/home/.claude/plugins/cache/m/p/0.0.1/.claude-plugin/plugin.json', manifest('p'));
-		// Seeded second, so it has the newer mtime in the in-memory provider.
 		await seed('/home/.claude/plugins/cache/m/p/0.0.2/.claude-plugin/plugin.json', manifest('p'));
 
 		const plugins = await scanClaudeNativePlugins(workspace, userHome, fileService, logService);
@@ -69,7 +65,6 @@ suite('claudeNativePluginScan', () => {
 
 	test('breaks an mtime tie by numeric version order (`0.0.10` beats `0.0.9`)', async () => {
 		await seed('/home/.claude/settings.json', JSON.stringify({ enabledPlugins: { 'p@m': true } }));
-		// Plain string compare would pick `0.0.9` ('9' > '1'); numeric order picks `0.0.10`.
 		await seed('/home/.claude/plugins/cache/m/p/0.0.9/.claude-plugin/plugin.json', manifest('p'));
 		await seed('/home/.claude/plugins/cache/m/p/0.0.10/.claude-plugin/plugin.json', manifest('p'));
 
@@ -218,14 +213,10 @@ suite('claudeNativePluginScan', () => {
 	});
 
 	test('rejects ids whose segments could traverse outside the plugin roots', async () => {
-		// A crafted enabledPlugins key (e.g. from an untrusted workspace
-		// settings.local.json) must never redirect the scan via `..` / path
-		// separators, even if a manifest happens to exist at the target.
 		await seed('/workspace/.claude/settings.local.json', JSON.stringify({
 			enabledPlugins: { '../../../etc@m': true, 'p@../../../etc': true, 'ok@m': true },
 		}));
 		await seed('/home/.claude/plugins/cache/m/ok/1.0.0/.claude-plugin/plugin.json', manifest('ok'));
-		// Seed a manifest at a traversal target to prove it is NOT resolved.
 		await seed('/etc/.claude-plugin/plugin.json', manifest('evil'));
 
 		const plugins = await scanClaudeNativePlugins(workspace, userHome, fileService, logService);

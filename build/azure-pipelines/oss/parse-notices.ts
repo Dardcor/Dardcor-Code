@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------------------------
- *  Parse ThirdPartyNotices.txt files and compare them.
- *
- *  Usage:
- *    node parse-notices.js --file <path>              List all packages
- *    node parse-notices.js --diff <pathA> <pathB>     Compare two files
- *--------------------------------------------------------------------------------------------*/
 
 import fs from 'fs';
 
@@ -18,59 +11,29 @@ export interface NoticeEntry {
 	version: string;
 	license: string;
 	licenseTextLength: number;
-	/** 1-indexed line number in the source file where this entry's header appears */
 	lineNumber: number;
-	/**
-	 * The license body text, captured between this entry's header and the next
-	 * separator, with a single leading URL line stripped (matching how the merge
-	 * step splits url vs. body). Used by Section 4 of scan-licenses.ts to detect
-	 * CG "stub" bodies (where CG emitted the SPDX expression as the body instead
-	 * of the real license text). Optional so existing callers that only need
-	 * names/lengths are unaffected.
-	 */
 	licenseText?: string;
 }
 
-/**
- * Heuristic: does this line look like a package header rather than license prose?
- *
- * Real headers:  "@scope/pkg 1.2.3 - MIT", "pkg - Apache-2.0", "@scope/pkg"
- *                "org/repo abc123...def - Apache-2.0" (git SHA)
- * False positives after decorative dashes inside license text:
- *   "END OF TERMS AND CONDITIONS", "Apache License", "The MIT License (MIT)",
- *   "Copyright (c) 2020 Author", "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2"
- *
- * Key signals: real package names are lowercase (or git org/repo), never start
- * with common license-prose words, and never contain parentheses.
- */
 const LICENSE_PROSE_STARTS = /^(copyright|license|licen[cs]e|permission|the |this |all |end |terms|conditions|disclaimer|granted|redistribution|neither|no |software|unless|provided|except|in |of |for |under |above|note|#|\*|\(|\d+[\.\)]\s)/i;
 
 export function isPackageHeader(line: string): boolean {
-	// License prose almost always starts with a common English/legal word
 	if (LICENSE_PROSE_STARTS.test(line)) {
 		return false;
 	}
 
-	// Real package names: @scope/name, org/repo, plain-name
-	// They start with @, a lowercase letter, or a digit (for rare cases)
-	// and consist of [a-z0-9@/._-]
-	// CG git entries use Org/Repo (mixed case) — handle separately
 	const firstWord = line.split(/\s/)[0];
 	if (!firstWord) {
 		return false;
 	}
 
-	// Standard npm-style package name (lowercase, may start with @)
 	const npmNameRe = /^@?[a-z0-9][a-z0-9\-\./@_]*$/;
-	// CG git-style: Org/Repo (e.g., "nickel-org/rust-mustache")
 	const gitRepoRe = /^[a-zA-Z0-9_\-]+\/[a-zA-Z0-9_\-\.]+$/;
 
 	if (npmNameRe.test(firstWord) || gitRepoRe.test(firstWord)) {
 		return true;
 	}
 
-	// Some entries have names with mixed case (rare but legitimate)
-	// Accept if the line matches "name version - license" pattern strictly
 	if (/^.+?\s+[\d][^\s]*\s+-\s+.+$/.test(line)) {
 		return true;
 	}
@@ -89,7 +52,6 @@ export function parseNoticeFile(filePath: string): NoticeEntry[] {
 			continue;
 		}
 
-		// Find first non-empty line after separator — that's the header candidate
 		let headerLine = '';
 		let headerIdx = -1;
 		for (let j = i + 1; j < lines.length; j++) {
@@ -104,26 +66,18 @@ export function parseNoticeFile(filePath: string): NoticeEntry[] {
 			continue;
 		}
 
-		// Don't re-parse the file header block
 		if (headerLine.startsWith('NOTICES AND INFORMATION') || headerLine.startsWith('Do Not Translate')) {
 			continue;
 		}
 
-		// Skip if the "header" is actually another separator (double-separator pattern)
 		if (sepRe.test(headerLine)) {
 			continue;
 		}
 
-		// Validate that this looks like a real package header, not license
-		// prose that happens to follow a decorative dash line.
-		// Real headers: "name version - license", "name - license", or "name"
-		// False positives: "END OF TERMS AND CONDITIONS", "Apache License",
-		//   "The MIT License (MIT)", "Copyright (c) ...", etc.
 		if (!isPackageHeader(headerLine)) {
 			continue;
 		}
 
-		// Parse: "name version - license" or just "name"
 		const match = headerLine.match(/^(.+?)\s+([\d][^\s]*)\s+-\s+(.+)$/);
 		let name: string, version: string, license: string;
 		if (match) {
@@ -131,7 +85,6 @@ export function parseNoticeFile(filePath: string): NoticeEntry[] {
 			version = match[2];
 			license = match[3];
 		} else {
-			// Try: "name - license" (no version)
 			const match2 = headerLine.match(/^(.+?)\s+-\s+(.+)$/);
 			if (match2) {
 				name = match2[1];
@@ -144,10 +97,6 @@ export function parseNoticeFile(filePath: string): NoticeEntry[] {
 			}
 		}
 
-		// Measure license text length (everything until next separator) and
-		// capture the body slice. The body strips a single leading URL line so
-		// stub detection sees the license text, not the repo link (mirrors how
-		// merge-notices.ts splits url vs. licenseText).
 		let textLength = 0;
 		const bodyLines: string[] = [];
 		for (let j = headerIdx + 1; j < lines.length; j++) {
@@ -158,7 +107,6 @@ export function parseNoticeFile(filePath: string): NoticeEntry[] {
 			bodyLines.push(lines[j]);
 		}
 
-		// Drop leading blank lines, then a single leading URL line if present.
 		while (bodyLines.length > 0 && !bodyLines[0].trim()) {
 			bodyLines.shift();
 		}
@@ -175,7 +123,7 @@ export function parseNoticeFile(filePath: string): NoticeEntry[] {
 			version,
 			license,
 			licenseTextLength: textLength,
-			lineNumber: headerIdx + 1, // 1-indexed
+			lineNumber: headerIdx + 1,
 			licenseText,
 		});
 	}
@@ -275,7 +223,6 @@ function diffMode(pathA: string, pathB: string): void {
 		}
 	}
 
-	// Version differences for packages in both
 	const versionDiffs: string[] = [];
 	for (const name of inBoth) {
 		const aVersions = new Set(namesA.get(name)!.map(e => e.version).filter(v => v));
@@ -296,10 +243,7 @@ function diffMode(pathA: string, pathB: string): void {
 	}
 }
 
-// -- CLI ----------------------------------------------------------------------
 
-// Only run the CLI when parse-notices is the entry point — not when another
-// module (e.g. scan-licenses) imports parseNoticeFile.
 if (/parse-notices(\.[jt]s)?$/.test(process.argv[1] || '')) {
 	const args = process.argv.slice(2);
 

@@ -72,7 +72,6 @@ suite('extractNodeCommand', () => {
 
 	suite('single quotes - literal content', () => {
 		test('should preserve content literally in single quotes (no unescaping)', () => {
-			// Single quotes in bash are literal - backslashes are not escape sequences
 			const result = extractNodeCommand(`node -e 'console.log(\\"hello\\")'`, 'bash', OperatingSystem.Linux);
 			strictEqual(result, 'console.log(\\"hello\\")');
 		});

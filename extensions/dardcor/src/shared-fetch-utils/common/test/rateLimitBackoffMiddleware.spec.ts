@@ -33,7 +33,6 @@ describe('rateLimitBackoffMiddleware', () => {
 		calls = 0;
 	});
 
-	/** Wires the middleware around a stub that always returns the given response. */
 	function withResponse(response: HttpResponse) {
 		return rateLimitBackoffMiddleware({ now: () => now })(async () => {
 			calls++;
@@ -67,7 +66,6 @@ describe('rateLimitBackoffMiddleware', () => {
 		const fetchFn = withResponse(makeResponse(429, { 'retry-after': '120' }));
 
 		const firstDelay = await expectBlocked(fetchFn);
-		// The second attempt is refused locally, without reaching the server.
 		const callsAfterBlock = calls;
 		await expectBlocked(fetchFn);
 
@@ -83,7 +81,6 @@ describe('rateLimitBackoffMiddleware', () => {
 
 		const delay = await expectBlocked(fetchFn);
 
-		// Still blocked partway through the window, allowed through once it passes.
 		now += 5 * 60_000;
 		await expectBlocked(fetchFn);
 		const callsDuringWindow = calls;
@@ -129,13 +126,11 @@ describe('rateLimitBackoffMiddleware', () => {
 			return makeResponse(429, { 'retry-after': '120' });
 		});
 
-		// A slow success is still in flight when a second request is rate limited.
 		const inFlight = fetchFn(request);
 		await expectBlocked(fetchFn);
 		releaseSlowResponse();
 		await inFlight;
 
-		// The block established by the newer 429 must survive the older success.
 		const delayAfterSuccess = await expectBlocked(fetchFn);
 
 		expect({ delayAfterSuccess, calls }).toEqual({ delayAfterSuccess: 120_000, calls: 2 });
@@ -154,7 +149,6 @@ describe('rateLimitBackoffMiddleware', () => {
 		status = 200;
 		await fetchFn(request);
 
-		// Back to the initial delay rather than continuing to double.
 		status = 429;
 		expect(await expectBlocked(fetchFn)).toBe(60_000);
 	});

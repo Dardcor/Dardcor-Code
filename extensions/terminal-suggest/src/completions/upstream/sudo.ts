@@ -23,7 +23,6 @@ const completionSpec: Fig.Spec = {
 			},
 		},
 	],
-	// Only uncomment if sudo takes an argument
 	args: {
 		name: "command",
 		description: "Command to run with elevated permissions",

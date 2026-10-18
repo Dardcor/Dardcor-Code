@@ -65,12 +65,10 @@ class CheckoutStatusBar {
 			return '';
 		}
 
-		// Checkout
 		if (this.state.isCheckoutRunning) {
 			return '$(loading~spin)';
 		}
 
-		// Branch
 		if (this.repository.HEAD.type === RefType.Head && this.repository.HEAD.name) {
 			switch (true) {
 				case this.repository.isBranchProtected():
@@ -86,12 +84,10 @@ class CheckoutStatusBar {
 			}
 		}
 
-		// Tag
 		if (this.repository.HEAD.type === RefType.Tag) {
 			return '$(tag)';
 		}
 
-		// Commit
 		return '$(git-commit)';
 	}
 

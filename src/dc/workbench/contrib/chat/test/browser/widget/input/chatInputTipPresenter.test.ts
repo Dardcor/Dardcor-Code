@@ -44,8 +44,6 @@ suite('ChatInputTipPresenter', () => {
 			presenter,
 			container,
 			showing: () => container.childElementCount > 0,
-			// The slot only docks to the input while it is showing something, so the
-			// stack knows whose corners to square without inspecting descendants.
 			docked: () => container.classList.contains('chat-input-stack-docked'),
 			welcomeTipCalls: () => welcomeTipCalls
 		};
@@ -58,8 +56,6 @@ suite('ChatInputTipPresenter', () => {
 		store.add(presenter);
 
 		const initially = { showing: showing(), docked: docked() };
-		// A notification owns the space outright; the tip must come off screen and
-		// then return on its own once the notification goes away.
 		noticeHost.setOccupied(ChatInputNoticeLane.Notification, true, { hasFocus: () => false, focus: () => { } });
 		const underNotification = { showing: showing(), docked: docked() };
 		noticeHost.setOccupied(ChatInputNoticeLane.Notification, false);
@@ -76,8 +72,6 @@ suite('ChatInputTipPresenter', () => {
 	test('evaluates the tip once per render', () => {
 		const store = disposables.add(new DisposableStore());
 		const noticeHost = store.add(new ChatInputNoticeHost(() => { }));
-		// `getWelcomeTip` persists rotation state and reports the tip as shown, so
-		// rendering must never ask for it twice for a single appearance.
 		const { presenter, welcomeTipCalls } = createPresenter(store, noticeHost);
 		store.add(presenter);
 

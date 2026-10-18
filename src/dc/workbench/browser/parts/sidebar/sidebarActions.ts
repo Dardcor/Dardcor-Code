@@ -52,12 +52,10 @@ export class FocusSideBarAction extends Action2 {
 		const layoutService = accessor.get(IWorkbenchLayoutService);
 		const paneCompositeService = accessor.get(IPaneCompositePartService);
 
-		// Show side bar
 		if (!layoutService.isVisible(Parts.SIDEBAR_PART)) {
 			layoutService.setPartHidden(false, Parts.SIDEBAR_PART);
 		}
 
-		// Focus into active viewlet
 		const viewlet = paneCompositeService.getActivePaneComposite(ViewContainerLocation.Sidebar);
 		viewlet?.focus();
 	}

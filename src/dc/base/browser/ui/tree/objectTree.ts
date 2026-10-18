@@ -18,20 +18,8 @@ export interface IObjectTreeOptions<T, TFilterData = void> extends IAbstractTree
 
 export interface IObjectTreeSetChildrenOptions<T> {
 
-	/**
-	 * If set, child updates will recurse the given number of levels even if
-	 * items in the splice operation are unchanged. `Infinity` is a valid value.
-	 */
 	readonly diffDepth?: number;
 
-	/**
-	 * Identity provider used to optimize splice() calls in the IndexTree. If
-	 * this is not present, optimized splicing is not enabled.
-	 *
-	 * Warning: if this is present, calls to `setChildren()` will not replace
-	 * or update nodes if their identity is the same, even if the elements are
-	 * different. For this, you should call `rerender()`.
-	 */
 	readonly diffIdentityProvider?: IIdentityProvider<T>;
 }
 
@@ -202,14 +190,12 @@ class CompressibleStickyScrollDelegate<T, TFilterData> implements IStickyScrollD
 			return stickyNodes[0];
 		}
 
-		// Collect all elements to be compressed
 		const elements: T[] = [];
 		for (let i = 0; i < stickyNodes.length; i++) {
 			const stickyNode = stickyNodes[i];
 			const compressedNode = compressionModel.getCompressedTreeNode(stickyNode.node.element);
 
 			if (compressedNode.element) {
-				// if an element is incompressible, it can't be compressed with it's parent element
 				if (i !== 0 && compressedNode.element.incompressible) {
 					break;
 				}
@@ -221,7 +207,6 @@ class CompressibleStickyScrollDelegate<T, TFilterData> implements IStickyScrollD
 			return stickyNodes[0];
 		}
 
-		// Compress the elements
 		const lastStickyNode = stickyNodes[stickyNodes.length - 1];
 		const compressedElement: ICompressedTreeNode<T> = { elements, incompressible: false };
 		const compressedNode: ITreeNode<ICompressedTreeNode<T>, TFilterData> = { ...lastStickyNode.node, children: [], element: compressedElement };

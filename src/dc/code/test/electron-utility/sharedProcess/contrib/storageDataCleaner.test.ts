@@ -36,7 +36,7 @@ suite('UnusedWorkspaceStorageDataCleaner', () => {
 	});
 
 	test('preserves empty extension development and non-empty workspace storage', async () => {
-		const md5LikeFolder = '0'.repeat(32); // simulates a real (non-empty) workspace
+		const md5LikeFolder = '0'.repeat(32);
 		const otherEmptyFolder = 'random-empty-id';
 
 		const workspaceStorageHome = join(testDir, 'workspaceStorage');

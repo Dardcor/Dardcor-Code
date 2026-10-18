@@ -51,13 +51,11 @@ export class RemoteAgentFileSystemProviderChannel extends AbstractDiskFileSystem
 		return URI.revive(uriTransformer.transformIncoming(_resource));
 	}
 
-	//#region File Watching
 
 	protected createSessionFileWatcher(uriTransformer: IURITransformer, emitter: Emitter<IFileChange[] | string>): ISessionFileWatcher {
 		return new SessionFileWatcher(uriTransformer, emitter, this.logService, this.environmentService, this.configurationService);
 	}
 
-	//#endregion
 }
 
 class SessionFileWatcher extends AbstractSessionFileWatcher {
@@ -88,8 +86,6 @@ class SessionFileWatcher extends AbstractSessionFileWatcher {
 
 	protected override getExtraExcludes(environmentService: IServerEnvironmentService): string[] | undefined {
 		if (environmentService.extensionsPath) {
-			// when opening the $HOME folder, we end up watching the extension folder
-			// so simply exclude watching the extensions folder
 			return [posix.join(environmentService.extensionsPath, '**')];
 		}
 

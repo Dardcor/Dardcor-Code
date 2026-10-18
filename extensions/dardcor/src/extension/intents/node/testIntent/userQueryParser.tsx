@@ -13,14 +13,7 @@ import { PromptRenderer } from '../../../prompts/node/base/promptRenderer';
 
 
 type ParsedUserQuery = {
-	/**
-	 * File reference to test.
-	 */
 	fileToTest?: string;
-	/**
-	 * Symbols in {fileToTest} to generate tests for.
-	 * Can be undefined if cannot be identified from user query.
-	 */
 	symbolsToTest?: string[];
 };
 
@@ -52,7 +45,6 @@ export class UserQueryParser {
 
 	private processResponse(response: string) {
 
-		// remove first (1-based) and last lines of response if they're backticks (```)
 		const lines = response.split(/\r\n|\r|\n/).filter(s => s !== '');
 		if (lines.at(0) !== '```') {
 			lines.splice(0, 1);

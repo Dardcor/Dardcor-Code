@@ -23,12 +23,10 @@ export class TabsAndEditorsServiceImpl implements ITabsAndEditorsService {
 	readonly onDidChangeTabs = this._onDidChangeTabs.event;
 
 	constructor() {
-		// Set the activeTabGroup as the most recently used
 		const updateActiveTabGroup = () => this._tabGroupsUseInfo.set(vscode.window.tabGroups.activeTabGroup, this._tabClock++);
 
 		updateActiveTabGroup();
 		this._store.add(vscode.window.tabGroups.onDidChangeTabGroups(e => {
-			// remove all tab groups!
 			e.closed.forEach(item => this._tabGroupsUseInfo.delete(item));
 
 			updateActiveTabGroup();
@@ -47,12 +45,6 @@ export class TabsAndEditorsServiceImpl implements ITabsAndEditorsService {
 		this._store.dispose();
 	}
 
-	/**
-	 * Returns the active text editor in the VS Code window.
-	 *
-	 * Uses vscode.window.activTextEditor but _ignores_ output editors. When no text editor is active,
-	 * the most recent tab group that shows a text editor is used.
-	 */
 	get activeTextEditor(): vscode.TextEditor | undefined {
 
 		const candidate = vscode.window.activeTextEditor;

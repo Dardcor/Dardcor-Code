@@ -4,17 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken, Range } from 'vscode';
-import { CopilotNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
+import { DardcorNamedAnnotationList } from '../../../../../../platform/completions-core/common/openai/dardcorAnnotations';
 
-// Base interface for a completion displayed in the panel.
 export interface BasePanelCompletion {
 	insertText: string;
 	range: Range;
-	dardcorAnnotations?: CopilotNamedAnnotationList;
+	dardcorAnnotations?: DardcorNamedAnnotationList;
 	postInsertionCallback: () => PromiseLike<void> | void;
 }
 
-// Interface for the suggestions panel, which handles work done notifications and item selections.
 export interface ISuggestionsPanel {
 	cancellationToken: CancellationToken;
 	onWorkDone(_: { percentage: number }): void;
@@ -22,7 +20,6 @@ export interface ISuggestionsPanel {
 	onFinished(): void;
 }
 
-// Configuration for webview panels for completions.
 export interface PanelConfig {
 	panelTitle: string;
 	webviewId: string;
@@ -37,7 +34,6 @@ export interface PanelConfig {
 	shuffleSolutions: boolean;
 }
 
-// Configuration for webview panels, used to pass settings to the webview.
 export interface WebviewConfig {
 	renderingMode: 'batch' | 'streaming';
 	shuffleSolutions: boolean;

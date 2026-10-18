@@ -17,9 +17,6 @@ import { isEditorInputWithOptions } from '../../../../common/editor.js';
 import { DiffEditorInput } from '../../../../common/editor/diffEditorInput.js';
 import { IEditorGroup } from '../../../../services/editor/common/editorGroupsService.js';
 
-/**
- * An implementation of editor for binary files that cannot be displayed.
- */
 export class BinaryFileEditor extends BaseBinaryResourceEditor {
 
 	static readonly ID = BINARY_FILE_EDITOR_ID;
@@ -46,19 +43,12 @@ export class BinaryFileEditor extends BaseBinaryResourceEditor {
 	private async openInternal(input: EditorInput, options: IEditorOptions | undefined): Promise<void> {
 		if (input instanceof FileEditorInput && this.group.activeEditor) {
 
-			// We operate on the active editor here to support re-opening
-			// diff editors where `input` may just be one side of the
-			// diff editor.
-			// Since `openInternal` can only ever be selected from the
-			// active editor of the group, this is a safe assumption.
-			// (https://github.com/microsoft/vscode/issues/124222)
 			const activeEditor = this.group.activeEditor;
 			const untypedActiveEditor = activeEditor?.toUntyped();
 			if (!untypedActiveEditor) {
-				return; // we need untyped editor support
+				return;
 			}
 
-			// Try to let the user pick an editor
 			let resolvedEditor: ResolvedEditor | undefined = await this.editorResolverService.resolveEditor({
 				...untypedActiveEditor,
 				options: {
@@ -73,18 +63,15 @@ export class BinaryFileEditor extends BaseBinaryResourceEditor {
 				return;
 			}
 
-			// If the result if a file editor, the user indicated to open
-			// the binary file as text. As such we adjust the input for that.
 			if (isEditorInputWithOptions(resolvedEditor)) {
 				for (const editor of resolvedEditor.editor instanceof DiffEditorInput ? [resolvedEditor.editor.original, resolvedEditor.editor.modified] : [resolvedEditor.editor]) {
 					if (editor instanceof FileEditorInput) {
 						editor.setForceOpenAsText();
-						editor.setPreferredLanguageId(BINARY_TEXT_FILE_MODE); // https://github.com/microsoft/vscode/issues/131076
+						editor.setPreferredLanguageId(BINARY_TEXT_FILE_MODE);
 					}
 				}
 			}
 
-			// Replace the active editor with the picked one
 			await this.group.replaceEditors([{
 				editor: activeEditor,
 				replacement: resolvedEditor?.editor ?? input,

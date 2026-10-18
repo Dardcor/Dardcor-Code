@@ -26,11 +26,11 @@ suite('Test window delineation', function () {
 			3
 		);
 		const correctLineNumbers: [number, number][] = [
-			[0, 2], // f1: a1
-			[1, 2], // a1
-			[2, 5], // f2: a2 a3
-			[3, 4], // a2
-			[4, 5], // a3
+			[0, 2],
+			[1, 2],
+			[2, 5],
+			[3, 4],
+			[4, 5],
 		];
 		assert.deepStrictEqual(testLineNumbers.sort(), correctLineNumbers.sort());
 	});
@@ -42,14 +42,12 @@ suite('Test window delineation', function () {
 			2
 		);
 		const correctLineNumbers: [number, number][] = [
-			[0, 2], // f1: a1
-			[1, 2], // a1
-			[3, 4], // a2
-			[4, 5], // a3
-			// We lose [2, 5] f2: a2 a3 as too long
-			// But we gain the following which were previously swallowed up by [2, 5]
-			[2, 4], // f2: a2
-			[3, 5], // a2 a3
+			[0, 2],
+			[1, 2],
+			[3, 4],
+			[4, 5],
+			[2, 4],
+			[3, 5],
 		];
 		assert.deepStrictEqual(testLineNumbers.sort(), correctLineNumbers.sort());
 	});
@@ -61,12 +59,8 @@ suite('Test window delineation', function () {
 			3
 		);
 		const correctLineNumbers: [number, number][] = [
-			[0, 2], // f1: a1
-			[2, 5], // f2: a2 a3
-			// We lose the following as too short
-			// [1, 2] a1
-			// [3, 4] a2
-			// [4, 5] a3
+			[0, 2],
+			[2, 5],
 		];
 		assert.deepStrictEqual(testLineNumbers.sort(), correctLineNumbers.sort());
 	});
@@ -84,11 +78,10 @@ suite('Test window delineation', function () {
 			3
 		);
 		const correctLineNumbers: [number, number][] = [
-			[0, 1], // a1
-			[1, 2], // a2
-			[2, 3], // a3
-			[0, 3], // a1 a2 a3
-			// Don't get [0, 2] nor [1, 3] because they not single children nor the whole tree
+			[0, 1],
+			[1, 2],
+			[2, 3],
+			[0, 3],
 		];
 		assert.deepStrictEqual(testLineNumbers.sort(), correctLineNumbers.sort());
 	});

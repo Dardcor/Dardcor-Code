@@ -52,7 +52,6 @@ async function getBuiltins(
 				});
 
 			} catch (e) {
-				// Ignore errors
 				console.log(`Error getting info for ${e}`);
 				completions.push({
 					label: cmd,

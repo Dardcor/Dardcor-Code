@@ -45,7 +45,7 @@ export abstract class FilesystemMcpDiscovery extends Disposable implements IMcpD
 	protected _isDiscoveryEnabled(reader: IReader, discoverySource: ExternalDiscoverySource): boolean {
 		const fsDiscovery = this._fsDiscoveryEnabled.read(reader);
 		if (typeof fsDiscovery === 'boolean') {
-			return fsDiscovery; // old commands
+			return fsDiscovery;
 		}
 		if (discoverySource && fsDiscovery?.[discoverySource] === true) {
 			return true;
@@ -67,7 +67,6 @@ export abstract class FilesystemMcpDiscovery extends Disposable implements IMcpD
 				const contents = await this._fileService.readFile(file);
 				definitions = await adaptFile(contents.value) || [];
 			} catch {
-				// ignored
 			}
 			if (!definitions.length) {
 				collectionRegistration.clear();
@@ -97,10 +96,6 @@ export abstract class FilesystemMcpDiscovery extends Disposable implements IMcpD
 	public abstract start(): void;
 }
 
-/**
- * Base class that discovers MCP servers on a filesystem, outside of the ones
- * defined in VS Code settings.
- */
 export abstract class NativeFilesystemMcpDiscovery extends FilesystemMcpDiscovery implements IMcpDiscovery {
 	private readonly adapters: readonly NativeMpcDiscoveryAdapter[];
 	private suffix = '';

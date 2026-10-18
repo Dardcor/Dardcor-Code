@@ -12,10 +12,8 @@ describe('Configurations', () => {
 	it('package.json configuration contains stable, experimental, preview, and advanced sections', () => {
 		const configurationContributions = packageJson.contributes.configuration;
 
-		// Should have 4 sections
 		expect(configurationContributions, 'package.json should have exactly 4 sections').toHaveLength(4);
 
-		// Should have a stable section
 		const stableSection = configurationContributions.find(section => section.id === 'stable');
 		const preview = configurationContributions.find(section => section.id === 'preview');
 		const experimental = configurationContributions.find(section => section.id === 'experimental');
@@ -69,7 +67,6 @@ describe('Configurations', () => {
 		const advancedConfigurationsInPackageJson = packageJson.contributes.configuration.filter(section => section.id === 'advanced').flatMap(section => Object.keys(section.properties));
 		const otherConfigurationsInPackageJson = packageJson.contributes.configuration.filter(section => section.id !== 'advanced').flatMap(section => Object.keys(section.properties));
 
-		// Get keys from code
 		const internalKeys = Object.values(ConfigKey.TeamInternal).map(setting => setting.fullyQualifiedId);
 		const sharedKeys = Object.values(ConfigKey.Shared).map(setting => setting.fullyQualifiedId);
 		const advancedPublicKeys = Object.values(ConfigKey.Advanced).map(setting => setting.fullyQualifiedId);
@@ -77,39 +74,29 @@ describe('Configurations', () => {
 		const registered = [...otherPublicKeys, ...advancedPublicKeys];
 		const unregistered = [...internalKeys, ...sharedKeys];
 
-		// Validate unregistered settings are not in package.json
 		unregistered.forEach(key => {
 			expect(configurationsInPackageJson, 'unregistered settings should not be defined in the package.json').not.toContain(key);
 		});
 
-		// Validate Internal settings have the correct prefix
 		internalKeys.forEach(key => {
 			expect(key, 'Internal settings must start with github.dardcor.chat.advanced.').toMatch(/^github\.dardcor\.chat\.advanced\./);
 		});
 
-		// Validate public settings in code are in package.json
 		otherPublicKeys.forEach(key => {
 			expect(otherConfigurationsInPackageJson, 'Setting in code is not defined in the package.json').toContain(key);
 		});
 
-		// Validate advanced settings in code are in the advanced section of package.json
 		advancedPublicKeys.forEach(key => {
 			expect(key, 'Advanced settings must not start wih github.dardcor.chat.advanced.').not.toMatch(/^github\.dardcor\.chat\.advanced\./);
 			if (key === ConfigKey.Advanced.DebugGitHubAuthFailWith.fullyQualifiedId) {
-				// This setting should be internal, but can't be made TeamInternal because we lose the team and internal flags as part of its testing.
 				return;
 			}
 			if (key === ConfigKey.Advanced.CLISessionEventLoggingEnabled.fullyQualifiedId) {
-				// Test-only diagnostic toggle: enables verbose tool/permission/event
-				// logging from CopilotCLISession. Not surfaced to end users so it
-				// intentionally has no package.json entry. The smoke test enables it
-				// directly in settings.json.
 				return;
 			}
 			expect(advancedConfigurationsInPackageJson, `Advanced setting ${key} should be defined in the advanced section of package.json`).toContain(key);
 		});
 
-		// Validate settings in package.json are in code
 		configurationsInPackageJson.forEach(key => {
 			expect(registered, 'Setting in package.json is not defined in code').toContain(key);
 		});
@@ -125,7 +112,6 @@ describe('Configurations', () => {
 	});
 
 	it('all localization strings in package.json are present in package.nls.json', async () => {
-		// Get all keys from package.nls.json
 		const packageJsonPath = path.join(__dirname, '../../../../package.json');
 		const packageNlsPath = path.join(__dirname, '../../../../package.nls.json');
 		const [packageJsonFileContents, packageNlsFileContents] = await Promise.all(
@@ -138,10 +124,8 @@ describe('Configurations', () => {
 		const packageNls = JSON.parse(packageNlsFileContents);
 		const nlsKeys = Object.keys(packageNls);
 
-		// Find all %key% references in package.json
 		const nlsReferences = Array.from(packageJsonFileContents.matchAll(/"%([^"]+)%"/g)).map(match => match[1]);
 
-		// Validate all references exist in package.nls.json
 		const missingKeys = nlsReferences.filter(key => !nlsKeys.includes(key));
 		if (missingKeys.length > 0) {
 			throw new Error(`Missing localization keys in package.nls.json but present in package.json: ${missingKeys.map(key => `'%${key}%'`).join(', ')}`);

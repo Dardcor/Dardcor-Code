@@ -10,5 +10,5 @@ import { ServicesAccessor } from '../../../util/dardcor/platform/instantiation/c
 export function getAgentMaxRequests(accessor: ServicesAccessor,): number {
 	const configurationService = accessor.get(IConfigurationService);
 
-	return configurationService.getNonExtensionConfig<number>('chat.agent.maxRequests') ?? 200; // Fallback for simulation tests
+	return configurationService.getNonExtensionConfig<number>('chat.agent.maxRequests') ?? 200;
 }

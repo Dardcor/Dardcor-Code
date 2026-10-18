@@ -22,12 +22,6 @@ suite('resolveClaudeEffort (Phase 6.1 / Cycle E)', () => {
 	});
 
 	test('returns undefined for absent / unrecognized inputs (SDK default takes over)', () => {
-		// Each input represents a real failure mode the materialize site can
-		// hit: no model picked, model with no config bag, model with empty
-		// config bag, model with config but no thinkingLevel key, and a model
-		// whose thinkingLevel string is outside the union. All five must
-		// degrade to `undefined` so the SDK falls through to its own default
-		// instead of being told to use a value it doesn't understand.
 		const cases: readonly (ModelSelection | undefined)[] = [
 			undefined,
 			{ id: 'claude-opus-4.6' },
@@ -44,11 +38,6 @@ suite('toRuntimeEffortLevel', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('passes every level through unchanged — including `max` — and preserves undefined', () => {
-		// The SDK's runtime `Settings.effortLevel` type declares it can't accept
-		// `'max'`, but the Anthropic API / CAPI do accept it, so the clamp
-		// deliberately lets `'max'` flow through rather than degrading it to
-		// `'xhigh'`. The declared return type still excludes `'max'`; the value
-		// carried at runtime does not.
 		const inputs: readonly (ClaudeEffortLevel | undefined)[] = [undefined, 'low', 'medium', 'high', 'xhigh', 'max'];
 		assert.deepStrictEqual(
 			inputs.map(toRuntimeEffortLevel),
@@ -62,12 +51,6 @@ suite('isClaudeEffortLevel (Phase 6.1 / Cycle D3)', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('accepts the canonical 5-value union, rejects anything else', () => {
-		// Picker-side and read-side must agree on the same union: the picker
-		// only emits these five strings, and `toAgentModelInfo` filters
-		// CAPI's `reasoning_effort` array through this guard before passing
-		// it into `createClaudeThinkingLevelSchema`. A drift between the two
-		// would surface as a model whose enum advertises a value the
-		// materialize site can't honor.
 		const inputs = ['low', 'medium', 'high', 'xhigh', 'max', '', 'LOW', 'turbo', 'minimal', 'High'];
 		assert.deepStrictEqual(inputs.map(isClaudeEffortLevel), [true, true, true, true, true, false, false, false, false, false]);
 	});
@@ -78,15 +61,6 @@ suite('createClaudeThinkingLevelSchema (Phase 6.1 / Cycle D3)', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('per-model variation: enum + enumLabels + default track the supplied list; empty list returns undefined', () => {
-		// Single snapshot covering every shape the caller can hand in: the
-		// full 5-value union, a 3-value subset (most common Claude case), a
-		// single-value list, an out-of-canonical-order list that omits
-		// 'high' (no `default` emitted), and the empty list (no schema
-		// rendered, picker hides the control). Asserting them together
-		// locks (a) `enum` ordering and `enumLabels` ordering stay 1:1 with
-		// the input, and (b) `default: 'high'` is emitted iff 'high' is in
-		// the supported list (mirror of the extension's rule at
-		// extensions/copilot/.../claudeCodeModels.ts:230).
 		const fullUnion: readonly ClaudeEffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 		const lowMediumHigh: readonly ClaudeEffortLevel[] = ['low', 'medium', 'high'];
 		const highOnly: readonly ClaudeEffortLevel[] = ['high'];
@@ -160,12 +134,6 @@ suite('createClaudeThinkingLevelSchema (Phase 6.1 / Cycle D3)', () => {
 	});
 
 	test(`emits default: 'high' iff 'high' is in the supported list, never substitutes another value`, () => {
-		// 'high' is the canonical Claude default (server-side fallback when
-		// adaptive thinking is enabled). When a model omits 'high' the
-		// helper must NOT pick another value as a stand-in default — the
-		// picker should open with no pre-selection so the SDK falls through
-		// to its own default rather than being told to use a value the user
-		// didn't pick.
 		const cases: readonly { input: readonly ClaudeEffortLevel[]; expected: ClaudeEffortLevel | undefined }[] = [
 			{ input: ['high'], expected: 'high' },
 			{ input: ['low', 'high'], expected: 'high' },
@@ -182,11 +150,6 @@ suite('createClaudeThinkingLevelSchema (Phase 6.1 / Cycle D3)', () => {
 	});
 
 	test('input array is not mutated and the returned enum is independent of subsequent input mutation', () => {
-		// The helper is invoked once per model at authenticate-time; the
-		// caller's array is the post-`filter` view of `reasoning_effort`.
-		// If the schema's `enum` aliased the input array, a subsequent
-		// mutation (e.g. another caller reusing a buffer) would silently
-		// rewrite an already-published `IAgentModelInfo.configSchema`.
 		const input: ClaudeEffortLevel[] = ['low', 'high'];
 		const schema = createClaudeThinkingLevelSchema(input);
 		input.push('max');

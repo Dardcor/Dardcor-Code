@@ -60,7 +60,6 @@ class ProtocolBuffer {
 	public tryReadContentLength(): number {
 		let result = -1;
 		let current = 0;
-		// we are utf8 encoding...
 		while (current < this.index && (this.buffer[current] === blank || this.buffer[current] === backslashR || this.buffer[current] === backslashN)) {
 			current++;
 		}
@@ -149,7 +148,6 @@ function generatePatchedEnv(env: any, modulePath: string, hasExecPath: boolean):
 	}
 	newEnv['NODE_PATH'] = path.join(modulePath, '..', '..', '..');
 
-	// Ensure we always have a PATH set
 	newEnv['PATH'] = newEnv['PATH'] || process.env.PATH;
 
 	return newEnv;
@@ -191,7 +189,6 @@ function getExecArgv(kind: TsServerProcessKind, configuration: TypeScriptService
 
 function getDebugPort(kind: TsServerProcessKind): number | undefined {
 	if (kind === TsServerProcessKind.Syntax) {
-		// We typically only want to debug the main semantic server
 		return undefined;
 	}
 	const value = getTssDebugBrk() || getTssDebug();

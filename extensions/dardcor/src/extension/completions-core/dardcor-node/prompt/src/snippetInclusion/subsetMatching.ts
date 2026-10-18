@@ -10,12 +10,6 @@ import { WindowedMatcher } from './selectRelevance';
 import { getBasicWindowDelineations } from './windowDelineations';
 import Parser from 'web-tree-sitter';
 
-/**
- * Implements an evolution of the FixedWindowSizeJaccardMatcher that is different in two ways.
- * 1. The source tokens window is the enclosing class member, as determined by Tree-Sitter.
- * 2. The scoring algorithm is a unidirectional set membership check (count of items from A that exist in B)
- *    rather than a set difference.
- */
 export class BlockTokenSubsetMatcher extends WindowedMatcher {
 	private windowLength: number;
 
@@ -53,8 +47,6 @@ export class BlockTokenSubsetMatcher extends WindowedMatcher {
 			return this.referenceTokensCache;
 		}
 
-		// Syntax aware reference tokens uses tree-sitter based parsing to identify the bounds of the current
-		// method and extracts tokens from just that span for use as the reference set.
 		this.referenceTokensCache = BlockTokenSubsetMatcher.syntaxAwareSupportsLanguage(this.referenceDoc.languageId)
 			? await this.syntaxAwareReferenceTokens()
 			: await super.referenceTokens;
@@ -63,19 +55,16 @@ export class BlockTokenSubsetMatcher extends WindowedMatcher {
 	}
 
 	private async syntaxAwareReferenceTokens(): Promise<Set<string>> {
-		// See if there is an enclosing class or type member.
 		const start = (await this.getEnclosingMemberStart(this.referenceDoc.source, this.referenceDoc.offset))
 			?.startIndex;
 		const end = this.referenceDoc.offset;
 
-		// If not, fallback to the 60-line chunk behavior.
 		const text = start
 			? this.referenceDoc.source.slice(start, end)
 			: getCursorContext(this.referenceDoc, {
 				maxLineCount: this.windowLength,
 			}).context;
 
-		// Extract the tokens.
 		return this.tokenizer.tokenize(text);
 	}
 
@@ -101,7 +90,6 @@ export class BlockTokenSubsetMatcher extends WindowedMatcher {
 			let nodeAtPos: Parser.SyntaxNode | undefined = tree.rootNode.namedDescendantForIndex(offset);
 
 			while (nodeAtPos) {
-				// For now, hard code for C#.
 				if (BlockTokenSubsetMatcher.isMember(nodeAtPos) || BlockTokenSubsetMatcher.isBlock(nodeAtPos)) {
 					break;
 				}
@@ -116,7 +104,6 @@ export class BlockTokenSubsetMatcher extends WindowedMatcher {
 	}
 
 	static isMember(node: Parser.SyntaxNode | undefined): boolean {
-		// For now, hard code for C#.
 		switch (node?.type) {
 			case 'method_declaration':
 			case 'property_declaration':
@@ -129,7 +116,6 @@ export class BlockTokenSubsetMatcher extends WindowedMatcher {
 	}
 
 	static isBlock(node: Parser.SyntaxNode | undefined): boolean {
-		// For now, hard code for C#.
 		switch (node?.type) {
 			case 'class_declaration':
 			case 'struct_declaration':
@@ -143,9 +129,6 @@ export class BlockTokenSubsetMatcher extends WindowedMatcher {
 	}
 }
 
-/**
- * Count the number of unique tokens from B that are also in A.
- */
 function computeScore(a: Set<string>, b: Set<string>) {
 	const subsetOverlap = new Set();
 

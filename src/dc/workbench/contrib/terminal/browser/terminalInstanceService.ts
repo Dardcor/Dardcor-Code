@@ -54,7 +54,6 @@ export class TerminalInstanceService extends Disposable implements ITerminalInst
 	}
 
 	convertProfileToShellLaunchConfig(shellLaunchConfigOrProfile?: IShellLaunchConfig | ITerminalProfile, cwd?: string | URI): IShellLaunchConfig {
-		// Profile was provided
 		if (shellLaunchConfigOrProfile && hasKey(shellLaunchConfigOrProfile, { profileName: true })) {
 			const profile = shellLaunchConfigOrProfile;
 			if (!profile.path) {
@@ -71,7 +70,6 @@ export class TerminalInstanceService extends Disposable implements ITerminalInst
 			};
 		}
 
-		// A shell launch config was provided
 		if (shellLaunchConfigOrProfile) {
 			if (cwd) {
 				shellLaunchConfigOrProfile.cwd = cwd;
@@ -79,14 +77,12 @@ export class TerminalInstanceService extends Disposable implements ITerminalInst
 			return shellLaunchConfigOrProfile;
 		}
 
-		// Return empty shell launch config
 		return {};
 	}
 
 	async getBackend(remoteAuthority?: string): Promise<ITerminalBackend | undefined> {
 		let backend = Registry.as<ITerminalBackendRegistry>(TerminalExtensions.Backend).getTerminalBackend(remoteAuthority);
 		if (!backend) {
-			// Ensure backend is initialized and try again
 			await this._backendRegistration.get(remoteAuthority)?.promise;
 			backend = Registry.as<ITerminalBackendRegistry>(TerminalExtensions.Backend).getTerminalBackend(remoteAuthority);
 		}

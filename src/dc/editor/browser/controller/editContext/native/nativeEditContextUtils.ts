@@ -29,9 +29,6 @@ export class FocusTracker extends Disposable {
 			if (this._isPaused) {
 				return;
 			}
-			// Here we don't trust the browser and instead we check
-			// that the active element is the one we are tracking
-			// (this happens when cmd+tab is used to switch apps)
 			this.refreshFocusState();
 		}));
 		this._register(addDisposableListener(this._domNode, 'blur', () => {

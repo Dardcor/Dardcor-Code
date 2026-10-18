@@ -16,7 +16,6 @@
 
 .interactive-session.chat-view-getting-started-disabled {
 
-	/* hide most welcome pieces when we show recent sessions to make some space */
 	.chat-welcome-view .chat-welcome-view-icon,
 	.chat-welcome-view .chat-welcome-view-title,
 	.chat-welcome-view .chat-welcome-view-message,
@@ -26,7 +25,6 @@
 	}
 }
 
-/* Chat welcome container */
 .interactive-session .chat-welcome-view-container {
 	display: flex;
 	flex-direction: column;
@@ -34,10 +32,9 @@
 	justify-content: center;
 	overflow: hidden;
 	flex: 1;
-	position: relative; /* Allow absolute positioning of prompts */
+	position: relative;
 }
 
-/* Container for ChatViewPane welcome view */
 .pane-body > .chat-view-welcome {
 	flex-direction: column;
 	justify-content: center;
@@ -180,7 +177,6 @@ div.chat-welcome-view {
 	}
 }
 
-/* Suggested prompts section - positioned at bottom of welcome container */
 .chat-welcome-view-suggested-prompts {
 	position: absolute;
 	bottom: 0;
@@ -190,9 +186,7 @@ div.chat-welcome-view {
 	flex-wrap: wrap;
 	justify-content: flex-start;
 	gap: 8px;
-	/* Extra top padding for title */
 	padding: 32px 16px 8px 16px;
-	/* Avoids bleeding into other content since we use absolute positioning */
 	background: var(--vscode-chat-list-background);
 
 	.chat-welcome-view-suggested-prompts-title {

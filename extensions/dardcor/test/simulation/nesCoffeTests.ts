@@ -42,7 +42,7 @@ export async function discoverCoffeTests(rootFolder: string, options: Simulation
 function generateExternalStestFromRecording(file: fs.Dirent<string>, containingSuite: SimulationSuite, tester: InlineEditTester, configurations: Configuration<unknown>[]): SimulationTest {
 
 	const basename = file.name;
-	const testName = basename.slice(0, -TEST_FILE_SUFFIX.length); // strip suffix
+	const testName = basename.slice(0, -TEST_FILE_SUFFIX.length);
 	const filePath = path.join(file.parentPath, basename);
 
 
@@ -67,7 +67,7 @@ function generateExternalStestFromRecording(file: fs.Dirent<string>, containingS
 		const targetFile = testInput.state.openFiles.find(f => f.uri === testInput.completion.uri);
 		assertDefined(targetFile, `Target file ${testInput.completion.uri} not found in open files.`);
 
-		const targetFileId = filesWithoutTargetFile.length; // careful: needs to be in sync with loop logic
+		const targetFileId = filesWithoutTargetFile.length;
 
 		const { targetFileBeforeEdit, edit } = computeTargetFileBeforeEditAndEdit(targetFile);
 

@@ -7,9 +7,6 @@ import { getActiveWindow } from './dom.js';
 import { IReader, observableSignal } from '../common/observable.js';
 
 export interface IAnimatedValue {
-	/**
-	 * Once true, it can never become false again.
-	*/
 	isFinished(nowMs: number): boolean;
 	getValue(nowMs: number): number;
 }

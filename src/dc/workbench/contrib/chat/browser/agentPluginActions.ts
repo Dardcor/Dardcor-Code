@@ -21,13 +21,7 @@ import { IPluginInstallService } from '../common/plugins/pluginInstallService.js
 import { IMarketplacePluginItem } from './agentPluginEditor/agentPluginItems.js';
 import { buildEnablementContextMenuGroup } from './enablementActions.js';
 import { hasKey } from '../../../../base/common/types.js';
-import { URI } from '../../../../base/common/uri.js';
-import { getCustomizationScopeEnablement } from '../../../../platform/agentHost/common/customizationEnablement.js';
-import { CustomizationEnablementKind, type PluginCustomization } from '../../../../platform/agentHost/common/state/protocol/state.js';
-import { type ICustomizationItemAction } from '../common/customizationHarnessService.js';
-import { IAgentHostCustomizationService } from './agentSessions/agentHost/agentHostCustomizationService.js';
 
-//#region Simple actions
 
 export class InstallPluginAction extends Action {
 	constructor(
@@ -98,32 +92,21 @@ export class OpenPluginReadmeAction extends Action {
 	}
 }
 
-//#endregion
 
-//#region Context menu
 
-/** Whether the plugin is blocked by enterprise policy and cannot be enabled by the user. */
 export function isPluginPolicyBlocked(plugin: IAgentPlugin): boolean {
 	return plugin.policyBlocked?.get() === true;
 }
 
-/** Notifies the user that a plugin is managed by their organization and cannot be enabled. */
 export function notifyPluginPolicyBlocked(notificationService: INotificationService, pluginName: string): void {
 	notificationService.warn(localize('pluginPolicyBlocked', "The plugin \"{0}\" has been disabled by your organization and cannot be enabled.", pluginName));
 }
 
-/**
- * An "Enable" action for a policy-blocked plugin: instead of enabling, it
- * explains via a notification that the plugin is managed by the organization.
- */
 export function createPolicyBlockedEnableAction(plugin: IAgentPlugin, notificationService: INotificationService): Action {
 	return new Action('agentPlugin.enableBlocked', localize('enable', "Enable"), undefined, true,
 		() => { notifyPluginPolicyBlocked(notificationService, plugin.label); return Promise.resolve(); });
 }
 
-/**
- * Builds the standard context menu action groups for an installed plugin.
- */
 export function getInstalledPluginContextMenuActions(plugin: IAgentPlugin, instantiationService: IInstantiationService): IAction[][] {
 	return instantiationService.invokeFunction(accessor => {
 		const agentPluginService = accessor.get(IAgentPluginService);
@@ -153,76 +136,8 @@ export function getInstalledPluginContextMenuActions(plugin: IAgentPlugin, insta
 	});
 }
 
-/**
- * Builds enablement actions for a plugin customization published by an agent host.
- * Legacy VS Code-owned plugin menus continue to use {@link getInstalledPluginContextMenuActions}.
- */
-export function getAgentHostPluginEnablementActions(agentHostCustomizations: IAgentHostCustomizationService, agentPluginService: IAgentPluginService | undefined, sessionResource: URI, customization: PluginCustomization, hasWorkspace: boolean): ICustomizationItemAction[] {
-	const enablement = getCustomizationScopeEnablement(customization);
-	const actions = [
-		createAgentHostPluginEnablementAction(agentHostCustomizations, agentPluginService, sessionResource, customization, CustomizationEnablementKind.Global, !enablement.global, 'global'),
-	];
-	if (hasWorkspace) {
-		actions.push(createAgentHostPluginEnablementAction(agentHostCustomizations, agentPluginService, sessionResource, customization, CustomizationEnablementKind.Workspace, !enablement.workspace, 'workspace'));
-	}
-	actions.push(createAgentHostPluginEnablementAction(agentHostCustomizations, agentPluginService, sessionResource, customization, CustomizationEnablementKind.Session, !enablement.session, 'session'));
-	return actions;
-}
 
-type AgentHostPluginEnablementTarget = {
-	readonly id: string;
-	readonly uri: string;
-	readonly clientId?: string;
-	readonly enablement?: readonly NonNullable<PluginCustomization['enablement']>[number][];
-};
 
-/**
- * Routes a plugin enablement change to the client that owns its global decision
- * or to the agent host for all other scopes.
- */
-export function setAgentHostPluginEnablement(agentHostCustomizations: IAgentHostCustomizationService, agentPluginService: IAgentPluginService | undefined, sessionResource: URI, plugin: AgentHostPluginEnablementTarget, kind: CustomizationEnablementKind, enabled: boolean): void {
-	if (kind === CustomizationEnablementKind.Global && plugin.clientId !== undefined) {
-		if (agentPluginService === undefined) {
-			throw new Error('A client-published plugin requires its client enablement service');
-		}
-		agentPluginService.enablementModel.setEnabled(plugin.uri.toString(), enabled ? ContributionEnablementState.EnabledProfile : ContributionEnablementState.DisabledProfile);
-		return;
-	}
-	agentHostCustomizations.setCustomizationEnablement(sessionResource, plugin.id, plugin.enablement, kind, enabled);
-}
-
-/** Creates the container action used by a child blocked by a disabled plugin. */
-export function createAgentHostEnablePluginAction(agentHostCustomizations: IAgentHostCustomizationService, agentPluginService: IAgentPluginService | undefined, sessionResource: URI, plugin: AgentHostPluginEnablementTarget, kind: CustomizationEnablementKind): ICustomizationItemAction {
-	return {
-		id: 'agentPlugin.agentHost.enableContainer',
-		label: localize('agentHostPluginEnableContainer', "Enable Plugin"),
-		run: () => {
-			setAgentHostPluginEnablement(agentHostCustomizations, agentPluginService, sessionResource, plugin, kind, true);
-		},
-	};
-}
-
-function createAgentHostPluginEnablementAction(agentHostCustomizations: IAgentHostCustomizationService, agentPluginService: IAgentPluginService | undefined, sessionResource: URI, customization: PluginCustomization, kind: CustomizationEnablementKind, enabled: boolean, scope: 'global' | 'workspace' | 'session'): ICustomizationItemAction {
-	const label = enabled
-		? scope === 'global' ? localize('agentHostPluginEnable', "Enable") : scope === 'workspace' ? localize('agentHostPluginEnableWorkspace', "Enable (Workspace)") : localize('agentHostPluginEnableSession', "Enable (Session)")
-		: scope === 'global' ? localize('agentHostPluginDisable', "Disable") : scope === 'workspace' ? localize('agentHostPluginDisableWorkspace', "Disable (Workspace)") : localize('agentHostPluginDisableSession', "Disable (Session)");
-	return {
-		id: `agentPlugin.agentHost.${enabled ? 'enable' : 'disable'}.${scope}`,
-		label,
-		run: () => {
-			setAgentHostPluginEnablement(agentHostCustomizations, agentPluginService, sessionResource, customization, kind, enabled);
-		},
-	};
-}
-
-//#endregion
-
-//#region Dropdown enablement actions for editor-style action bars
-
-/**
- * Sub-action base class that auto-hides when disabled, for use inside
- * {@link EnablementDropDownAction}.
- */
 class EnablementSubAction extends Action {
 	private _hidden: boolean;
 	get hidden(): boolean { return this._hidden; }
@@ -243,11 +158,6 @@ interface IEnablementActionChangeEvent extends IActionChangeEvent {
 	readonly menuActions?: IAction[];
 }
 
-/**
- * Dropdown action that aggregates enablement sub-actions and shows the
- * first visible one as the primary button, with others in the dropdown.
- * Hides itself entirely when all sub-actions are hidden.
- */
 export class EnablementDropDownAction extends Action {
 	readonly menuActionClassNames = ['extension-action', 'label', 'action-dropdown'];
 	private _menuActions: IAction[] = [];
@@ -300,10 +210,6 @@ export class EnablementDropDownAction extends Action {
 	}
 }
 
-/**
- * View item for {@link EnablementDropDownAction} that properly hides
- * the dropdown chevron when there are no secondary actions.
- */
 export class EnablementDropdownActionViewItem extends ActionWithDropdownActionViewItem {
 	constructor(
 		action: EnablementDropDownAction,
@@ -335,10 +241,6 @@ export class EnablementDropdownActionViewItem extends ActionWithDropdownActionVi
 	}
 }
 
-/**
- * Creates the enable dropdown action for a plugin, containing Enable
- * and Enable (Workspace) sub-actions.
- */
 export function createEnablePluginDropDown(
 	plugin: IAgentPlugin,
 	enablementModel: IEnablementModel,
@@ -358,10 +260,6 @@ export function createEnablePluginDropDown(
 	return new EnablementDropDownAction('agentPlugin.enableDropdown', [enable, enableWorkspace]);
 }
 
-/**
- * Creates the disable dropdown action for a plugin, containing Disable
- * and Disable (Workspace) sub-actions.
- */
 export function createDisablePluginDropDown(
 	plugin: IAgentPlugin,
 	enablementModel: IEnablementModel,
@@ -381,4 +279,3 @@ export function createDisablePluginDropDown(
 	return new EnablementDropDownAction('agentPlugin.disableDropdown', [disable, disableWorkspace]);
 }
 
-//#endregion

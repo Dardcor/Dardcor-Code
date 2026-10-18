@@ -26,22 +26,12 @@ export const IChunkingEndpointClient = createServiceIdentifier<IChunkingEndpoint
 export interface ChunkableContent {
 	readonly uri: URI;
 
-	/**
-	 * Overrides the language ID GitHub uses to chunk the file
-	 *
-	 * If not provided, the language ID will be inferred from path and content of the file.
-	 *
-	 * Ids can be found in https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml
-	 */
 	readonly githubLanguageId?: number;
 
 	getText(): Promise<string>;
 }
 
 
-/**
- * The chunking and embedding endpoint client.
- */
 export interface IChunkingEndpointClient {
 	readonly _serviceBrand: undefined;
 
@@ -51,7 +41,7 @@ export interface IChunkingEndpointClient {
 		content: ChunkableContent,
 		batchInfo: ComputeBatchInfo,
 		qos: EmbeddingsComputeQos,
-		cache: ReadonlyMap</* hash */string, FileChunkWithEmbedding> | undefined,
+		cache: ReadonlyMap< string, FileChunkWithEmbedding> | undefined,
 		telemetryInfo: CallTracker,
 		token: CancellationToken,
 	): Promise<readonly FileChunkWithOptionalEmbedding[] | undefined>;
@@ -62,7 +52,7 @@ export interface IChunkingEndpointClient {
 		content: ChunkableContent,
 		batchInfo: ComputeBatchInfo,
 		qos: EmbeddingsComputeQos,
-		cache: ReadonlyMap</* hash */string, FileChunkWithEmbedding> | undefined,
+		cache: ReadonlyMap< string, FileChunkWithEmbedding> | undefined,
 		telemetryInfo: CallTracker,
 		token: CancellationToken,
 	): Promise<readonly FileChunkWithEmbedding[] | undefined>;

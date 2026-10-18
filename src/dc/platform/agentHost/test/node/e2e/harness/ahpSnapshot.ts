@@ -76,7 +76,6 @@ interface IAhpSnapshotClient {
 export interface IAhpSnapshotOptions {
 	readonly profile?: 'protocol' | 'behavior';
 	readonly ignoredActionTypes?: readonly ActionType[];
-	/** Provider tool names whose completion success is omitted before snapshot name normalization. */
 	readonly omitToolCallSuccessForToolNames?: readonly string[];
 }
 
@@ -86,7 +85,6 @@ export interface IAhpSnapshotNormalization {
 	readonly userName: string;
 }
 
-/** Captures AHP wire messages and serializes a stable semantic projection for snapshots. */
 export class AhpSnapshotRecorder {
 	private readonly _messages: ICapturedAhpMessage[] = [];
 	private readonly _roundStarts: number[] = [];
@@ -133,12 +131,6 @@ export class AhpSnapshotRecorder {
 				if (message.id !== undefined) {
 					(direction === 'c2s' ? clientRequests : serverRequests).set(message.id, message.method);
 				}
-				// notifications/tools/list_changed is legitimate behavior (Copilot >= 1.0.72
-				// emits session.tools_updated), but it is only forwarded for MCP servers
-				// in the Ready state. The harness runs against the real homedir, so the
-				// notification appears when the developer's ~/.copilot configures MCP
-				// servers and is absent on clean CI runners — it cannot live in a
-				// machine-independent snapshot.
 				if (message.method === 'root/sessionSummaryChanged' || message.method === 'notifications/tools/list_changed') {
 					continue;
 				}
@@ -192,7 +184,6 @@ export class AhpSnapshotRecorder {
 	}
 }
 
-/** Records code-driven AHP traffic during snapshot updates and asserts it during replay. */
 export async function assertRecordedAhpSnapshot(test: Mocha.Runnable, client: IAhpSnapshotClient, options?: IAhpSnapshotOptions): Promise<void> {
 	const actual = client.serializeAhpSnapshot(options);
 	if (UPDATE_AHP_SNAPSHOTS || UPDATE_ALL_SNAPSHOTS) {
@@ -202,7 +193,6 @@ export async function assertRecordedAhpSnapshot(test: Mocha.Runnable, client: IA
 	await assertSnapshot(actual, { name: 'traffic', extension: 'ahp.yaml' });
 }
 
-/** Loads client actions from an AHP snapshot, dispatches them, and asserts the resulting traffic. */
 export class AhpSnapshotScenario {
 	private constructor(
 		private readonly _fixturePath: string,
@@ -301,7 +291,6 @@ function normalizeChannel(value: unknown, channels: Map<string, string>, channel
 		}
 		kind = scheme === 'ahp-chat' ? 'chat' : scheme.includes('terminal') ? 'terminal' : 'session';
 	} catch {
-		// Keep the generic channel kind for non-URI values.
 	}
 
 	const index = channelCounts.get(kind) ?? 0;
@@ -443,24 +432,6 @@ function projectAction(
 	}
 }
 
-/**
- * Drops reasoning traffic from the snapshot.
- *
- * Reasoning cannot survive the capture round-trip: `capiWireCodec` drops
- * reasoning items when aggregating a response, because their content is opaque
- * and provider-encrypted. Replay therefore rebuilds the stream from a fixture
- * that has no reasoning in it, and any reasoning the live recording observed —
- * whether an empty part the provider opened and closed without a delta, or a
- * partial one carrying a few characters — can never be reproduced.
- *
- * Keeping it would make a snapshot permanently unreplayable depending on
- * whether the provider happened to emit reasoning during the recording, which
- * says nothing about the behavior under test.
- *
- * Runs after projection because `ChatDelta` fills in a part's content by
- * mutating the object recorded here, so the final content is only known once
- * every message has been projected.
- */
 function dropReasoning(actions: object[]): object[] {
 	return actions.filter(entry => {
 		const action = (entry as { action?: { type?: string; part?: { kind?: string } } }).action;
@@ -469,20 +440,6 @@ function dropReasoning(actions: object[]): object[] {
 	});
 }
 
-/**
- * Collapses the platform-specific Copilot shell tool names to stable
- * placeholders.
- *
- * The Copilot CLI names its shell tools after the shell it runs: `bash` and
- * friends on POSIX, `powershell` and friends on Windows. That name reaches the
- * client verbatim in `chat/toolCallStart`, so a snapshot recorded on macOS or
- * Linux can never match the same behavior on Windows even when the recorded
- * command itself is portable.
- *
- * Only the names that actually vary by platform are mapped. Claude's `Bash` and
- * Codex's `shell` are fixed strings their SDKs use everywhere, so they are left
- * alone — rewriting them would hide a genuine provider change.
- */
 function normalizeShellToolName(toolName: string): string {
 	const shellToolPlaceholders: Record<string, string> = {
 		bash: '${shell}', powershell: '${shell}',
@@ -581,16 +538,8 @@ function normalizeSnapshotText(value: string, normalization: IAhpSnapshotNormali
 	try {
 		workDirs.add(realpathSync.native(normalization.workingDirectory));
 	} catch {
-		// The workspace can be deleted during teardown after the traffic was captured.
 	}
 	let normalized = value;
-	// Line endings first, so every line-anchored pattern below sees LF-only
-	// text. Windows produces CRLF for the same behavior a POSIX host reports
-	// with LF, which would otherwise fail a snapshot recorded on macOS/Linux
-	// for a reason unrelated to the behavior under test. The escaped form is
-	// normalized too because tool inputs are often embedded JSON, where the
-	// carriage return survives as a literal `\r` escape rather than a control
-	// character.
 	normalized = normalized.replaceAll('\r\n', '\n').replaceAll('\\r\\n', '\\n');
 	for (const workDir of [...workDirs].sort((a, b) => b.length - a.length)) {
 		normalized = normalized
@@ -628,11 +577,6 @@ function escapeRegExpCharacters(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Resolves the file {@link assertSnapshot} would compare against, so an update
- * run writes the path the assert run reads. Mirrors `SnapshotContext`: the
- * snapshot sits next to the test's *source*, though the test runs from `out/`.
- */
 export function snapshotPathForTest(test: Mocha.Runnable, name: string, extension: string): string {
 	if (!test.file) {
 		throw new Error('[ahp-snapshot] current test file is not set');

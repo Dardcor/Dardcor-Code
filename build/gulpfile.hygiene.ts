@@ -7,7 +7,7 @@ import es from 'event-stream';
 import path from 'path';
 import fs from 'fs';
 import * as task from './lib/gulp/task.ts';
-import { checkCopilotEnginesVersion, checkNoNewJavaScriptFiles, hygiene } from './hygiene.ts';
+import { checkNoNewJavaScriptFiles, hygiene } from './hygiene.ts';
 
 const dirName = path.dirname(new URL(import.meta.url).pathname);
 
@@ -19,7 +19,6 @@ function checkPackageJSON(this: NodeJS.ReadWriteStream, actualPath: string) {
 			const depVersion = set1[depName];
 			const rootDepVersion = set2[depName];
 			if (!rootDepVersion) {
-				// missing in root is allowed
 				continue;
 			}
 			if (depVersion !== rootDepVersion) {
@@ -43,10 +42,6 @@ const checkPackageJSONTask = task.define('check-package-json', () => {
 			checkPackageJSON.call(this, 'build/package.json');
 
 			const repoRoot = path.join(dirName, '..');
-			const copilotError = checkCopilotEnginesVersion(repoRoot);
-			if (copilotError) {
-				this.emit('error', copilotError);
-			}
 			const jsAllowlistError = checkNoNewJavaScriptFiles(repoRoot);
 			if (jsAllowlistError) {
 				this.emit('error', jsAllowlistError);

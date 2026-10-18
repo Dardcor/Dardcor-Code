@@ -315,7 +315,6 @@ class TaskDetector {
 			return this.detectors.values().next().value!.getTask(task);
 		} else {
 			if ((task.scope === vscode.TaskScope.Workspace) || (task.scope === vscode.TaskScope.Global)) {
-				// Not supported, we don't have enough info to create the task.
 				return undefined;
 			} else if (task.scope) {
 				const detector = this.detectors.get(task.scope.uri.toString());

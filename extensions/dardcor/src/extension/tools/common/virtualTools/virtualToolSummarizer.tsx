@@ -18,15 +18,9 @@ function normalizeGroupName(name: string): string {
 	return name.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
 }
 
-/**
- * Bulk describe multiple tool groups in a single LLM call for efficiency.
- * The index of summarized categories in the output corresponds to the index
- * of the input `toolGroups`. Missing or failed descriptions result in `undefined`.
- */
 export async function describeBulkToolGroups(endpoint: IChatEndpoint, toolGroups: LanguageModelToolInformation[][], token: CancellationToken): Promise<(ISummarizedToolCategory | undefined)[]> {
 	const results: Promise<(ISummarizedToolCategory | undefined)[]>[] = [];
 
-	// Process in chunks of max 16 groups
 	for (let i = 0; i < toolGroups.length; i += MAX_GROUPS_PER_CHUNK) {
 		const chunk = toolGroups.slice(i, i + MAX_GROUPS_PER_CHUNK);
 		const chunkResults = describeToolGroupsChunk(endpoint, chunk, token);
@@ -36,9 +30,6 @@ export async function describeBulkToolGroups(endpoint: IChatEndpoint, toolGroups
 	return (await Promise.all(results)).flat();
 }
 
-/**
- * Process a single chunk of tool groups
- */
 async function describeToolGroupsChunk(
 	endpoint: IChatEndpoint,
 	toolGroups: LanguageModelToolInformation[][],
@@ -87,7 +78,7 @@ class BulkGroupDescriptorPrompt extends PromptElement<BasePromptElementProps & {
 				You will be given {this.props.toolGroups.length} groups of tools. For each group, provide a name and summary that describes the group's purpose and capabilities.<br />
 				<br />
 				{this.props.toolGroups.map((group, index) => {
-					const groupIndex = index + 1; // 1-indexed
+					const groupIndex = index + 1;
 					return (
 						<>
 							{`<group index="${groupIndex}">`}<br />
@@ -149,7 +140,6 @@ async function getJsonResponse(endpoint: IChatEndpoint, rendered: RenderPromptRe
 		try {
 			return JSONC.parse(block.code);
 		} catch {
-			// ignored
 		}
 	}
 

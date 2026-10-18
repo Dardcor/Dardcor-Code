@@ -16,7 +16,6 @@ import { IConfigurationService } from '../../platform/configuration/common/confi
 
 export interface INotificationsModel {
 
-	//#region Notifications as Toasts/Center
 
 	readonly notifications: INotificationViewItem[];
 
@@ -27,10 +26,8 @@ export interface INotificationsModel {
 
 	setFilter(filter: Partial<INotificationsFilter>): void;
 
-	//#endregion
 
 
-	//#region Notifications as Status
 
 	readonly statusMessage: IStatusMessageViewItem | undefined;
 
@@ -38,54 +35,27 @@ export interface INotificationsModel {
 
 	showStatusMessage(message: NotificationMessage, options?: IStatusMessageOptions): IStatusHandle;
 
-	//#endregion
 }
 
 export const enum NotificationChangeType {
 
-	/**
-	 * A notification was added.
-	 */
 	ADD,
 
-	/**
-	 * A notification changed. Check `detail` property
-	 * on the event for additional information.
-	 */
 	CHANGE,
 
-	/**
-	 * A notification expanded or collapsed.
-	 */
 	EXPAND_COLLAPSE,
 
-	/**
-	 * A notification was removed.
-	 */
 	REMOVE
 }
 
 export interface INotificationChangeEvent {
 
-	/**
-	 * The index this notification has in the list of notifications.
-	 */
 	index: number;
 
-	/**
-	 * The notification this change is about.
-	 */
 	item: INotificationViewItem;
 
-	/**
-	 * The kind of notification change.
-	 */
 	kind: NotificationChangeType;
 
-	/**
-	 * Additional detail about the item change. Only applies to
-	 * `NotificationChangeType.CHANGE`.
-	 */
 	detail?: NotificationViewItemContentChangeKind;
 }
 
@@ -101,14 +71,8 @@ export interface IStatusMessageViewItem {
 
 export interface IStatusMessageChangeEvent {
 
-	/**
-	 * The status message item this change is about.
-	 */
 	item: IStatusMessageViewItem;
 
-	/**
-	 * The kind of status message change.
-	 */
 	kind: StatusMessageChangeType;
 }
 
@@ -128,10 +92,8 @@ export class NotificationHandle extends Disposable implements INotificationHandl
 
 	private registerListeners(): void {
 
-		// Visibility
 		this._register(this.item.onDidChangeVisibility(visible => this._onDidChangeVisibility.fire(visible)));
 
-		// Closing
 		Event.once(this.item.onDidClose)(() => {
 			this._onDidClose.fire();
 
@@ -215,29 +177,25 @@ export class NotificationsModel extends Disposable implements INotificationsMode
 	addNotification(notification: INotification): INotificationHandle {
 		const item = this.createViewItem(notification);
 		if (!item) {
-			return NotificationsModel.NO_OP_NOTIFICATION; // return early if this is a no-op
+			return NotificationsModel.NO_OP_NOTIFICATION;
 		}
 
-		// Deduplicate
 		const duplicate = this.findNotification(item);
 		duplicate?.close();
 
-		// Add to list as first entry
 		this._notifications.splice(0, 0, item);
 
-		// Events
 		this._onDidChangeNotification.fire({ item, index: 0, kind: NotificationChangeType.ADD });
 
-		// Wrap into handle
 		return new NotificationHandle(item, item => this.onClose(item));
 	}
 
 	private onClose(item: INotificationViewItem): void {
 		const liveItem = this.findNotification(item);
 		if (liveItem && liveItem !== item) {
-			liveItem.close(); // item could have been replaced with another one, make sure to close the live item
+			liveItem.close();
 		} else {
-			item.close(); // otherwise just close the item that was passed in
+			item.close();
 		}
 	}
 
@@ -251,7 +209,6 @@ export class NotificationsModel extends Disposable implements INotificationsMode
 			return undefined;
 		}
 
-		// Item Events
 		const fireNotificationChangeEvent = (kind: NotificationChangeType, detail?: NotificationViewItemContentChangeKind) => {
 			const index = this._notifications.indexOf(item);
 			if (index >= 0) {
@@ -469,7 +426,7 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 
 	static create(notification: INotification, filter: INotificationsFilter): INotificationViewItem | undefined {
 		if (!notification?.message || isCancellationError(notification.message)) {
-			return undefined; // we need a message to show
+			return undefined;
 		}
 
 		let severity: Severity;
@@ -481,7 +438,7 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 
 		const message = NotificationViewItem.parseNotificationMessage(notification.message);
 		if (!message) {
-			return undefined; // we need a message to show
+			return undefined;
 		}
 
 		let actions: INotificationActions | undefined;
@@ -494,9 +451,9 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 		let priority = notification.priority ?? NotificationPriority.DEFAULT;
 		if ((priority === NotificationPriority.DEFAULT || priority === NotificationPriority.OPTIONAL) && severity !== Severity.Error) {
 			if (filter.global === NotificationsFilter.ERROR) {
-				priority = NotificationPriority.SILENT; // filtered globally
+				priority = NotificationPriority.SILENT;
 			} else if (isNotificationSource(notification.source) && filter.sources.get(notification.source.id) === NotificationsFilter.ERROR) {
-				priority = NotificationPriority.SILENT; // filtered by source
+				priority = NotificationPriority.SILENT;
 			}
 		}
 
@@ -512,20 +469,17 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 		}
 
 		if (!message) {
-			return undefined; // we need a message to show
+			return undefined;
 		}
 
 		const raw = message;
 
-		// Make sure message is in the limits
 		if (message.length > NotificationViewItem.MAX_MESSAGE_LENGTH) {
 			message = `${message.substr(0, NotificationViewItem.MAX_MESSAGE_LENGTH)}...`;
 		}
 
-		// Remove newlines from messages as we do not support that and it makes link parsing hard
 		message = message.replace(/(\r\n|\n|\r)/gm, ' ').trim();
 
-		// Parse Links
 		const linkedText = parseLinkedText(message);
 
 		return { raw, linkedText, original: input };
@@ -585,19 +539,19 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 
 	get sticky(): boolean {
 		if (this._sticky) {
-			return true; // explicitly sticky
+			return true;
 		}
 
 		const hasActions = this.hasActions;
 		if (
-			(hasActions && this._severity === Severity.Error) || // notification errors with actions are sticky
-			(!hasActions && this._expanded) ||					 // notifications that got expanded are sticky
-			(this._progress && !this._progress.state.done)		 // notifications with running progress are sticky
+			(hasActions && this._severity === Severity.Error) ||
+			(!hasActions && this._expanded) ||
+			(this._progress && !this._progress.state.done)
 		) {
 			return true;
 		}
 
-		return false; // not sticky
+		return false;
 	}
 
 	get priority(): NotificationPriority {
@@ -754,10 +708,8 @@ export class ChoiceAction extends Action {
 	constructor(id: string, choice: IPromptChoice) {
 		super(id, choice.label, undefined, true, async () => {
 
-			// Pass to runner
 			choice.run();
 
-			// Emit Event
 			this._onDidRun.fire();
 		});
 
@@ -778,7 +730,7 @@ class StatusMessageViewItem {
 
 	static create(notification: NotificationMessage, options?: IStatusMessageOptions): IStatusMessageViewItem | undefined {
 		if (!notification || isCancellationError(notification)) {
-			return undefined; // we need a message to show
+			return undefined;
 		}
 
 		let message: string | undefined;
@@ -789,7 +741,7 @@ class StatusMessageViewItem {
 		}
 
 		if (!message) {
-			return undefined; // we need a message to show
+			return undefined;
 		}
 
 		return { message, options };

@@ -21,18 +21,15 @@ export class ActiveWindowManager extends Disposable {
 	}) {
 		super();
 
-		// remember last active window id upon events
 		const onActiveWindowChange = Event.latch(Event.any(onDidOpenMainWindow, onDidFocusMainWindow));
 		onActiveWindowChange(this.setActiveWindow, this, this.disposables);
 
-		// resolve current active window
 		this.firstActiveWindowIdPromise = createCancelablePromise(() => getActiveWindowId());
 		(async () => {
 			try {
 				const windowId = await this.firstActiveWindowIdPromise;
 				this.activeWindowId = (typeof this.activeWindowId === 'number') ? this.activeWindowId : windowId;
 			} catch (error) {
-				// ignore
 			} finally {
 				this.firstActiveWindowIdPromise = undefined;
 			}

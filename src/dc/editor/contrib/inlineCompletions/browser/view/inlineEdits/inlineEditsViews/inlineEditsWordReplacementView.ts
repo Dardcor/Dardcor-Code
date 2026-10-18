@@ -119,7 +119,6 @@ export class InlineEditsWordReplacementView extends Disposable implements IInlin
 			const widgetStart = this._start.read(reader);
 			const widgetEnd = this._end.read(reader);
 
-			// TODO@hediet better about widgetStart and widgetEnd in a single transaction!
 			if (!widgetStart || !widgetEnd || widgetStart.x > widgetEnd.x || widgetStart.y > widgetEnd.y) {
 				return undefined;
 			}
@@ -148,7 +147,7 @@ export class InlineEditsWordReplacementView extends Disposable implements IInlin
 				alternativeAction = {
 					label: count !== undefined ? (active ? occurrencesLabel : label) : label,
 					tooltip: occurrencesLabel ? `${occurrencesLabel}\n${keybindingTooltip}` : undefined,
-					icon: undefined, //this._viewData.alternativeAction.icon, Do not render icon fo the moment
+					icon: undefined,
 					count,
 					keybinding: this._keybindingService.lookupKeybinding(inlineSuggestCommitAlternativeActionId),
 					active: altModifierActive,
@@ -160,7 +159,6 @@ export class InlineEditsWordReplacementView extends Disposable implements IInlin
 			const modifiedLine = codeLine.withWidth(codeLine.width + (alternativeAction ? alternativeAction.label.length * w + 8 + 4 + 12 : 0));
 			const lowerBackground = modifiedLine.withLeft(originalLine.left);
 
-			// debugView(debugLogRects({ lowerBackground }, this._editor.editor.getContainerDomNode()), reader);
 
 			return {
 				alternativeAction,
@@ -191,7 +189,7 @@ export class InlineEditsWordReplacementView extends Disposable implements IInlin
 				const modifiedBorderColor = getModifiedBorderColor(this._tabAction).map(c => asCssVariable(c)).read(reader);
 				this._line.style.lineHeight = `${layout.read(reader).modifiedLine.height + 2 * BORDER_WIDTH}px`;
 
-				const secondaryElementHovered = constObservable(false);//this._secondaryElement.map((e, r) => e?.isHovered.read(r) ?? false);
+				const secondaryElementHovered = constObservable(false);
 				const alternativeAction = layout.map(l => l.alternativeAction);
 				const alternativeActionActive = derived(reader => (alternativeAction.read(reader)?.active.read(reader) ?? false) || secondaryElementHovered.read(reader));
 
@@ -225,7 +223,6 @@ export class InlineEditsWordReplacementView extends Disposable implements IInlin
 				const editorBackground = getEditorBackgroundColor(this._viewData.editorType);
 				const primaryActionStyles = derived(this, r => alternativeActionActive.read(r) ? primaryActiveStyles : primaryActiveStyles);
 				const secondaryActionStyles = derived(this, r => alternativeActionActive.read(r) ? secondaryActiveStyles : passiveStyles);
-				// TODO@benibenj clicking the arrow does not accept suggestion anymore
 				return [
 					n.div({
 						id: DOM_ID_OVERLAY,
@@ -393,7 +390,7 @@ export class InlineEditsWordReplacementView extends Disposable implements IInlin
 		if (!target_id) {
 			return;
 		}
-		e.preventDefault(); // This prevents that the editor loses focus
+		e.preventDefault();
 		this._onDidClick.fire(InlineEditClickEvent.create(e, target_id === DOM_ID_RENAME));
 	}
 }

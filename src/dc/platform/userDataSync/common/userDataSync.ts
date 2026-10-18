@@ -138,7 +138,6 @@ export function registerConfiguration(): IDisposable {
 	return configurationRegistry.onDidUpdateConfiguration(() => registerIgnoredSettingsSchema());
 }
 
-// #region User Data Sync Store
 
 export const NON_EXISTING_RESOURCE_REF = '0';
 
@@ -285,9 +284,7 @@ export interface IUserDataSyncLocalStoreService {
 	resolveResourceContent(resource: ServerResource, ref: string, collection?: string, root?: URI): Promise<string | null>;
 }
 
-//#endregion
 
-// #region User Data Sync Headers
 
 export const HEADER_OPERATION_ID = 'x-operation-id';
 export const HEADER_EXECUTION_ID = 'X-Execution-Id';
@@ -298,26 +295,22 @@ export function createSyncHeaders(executionId: string): IHeaders {
 	return headers;
 }
 
-//#endregion
 
-// #region User Data Sync Error
 
 export const enum UserDataSyncErrorCode {
-	// Client Errors (>= 400 )
-	Unauthorized = 'Unauthorized', /* 401 */
-	Forbidden = 'Forbidden', /* 403 */
-	NotFound = 'NotFound', /* 404 */
-	MethodNotFound = 'MethodNotFound', /* 405 */
-	Conflict = 'Conflict', /* 409 */
-	Gone = 'Gone', /* 410 */
-	PreconditionFailed = 'PreconditionFailed', /* 412 */
-	TooLarge = 'TooLarge', /* 413 */
-	UpgradeRequired = 'UpgradeRequired', /* 426 */
-	PreconditionRequired = 'PreconditionRequired', /* 428 */
-	TooManyRequests = 'RemoteTooManyRequests', /* 429 */
-	TooManyRequestsAndRetryAfter = 'TooManyRequestsAndRetryAfter', /* 429 + Retry-After */
+	Unauthorized = 'Unauthorized',
+	Forbidden = 'Forbidden',
+	NotFound = 'NotFound',
+	MethodNotFound = 'MethodNotFound',
+	Conflict = 'Conflict',
+	Gone = 'Gone',
+	PreconditionFailed = 'PreconditionFailed',
+	TooLarge = 'TooLarge',
+	UpgradeRequired = 'UpgradeRequired',
+	PreconditionRequired = 'PreconditionRequired',
+	TooManyRequests = 'RemoteTooManyRequests',
+	TooManyRequestsAndRetryAfter = 'TooManyRequestsAndRetryAfter',
 
-	// Local Errors
 	RequestFailed = 'RequestFailed',
 	RequestCanceled = 'RequestCanceled',
 	RequestTimeout = 'RequestTimeout',
@@ -385,9 +378,7 @@ export namespace UserDataSyncError {
 
 }
 
-//#endregion
 
-// #region User Data Synchroniser
 
 export interface ISyncUserDataProfile {
 	readonly id: string;
@@ -535,16 +526,12 @@ export interface IUserDataSynchroniser {
 	replace(content: string): Promise<boolean>;
 }
 
-//#endregion
 
-// #region keys synced only in web
 
 export const SYNC_SERVICE_URL_TYPE = 'sync.store.url.type';
 export function getEnablementKey(resource: SyncResource) { return `sync.enable.${resource}`; }
 
-// #endregion
 
-// #region User Data Sync Services
 export const IUserDataSyncEnablementService = createDecorator<IUserDataSyncEnablementService>('IUserDataSyncEnablementService');
 export interface IUserDataSyncEnablementService {
 	_serviceBrand: undefined;
@@ -560,10 +547,6 @@ export interface IUserDataSyncEnablementService {
 
 	getResourceSyncStateVersion(resource: SyncResource): string | undefined;
 
-	/**
-	 * Checks if resource enabled was explicitly configured before,
-	 * ignoring its default enablement value used in {@link isResourceEnabled}.
-	 */
 	isResourceEnablementConfigured(resource: SyncResource): boolean;
 }
 
@@ -659,7 +642,6 @@ export interface IConflictSetting {
 	remoteValue: any | undefined;
 }
 
-//#endregion
 
 export const USER_DATA_SYNC_LOG_ID = 'userDataSync';
 export const USER_DATA_SYNC_SCHEME = 'vscode-userdata-sync';

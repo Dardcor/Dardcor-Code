@@ -19,7 +19,7 @@ export async function detectEncodingByBOM(file: string): Promise<typeof encoding
 
 		return encoding.detectEncodingByBOMFromBuffer(buffer, bytesRead);
 	} catch (error) {
-		return null; // ignore errors (like file not found)
+		return null;
 	}
 }
 
@@ -43,7 +43,7 @@ function readExactlyByFile(file: string, totalBytes: number): Promise<ReadResult
 
 					// eslint-disable-next-line local/code-no-any-casts
 					if (err && (<any>err).code === 'EISDIR') {
-						return reject(err); // we want to bubble this error up (file is actually a folder)
+						return reject(err);
 					}
 
 					return resolve({ buffer: resultBuffer ? VSBuffer.wrap(resultBuffer) : null, bytesRead });
@@ -210,7 +210,6 @@ suite('Encoding', () => {
 	});
 
 	test('autoGuessEncoding (candidateGuessEncodings - ShiftJIS)', async function () {
-		// This file is determined to be windows1252 unless candidateDetectEncoding is set.
 		const file = FileAccess.asFileUri('vs/workbench/services/textfile/test/node/encoding/fixtures/some.shiftjis.1.txt').fsPath;
 		const buffer = await readExactlyByFile(file, 512 * 8);
 		const mimes = await encoding.detectEncodingFromBuffer(buffer, true, ['utf8', 'shiftjis', 'eucjp']);
@@ -370,7 +369,6 @@ suite('Encoding', () => {
 			]);
 		};
 
-		// acceptTextOnly: true
 
 		let error: Error | undefined = undefined;
 		try {
@@ -382,7 +380,6 @@ suite('Encoding', () => {
 		assert.ok(error instanceof encoding.DecodeStreamError);
 		assert.strictEqual(error.decodeStreamErrorKind, encoding.DecodeStreamErrorKind.STREAM_IS_BINARY);
 
-		// acceptTextOnly: false
 
 		const { detected, stream } = await encoding.toDecodeStream(source(), { acceptTextOnly: false, guessEncoding: false, candidateGuessEncodings: [], overwriteEncoding: async detected => detected || encoding.UTF8 });
 
@@ -456,7 +453,7 @@ suite('Encoding', () => {
 	test('encodingExists', async function () {
 		for (const enc in encoding.SUPPORTED_ENCODINGS) {
 			if (enc === encoding.UTF8_with_bom) {
-				continue; // skip over encodings from us
+				continue;
 			}
 			const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>('@vscode/iconv-lite-umd', 'lib/iconv-lite-umd.js');
 			assert.strictEqual(iconv.encodingExists(enc), true, enc);

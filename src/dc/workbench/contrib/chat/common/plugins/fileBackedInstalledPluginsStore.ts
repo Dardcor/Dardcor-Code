@@ -17,64 +17,26 @@ import { IStorageService, StorageScope } from '../../../../../platform/storage/c
 const INSTALLED_JSON_FILENAME = 'installed.json';
 const INSTALLED_JSON_VERSION = 1;
 
-/** Legacy storage key used before migration to file-backed store. */
 const LEGACY_INSTALLED_PLUGINS_STORAGE_KEY = 'chat.plugins.installed.v1';
-/** Legacy storage key for the marketplace index that cached old URI paths. */
 const LEGACY_MARKETPLACE_INDEX_STORAGE_KEY = 'chat.plugins.marketplaces.index.v1';
 
-/**
- * Minimal entry stored in `installed.json`. URIs are serialised as strings
- * so that external tools can read and write the file without depending on
- * VS Code internal URI representations. The optional `name` identifies the
- * marketplace plugin and lets VS Code re-read the full descriptor from the
- * marketplace when needed.
- */
 interface IInstalledJsonEntry {
 	readonly pluginUri: string;
 	readonly marketplace: string;
 	readonly name?: string;
 }
 
-/**
- * On-disk schema for `installed.json`.
- */
 interface IInstalledJson {
 	readonly version: number;
 	readonly installed: readonly IInstalledJsonEntry[];
 }
 
-/**
- * In-memory representation of an installed plugin entry.
- */
 export interface IStoredInstalledPlugin {
 	readonly pluginUri: URI;
 	readonly marketplace: string;
 	readonly name?: string;
 }
 
-/**
- * An observable store for installed agent plugins that is backed by a
- * `installed.json` file within the agent-plugins directory. This makes
- * the installed-plugin manifest discoverable by external tools (CLIs,
- * other editors, etc.) without depending on VS Code internals.
- *
- * The on-disk format stores only the plugin URI (as a string), marketplace
- * identifier, and plugin name. Full plugin metadata (description, source
- * descriptor, etc.) is read from marketplace data by the discovery layer -
- * keeping a single source of truth.
- *
- * On construction the store:
- * 1. Attempts to read `installed.json` from the agent-plugins directory.
- * 2. If no file exists, migrates data from the legacy {@link StorageService}
- *    key (`chat.plugins.installed.v1`), rebasing plugin URIs from the old
- *    cache directory to the new agent-plugins directory.
- * 3. Sets up a correlated file watcher so that external edits to
- *    `installed.json` are picked up automatically.
- *
- * Write operations update the in-memory observable synchronously and
- * schedule a debounced file write so that rapid successive mutations
- * (e.g. batch enables) are coalesced into a single I/O operation.
- */
 export class FileBackedInstalledPluginsStore extends Disposable {
 	private readonly _installed = observableValue<readonly IStoredInstalledPlugin[]>('file/installed.json', []);
 	private readonly _fileUri: URI;
@@ -111,7 +73,6 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 			if (read !== undefined) {
 				this._setValue(read, undefined, false);
 			} else {
-				// No installed.json yet — attempt migration from legacy storage.
 				await this._migrateFromStorage();
 			}
 		} catch (error) {
@@ -122,7 +83,6 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 		this._setupFileWatcher();
 	}
 
-	// --- File I/O ----------------------------------------------------------------
 
 	private async _readFromFile(): Promise<readonly IStoredInstalledPlugin[] | undefined> {
 		try {
@@ -138,7 +98,6 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 				return undefined;
 			}
 
-			// Each entry is { pluginUri, marketplace, name? }.
 			return json.installed
 				.filter((entry): entry is IInstalledJsonEntry => typeof entry.pluginUri === 'string' && typeof entry.marketplace === 'string')
 				.map(entry => ({
@@ -183,7 +142,6 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 		}
 	}
 
-	// --- File watching ------------------------------------------------------------
 
 	private _setupFileWatcher(): void {
 		if (typeof this._fileService.createWatcher !== 'function') {
@@ -204,7 +162,6 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 	private async _onFileChanged(): Promise<void> {
 		const read = await this._readFromFile();
 		if (read !== undefined) {
-			// Suppress file write for externally triggered updates.
 			this._suppressFileWatch = true;
 			try {
 				this._setValue(read, undefined, false);
@@ -214,18 +171,14 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 		}
 	}
 
-	// --- Write-through to file ----------------------------------------------------
 
 	private _setValue(newValue: readonly IStoredInstalledPlugin[], tx: ITransaction | undefined, scheduleWrite: boolean): void {
 		this._installed.set(newValue, tx);
-		// Only schedule writes after initialization and when not processing
-		// an external file change.
 		if (scheduleWrite && this._initialized && !this._suppressFileWatch) {
 			this._scheduleWrite();
 		}
 	}
 
-	// --- Migration from legacy storage -------------------------------------------
 
 	private async _migrateFromStorage(): Promise<void> {
 		const raw = this._storageService.get(LEGACY_INSTALLED_PLUGINS_STORAGE_KEY, StorageScope.APPLICATION);
@@ -251,14 +204,12 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 
 			this._logService.info(`[FileBackedInstalledPluginsStore] Migrating ${migrated.length} plugin(s) from storage to installed.json`);
 
-			// Set in memory and persist to file before removing legacy keys.
 			this._setValue(migrated, undefined, false);
 			const didPersist = await this._writeToFile();
 			if (!didPersist) {
 				return;
 			}
 
-			// Clean up legacy keys.
 			this._storageService.remove(LEGACY_INSTALLED_PLUGINS_STORAGE_KEY, StorageScope.APPLICATION);
 			this._storageService.remove(LEGACY_MARKETPLACE_INDEX_STORAGE_KEY, StorageScope.APPLICATION);
 		} catch (error) {
@@ -266,11 +217,6 @@ export class FileBackedInstalledPluginsStore extends Disposable {
 		}
 	}
 
-	/**
-	 * If the plugin URI was under the old cache root, rebase it to the
-	 * new agent-plugins directory. Otherwise, return `undefined` to keep
-	 * the original.
-	 */
 	private _rebasePluginUri(uri: URI): URI | undefined {
 		if (!this._oldCacheRoot) {
 			return undefined;

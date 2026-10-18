@@ -26,16 +26,13 @@ export function countEOL(text: string): [number, number, number, StringEOL] {
 			}
 			eolCount++;
 			if (i + 1 < len && text.charCodeAt(i + 1) === CharCode.LineFeed) {
-				// \r\n... case
 				eol |= StringEOL.CRLF;
-				i++; // skip \n
+				i++;
 			} else {
-				// \r... case
 				eol |= StringEOL.Invalid;
 			}
 			lastLineStart = i + 1;
 		} else if (chr === CharCode.LineFeed) {
-			// \n... case
 			eol |= StringEOL.LF;
 			if (eolCount === 0) {
 				firstLineLength = i;

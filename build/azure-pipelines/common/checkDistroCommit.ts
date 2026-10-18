@@ -9,10 +9,6 @@ import { execSync } from 'child_process';
 
 const root = path.dirname(path.dirname(path.dirname(import.meta.dirname)));
 
-// The microsoft/vscode-distro repository is checked out locally by
-// download-distro.yml (into .build/distro) using the agent's GitHub App
-// (Monaco) credentials, so we can resolve branch heads without a token that
-// has private repository access.
 const distroPath = path.join(root, '.build', 'distro');
 
 function getEnv(name: string): string {
@@ -36,7 +32,6 @@ function getDistroBranchHead(branch: string): string {
 }
 
 async function checkDistroCommit(): Promise<void> {
-	// Get the distro commit from package.json
 	const packageJsonPath = path.join(root, 'package.json');
 	const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 	const distroCommit: string = packageJson.distro;
@@ -48,8 +43,6 @@ async function checkDistroCommit(): Promise<void> {
 
 	console.log(`Distro commit in package.json: ${distroCommit}`);
 
-	// Get the current branch from Azure DevOps
-	// BUILD_SOURCEBRANCH is in format refs/heads/main or refs/heads/release/1.90
 	const sourceBranch = getEnv('BUILD_SOURCEBRANCH');
 	const branchMatch = sourceBranch.match(/^refs\/heads\/(.+)$/);
 
@@ -61,17 +54,12 @@ async function checkDistroCommit(): Promise<void> {
 	const branch = branchMatch[1];
 	console.log(`Current branch: ${branch}`);
 
-	// Make sure the distro repository is actually checked out before we try to
-	// resolve a branch head from it; otherwise a missing checkout would be
-	// indistinguishable from a branch that simply doesn't exist in distro.
 	assertDistroCheckout();
 
-	// Resolve the HEAD of the matching branch from the local distro checkout
 	let distroBranchHead: string;
 	try {
 		distroBranchHead = getDistroBranchHead(branch);
 	} catch (error) {
-		// If the branch doesn't exist in distro, that's expected for feature branches
 		console.log(`Could not resolve branch '${branch}' from local vscode-distro checkout: ${error}`);
 		console.log('This is expected for feature branches that have not been merged to distro');
 		return;
@@ -79,11 +67,9 @@ async function checkDistroCommit(): Promise<void> {
 
 	console.log(`Distro branch '${branch}' HEAD: ${distroBranchHead}`);
 
-	// Compare the commits
 	if (distroCommit === distroBranchHead) {
 		console.log(`✓ Distro commit matches branch HEAD`);
 	} else {
-		// Issue a warning using Azure DevOps logging commands
 		console.log(`##vso[task.logissue type=warning]Distro commit mismatch: package.json has ${distroCommit.substring(0, 8)} but ${branch} HEAD is ${distroBranchHead.substring(0, 8)}`);
 		console.log(`##vso[task.complete result=SucceededWithIssues;]Distro commit does not match branch HEAD`);
 		console.log('');

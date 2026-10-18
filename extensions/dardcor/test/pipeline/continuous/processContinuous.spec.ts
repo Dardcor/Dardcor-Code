@@ -11,8 +11,6 @@ import { CONTINUOUS_SUGGESTION_STATUS, processContinuousRecord, processContinuou
 
 const doc = Array.from({ length: 30 }, (_, i) => `// L${String(i).padStart(2, '0')}`).join('\n') + '\n';
 
-// Window metadata the sender always ships; irrelevant to pivot/replay logic but
-// required by `IContinuousRecording`, so these tests fill it with fixed dummies.
 const META = { windowStart: 0, windowEnd: 1, sessionId: 'test', sequenceNumber: 0 };
 
 const entries: LogEntry[] = [
@@ -55,9 +53,6 @@ describe('processContinuousRecords', () => {
 	});
 
 	it('every selected pivot is replayable (eligible ⟹ replayable)', () => {
-		// Regression guard: a pivot that `selectPivots` deems eligible must always
-		// produce a real sample, never a replay error. Sweep seeds so different
-		// eligible pivots (the in-window selectionChanged/changed entries) are hit.
 		for (let seed = 0; seed < 50; seed++) {
 			const { processed, errors } = processContinuousRecords([record()], PivotStrategy.Random, seed, 0);
 			expect(errors).toEqual([]);
@@ -77,10 +72,6 @@ describe('processContinuousRecords', () => {
 	});
 
 	it('isolates a throwing record so the rest of the batch still produces rows', () => {
-		// A malformed oracle edit (overlapping replacements) makes replay throw a
-		// `BugIndicatingError` from the `StringEdit` constructor. One bad record
-		// must not abort the whole batch: it should surface as a per-record error
-		// while its siblings still process — matching the alternative-action path.
 		const malformedEntries: LogEntry[] = [
 			{ kind: 'meta', data: { repoRootUri: 'file:///ws' } },
 			{ kind: 'documentEncountered', id: 0, time: 3000, relativePath: 'src/bad.ts' },

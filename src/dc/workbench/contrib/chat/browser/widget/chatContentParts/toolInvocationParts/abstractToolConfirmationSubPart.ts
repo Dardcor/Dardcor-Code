@@ -25,10 +25,6 @@ import { IRenderFileWidgetsOptions } from '../chatInlineAnchorWidget.js';
 import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
 import { createApprovalReasonBadge, createToolRiskBadge } from './toolRiskBadgeHelper.js';
 
-/**
- * Remembers editors that the user opened by clicking a file link inside a confirmation
- * message so that they can be closed again once the confirmation has been answered.
- */
 export class ChatConfirmationOpenedEditors extends Disposable {
 
 	private readonly _opened: IEditorIdentifier[] = [];
@@ -44,10 +40,6 @@ export class ChatConfirmationOpenedEditors extends Disposable {
 		super();
 	}
 
-	/**
-	 * The opener API doesn't report which editor it opened, so attribute the editor the click
-	 * left active. Editors that were already open beforehand are left alone.
-	 */
 	private async _trackOpen(open: () => Promise<void>): Promise<void> {
 		const before = new Set(this._editorService.editors);
 		try {
@@ -60,12 +52,6 @@ export class ChatConfirmationOpenedEditors extends Disposable {
 		}
 	}
 
-	/**
-	 * A confirmation can be answered by clicking a button, but also by keybinding or voice. All
-	 * of those transition the invocation out of its waiting state, which re-renders and disposes
-	 * this sub part, so cleaning up here covers every path. Editors are kept when the part is
-	 * disposed for any other reason, such as the list virtualizing the response away.
-	 */
 	override dispose(): void {
 		const stateKind = this._toolInvocation.state.get().type;
 		if (stateKind !== IChatToolInvocation.StateKind.WaitingForConfirmation && stateKind !== IChatToolInvocation.StateKind.WaitingForPostApproval) {
@@ -95,18 +81,9 @@ export interface IAbstractToolPrimaryAction extends IChatConfirmationButton<(() 
 
 type AbstractToolPrimaryAction = IAbstractToolPrimaryAction | Separator;
 
-/**
- * Base class for a tool confirmation.
- *
- * note that implementors MUST call render() after they construct.
- */
 export abstract class AbstractToolConfirmationSubPart extends BaseChatToolInvocationSubPart {
 	public domNode!: HTMLElement;
 
-	/**
-	 * Tracks files the user opened from links in the confirmation message so they can be
-	 * closed again when the confirmation is answered.
-	 */
 	protected readonly openedEditors: ChatConfirmationOpenedEditors;
 
 	constructor(
@@ -145,12 +122,10 @@ export abstract class AbstractToolConfirmationSubPart extends BaseChatToolInvoca
 
 			const additionalActions = this.additionalPrimaryActions();
 
-			// find session scoped action
 			const sessionAction = this.useAllowOnceAsPrimary() ? undefined : additionalActions.find(
 				(action): action is IAbstractToolPrimaryAction => 'scope' in action && action.scope === 'session'
 			);
 
-			// regular allow action
 			const allowAction: IAbstractToolPrimaryAction = {
 				label: config.allowLabel,
 				tooltip: allowTooltip,
@@ -159,7 +134,6 @@ export abstract class AbstractToolConfirmationSubPart extends BaseChatToolInvoca
 
 			const primaryAction = sessionAction ?? allowAction;
 
-			// rebuild additional list with allow action
 			const moreActions = sessionAction
 				? [allowAction, ...additionalActions.filter(a => a !== sessionAction)]
 				: additionalActions;
@@ -184,8 +158,6 @@ export abstract class AbstractToolConfirmationSubPart extends BaseChatToolInvoca
 
 		const contentElement = this.createContentElement();
 		const tool = languageModelToolsService.getTool(toolInvocation.toolId);
-		// Risk badges describe a pending action, so they only show on the pre-execution
-		// confirmation, not after the tool has run.
 		const approvalReasonBadge = state.type === IChatToolInvocation.StateKind.WaitingForConfirmation
 			? createApprovalReasonBadge(this._store, this.instantiationService, state.confirmationMessages?.approvalReason)
 			: undefined;
@@ -280,21 +252,10 @@ export abstract class AbstractToolConfirmationSubPart extends BaseChatToolInvoca
 		return [];
 	}
 
-	/**
-	 * Create the risk-assessment badge DOM node for this confirmation, or
-	 * `undefined` when the feature is disabled or the tool is unknown. Returned
-	 * as a `footerBanner` for the confirmation widget.
-	 */
 	protected createRiskBadgeDomNode(parameters: unknown): HTMLElement | undefined {
 		return createToolRiskBadge(this._store, this.instantiationService, this.riskAssessmentService, this.languageModelToolsService, this.toolInvocation.toolId, parameters)?.domNode;
 	}
 
-	/**
-	 * When true, "Allow Once" stays the primary button even when a
-	 * session-scoped action is available. Subclasses override this
-	 * to keep the simple allow-once default (e.g. when combination
-	 * approval options are present).
-	 */
 	protected useAllowOnceAsPrimary(): boolean {
 		return false;
 	}

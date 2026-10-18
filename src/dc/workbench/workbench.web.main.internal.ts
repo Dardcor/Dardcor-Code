@@ -3,13 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//
-// Do NOT change these exports in a way that something is removed unless
-// intentional. These exports are used by web embedders and thus require
-// an adoption when something changes.
-//
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import './workbench.web.main.js';
 import { create, commands, env, window, workspace, logger } from './browser/web.factory.js';
@@ -23,10 +16,8 @@ import { LogLevel } from '../platform/log/common/log.js';
 
 export {
 
-	// Factory
 	create,
 
-	// Basic Types
 	URI,
 	Event,
 	Emitter,
@@ -36,7 +27,6 @@ export {
 	RemoteAuthorityResolverError,
 	RemoteAuthorityResolverErrorCode,
 
-	// Facade API
 	env,
 	window,
 	workspace,

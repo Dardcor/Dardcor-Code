@@ -19,7 +19,6 @@ import { IChatViewTitleActionContext } from '../../../common/actions/chatActions
 import { IChatModel } from '../../../common/model/chatModel.js';
 import { ActionViewItem, IActionViewItemOptions } from '../../../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { IAction } from '../../../../../../base/common/actions.js';
-import { AgentSessionsPicker } from '../../agentSessions/agentSessionsPicker.js';
 
 export interface IChatViewTitleDelegate {
 	focusChat(): void;
@@ -28,7 +27,7 @@ export interface IChatViewTitleDelegate {
 export class ChatViewTitleControl extends Disposable {
 
 	private static readonly DEFAULT_TITLE = localize('chat', "Chat");
-	private static readonly PICK_AGENT_SESSION_ACTION_ID = 'workbench.action.chat.pickAgentSession';
+	private static readonly TITLE_ACTION_ID = 'workbench.action.chat.sessionTitle';
 
 	private readonly _onDidChangeHeight = this._register(new Emitter<void>());
 	readonly onDidChangeHeight = this._onDidChangeHeight.event;
@@ -55,7 +54,6 @@ export class ChatViewTitleControl extends Disposable {
 		super();
 
 		this.render(this.container);
-		// Avoid forcing layout; ResizeObserver reports the final size before paint and triggers relayout.
 		const resizeObserver = this._register(new DisposableResizeObserver('ChatViewTitleControl.height', entries => {
 			const entry = entries.find(entry => entry.target === this.titleContainer);
 			if (!entry) {
@@ -73,13 +71,11 @@ export class ChatViewTitleControl extends Disposable {
 	}
 
 	private registerActions(): void {
-		const that = this;
-
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
 				super({
-					id: ChatViewTitleControl.PICK_AGENT_SESSION_ACTION_ID,
-					title: localize('chat.pickAgentSession', "Pick Agent Session"),
+					id: ChatViewTitleControl.TITLE_ACTION_ID,
+					title: localize('chat.sessionTitle', "Chat Title"),
 					f1: false,
 					menu: [{
 						id: MenuId.ChatViewSessionTitleNavigationToolbar,
@@ -90,10 +86,6 @@ export class ChatViewTitleControl extends Disposable {
 			}
 
 			async run(accessor: ServicesAccessor): Promise<void> {
-				const instantiationService = accessor.get(IInstantiationService);
-
-				const agentSessionsPicker = instantiationService.createInstance(AgentSessionsPicker, that.titleLabel.value?.element, undefined);
-				await agentSessionsPicker.pickAgentSession();
 			}
 		}));
 	}
@@ -106,10 +98,9 @@ export class ChatViewTitleControl extends Disposable {
 			]),
 		]);
 
-		// Toolbar on the left
 		this.navigationToolbar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, elements.navigationToolbar, MenuId.ChatViewSessionTitleNavigationToolbar, {
 			actionViewItemProvider: (action: IAction) => {
-				if (action.id === ChatViewTitleControl.PICK_AGENT_SESSION_ACTION_ID) {
+				if (action.id === ChatViewTitleControl.TITLE_ACTION_ID) {
 					this.titleLabel.value = new ChatViewTitleLabel(action);
 					this.titleLabel.value.updateTitle(this.title ?? ChatViewTitleControl.DEFAULT_TITLE);
 
@@ -122,13 +113,11 @@ export class ChatViewTitleControl extends Disposable {
 			menuOptions: { shouldForwardArgs: true }
 		}));
 
-		// Actions toolbar on the right
 		this.actionsToolbar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, elements.actionsToolbar, MenuId.ChatViewSessionTitleToolbar, {
 			menuOptions: { shouldForwardArgs: true },
 			hiddenItemStrategy: HiddenItemStrategy.NoHide
 		}));
 
-		// Title controls
 		this.titleContainer = elements.root;
 		this._register(Gesture.addTarget(this.titleContainer));
 		for (const eventType of [TouchEventType.Tap, EventType.CLICK]) {
@@ -177,16 +166,32 @@ export class ChatViewTitleControl extends Disposable {
 			return;
 		}
 
-		this.titleContainer.classList.toggle('visible', this.shouldRender());
+		const wasVisible = this.titleContainer.classList.contains('visible');
+		const isVisible = this.shouldRender();
+		this.titleContainer.classList.toggle('visible', isVisible);
 		this.titleLabel.value?.updateTitle(title);
+
+		if (wasVisible !== isVisible) {
+			const currentHeight = isVisible ? (this.titleContainer.offsetHeight || this.lastKnownHeight) : 0;
+			if (currentHeight !== this.lastKnownHeight) {
+				this.lastKnownHeight = currentHeight;
+			}
+			this._onDidChangeHeight.fire();
+		}
 	}
 
 	private shouldRender(): boolean {
-		return !!this.model?.title; // we need a chat showing and not being empty
+		return !!this.model?.title;
 	}
 
 	getHeight(): number {
-		return this.lastKnownHeight;
+		if (!this.titleContainer || !this.shouldRender()) {
+			return 0;
+		}
+		if (this.lastKnownHeight > 0) {
+			return this.lastKnownHeight;
+		}
+		return this.titleContainer.offsetHeight;
 	}
 }
 

@@ -14,20 +14,16 @@ export const cdTestSuiteSpec: ISuiteSpec = {
 	completionSpecs: cdSpec,
 	availableCommands: 'cd',
 	testSpecs: [
-		// Typing a path
 		{ input: '.|', expectedCompletions: cdExpectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: './|', expectedCompletions: cdExpectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: './.|', expectedCompletions: cdExpectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Typing the command
 		{ input: 'c|', expectedCompletions: cdExpectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 		{ input: 'cd|', expectedCompletions: cdExpectedCompletions, expectedResourceRequests: { type: 'both', cwd: testPaths.cwd } },
 
-		// Basic arguments
 		{ input: 'cd |', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 		{ input: 'cd -|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 
-		// Relative paths
 		{ input: 'cd c|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 		{ input: 'cd child|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 		{ input: 'cd .|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
@@ -35,9 +31,7 @@ export const cdTestSuiteSpec: ISuiteSpec = {
 		{ input: 'cd ./child|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 		{ input: 'cd ..|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwd } },
 
-		// Relative directories (changes cwd due to /)
 		{ input: 'cd child/|', expectedCompletions, expectedResourceRequests: { type: 'folders', cwd: testPaths.cwdChild } },
-		// Paths with .. are handled by the completion service to avoid double-navigation (no cwd resolution)
 		{ input: 'cd ../|', expectedCompletions, expectedResourceRequests: { type: 'folders' } },
 		{ input: 'cd ../sibling|', expectedCompletions, expectedResourceRequests: { type: 'folders' } },
 	]

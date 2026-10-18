@@ -9,9 +9,7 @@ const FETCH_TIMEOUT_MS = 20_000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 
-/** @type {Map<string, { expiresAt: number, models: object[], rawModels: object[] }>} */
 const catalogCache = new Map();
-/** @type {Map<string, object>} */
 const metadataByModelId = new Map();
 
 function normalizeKimchiEndpoint(endpoint) {

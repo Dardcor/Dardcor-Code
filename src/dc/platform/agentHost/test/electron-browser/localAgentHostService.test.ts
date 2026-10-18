@@ -48,16 +48,6 @@ class TestTelemetryService extends NullTelemetryServiceShape {
 	}
 }
 
-/**
- * Regression coverage for the renderer reverse-RPC channel registration. The
- * BYOK language-model bridge depends on `IAgentHostByokLmHandler`, registered by
- * the chat contribution of every window that backs BYOK (the main workbench and
- * the Agents app). The registration must still degrade gracefully should a
- * window ever connect without binding the handler — `createInstance` then throws,
- * and that must NOT abort the rest of `_connect` (client completion,
- * action/notification wiring, root-state subscription), or the whole window loses
- * its agent host.
- */
 suite('registerAgentHostClientChannels', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
@@ -70,11 +60,6 @@ suite('registerAgentHostClientChannels', () => {
 		return { server, registered };
 	}
 
-	/**
-	 * Minimal {@link IInstantiationService} whose `createInstance` throws for the
-	 * BYOK channel when `byokHandlerMissing`, mirroring the strict "UNKNOWN
-	 * service agentHostByokLmHandler" failure in windows without the handler.
-	 */
 	function fakeInstantiationService(byokHandlerMissing: boolean): IInstantiationService {
 		return {
 			createInstance: (ctor: unknown) => {

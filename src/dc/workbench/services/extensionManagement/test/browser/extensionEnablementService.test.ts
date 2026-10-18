@@ -1191,29 +1191,23 @@ suite('ExtensionEnablementService Test', () => {
 		const chatExtension = aLocalExtension(chatExtensionId, undefined, ExtensionType.System);
 		installed.push(chatExtension);
 
-		// Clear migration flag set by the setup() instance so the migration runs fresh
 		let storageService = instantiationService.get(IStorageService);
 		storageService.store('builtinChatExtensionEnablementMigration', false, StorageScope.PROFILE, StorageTarget.MACHINE);
 
-		// Create a chat entitlement service with context where setup is not completed
 		const chatEntitlementService = new TestChatEntitlementService();
 		chatEntitlementService.context = new Lazy(() => ({ state: { completed: false }, onDidChange: Event.None })) as unknown as Lazy<ChatEntitlementContext>;
 
 		testObject = disposableStore.add(new TestExtensionEnablementService(instantiationService, chatEntitlementService));
 		await testObject.waitUntilInitialized();
 
-		// Chat extension should be disabled after initial setup
 		assert.strictEqual(testObject.getEnablementState(chatExtension), EnablementState.DisabledGlobally);
 
-		// Enable the chat extension to simulate it being enabled in a previous profile
 		await testObject.setEnablement([chatExtension], EnablementState.EnabledGlobally);
 		assert.strictEqual(testObject.getEnablementState(chatExtension), EnablementState.EnabledGlobally);
 
-		// Simulate switching to a fresh profile by clearing the migration flag
 		storageService = instantiationService.get(IStorageService);
 		storageService.store('builtinChatExtensionEnablementMigration', false, StorageScope.PROFILE, StorageTarget.MACHINE);
 
-		// Chat extension should be disabled again after computing enablement state
 		assert.strictEqual(testObject.getEnablementState(chatExtension), EnablementState.DisabledGlobally);
 	});
 

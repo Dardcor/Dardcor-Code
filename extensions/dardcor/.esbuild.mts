@@ -21,7 +21,6 @@ const baseBuildOptions = {
 	logLevel: 'info',
 	minify: !isDev,
 	outdir: './dist',
-	// In dev mode, use linked source maps for debugging.
 	// With --sourcemaps flag, generate external source maps (no sourceMappingURL comment in output).
 	sourcemap: isDev ? 'linked' : (generateSourceMaps ? 'external' : false),
 	sourcesContent: false,
@@ -95,7 +94,7 @@ const webExtHostBuildOptions = {
 	entryPoints: [
 		{ in: './src/extension/extension/dardcor-worker/extension.ts', out: 'web' },
 	],
-	format: 'cjs', // Necessary to export activate function from bundle for extension
+	format: 'cjs',
 	external: [
 		'vscode',
 		'http',
@@ -118,7 +117,6 @@ async function typeScriptServerPluginPackageJsonInstall(): Promise<void> {
 const typeScriptServerPluginBuildOptions = {
 	bundle: true,
 	format: 'cjs',
-	// keepNames: true,
 	logLevel: 'info',
 	minify: !isDev,
 	outdir: './node_modules/@vscode/copilot-typescript-server-plugin/dist',
@@ -135,10 +133,6 @@ const typeScriptServerPluginBuildOptions = {
 	]
 } satisfies esbuild.BuildOptions;
 
-/**
- * Moves all .map files from the output directories to a separate source maps directory.
- * This keeps source maps out of the packaged extension while making them available for upload.
- */
 async function moveSourceMapsToSeparateDir(): Promise<void> {
 	if (!generateSourceMaps) {
 		return;
@@ -157,7 +151,6 @@ async function moveSourceMapsToSeparateDir(): Promise<void> {
 			for (const file of files) {
 				if (file.endsWith('.map')) {
 					const sourcePath = path.join(dir, file);
-					// Prefix with directory name to avoid collisions
 					const prefix = dir === './dist' ? '' : 'ts-plugin-';
 					const destPath = path.join(sourceMapOutDir, prefix + file);
 					await rename(sourcePath, destPath);
@@ -165,7 +158,6 @@ async function moveSourceMapsToSeparateDir(): Promise<void> {
 				}
 			}
 		} catch (error) {
-			// Directory might not exist in some build configurations
 			console.warn(`Could not process directory ${dir}:`, error);
 		}
 	}
@@ -247,9 +239,6 @@ async function main() {
 			esbuild.build(typeScriptServerPluginBuildOptions),
 		]);
 
-		// Run postinstall to copy static build assets (wasm, tiktoken, cli) to dist/.
-		// This is needed because in CI, node_modules may be restored from cache,
-		// skipping npm ci and thus the postinstall script.
 		try {
 			const child_process = await import('child_process');
 			child_process.execFileSync(
@@ -264,7 +253,6 @@ async function main() {
 			console.warn('[esbuild] postinstall script notice:', (e as Error)?.message || e);
 		}
 
-		// Move source maps to separate directory so they're not packaged with the extension
 		await moveSourceMapsToSeparateDir();
 	}
 }

@@ -36,7 +36,7 @@ interface CurrentChangeState extends BasePromptElementProps {
 }
 
 export interface Change {
-	repository: Repository;
+	repository?: Repository;
 	uri: Uri;
 	hunks: Hunk[];
 }
@@ -47,9 +47,9 @@ export interface Hunk {
 }
 
 interface GitHunk {
-	startDeletedLine: number; // 1-based
+	startDeletedLine: number;
 	deletedLines: number;
-	startAddedLine: number; // 1-based
+	startAddedLine: number;
 	addedLines: number;
 	additions: { start: number; length: number }[];
 	diffText: string;
@@ -73,7 +73,7 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 	override async prepare(sizing: PromptSizing): Promise<CurrentChangeState> {
 		const allowed = [];
 		for (const input of this.props.input) {
-			if (!await this.ignoreService.isCopilotIgnored(input.document.uri)) {
+			if (!await this.ignoreService.isIgnored(input.document.uri)) {
 				allowed.push(input);
 			}
 		}
@@ -94,7 +94,7 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 					}).flat(),
 				].join('');
 			} else if (selection) {
-				const selectionEndLine = selection.end.line + (selection.end.character > 0 ? 1 : 0); // Being line-based.
+				const selectionEndLine = selection.end.line + (selection.end.character > 0 ? 1 : 0);
 				textAll = CurrentChange.enumeratedSelectedLines(document, 0, document.lineCount, selection.start.line, selectionEndLine);
 			} else {
 				textAll = CurrentChange.enumeratedLines(document, 0, document.lineCount);
@@ -131,8 +131,8 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 				for (const hunk of change.hunks) {
 					const definition = await SymbolAtCursor.getDefinitionAtRange(this.ignoreService, this.parserService, document, hunk.range, false);
 					if (definition) {
-						const definitionEndLine = definition.range.end.line + (definition.range.end.character > 0 ? 1 : 0); // Being line-based.
-						const hunkEndLine = hunk.range.end.line + (hunk.range.end.character > 0 ? 1 : 0); // Being line-based.
+						const definitionEndLine = definition.range.end.line + (definition.range.end.character > 0 ? 1 : 0);
+						const hunkEndLine = hunk.range.end.line + (hunk.range.end.character > 0 ? 1 : 0);
 						const textDefinition = [
 							hunk.range.start.line > definition.range.start.line ? CurrentChange.enumeratedLines(document, definition.range.start.line, hunk.range.start.line) : '',
 							CurrentChange.enumeratedChangeLines(hunk.text, hunk.range.start.line), '\n',
@@ -145,7 +145,7 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 						definitionTokens += await sizing.countTokens(textDefinition);
 					} else {
 						const hunkText = CurrentChange.enumeratedChangeLines(hunk.text, hunk.range.start.line);
-						const hunkEndLine = hunk.range.end.line + (hunk.range.end.character > 0 ? 1 : 0); // Being line-based.
+						const hunkEndLine = hunk.range.end.line + (hunk.range.end.character > 0 ? 1 : 0);
 						definitionHunks.push({
 							range: new Range(hunk.range.start.line, 0, hunkEndLine, 0),
 							text: hunkText,
@@ -159,8 +159,8 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 			} else if (selection) {
 				const definition = await SymbolAtCursor.getDefinitionAtRange(this.ignoreService, this.parserService, document, selection, false);
 				if (definition) {
-					const definitionEndLine = definition.range.end.line + (definition.range.end.character > 0 ? 1 : 0); // Being line-based.
-					const selectionEndLine = selection.end.line + (selection.end.character > 0 ? 1 : 0); // Being line-based.
+					const definitionEndLine = definition.range.end.line + (definition.range.end.character > 0 ? 1 : 0);
+					const selectionEndLine = selection.end.line + (selection.end.character > 0 ? 1 : 0);
 					const textDefinition = CurrentChange.enumeratedSelectedLines(document, definition.range.start.line, definitionEndLine, selection.start.line, selectionEndLine);
 					const textDefinitionTokens = await sizing.countTokens(textDefinition);
 					text.hunks = [{
@@ -170,7 +170,7 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 					text.tokens = textDefinitionTokens;
 					currentTokens += text.tokens - tokens;
 				} else {
-					const selectionEndLine = selection.end.line + (selection.end.character > 0 ? 1 : 0); // Being line-based.
+					const selectionEndLine = selection.end.line + (selection.end.character > 0 ? 1 : 0);
 					const hunkText = CurrentChange.enumeratedSelectedLines(document, selection.start.line, selectionEndLine, selection.start.line, selectionEndLine);
 					text.hunks = [{
 						range: new Range(selection.start.line, 0, selectionEndLine, 0),
@@ -373,15 +373,15 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 					addStart = undefined;
 				}
 				if (startDeletedLine === 0) {
-					startDeletedLine = 1; // when deletedLines is 0?
+					startDeletedLine = 1;
 				}
 				if (startAddedLine === 0) {
-					startAddedLine = 1; // when addedLines is 0?
+					startAddedLine = 1;
 				}
 				return {
-					startDeletedLine, // 1-based
+					startDeletedLine,
 					deletedLines,
-					startAddedLine, // 1-based
+					startAddedLine,
 					addedLines,
 					additions,
 					diffText: lines.join('\n'),
@@ -419,7 +419,7 @@ export class CurrentChange extends PromptElement<CurrentChangeProps, CurrentChan
 	private static enumeratedChangeLines(text: string, startLine: number) {
 		let removedLines = 0;
 		const code = text.split('\n')
-			.filter(line => line[0] !== '-') // TODO: Try with removed lines included.
+			.filter(line => line[0] !== '-')
 			.map((line, i) => {
 				const changeChar = line[0];
 				const removal = changeChar === '-';

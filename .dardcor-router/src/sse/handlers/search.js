@@ -14,12 +14,6 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 
-/**
- * Handle web search request for the SSE/Next.js server.
- * Provider IS the model (no model field). Mirrors handleEmbeddings auth + fallback flow.
- *
- * @param {Request} request
- */
 export async function handleSearch(request) {
   let body;
   try {
@@ -30,13 +24,11 @@ export async function handleSearch(request) {
   }
 
   const url = new URL(request.url);
-  // Accept either `provider` or `model` (UI sends `model` since provider IS the model for webSearch)
   const providerInput = body.provider || body.model;
   const query = body.query;
 
   log.request("POST", `${url.pathname} | ${providerInput}`);
 
-  // Log API key (masked)
   const apiKey = extractApiKey(request);
   if (apiKey) {
     log.debug("AUTH", `API Key: ${log.maskKey(apiKey)}`);
@@ -44,7 +36,6 @@ export async function handleSearch(request) {
     log.debug("AUTH", "No API key provided (local mode)");
   }
 
-  // Enforce API key if enabled in settings
   const settings = await getSettings();
   if (settings.requireApiKey) {
     if (!apiKey) {
@@ -68,7 +59,6 @@ export async function handleSearch(request) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: query");
   }
 
-  // Combo expansion: providerInput may be a combo name → run fallback/round-robin across providers
   const combos = await getCombos();
   const comboModels = getComboModelsFromData(providerInput, combos);
   if (comboModels) {
@@ -114,7 +104,6 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
     log.info("ROUTING", `Provider: ${providerId}`);
   }
 
-  // Sanitized body forwarded to core
   const coreBody = {
     query: query.trim(),
     provider: providerId,
@@ -129,7 +118,6 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
     provider_options: body.provider_options
   };
 
-  // No-auth providers (e.g. searxng) bypass credential lookup
   if (resolvedProvider.noAuth) {
     log.info("AUTH", `\x1b[32m${providerId} no-auth mode\x1b[0m`);
     const result = await handleSearchCore({
@@ -143,31 +131,18 @@ async function handleSingleProviderSearch(body, providerInput, request, apiKey, 
     return result.response;
   }
 
-  // Credential + fallback loop
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
 
-  // Credential fallback: some search providers reuse the API key of a related
-  // chat provider (e.g. ollama-search reuses the `ollama` chat key, zai-search
-  // reuses the `glm` chat key). When the search provider has no own connection,
-  // fall back to the linked provider's credentials.
   const fallbackProviderId = resolvedProvider.credentialFallback;
 
-  // Lock scope for this handler. Without it markAccountUnavailable would write
-  // an account-wide `__all` lock, which on the credentialFallback path takes
-  // the shared chat key (e.g. glm) offline for chat as well. Must be passed to
-  // getProviderCredentials too, so the lock is read back under the same key.
   const searchLockKey = `websearch:${providerId}`;
 
   while (true) {
-    // Provider that actually owns the connection in use — differs from
-    // providerId once we fall back, and error locks must be attributed to it.
     let credentialProviderId = providerId;
     let credentials = await getProviderCredentials(providerId, excludeConnectionIds, searchLockKey);
 
-    // Fall back to the related chat provider's credentials when this search
-    // provider has none of its own (one key, chat + search).
     if (!credentials && fallbackProviderId) {
       credentials = await getProviderCredentials(fallbackProviderId, excludeConnectionIds, searchLockKey);
       if (credentials) {

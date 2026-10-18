@@ -109,7 +109,6 @@ suite('Decoration Render Options', () => {
 		const s = store.add(new TestCodeEditorService(themeServiceMock));
 		const styleSheet = s.globalStyleSheet;
 
-		// URI, only minimal encoding
 		s.registerDecorationType('test', 'example', { gutterIconPath: URI.parse('data:image/svg+xml;base64,PHN2ZyB4b+') });
 		assert(readStyleSheet(styleSheet).indexOf(`{background:url('${CSS.escape('data:image/svg+xml;base64,PHN2ZyB4b+')}') center center no-repeat;}`) > 0);
 		s.removeDecorationType('example');
@@ -123,22 +122,18 @@ suite('Decoration Render Options', () => {
 		}
 
 		if (platform.isWindows) {
-			// windows file path (used as string)
 			s.registerDecorationType('test', 'example', { gutterIconPath: URI.file('c:\\files\\miles\\more.png') });
 			assertBackground(CSS.escape('file:///c:/files/miles/more.png'), CSS.escape('vscode-file://vscode-app/c:/files/miles/more.png'));
 			s.removeDecorationType('example');
 
-			// single quote must always be escaped/encoded
 			s.registerDecorationType('test', 'example', { gutterIconPath: URI.file('c:\\files\\foo\\b\'ar.png') });
 			assertBackground(CSS.escape('file:///c:/files/foo/b\'ar.png'), CSS.escape('vscode-file://vscode-app/c:/files/foo/b\'ar.png'));
 			s.removeDecorationType('example');
 		} else {
-			// unix file path (used as string)
 			s.registerDecorationType('test', 'example', { gutterIconPath: URI.file('/Users/foo/bar.png') });
 			assertBackground(CSS.escape('file:///Users/foo/bar.png'), CSS.escape('vscode-file://vscode-app/Users/foo/bar.png'));
 			s.removeDecorationType('example');
 
-			// single quote must always be escaped/encoded
 			s.registerDecorationType('test', 'example', { gutterIconPath: URI.file('/Users/foo/b\'ar.png') });
 			assertBackground(CSS.escape('file:///Users/foo/b\'ar.png'), CSS.escape('vscode-file://vscode-app/Users/foo/b\'ar.png'));
 			s.removeDecorationType('example');

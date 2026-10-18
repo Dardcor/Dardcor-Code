@@ -28,7 +28,7 @@ const treeSitterGrammars: string[] = [
 	'tree-sitter-c-sharp',
 	'tree-sitter-cpp',
 	'tree-sitter-go',
-	'tree-sitter-javascript', // Also includes jsx support
+	'tree-sitter-javascript',
 	'tree-sitter-python',
 	'tree-sitter-ruby',
 	'tree-sitter-typescript',
@@ -62,7 +62,6 @@ async function main() {
 	const vendoredTiktokenFiles = [`${platform}/tokenizer/node/cl100k_base.tiktoken`, `${platform}/tokenizer/node/o200k_base.tiktoken`];
 	const wasm = treeSitterWasmDir();
 
-	// copy static assets to dist
 	await copyStaticAssets([
 		...vendoredTiktokenFiles,
 		...treeSitterGrammars.map(grammar => `${wasm}/${grammar}.wasm`),

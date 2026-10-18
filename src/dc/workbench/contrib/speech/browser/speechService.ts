@@ -129,7 +129,6 @@ export class SpeechService extends Disposable implements ISpeechService {
 		this._onDidChangeHasSpeechProvider.fire();
 	}
 
-	//#region Speech to Text
 
 	private readonly _onDidStartSpeechToTextSession = this._register(new Emitter<void>());
 	readonly onDidStartSpeechToTextSession = this._onDidStartSpeechToTextSession.event;
@@ -227,7 +226,6 @@ export class SpeechService extends Disposable implements ISpeechService {
 
 	private async getProvider(): Promise<ISpeechProvider> {
 
-		// Send out extension activation to ensure providers can register
 		await this.extensionService.activateByEvent('onSpeech');
 
 		const provider = Array.from(this.providers.values()).at(0);
@@ -240,9 +238,7 @@ export class SpeechService extends Disposable implements ISpeechService {
 		return provider;
 	}
 
-	//#endregion
 
-	//#region Text to Speech
 
 	private readonly _onDidStartTextToSpeechSession = this._register(new Emitter<void>());
 	readonly onDidStartTextToSpeechSession = this._onDidStartTextToSpeechSession.event;
@@ -324,9 +320,7 @@ export class SpeechService extends Disposable implements ISpeechService {
 		return session;
 	}
 
-	//#endregion
 
-	//#region Keyword Recognition
 
 	private readonly _onDidStartKeywordRecognition = this._register(new Emitter<void>());
 	readonly onDidStartKeywordRecognition = this._onDidStartKeywordRecognition.event;
@@ -433,5 +427,4 @@ export class SpeechService extends Disposable implements ISpeechService {
 		}
 	}
 
-	//#endregion
 }

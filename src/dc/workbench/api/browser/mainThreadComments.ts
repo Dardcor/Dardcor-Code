@@ -605,7 +605,6 @@ export class MainThreadComments extends Disposable implements MainThreadComments
 
 		if (typeof providerId !== 'string') {
 			return;
-			// throw new Error('unknown handler');
 		} else {
 			this._commentService.unregisterCommentController(providerId);
 		}
@@ -758,11 +757,6 @@ export class MainThreadComments extends Disposable implements MainThreadComments
 		}
 	}
 
-	/**
-	 * If the comments view has never been opened, the constructor for it has not yet run so it has
-	 * no listeners for comment threads being set or updated. Listen for the view opening for the
-	 * first time and send it comments then.
-	 */
 	private registerViewListeners(commentsPanelAlreadyConstructed: boolean) {
 		if (!commentsPanelAlreadyConstructed) {
 			this.registerViewOpenedListener();

@@ -105,16 +105,13 @@ const logger = createLogger();
 function createLogger(): Logger {
 	const loggers: Logger[] = [];
 
-	// Log to console if verbose
 	if (opts.verbose) {
 		loggers.push(new ConsoleLogger());
 	}
 
-	// Prepare logs rot path
 	fs.rmSync(logsRootPath, { recursive: true, force: true, maxRetries: 10, retryDelay: 1000 });
 	fs.mkdirSync(logsRootPath, { recursive: true });
 
-	// Always log to log file
 	loggers.push(new FileLogger(path.join(logsRootPath, 'smoke-test-runner.log')));
 
 	return new MultiLogger(loggers);
@@ -142,7 +139,6 @@ function getTmpDir(): string {
 		try {
 			return fs.realpathSync.native(tmpDir);
 		} catch {
-			// ignore and fall back to the short path
 		}
 	}
 	return tmpDir;
@@ -157,7 +153,6 @@ process.once('exit', () => {
 	try {
 		fs.rmSync(testDataPath, { recursive: true, force: true, maxRetries: 10, retryDelay: 1000 });
 	} catch {
-		// noop
 	}
 });
 
@@ -203,9 +198,6 @@ function parseQuality(): Quality {
 	}
 }
 
-//
-// #### Electron Smoke Tests ####
-//
 if (!opts.web) {
 	let testCodePath = opts.build;
 	let electronPath: string | undefined;
@@ -234,9 +226,6 @@ if (!opts.web) {
 	}
 }
 
-//
-// #### Web Smoke Tests ####
-//
 else {
 	const testCodeServerPath = opts.build || process.env.VSCODE_REMOTE_SERVER_PATH;
 
@@ -267,7 +256,6 @@ async function setupRepository(): Promise<void> {
 	if (opts['test-repo']) {
 		logger.log('Copying test project repository:', opts['test-repo']);
 		fs.rmSync(workspacePath, { recursive: true, force: true, maxRetries: 10, retryDelay: 1000 });
-		// not platform friendly
 		if (process.platform === 'win32') {
 			cp.execSync(`xcopy /E "${opts['test-repo']}" "${workspacePath}"\\*`);
 		} else {
@@ -340,10 +328,8 @@ async function ensureStableCode(): Promise<void> {
 		});
 
 		if (process.platform === 'darwin') {
-			// Visual Studio Code.app/Contents/MacOS/Code
 			stableCodePath = path.dirname(path.dirname(path.dirname(stableCodeExecutable)));
 		} else {
-			// VSCode/Code.exe (Windows) | VSCode/code (Linux)
 			stableCodePath = path.dirname(stableCodeExecutable);
 		}
 
@@ -364,12 +350,10 @@ async function setup(): Promise<void> {
 	logger.log('Preparing smoketest setup...');
 
 	if (!opts.web && !opts.remote && opts.build && !opts['skip-stable-build']) {
-		// only enabled when running with --build and not in web or remote
 		await measureAndLog(() => ensureStableCode(), 'ensureStableCode', logger);
 	}
 	await measureAndLog(() => setupRepository(), 'setupRepository', logger);
 
-	// Copy smoke test extension for extension host restart test
 	if (!opts.web && !opts.remote) {
 		const smokeExtPath = path.join(rootPath, 'test', 'smoke', 'extensions', 'vscode-smoketest-ext-host');
 		const dest = path.join(extensionsPath, 'vscode-smoketest-ext-host');
@@ -382,9 +366,8 @@ async function setup(): Promise<void> {
 	logger.log('Smoketest setup done!\n');
 }
 
-// Before all tests run setup
 before(async function () {
-	this.timeout(5 * 60 * 1000); // increase since we download VSCode
+	this.timeout(5 * 60 * 1000);
 
 	const options: ApplicationOptions = {
 		quality,
@@ -410,7 +393,6 @@ before(async function () {
 	await setup();
 });
 
-// After main suite (after all tests)
 after(async function () {
 	try {
 		await measureAndLog(async () => {
@@ -422,7 +404,7 @@ after(async function () {
 });
 
 describe(`VSCode Smoke Tests (${opts.web ? 'Web' : 'Electron'})`, () => {
-	if (!opts.web) { setupDataLossTests(() => { return { stableCodePath: opts['stable-build'], stableCodeVersion: opts['stable-version'] } /* Do not change, deferred for a reason! */; }, logger); }
+	if (!opts.web) { setupDataLossTests(() => { return { stableCodePath: opts['stable-build'], stableCodeVersion: opts['stable-version'] } ; }, logger); }
 	setupPreferencesTests(logger);
 	setupSearchTests(logger);
 	if (!opts.web) { setupNotebookTests(logger); }
@@ -432,7 +414,7 @@ describe(`VSCode Smoke Tests (${opts.web ? 'Web' : 'Electron'})`, () => {
 	setupStatusbarTests(logger);
 	if (quality !== Quality.Dev && quality !== Quality.OSS) { setupExtensionTests(logger); }
 	if (!opts.web && !opts.remote) { setupExtensionHostRestartTests(logger); }
-	if (!(opts.web && process.platform === 'win32' /* TODO@bpasero flaky */)) { setupMultirootTests(logger); }
+	if (!(opts.web && process.platform === 'win32' )) { setupMultirootTests(logger); }
 	if (!opts.web && !opts.remote && quality !== Quality.Dev && quality !== Quality.OSS) { setupLocalizationTests(logger); }
 	if (!opts.web && !opts.remote) { setupLaunchTests(logger); }
 	if (!opts.web) { setupChatTests(logger); }

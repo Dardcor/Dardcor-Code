@@ -7,4 +7,4 @@ import { InstantiationType, registerSingleton } from '../../../../platform/insta
 import { ISpeechService } from '../common/speechService.js';
 import { SpeechService } from './speechService.js';
 
-registerSingleton(ISpeechService, SpeechService, InstantiationType.Eager /* Reads Extension Points */);
+registerSingleton(ISpeechService, SpeechService, InstantiationType.Eager );

@@ -9,7 +9,7 @@ export async function* replaceStringInStream(stream: AsyncIterable<string>, sear
 	let buffer = '';
 
 	const searchValuePrefixes = getPrefixes(searchValue);
-	searchValuePrefixes.reverse(); // longest first
+	searchValuePrefixes.reverse();
 
 	for await (const chunk of stream) {
 		buffer += chunk;
@@ -19,22 +19,16 @@ export async function* replaceStringInStream(stream: AsyncIterable<string>, sear
 
 		let textToYield = '';
 
-		// Process the buffer in chunks, but retain potential partial matches at the end.
 		while ((searchIndex = buffer.indexOf(searchValue, lastIndex)) !== -1) {
 			textToYield += buffer.slice(lastIndex, searchIndex) + replaceValue;
 			lastIndex = searchIndex + searchValue.length;
 		}
 
-		// Retain the remaining buffer that could be part of the next `searchValue`.
 		if (lastIndex !== 0) {
 			buffer = buffer.slice(lastIndex);
 		}
 
-		// At this point, buffer does not contain any `searchValue` anymore.
-		// However, there could be a future chunk c, such that `buffer + c.substring(0, searchValue.length - 1)` contains it,
-		// so we cannot yield the full buffer.
 
-		// longest prefix first
 		for (const p of searchValuePrefixes) {
 			if (buffer.endsWith(p)) {
 				const idx = buffer.length - p.length;
@@ -51,7 +45,6 @@ export async function* replaceStringInStream(stream: AsyncIterable<string>, sear
 		}
 	}
 
-	// Yield any remaining buffer content that didn't match `searchValue`.
 	if (buffer.length > 0) {
 		yield buffer;
 	}

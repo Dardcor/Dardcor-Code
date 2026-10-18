@@ -163,7 +163,6 @@ suite('OnEnter', () => {
 		testIndentAction('', '\t     */', '', IndentAction.None, null, 1);
 		testIndentAction('', ' *--------------------------------------------------------------------------------------------*/', '', IndentAction.None, null, 1);
 
-		// issue #43469
 		testIndentAction('class A {', '    * test() {', '', IndentAction.Indent, null, 0);
 		testIndentAction('', '    * test() {', '', IndentAction.Indent, null, 0);
 		testIndentAction('    ', '    * test() {', '', IndentAction.Indent, null, 0);

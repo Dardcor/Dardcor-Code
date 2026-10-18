@@ -145,7 +145,6 @@ registerAction2(class extends Action2 {
 
 		picks.unshift(configureKeyboardLayout);
 
-		// Offer to "Auto Detect"
 		const autoDetectMode: IQuickPickItem = {
 			label: nls.localize('autoDetect', "Auto Detect"),
 			description: isAutoDetect ? `Current: ${parseKeyboardLayoutDescription(currentLayout).label}` : undefined,
@@ -160,7 +159,6 @@ registerAction2(class extends Action2 {
 		}
 
 		if (pick === autoDetectMode) {
-			// set keymap service to auto mode
 			configurationService.updateValue('keyboard.layout', 'autodetect');
 			return;
 		}

@@ -48,29 +48,16 @@ const CONTEXT_BROWSER_EMULATION_HAS_USER_AGENT = new RawContextKey<boolean>(
 	localize('browser.emulationHasUserAgent', "Whether the browser emulation has a custom user agent")
 );
 
-/**
- * A named device preset. Applying a preset stamps its `device` (including
- * any embedded viewport width/height) onto the active device profile, while
- * preserving the user's current scale.
- */
 export interface IBrowserDevicePreset {
 	readonly name: string;
 	readonly device?: IBrowserDeviceProfile;
 }
 
-/**
- * Keep track of the last used device + scale so we can restore them when the
- * toolbar is reopened. Note this isn't (currently) persisted in storage.
- */
 const lastSettings = {
 	device: undefined as IBrowserDeviceProfile | undefined,
 	scale: undefined as number | undefined,
 };
 
-/**
- * Toolbar shown above the browser viewport with device emulation controls
- * (dimensions, DPR, zoom, and an action toolbar for presets / UA / mobile / close).
- */
 class BrowserEmulationToolbar extends Disposable {
 
 	readonly element: HTMLElement;
@@ -122,7 +109,6 @@ class BrowserEmulationToolbar extends Disposable {
 
 		this._heightInput = this._createNumberInput(dimensions, contextViewService, localize('browser.device.heightAriaLabel', "Viewport height"), 1, 9999);
 
-		// DPR override. Blank / 0 = system DPR.
 		const dprGroup = this._appendGroup('dpr');
 		const dprLabel = $('span.browser-emulation-toolbar-label');
 		dprLabel.textContent = localize('browser.device.dprLabel', "DPR:");
@@ -204,7 +190,6 @@ class BrowserEmulationToolbar extends Disposable {
 		this._autoFitScale = scale;
 		const newPercent = Math.round(scale * 100);
 		if (oldPercent !== newPercent) {
-			// setOptions rebuilds <select>; keep it rare to avoid focus loss.
 			const wasSuppressed = this._suppressChange;
 			this._suppressChange = true;
 			try {
@@ -325,13 +310,6 @@ class BrowserEmulationToolbar extends Disposable {
 	}
 }
 
-/**
- * Editor contribution that owns the device toolbar, the renderer-side scale
- * for the emulated viewport, and the resize sashes that drive viewport size
- * interactively (committed onto {@link IBrowserViewModel.device}). Also
- * implements {@link computeContainerLayout} so the editor delegates container
- * sizing to this contribution whenever device emulation is engaged.
- */
 export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 
 	private readonly _toolbar: BrowserEmulationToolbar;
@@ -339,9 +317,7 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 	private readonly _isMobile: IContextKey<boolean>;
 	private readonly _hasUserAgent: IContextKey<boolean>;
 
-	/** Committed renderer-side scale; undefined = auto-fit. Not persisted in the device model (rides on the layout call). */
 	private _scale: number | undefined;
-	/** Scale Auto-fit would produce for the current device + pane. Drives the toolbar's "Auto (X%)" label. */
 	private _autoFitScale = 1;
 
 	private readonly _onDidChangeScale = this._register(new Emitter<number | undefined>());
@@ -382,7 +358,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 
 		this._toolbar = this._register(instantiationService.createInstance(BrowserEmulationToolbar, this, actionsContainer, hoverDelegate));
 
-		// React to our own scale state: refresh the toolbar, sync context keys, and relayout.
 		this._register(this._onDidChangeScale.event(() => {
 			this._toolbar.refresh();
 			this.editor.layoutBrowserContainer();
@@ -390,7 +365,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		this._register(this._onDidChangeAutoFitScale.event(scale => this._toolbar.setAutoFitScale(scale)));
 	}
 
-	// -- BrowserEditorContribution hooks ------------------------------------
 
 	override get widgets(): readonly IBrowserEditorWidget[] {
 		return [{ location: BrowserWidgetLocation.Toolbar, element: this._toolbar.element, order: 0 }];
@@ -412,7 +386,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 			return undefined;
 		}
 		return {
-			// Reserve space for the east + south resize sashes that sit just outside the container.
 			padding: { right: 16, bottom: 16 },
 			compute: (_current, pane) => this._computeLayout(pane.width, pane.height),
 			priority: 0
@@ -436,8 +409,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		return {
 			width: layoutWidth,
 			height: layoutHeight,
-			// Center the device within the available pane (the sash reservation
-			// is already accounted for via padding).
 			left: Math.max(0, (paneWidth - layoutWidth) / 2),
 			top: Math.max(0, (paneHeight - layoutHeight) / 2),
 			emulation: { scale },
@@ -451,8 +422,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		this._setToolbarVisible(!!model.device);
 		store.add(model.onDidChangeDevice(device => {
 			this._updateSashState();
-			// Turning emulation off discards any in-progress scale override so
-			// reopening the toolbar starts clean.
 			if (!device && this._scale !== undefined) {
 				this.setScale(undefined);
 			}
@@ -467,19 +436,14 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 	}
 
 	override onModelDetached(): void {
-		// Editor input is being cleared — drop renderer-side state so a freshly
-		// reopened input starts without stale viewport overrides.
 		this._scale = undefined;
 		this._toolbar.refresh();
 		this._syncContextKeys(undefined);
 		this._setToolbarVisible(false);
 	}
 
-	// -- Public API consumed by toolbar + actions --------------------------
 
-	/** Current renderer-side scale; undefined = auto-fit. */
 	get scale(): number | undefined { return this._scale; }
-	/** Convenience accessor for the toolbar — proxies the editor's model. */
 	get model(): IBrowserViewModel | undefined { return this.editor.model; }
 
 	setScale(scale: number | undefined): void {
@@ -495,10 +459,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		return this._toolbar.isVisible;
 	}
 
-	/**
-	 * Toggle the toolbar. Entering toolbar mode engages device emulation
-	 * (responsive viewport, default device); exiting disables it.
-	 */
 	setVisible(visible: boolean): void {
 		if (visible === this._toolbar.isVisible) {
 			return;
@@ -516,7 +476,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		}
 	}
 
-	/** Apply a preset onto the current emulation, preserving the current scale. */
 	applyPreset(preset: IBrowserDevicePreset): void {
 		const model = this.editor.model;
 		if (!model) {
@@ -525,7 +484,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		void model.setDevice(preset.device ?? {});
 	}
 
-	/** Reset all device + scale overrides to defaults while keeping emulation engaged. */
 	resetAll(): void {
 		const model = this.editor.model;
 		if (!model) {
@@ -535,7 +493,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		this.setScale(undefined);
 	}
 
-	/** Set the user agent on the current device. Empty / undefined = default. Engages emulation if not already active. */
 	setUserAgent(userAgent: string | undefined): void {
 		const model = this.editor.model;
 		if (!model) {
@@ -549,12 +506,10 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		void model.setDevice({ ...(device ?? {}), userAgent: next });
 	}
 
-	/** The current device's user agent, if any. */
 	get userAgent(): string | undefined {
 		return this.editor.model?.device?.userAgent;
 	}
 
-	/** Swap the current viewport's width and height. No-op without any fixed dim. */
 	swapDimensions(): void {
 		const model = this.editor.model;
 		const device = model?.device;
@@ -564,7 +519,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		void model.setDevice({ ...device, width: device.height, height: device.width });
 	}
 
-	/** Flip the mobile flag on the current device (drives touch + pointer media). Engages emulation if not already active. */
 	toggleMobile(): void {
 		const model = this.editor.model;
 		if (!model) {
@@ -574,7 +528,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		void model.setDevice({ ...(device ?? {}), mobile: !device?.mobile });
 	}
 
-	// -- Internal helpers ---------------------------------------------------
 
 	private _syncContextKeys(device: IBrowserDeviceProfile | undefined): void {
 		this._isMobile.set(!!device?.mobile);
@@ -604,11 +557,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 		}
 	}
 
-	/**
-	 * Create east + south resize sashes (with an auto-managed south-east corner)
-	 * that drag the container to set explicit device dimensions. The container is
-	 * centered in the wrapper, so a pointer delta of N px equals 2*N px of growth.
-	 */
 	private _createResizeSashes(container: HTMLElement): void {
 		const SASH_OFFSET = 6;
 		const eastSash = this._register(new Sash(container, {
@@ -645,7 +593,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 			container.classList.add('browser-container--dragging');
 			const pane = this.editor.paneSize;
 			const containerRect = container.getBoundingClientRect();
-			// Mirror computeContainerLayout's fit-scale math to derive starting scale.
 			const fitScale = pane.width > 0 && pane.height > 0
 				? Math.min(device.width ? pane.width / device.width : 1, device.height ? pane.height / device.height : 1, 1)
 				: 1;
@@ -705,9 +652,6 @@ export class BrowserEditorEmulationSupport extends BrowserEditorContribution {
 
 BrowserEditor.registerContribution(BrowserEditorEmulationSupport);
 
-/**
- * Toggle the emulation toolbar (engages or disables device emulation).
- */
 class ToggleBrowserEmulationAction extends Action2 {
 	static readonly ID = 'workbench.action.browser.toggleDeviceEmulation';
 

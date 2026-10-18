@@ -57,19 +57,20 @@ export function buildCodexLaunchConfig(
 	}
 	env.OPENAI_API_KEY = proxy.nonce;
 	const overrides = [
-		`model_providers.vscode-proxy.name="VS Code Proxy"`,
+		`model_providers.dardcor-router.name="Dardcor Router"`,
+		`model_providers.dardcor-router.base_url="${proxy.baseUrl}/v1"`,
+		`model_providers.dardcor-router.wire_api="responses"`,
+		`model_providers.dardcor-router.env_key="OPENAI_API_KEY"`,
+		`model_providers.dardcor-router.requires_openai_auth=false`,
+		`model_providers.dardcor-router.supports_websockets=false`,
+		`model_providers.vscode-proxy.name="Dardcor Router (legacy session)"`,
 		`model_providers.vscode-proxy.base_url="${proxy.baseUrl}/v1"`,
 		`model_providers.vscode-proxy.wire_api="responses"`,
 		`model_providers.vscode-proxy.env_key="OPENAI_API_KEY"`,
 		`model_providers.vscode-proxy.requires_openai_auth=false`,
 		`model_providers.vscode-proxy.supports_websockets=false`,
-		// Codex filters its shell tool's env through `shell_environment_policy`,
-		// so pin the marker there too — a user policy (e.g. `inherit = "core"`)
-		// would otherwise drop it.
 		`shell_environment_policy.set.${AiAgentEnvVar}="${AiAgentEnvValue}"`,
 		`features.tool_call_mcp_elicitation=false`,
-		// Keep image generation disabled for the Copilot/CAPI proxy by default.
-		// ChatGPT subscription threads opt in with a per-thread override.
 		`features.image_generation=false`,
 	];
 	const telemetryOverrides = codexTelemetryOverrides(telemetry);
@@ -81,14 +82,7 @@ export function buildCodexLaunchConfig(
 
 export function codexTelemetryOverrides(config: IAgentHostNativeOTelConfig | undefined): string[] {
 	return [
-		// Codex analytics are independent from its OTel exporters and post to an
-		// OpenAI-owned endpoint. Keep them disabled even when the user configures
-		// Agent Host OTel, whose destinations are supplied explicitly below. Codex
-		// currently uses this same flag to gate its metrics exporter, so preventing
-		// product analytics also suppresses its otherwise user-directed metrics.
 		'analytics.enabled=false',
-		// Agent Host does not expose Codex's feedback flow. Disable its Sentry
-		// upload path rather than leaving an unused outbound channel available.
 		'feedback.enabled=false',
 		`otel.log_user_prompt=${config?.captureContent ?? false}`,
 		config?.traces ? `otel.trace_exporter=${codexExporter(config.traces)}` : 'otel.trace_exporter="none"',

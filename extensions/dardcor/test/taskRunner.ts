@@ -30,7 +30,6 @@ export class TaskRunner {
 	private pendingTasks = 0;
 
 	private waitResolve: (() => void) | undefined;
-	// private waitPromise: Promise<void> | undefined;
 	constructor(
 		public readonly parallelism: number
 	) { }
@@ -46,11 +45,9 @@ export class TaskRunner {
 
 	private launchTaskIfPossible(): void {
 		if (this.tasks.length === 0) {
-			// all tasks completed
 			return;
 		}
 		if (this.pendingTasks >= this.parallelism) {
-			// too many tasks running
 			return;
 		}
 		const task = this.tasks.shift()!;
@@ -63,20 +60,11 @@ export class TaskRunner {
 		this.launchTaskIfPossible();
 
 		if (this.pendingTasks === 0) {
-			// all tasks completed
-			// this.waitPromise = undefined;
 			this.waitResolve?.();
 		}
 	}
 
 	async waitForCompletion(): Promise<void> {
 		throw new Error('not implemented');
-		// if (!this.waitPromise) {
-		// 	this.waitPromise = new Promise<void>(resolve => this.waitResolve = resolve);
-		// }
-		// // for (let i = 0; i < this.parallelism; i++) {
-		// // 	this.launchTaskIfPossible();
-		// // }
-		// return this.waitPromise;
 	}
 }

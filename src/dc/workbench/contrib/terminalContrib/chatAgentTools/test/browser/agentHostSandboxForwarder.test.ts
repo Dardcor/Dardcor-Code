@@ -26,7 +26,6 @@ import { AgentNetworkDomainSettingId } from '../../../../../../platform/networkF
 import { AgentSandboxEnabledValue, AgentSandboxSettingId } from '../../../../../../platform/sandbox/common/settings.js';
 import { AgentHostSandboxForwarder } from '../../browser/agentHostSandboxForwarder.js';
 
-// ---- Mocks ------------------------------------------------------------------
 
 class MockAgentConnection {
 	declare readonly _serviceBrand: undefined;
@@ -137,7 +136,6 @@ class MockRemoteAgentHostService extends mock<IRemoteAgentHostService>() {
 	}
 }
 
-// ---- Helpers ----------------------------------------------------------------
 
 function rootStateWithSandboxSchema(sandbox: Record<string, unknown> = {}): RootState {
 	return {
@@ -160,7 +158,6 @@ function rootStateWithoutSandboxSchema(): RootState {
 		config: {
 			schema: {
 				type: 'object',
-				// Older / third-party host that doesn't advertise sandbox keys.
 				properties: { customizations: { type: 'array', title: 'Customizations' } },
 			},
 			values: {},
@@ -181,10 +178,6 @@ function setup(disposables: DisposableStore, configValues: Record<string, unknow
 	disposables.add({ dispose: () => local.dispose() });
 	const remote = new MockRemoteAgentHostService();
 	disposables.add({ dispose: () => remote.dispose() });
-	// Default the host-policy gates to "engine path" so existing tests that
-	// only set `chat.agent.sandbox.*` continue to assert against the user's
-	// raw forwarded values. The SDK-sandbox gating sub-suite below overrides
-	// both gates explicitly to exercise the other branches.
 	const configurationService = new TestConfigurationService({
 		[AgentHostCustomTerminalToolEnabledSettingId]: true,
 		...configValues,
@@ -201,7 +194,6 @@ function setup(disposables: DisposableStore, configValues: Record<string, unknow
 	return { forwarder, local, remote, configurationService };
 }
 
-// =============================================================================
 
 suite('AgentHostSandboxForwarder', () => {
 	const disposables = new DisposableStore();
@@ -247,7 +239,6 @@ suite('AgentHostSandboxForwarder', () => {
 		const { local, configurationService } = setup(disposables, { [AgentSandboxSettingId.AgentSandboxEnabled]: AgentSandboxEnabledValue.On });
 
 		local.setRootState(rootStateWithSandboxSchema({ [AgentHostSandboxKey.Enabled]: AgentSandboxEnabledValue.On }));
-		// Initial state already matches → no dispatch.
 		assert.deepStrictEqual(local.dispatched, []);
 
 		configurationService.setUserConfiguration(AgentSandboxSettingId.AgentSandboxEnabled, AgentSandboxEnabledValue.AllowNetwork);
@@ -321,13 +312,9 @@ suite('AgentHostSandboxForwarder', () => {
 	test('does not push back after initial push when the host updates rootState', () => {
 		const { local } = setup(disposables, { [AgentSandboxSettingId.AgentSandboxEnabled]: AgentSandboxEnabledValue.On });
 
-		// Initial hydration triggers exactly one push.
 		local.setRootState(rootStateWithSandboxSchema());
 		assert.strictEqual(local.dispatched.length, 1);
 
-		// Subsequent rootState changes from the host side (different sandbox
-		// values, unrelated config keys, anything) must NOT trigger another
-		// push — that's the push-back loop the forwarder is designed to avoid.
 		local.setRootState(rootStateWithSandboxSchema({ [AgentHostSandboxKey.Enabled]: AgentSandboxEnabledValue.Off }));
 		local.setRootState(rootStateWithSandboxSchema({ [AgentHostSandboxKey.AllowUnsandboxedCommands]: true }));
 		local.setRootState(rootStateWithSandboxSchema());
@@ -345,8 +332,6 @@ suite('AgentHostSandboxForwarder', () => {
 		assert.strictEqual(firstRemote.dispatched.length, 1);
 		assert.strictEqual(local.dispatched.length, 1);
 
-		// Adding a second remote must not cause a redundant push to the local
-		// host or to the already-pushed first remote.
 		const secondRemote = remote.addConnection('remote-b.example:9000');
 		secondRemote.setRootState(rootStateWithSandboxSchema());
 
@@ -359,15 +344,9 @@ suite('AgentHostSandboxForwarder', () => {
 		const { remote } = setup(disposables, { [AgentSandboxSettingId.AgentSandboxEnabled]: AgentSandboxEnabledValue.On });
 
 		const remoteConn = remote.addConnection('remote.example:9000');
-		// Connection never hydrates → forwarder is still subscribed to its
-		// rootState.onDidChange waiting for the schema.
 		assert.deepStrictEqual(remoteConn.dispatched, []);
 
 		remote.removeConnection('remote.example:9000');
-		// If the listener wasn't disposed, the leak checker (see
-		// ensureNoDisposablesAreLeakedInTestSuite) would flag it at teardown.
-		// Firing here would also throw if the connection was still observed
-		// after removal — explicitly assert no late dispatch happens.
 		remoteConn.setRootState(rootStateWithSandboxSchema());
 		assert.deepStrictEqual(remoteConn.dispatched, []);
 	});
@@ -392,10 +371,8 @@ suite('AgentHostSandboxForwarder', () => {
 			const { local } = setup(disposables, {
 				[AgentSandboxSettingId.AgentSandboxEnabled]: AgentSandboxEnabledValue.On,
 				[AgentHostCustomTerminalToolEnabledSettingId]: false,
-				// sdkSandbox unset → defaults to 'off'.
 			});
 
-			// Host already carries values from a prior session.
 			local.setRootState(rootStateWithSandboxSchema({ [AgentHostSandboxKey.Enabled]: AgentSandboxEnabledValue.On }));
 
 			assert.deepStrictEqual(local.dispatched, [{
@@ -406,8 +383,6 @@ suite('AgentHostSandboxForwarder', () => {
 
 		test('overrides Enabled/WindowsEnabled with the sdkSandbox value when set to `on`', () => {
 			const { local } = setup(disposables, {
-				// User has the engine sandbox off entirely — the SDK sandbox
-				// setting should still drive the SDK path independently.
 				[AgentSandboxSettingId.AgentSandboxEnabled]: AgentSandboxEnabledValue.Off,
 				[AgentSandboxSettingId.AgentSandboxAllowUnsandboxedCommands]: true,
 				[AgentHostCustomTerminalToolEnabledSettingId]: false,
@@ -458,7 +433,6 @@ suite('AgentHostSandboxForwarder', () => {
 				[AgentHostSandboxKey.Enabled]: AgentSandboxEnabledValue.On,
 				[AgentHostSandboxKey.WindowsEnabled]: AgentSandboxEnabledValue.On,
 			}));
-			// Initial state already matches → no dispatch.
 			assert.deepStrictEqual(local.dispatched, []);
 
 			configurationService.setUserConfiguration(AgentHostSdkSandboxEnabledSettingId, AgentSandboxEnabledValue.Off);
@@ -512,22 +486,14 @@ suite('AgentHostSandboxForwarder', () => {
 				[AgentHostCustomTerminalToolEnabledSettingId]: false,
 				[AgentHostSdkSandboxEnabledSettingId]: AgentSandboxEnabledValue.Off,
 			});
-			// Both gates off → forwarder pushes `{}`, which clears the host's
-			// prior value.
 			local.setRootState(rootStateWithSandboxSchema({ [AgentHostSandboxKey.Enabled]: AgentSandboxEnabledValue.On }));
 			assert.deepStrictEqual(local.dispatched, [{
 				type: ActionType.RootConfigChanged,
 				config: { [AgentHostSandboxConfigKey.Sandbox]: {} },
 			}]);
 
-			// Simulate the host applying that dispatch (the mock does not do this
-			// automatically). Without this, the equals-check inside _tryPush would
-			// short-circuit the second push because the host's view of the sandbox
-			// values would still be the stale pre-clear value.
 			local.setRootState(rootStateWithSandboxSchema({}));
 
-			// Flip customTerminalTool ON → forwarder should push the real
-			// sandbox values verbatim (engine path needs them).
 			configurationService.setUserConfiguration(AgentHostCustomTerminalToolEnabledSettingId, true);
 			configurationService.onDidChangeConfigurationEmitter.fire({
 				source: ConfigurationTarget.USER,

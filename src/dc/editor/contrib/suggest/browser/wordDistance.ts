@@ -45,7 +45,6 @@ export abstract class WordDistance {
 			return WordDistance.None;
 		}
 
-		// remove current word
 		const wordUntilPos = model.getWordUntilPosition(position);
 		delete wordRanges[wordUntilPos.word];
 

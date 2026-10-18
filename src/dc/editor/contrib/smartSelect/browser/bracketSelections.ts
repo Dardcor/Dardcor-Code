@@ -53,12 +53,10 @@ export class BracketSelectionRangeProvider implements SelectionRangeProvider {
 			}
 			if (bracket.bracketInfo.isOpeningBracket) {
 				const key = bracket.bracketInfo.bracketText;
-				// wait for closing
 				const val = counts.has(key) ? counts.get(key)! : 0;
 				counts.set(key, val + 1);
 			} else {
 				const key = bracket.bracketInfo.getOpeningBrackets()[0].bracketText;
-				// process closing
 				let val = counts.has(key) ? counts.get(key)! : 0;
 				val -= 1;
 				counts.set(key, Math.max(0, val));
@@ -99,12 +97,10 @@ export class BracketSelectionRangeProvider implements SelectionRangeProvider {
 			}
 			if (!bracket.bracketInfo.isOpeningBracket) {
 				const key = bracket.bracketInfo.getOpeningBrackets()[0].bracketText;
-				// wait for opening
 				const val = counts.has(key) ? counts.get(key)! : 0;
 				counts.set(key, val + 1);
 			} else {
 				const key = bracket.bracketInfo.bracketText;
-				// opening
 				let val = counts.has(key) ? counts.get(key)! : 0;
 				val -= 1;
 				counts.set(key, Math.max(0, val));
@@ -131,9 +127,6 @@ export class BracketSelectionRangeProvider implements SelectionRangeProvider {
 		if (bracket.startLineNumber === bracket.endLineNumber) {
 			return;
 		}
-		// xxxxxxxx {
-		//
-		// }
 		const startLine = bracket.startLineNumber;
 		const column = model.getLineFirstNonWhitespaceColumn(startLine);
 		if (column !== 0 && column !== bracket.startColumn) {
@@ -141,10 +134,6 @@ export class BracketSelectionRangeProvider implements SelectionRangeProvider {
 			bucket.push({ range: Range.fromPositions(new Position(startLine, 1), bracket.getEndPosition()) });
 		}
 
-		// xxxxxxxx
-		// {
-		//
-		// }
 		const aboveLine = startLine - 1;
 		if (aboveLine > 0) {
 			const column = model.getLineFirstNonWhitespaceColumn(aboveLine);

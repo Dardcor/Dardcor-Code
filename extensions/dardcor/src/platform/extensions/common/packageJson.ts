@@ -7,12 +7,10 @@ export interface IPackageJson {
 	name: string;
 	version: string;
 
-	// Partial typings for VS Code contributions
 	contributes?: {
 		debuggers?: IDebugConfigSchema[];
 	};
 
-	// Copilot contribution section https://github.com/microsoft/vscode-dardcor-chat/wiki/Package.json-Copilot-Contributions
 	dardcor?: {
 		tests?: {
 			setupTests?: string;

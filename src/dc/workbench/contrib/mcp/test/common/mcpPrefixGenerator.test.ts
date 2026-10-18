@@ -21,9 +21,6 @@ suite('McpPrefixGenerator', () => {
 
 	test('long registry-style names are clamped to MaxPrefixLen', () => {
 		const gen = new McpPrefixGenerator();
-		// Repro for #299749: a long registry-style key should at least produce a
-		// valid (length-bounded) prefix. The actual readability fix comes from
-		// callers taking with the announced server title instead of this key.
 		const ref = gen.take('io.github.upstash/context7');
 		assert.ok(ref.object.startsWith(McpToolName.Prefix));
 		assert.ok(ref.object.length <= McpToolName.MaxPrefixLen);
@@ -86,7 +83,6 @@ suite('McpPrefixGenerator', () => {
 		const a = gen.take('My Server');
 		const b = gen.take('my server');
 		const c = gen.take('my/server');
-		// All collapse to the same safe name `my_server`, so they collide.
 		assert.strictEqual(a.object, `${McpToolName.Prefix}my_server_`);
 		assert.strictEqual(b.object, `${McpToolName.Prefix}my_server2_`);
 		assert.strictEqual(c.object, `${McpToolName.Prefix}my_server3_`);
@@ -97,8 +93,6 @@ suite('McpPrefixGenerator', () => {
 
 	test('prefix length never exceeds MaxPrefixLen, including for multi-digit collision suffixes', () => {
 		const gen = new McpPrefixGenerator();
-		// Pick a name that, once sanitized, sits right at the per-bucket length cap
-		// so that adding a numeric suffix would otherwise blow past MaxPrefixLen.
 		const longName = 'a'.repeat(McpToolName.MaxPrefixLen);
 		const refs: IReference<string>[] = [];
 		for (let i = 0; i < 12; i++) {
@@ -109,7 +103,6 @@ suite('McpPrefixGenerator', () => {
 			assert.ok(ref.object.endsWith('_'));
 			assert.ok(ref.object.length <= McpToolName.MaxPrefixLen, `prefix ${ref.object} (length ${ref.object.length}) exceeds MaxPrefixLen ${McpToolName.MaxPrefixLen}`);
 		}
-		// All 12 must be unique so they remain distinguishable.
 		assert.strictEqual(new Set(refs.map(r => r.object)).size, refs.length);
 		for (const ref of refs) {
 			ref.dispose();

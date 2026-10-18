@@ -30,7 +30,6 @@ interface IExtensionHostQuickPickItem extends IQuickPickItem {
 	portInfo: IExtensionInspectInfo;
 }
 
-// Shared helpers for debug actions
 async function getExtensionHostPort(
 	extensionService: IExtensionService,
 	nativeHostService: INativeHostService,
@@ -168,7 +167,6 @@ export class DebugRendererInNewWindowAction extends Action2 {
 
 		const storage = instantiationService.createInstance(Storage);
 		storage.storeRendererDebugOnNewWindow(port);
-		// Force local window since Chrome debugging only works locally
 		hostService.openWindow({ remoteAuthority: null });
 	}
 }
@@ -205,7 +203,6 @@ export class DebugExtensionHostAndRendererAction extends Action2 {
 		const storage = instantiationService.createInstance(Storage);
 		storage.storeDebugOnNewWindow(extHostPort);
 		storage.storeRendererDebugOnNewWindow(rendererPort);
-		// Force local window since Chrome debugging only works locally
 		hostService.openWindow({ remoteAuthority: null });
 	}
 }
@@ -261,7 +258,6 @@ export class DebugExtensionsContribution extends Disposable implements IWorkbenc
 		const extHostPort = storage.getAndDeleteDebugPortIfSet();
 		const rendererPort = storage.getAndDeleteRendererDebugPortIfSet();
 
-		// Start both debug sessions in parallel
 		const debugPromises: Promise<void>[] = [];
 
 		if (extHostPort !== undefined) {

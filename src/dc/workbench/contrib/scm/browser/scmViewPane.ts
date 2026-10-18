@@ -93,27 +93,22 @@ function processResourceFilterData(uri: URI, filterData: FuzzyScore | LabelFuzzy
 	const pathLength = label.length - fileName.length;
 	const matches = createMatches((filterData as LabelFuzzyScore).score);
 
-	// FileName match
 	if (label === fileName) {
 		return [matches, undefined];
 	}
 
-	// FilePath match
 	const labelMatches: IMatch[] = [];
 	const descriptionMatches: IMatch[] = [];
 
 	for (const match of matches) {
 		if (match.start > pathLength) {
-			// Label match
 			labelMatches.push({
 				start: match.start - pathLength,
 				end: match.end - pathLength
 			});
 		} else if (match.end < pathLength) {
-			// Description match
 			descriptionMatches.push(match);
 		} else {
-			// Spanning match
 			labelMatches.push({
 				start: 0,
 				end: match.end - pathLength
@@ -155,7 +150,6 @@ export class ActionButtonRenderer implements ICompressibleTreeRenderer<ISCMActio
 	) { }
 
 	renderTemplate(container: HTMLElement): ActionButtonTemplate {
-		// Use default cursor & disable hover for list item
 		container.parentElement!.parentElement!.classList.add('cursor-default', 'force-no-hover');
 
 		const buttonContainer = append(container, $('.button-container'));
@@ -171,7 +165,6 @@ export class ActionButtonRenderer implements ICompressibleTreeRenderer<ISCMActio
 		const actionButton = node.element;
 		templateData.actionButton.setButton(node.element.button);
 
-		// Remember action button
 		this.actionButtons.set(actionButton, templateData.actionButton);
 		disposables.add({ dispose: () => this.actionButtons.delete(actionButton) });
 
@@ -276,7 +269,6 @@ class InputRenderer implements ICompressibleTreeRenderer<ISCMInput, FuzzyScore, 
 	) { }
 
 	renderTemplate(container: HTMLElement): InputTemplate {
-		// Disable hover for list item
 		container.parentElement!.parentElement!.classList.add('force-no-hover');
 
 		const templateDisposable = new DisposableStore();
@@ -291,13 +283,11 @@ class InputRenderer implements ICompressibleTreeRenderer<ISCMInput, FuzzyScore, 
 		const input = node.element;
 		templateData.inputWidget.input = input;
 
-		// Remember widget
 		this.inputWidgets.set(input, templateData.inputWidget);
 		templateData.elementDisposables.add({
 			dispose: () => this.inputWidgets.delete(input)
 		});
 
-		// Widget cursor selections
 		const selections = this.editorSelections.get(input);
 
 		if (selections) {
@@ -312,10 +302,8 @@ class InputRenderer implements ICompressibleTreeRenderer<ISCMInput, FuzzyScore, 
 			}
 		}));
 
-		// Reset widget height so it's recalculated
 		templateData.inputWidgetHeight = InputRenderer.DEFAULT_HEIGHT;
 
-		// Rerender the element whenever the editor content height changes
 		const onDidChangeContentHeight = () => {
 			const contentHeight = templateData.inputWidget.getContentHeight();
 			this.contentHeights.set(input, contentHeight);
@@ -332,10 +320,8 @@ class InputRenderer implements ICompressibleTreeRenderer<ISCMInput, FuzzyScore, 
 			onDidChangeContentHeight();
 		};
 
-		// Setup height change listener on next tick
 		disposableTimeout(startListeningContentHeightChange, 0, templateData.elementDisposables);
 
-		// Layout the editor whenever the outer layout happens
 		const layoutEditor = () => templateData.inputWidget.layout();
 		templateData.elementDisposables.add(this.outerLayout.onDidChange(layoutEditor));
 		layoutEditor();
@@ -754,9 +740,7 @@ export class SCMTreeSorter implements ITreeSorter<TreeElement> {
 			return isSCMResourceGroup(other) ? 0 : -1;
 		}
 
-		// Resource (List)
 		if (this.viewMode() === ViewMode.List) {
-			// FileName
 			if (this.viewSortKey() === ViewSortKey.Name) {
 				const oneName = basename((one as ISCMResource).sourceUri);
 				const otherName = basename((other as ISCMResource).sourceUri);
@@ -764,7 +748,6 @@ export class SCMTreeSorter implements ITreeSorter<TreeElement> {
 				return compareFileNames(oneName, otherName);
 			}
 
-			// Status
 			if (this.viewSortKey() === ViewSortKey.Status) {
 				const oneTooltip = (one as ISCMResource).decorations.tooltip ?? '';
 				const otherTooltip = (other as ISCMResource).decorations.tooltip ?? '';
@@ -774,14 +757,12 @@ export class SCMTreeSorter implements ITreeSorter<TreeElement> {
 				}
 			}
 
-			// Path (default)
 			const onePath = (one as ISCMResource).sourceUri.fsPath;
 			const otherPath = (other as ISCMResource).sourceUri.fsPath;
 
 			return comparePaths(onePath, otherPath);
 		}
 
-		// Resource (Tree)
 		const oneIsDirectory = ResourceTree.isResourceNode(one);
 		const otherIsDirectory = ResourceTree.isResourceNode(other);
 
@@ -812,16 +793,11 @@ export class SCMTreeKeyboardNavigationLabelProvider implements ICompressibleKeyb
 			return element.label;
 		} else {
 			if (this.viewMode() === ViewMode.List) {
-				// In List mode match using the file name and the path.
-				// Since we want to match both on the file name and the
-				// full path we return an array of labels. A match in the
-				// file name takes precedence over a match in the path.
 				const fileName = basename(element.sourceUri);
 				const filePath = this.labelService.getUriLabel(element.sourceUri, { relative: true });
 
 				return [fileName, filePath];
 			} else {
-				// In Tree mode only match using the file name
 				return basename(element.sourceUri);
 			}
 		}
@@ -1379,7 +1355,6 @@ export class SCMViewPane extends ViewPane {
 
 		this._viewMode = mode;
 
-		// Update sort key based on view mode
 		this.viewSortKey = this.getViewSortKey();
 
 		this.updateChildren();
@@ -1454,11 +1429,9 @@ export class SCMViewPane extends ViewPane {
 	) {
 		super({ ...options, titleMenuId: MenuId.SCMTitle }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 
-		// View mode and sort key
 		this._viewMode = this.getViewMode();
 		this._viewSortKey = this.getViewSortKey();
 
-		// Context Keys
 		this.viewModeContextKey = ContextKeys.SCMViewMode.bindTo(contextKeyService);
 		this.viewModeContextKey.set(this._viewMode);
 		this.viewSortKeyContextKey = ContextKeys.SCMViewSortKey.bindTo(contextKeyService);
@@ -1516,7 +1489,6 @@ export class SCMViewPane extends ViewPane {
 	protected override renderBody(container: HTMLElement): void {
 		super.renderBody(container);
 
-		// Tree
 		this.treeContainer = append(container, $('.scm-view.show-file-icons'));
 		this.treeContainer.classList.add('file-icon-themable-tree');
 		this.treeContainer.classList.add('show-file-icons');
@@ -1558,12 +1530,10 @@ export class SCMViewPane extends ViewPane {
 						this.visibilityDisposables)
 						(() => this.updateChildren(), this, this.visibilityDisposables);
 
-					// Add visible repositories
 					this.editorService.onDidActiveEditorChange(this.onDidActiveEditorChange, this, this.visibilityDisposables);
 					this.scmViewService.onDidChangeVisibleRepositories(this.onDidChangeVisibleRepositories, this, this.visibilityDisposables);
 					this.onDidChangeVisibleRepositories({ added: this.scmViewService.visibleRepositories, removed: Iterable.empty() });
 
-					// Restore scroll position
 					if (typeof this.treeScrollTop === 'number') {
 						this.tree.scrollTop = this.treeScrollTop;
 						this.treeScrollTop = undefined;
@@ -1591,9 +1561,6 @@ export class SCMViewPane extends ViewPane {
 
 		this.inputRenderer = this.instantiationService.createInstance(InputRenderer, this.layoutCache, overflowWidgetsDomNode, (input, height) => {
 			try {
-				// Attempt to update the input element height. There is an
-				// edge case where the input has already been disposed and
-				// updating the height would fail.
 				this.tree.updateElementHeight(input, height);
 			}
 			catch { }
@@ -1638,7 +1605,6 @@ export class SCMViewPane extends ViewPane {
 				overrideStyles: this.getLocationBasedColors().listOverrideStyles,
 				compressionEnabled: compressionEnabled.get(),
 				collapseByDefault: (e: unknown) => {
-					// Repository, Resource Group, Resource Folder (Tree) are not collapsed by default
 					return !(isSCMRepository(e) || isSCMResourceGroup(e) || isSCMResourceNode(e));
 				},
 				accessibilityProvider: this.instantiationService.createInstance(SCMAccessibilityProvider),
@@ -1693,7 +1659,6 @@ export class SCMViewPane extends ViewPane {
 		} else if (isSCMActionButton(e.element)) {
 			this.scmViewService.focus(e.element.repository);
 
-			// Focus the action button
 			this.actionButtonRenderer.focusActionButton(e.element);
 			this.tree.setFocus([], e.browserEvent);
 
@@ -1762,7 +1727,6 @@ export class SCMViewPane extends ViewPane {
 			return;
 		}
 
-		// Do not set focus/selection when the resource is already focused and selected
 		if (this.tree.getFocus().some(e => isSCMResource(e) && this.uriIdentityService.extUri.isEqual(e.sourceUri, uri)) &&
 			this.tree.getSelection().some(e => isSCMResource(e) && this.uriIdentityService.extUri.isEqual(e.sourceUri, uri))) {
 			return;
@@ -1778,7 +1742,6 @@ export class SCMViewPane extends ViewPane {
 							continue;
 						}
 
-						// go backwards from last group
 						for (let j = repository.provider.groups.length - 1; j >= 0; j--) {
 							const groupItem = repository.provider.groups[j];
 							const resource = this.viewMode === ViewMode.Tree
@@ -1799,12 +1762,10 @@ export class SCMViewPane extends ViewPane {
 	}
 
 	private onDidChangeVisibleRepositories({ added, removed }: ISCMViewVisibleRepositoryChangeEvent): void {
-		// Added repositories
 		for (const repository of added) {
 			const repositoryDisposables = new DisposableStore();
 
 			repositoryDisposables.add(autorun(reader => {
-				/** @description action button */
 				repository.provider.actionButton.read(reader);
 				this.updateChildren(repository);
 			}));
@@ -1838,7 +1799,6 @@ export class SCMViewPane extends ViewPane {
 			this.items.set(repository, repositoryDisposables);
 		}
 
-		// Removed repositories
 		for (const repository of removed) {
 			this.items.deleteAndDispose(repository);
 		}
@@ -1875,7 +1835,6 @@ export class SCMViewPane extends ViewPane {
 			disposables.add(actionRunner);
 			actions = collectContextMenuActions(menu);
 		} else if (isSCMInput(element) || isSCMActionButton(element)) {
-			// noop
 		} else if (isSCMResourceGroup(element)) {
 			const menus = this.scmViewService.menus.getRepositoryMenus(element.provider);
 			const menu = menus.getResourceGroupMenu(element);
@@ -1929,12 +1888,10 @@ export class SCMViewPane extends ViewPane {
 	}
 
 	private getViewSortKey(): ViewSortKey {
-		// Tree
 		if (this._viewMode === ViewMode.Tree) {
 			return ViewSortKey.Path;
 		}
 
-		// List
 		let viewSortKey: ViewSortKey;
 		const viewSortKeyString = this.configurationService.getValue<'path' | 'name' | 'status'>('scm.defaultViewSortKey');
 		switch (viewSortKeyString) {
@@ -1984,10 +1941,8 @@ export class SCMViewPane extends ViewPane {
 					const focusedInput = this.inputRenderer.getFocusedInput();
 
 					if (element && this.tree.hasNode(element)) {
-						// Refresh specific repository
 						await this.tree.updateChildren(element);
 					} else {
-						// Refresh the entire tree
 						await this.tree.updateChildren(undefined);
 					}
 
@@ -2074,12 +2029,10 @@ export class SCMViewPane extends ViewPane {
 		let input = this.scmViewService.focusedRepository.input;
 		const repositories = this.scmViewService.visibleRepositories;
 
-		// One visible repository and the input is already focused
 		if (repositories.length === 1 && this.inputRenderer.getRenderedInputWidget(input)?.hasFocus() === true) {
 			return;
 		}
 
-		// Multiple visible repositories and the input already focused
 		if (repositories.length > 1 && this.inputRenderer.getRenderedInputWidget(input)?.hasFocus() === true) {
 			const focusedRepositoryIndex = repositories.indexOf(this.scmViewService.focusedRepository);
 			const newFocusedRepositoryIndex = rot(focusedRepositoryIndex + delta, repositories.length);
@@ -2114,7 +2067,6 @@ export class SCMViewPane extends ViewPane {
 		let resourceGroupNext: ISCMResourceGroup | undefined;
 
 		if (focusedResourceGroupIndex === -1) {
-			// First visible resource group
 			for (const resourceGroup of resourceGroups) {
 				if (this.tree.hasNode(resourceGroup)) {
 					resourceGroupNext = resourceGroup;
@@ -2122,7 +2074,6 @@ export class SCMViewPane extends ViewPane {
 				}
 			}
 		} else {
-			// Next/Previous visible resource group
 			let index = rot(focusedResourceGroupIndex + delta, resourceGroups.length);
 			while (index !== focusedResourceGroupIndex) {
 				if (this.tree.hasNode(resourceGroups[index])) {
@@ -2210,12 +2161,10 @@ class SCMTreeDataSource extends Disposable implements IAsyncDataSource<ISCMViewS
 			const actionButton = inputOrElement.provider.actionButton.get();
 			const resourceGroups = inputOrElement.provider.groups;
 
-			// SCM Input
 			if (inputOrElement.input.visible) {
 				children.push(inputOrElement.input);
 			}
 
-			// Action Button
 			if (showActionButton && actionButton) {
 				children.push({
 					type: 'actionButton',
@@ -2224,7 +2173,6 @@ class SCMTreeDataSource extends Disposable implements IAsyncDataSource<ISCMViewS
 				} satisfies ISCMActionButton);
 			}
 
-			// ResourceGroups
 			const hasSomeChanges = resourceGroups.some(group => group.resources.length > 0);
 			if (hasSomeChanges || (repositoryCount === 1 && (!showActionButton || !actionButton))) {
 				children.push(...resourceGroups);
@@ -2233,10 +2181,8 @@ class SCMTreeDataSource extends Disposable implements IAsyncDataSource<ISCMViewS
 			return children;
 		} else if (isSCMResourceGroup(inputOrElement)) {
 			if (this.viewMode() === ViewMode.List) {
-				// Resources (List)
 				return inputOrElement.resources;
 			} else if (this.viewMode() === ViewMode.Tree) {
-				// Resources (Tree)
 				const children: TreeElement[] = [];
 				for (const node of inputOrElement.resourceTree.root.children) {
 					children.push(node.element && node.childrenCount === 0 ? node.element : node);
@@ -2245,7 +2191,6 @@ class SCMTreeDataSource extends Disposable implements IAsyncDataSource<ISCMViewS
 				return children;
 			}
 		} else if (isSCMResourceNode(inputOrElement)) {
-			// Resources (Tree), History item changes (Tree)
 			const children: TreeElement[] = [];
 			for (const node of inputOrElement.children) {
 				children.push(node.element && node.childrenCount === 0 ? node.element : node);
@@ -2339,7 +2284,6 @@ export class SCMActionButton implements IDisposable {
 	}
 
 	setButton(button: ISCMActionButtonDescriptor | undefined): void {
-		// Clear old button
 		this.clear();
 		if (!button) {
 			return;
@@ -2363,10 +2307,8 @@ export class SCMActionButton implements IDisposable {
 					actions.push(new Separator());
 				}
 			}
-			// Remove last separator
 			actions.pop();
 
-			// ButtonWithDropdown
 			this.button = new ButtonWithDropdown(this.container, {
 				actions: actions,
 				addPrimaryActionToDropdown: false,
@@ -2376,7 +2318,6 @@ export class SCMActionButton implements IDisposable {
 				...defaultButtonStyles
 			});
 		} else {
-			// Button
 			this.button = new Button(this.container, { supportIcons: true, supportShortLabel: !!button.command.shortTitle, title: button.command.tooltip, ...defaultButtonStyles });
 		}
 

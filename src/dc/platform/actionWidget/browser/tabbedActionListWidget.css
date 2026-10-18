@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Tab bar rendered above the action list inside a TabbedActionListWidget
- * popup. Styles are intentionally minimal so consumers can override via
- * the `tabBarClassName` option. */
 
 .action-widget .tabbed-action-list-tabbar {
 	display: flex;

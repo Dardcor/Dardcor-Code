@@ -31,7 +31,6 @@ export class LegacyLinesDiffComputer implements ILinesDiffComputer {
 		for (const c of result.changes) {
 			let originalRange: LineRange;
 			if (c.originalEndLineNumber === 0) {
-				// Insertion
 				originalRange = new LineRange(c.originalStartLineNumber + 1, c.originalStartLineNumber + 1);
 			} else {
 				originalRange = new LineRange(c.originalStartLineNumber, c.originalEndLineNumber + 1);
@@ -39,7 +38,6 @@ export class LegacyLinesDiffComputer implements ILinesDiffComputer {
 
 			let modifiedRange: LineRange;
 			if (c.modifiedEndLineNumber === 0) {
-				// Deletion
 				modifiedRange = new LineRange(c.modifiedStartLineNumber + 1, c.modifiedStartLineNumber + 1);
 			} else {
 				modifiedRange = new LineRange(c.modifiedStartLineNumber, c.modifiedEndLineNumber + 1);
@@ -52,7 +50,6 @@ export class LegacyLinesDiffComputer implements ILinesDiffComputer {
 			if (lastChange) {
 				if (lastChange.modified.endLineNumberExclusive === change.modified.startLineNumber
 					|| lastChange.original.endLineNumberExclusive === change.original.startLineNumber) {
-					// join touching diffs. Probably moving diffs up/down in the algorithm causes touching diffs.
 					change = new DetailedLineRangeMapping(
 						lastChange.original.join(change.original),
 						lastChange.modified.join(change.modified),
@@ -70,7 +67,6 @@ export class LegacyLinesDiffComputer implements ILinesDiffComputer {
 		assertFn(() => {
 			return checkAdjacentItems(changes,
 				(m1, m2) => m2.original.startLineNumber - m1.original.endLineNumberExclusive === m2.modified.startLineNumber - m1.modified.endLineNumberExclusive &&
-					// There has to be an unchanged line in between (otherwise both diffs should have been joined)
 					m1.original.endLineNumberExclusive < m2.original.startLineNumber &&
 					m1.modified.endLineNumberExclusive < m2.modified.startLineNumber,
 			);
@@ -84,21 +80,11 @@ export interface IDiffComputationResult {
 	quitEarly: boolean;
 	identical: boolean;
 
-	/**
-	 * The changes as (legacy) line change array.
-	 * @deprecated Use `changes2` instead.
-	 */
 	changes: ILineChange[];
 
-	/**
-	 * The changes as (modern) line range mapping array.
-	 */
 	changes2: readonly DetailedLineRangeMapping[];
 }
 
-/**
- * A change
- */
 export interface IChange {
 	readonly originalStartLineNumber: number;
 	readonly originalEndLineNumber: number;
@@ -106,9 +92,6 @@ export interface IChange {
 	readonly modifiedEndLineNumber: number;
 }
 
-/**
- * A character level change.
- */
 export interface ICharChange extends IChange {
 	readonly originalStartColumn: number;
 	readonly originalEndColumn: number;
@@ -116,9 +99,6 @@ export interface ICharChange extends IChange {
 	readonly modifiedEndColumn: number;
 }
 
-/**
- * A line change
- */
 export interface ILineChange extends IChange {
 	readonly charChanges: ICharChange[] | undefined;
 }
@@ -187,7 +167,6 @@ class LineSequence implements ISequence {
 				len++;
 			}
 			if (!shouldIgnoreTrimWhitespace && index < endIndex) {
-				// Add \n if trim whitespace is not ignored
 				charCodes[len] = CharCode.LineFeed;
 				lineNumbers[len] = index + 1;
 				columns[len] = lineContent.length + 1;
@@ -228,8 +207,6 @@ class CharSequence implements ISequence {
 
 	public getStartLineNumber(i: number): number {
 		if (i > 0 && i === this._lineNumbers.length) {
-			// the start line number of the element after the last element
-			// is the end line number of the last element
 			return this.getEndLineNumber(i - 1);
 		}
 		this._assertIndex(i, this._lineNumbers);
@@ -239,8 +216,6 @@ class CharSequence implements ISequence {
 
 	public getEndLineNumber(i: number): number {
 		if (i === -1) {
-			// the end line number of the element before the first element
-			// is the start line number of the first element
 			return this.getStartLineNumber(i + 1);
 		}
 		this._assertIndex(i, this._lineNumbers);
@@ -253,8 +228,6 @@ class CharSequence implements ISequence {
 
 	public getStartColumn(i: number): number {
 		if (i > 0 && i === this._columns.length) {
-			// the start column of the element after the last element
-			// is the end column of the last element
 			return this.getEndColumn(i - 1);
 		}
 		this._assertIndex(i, this._columns);
@@ -263,8 +236,6 @@ class CharSequence implements ISequence {
 
 	public getEndColumn(i: number): number {
 		if (i === -1) {
-			// the end column of the element before the first element
-			// is the start column of the first element
 			return this.getStartColumn(i + 1);
 		}
 		this._assertIndex(i, this._columns);
@@ -339,15 +310,12 @@ function postProcessCharChanges(rawChanges: IDiffChange[]): IDiffChange[] {
 
 		const originalMatchingLength = currChange.originalStart - (prevChange.originalStart + prevChange.originalLength);
 		const modifiedMatchingLength = currChange.modifiedStart - (prevChange.modifiedStart + prevChange.modifiedLength);
-		// Both of the above should be equal, but the continueProcessingPredicate may prevent this from being true
 		const matchingLength = Math.min(originalMatchingLength, modifiedMatchingLength);
 
 		if (matchingLength < MINIMUM_MATCHING_CHARACTER_LENGTH) {
-			// Merge the current change into the previous one
 			prevChange.originalLength = (currChange.originalStart + currChange.originalLength) - prevChange.originalStart;
 			prevChange.modifiedLength = (currChange.modifiedStart + currChange.modifiedLength) - prevChange.modifiedStart;
 		} else {
-			// Add the current change
 			result.push(currChange);
 			prevChange = currChange;
 		}
@@ -401,7 +369,6 @@ class LineChange implements ILineChange {
 		}
 
 		if (shouldComputeCharChanges && diffChange.originalLength > 0 && diffChange.originalLength < 20 && diffChange.modifiedLength > 0 && diffChange.modifiedLength < 20 && continueCharDiff()) {
-			// Compute character changes for diff chunks of at most 20 lines...
 			const originalCharSequence = originalLineSequence.createCharSequence(shouldIgnoreTrimWhitespace, diffChange.originalStart, diffChange.originalStart + diffChange.originalLength - 1);
 			const modifiedCharSequence = modifiedLineSequence.createCharSequence(shouldIgnoreTrimWhitespace, diffChange.modifiedStart, diffChange.modifiedStart + diffChange.modifiedLength - 1);
 
@@ -455,13 +422,12 @@ export class DiffComputer {
 		this.modified = new LineSequence(modifiedLines);
 
 		this.continueLineDiff = createContinueProcessingPredicate(opts.maxComputationTime);
-		this.continueCharDiff = createContinueProcessingPredicate(opts.maxComputationTime === 0 ? 0 : Math.min(opts.maxComputationTime, 5000)); // never run after 5s for character changes...
+		this.continueCharDiff = createContinueProcessingPredicate(opts.maxComputationTime === 0 ? 0 : Math.min(opts.maxComputationTime, 5000));
 	}
 
 	public computeDiff(): IDiffComputerResult {
 
 		if (this.original.lines.length === 1 && this.original.lines[0].length === 0) {
-			// empty original => fast path
 			if (this.modified.lines.length === 1 && this.modified.lines[0].length === 0) {
 				return {
 					quitEarly: false,
@@ -482,7 +448,6 @@ export class DiffComputer {
 		}
 
 		if (this.modified.lines.length === 1 && this.modified.lines[0].length === 0) {
-			// empty modified => fast path
 			return {
 				quitEarly: false,
 				changes: [{
@@ -499,8 +464,6 @@ export class DiffComputer {
 		const rawChanges = diffResult.changes;
 		const quitEarly = diffResult.quitEarly;
 
-		// The diff is always computed with ignoring trim whitespace
-		// This ensures we get the prettiest diff
 
 		if (this.shouldIgnoreTrimWhitespace) {
 			const lineChanges: LineChange[] = [];
@@ -513,13 +476,11 @@ export class DiffComputer {
 			};
 		}
 
-		// Need to post-process and introduce changes where the trim whitespace is different
-		// Note that we are looping starting at -1 to also cover the lines before the first change
 		const result: LineChange[] = [];
 
 		let originalLineIndex = 0;
 		let modifiedLineIndex = 0;
-		for (let i = -1 /* !!!! */, len = rawChanges.length; i < len; i++) {
+		for (let i = -1 , len = rawChanges.length; i < len; i++) {
 			const nextChange = (i + 1 < len ? rawChanges[i + 1] : null);
 			const originalStop = (nextChange ? nextChange.originalStart : this.originalLines.length);
 			const modifiedStop = (nextChange ? nextChange.modifiedStart : this.modifiedLines.length);
@@ -529,9 +490,7 @@ export class DiffComputer {
 				const modifiedLine = this.modifiedLines[modifiedLineIndex];
 
 				if (originalLine !== modifiedLine) {
-					// These lines differ only in trim whitespace
 
-					// Check the leading whitespace
 					{
 						let originalStartColumn = getFirstNonBlankColumn(originalLine, 1);
 						let modifiedStartColumn = getFirstNonBlankColumn(modifiedLine, 1);
@@ -553,7 +512,6 @@ export class DiffComputer {
 						}
 					}
 
-					// Check the trailing whitespace
 					{
 						let originalEndColumn = getLastNonBlankColumn(originalLine, 1);
 						let modifiedEndColumn = getLastNonBlankColumn(modifiedLine, 1);
@@ -582,7 +540,6 @@ export class DiffComputer {
 			}
 
 			if (nextChange) {
-				// Emit the actual change
 				result.push(LineChange.createFromDiffResult(this.shouldIgnoreTrimWhitespace, nextChange, this.original, this.modified, this.continueCharDiff, this.shouldComputeCharChanges, this.shouldPostProcessCharChanges));
 
 				originalLineIndex += nextChange.originalLength;
@@ -602,7 +559,6 @@ export class DiffComputer {
 		modifiedLineNumber: number, modifiedStartColumn: number, modifiedEndColumn: number
 	): void {
 		if (this._mergeTrimWhitespaceCharChange(result, originalLineNumber, originalStartColumn, originalEndColumn, modifiedLineNumber, modifiedStartColumn, modifiedEndColumn)) {
-			// Merged into previous
 			return;
 		}
 
@@ -633,7 +589,6 @@ export class DiffComputer {
 		const prevChange = result[len - 1];
 
 		if (prevChange.originalEndLineNumber === 0 || prevChange.modifiedEndLineNumber === 0) {
-			// Don't merge with inserts/deletes
 			return false;
 		}
 

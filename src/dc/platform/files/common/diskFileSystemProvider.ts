@@ -18,21 +18,8 @@ import { ILogService, LogLevel } from '../../log/common/log.js';
 export interface IDiskFileSystemProviderOptions {
 	watcher?: {
 
-		/**
-		 * Extra options for the recursive file watching.
-		 */
 		recursive?: IRecursiveWatcherOptions;
 
-		/**
-		 * Forces all file watch requests to run through a
-		 * single universal file watcher, both recursive
-		 * and non-recursively.
-		 *
-		 * Enabling this option might cause some overhead,
-		 * specifically the universal file watcher will run
-		 * in a separate process given its complexity. Only
-		 * enable it when you understand the consequences.
-		 */
 		forceUniversal?: boolean;
 	};
 }
@@ -65,19 +52,12 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 
 	private getRefreshWatchersDelay(count: number): number {
 		if (count > 200) {
-			// If there are many requests to refresh, start to throttle
-			// the refresh to reduce pressure. We see potentially thousands
-			// of requests coming in on startup repeatedly so we take it easy.
 			return 500;
 		}
 
-		// By default, use a short delay to keep watchers updating fast but still
-		// with a delay so that we can efficiently deduplicate requests or reuse
-		// existing watchers.
 		return 0;
 	}
 
-	//#region File Watching (universal)
 
 	private universalWatcher: AbstractUniversalWatcherClient | undefined;
 
@@ -88,15 +68,12 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 		const request = this.toWatchRequest(resource, opts);
 		const remove = insert(this.universalWatchRequests, request);
 
-		// Trigger update
 		this.refreshUniversalWatchers();
 
 		return toDisposable(() => {
 
-			// Remove from list of paths to watch universally
 			remove();
 
-			// Trigger update
 			this.refreshUniversalWatchers();
 		});
 	}
@@ -113,7 +90,6 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 
 		if (isRecursiveWatchRequest(request)) {
 
-			// Adjust for polling
 			const usePolling = this.options?.watcher?.recursive?.usePolling;
 			if (usePolling === true) {
 				request.pollingInterval = this.options?.watcher?.recursive?.pollingInterval ?? 5000;
@@ -135,7 +111,6 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 
 	private doRefreshUniversalWatchers(): Promise<void> {
 
-		// Create watcher if this is the first time
 		if (!this.universalWatcher) {
 			this.universalWatcher = this._register(this.createUniversalWatcher(
 				changes => this._onDidChangeFile.fire(reviveFileChanges(changes)),
@@ -143,13 +118,11 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 				this.logService.getLevel() === LogLevel.Trace
 			));
 
-			// Apply log levels dynamically
 			this._register(this.logService.onDidChangeLogLevel(() => {
 				this.universalWatcher?.setVerboseLogging(this.logService.getLevel() === LogLevel.Trace);
 			}));
 		}
 
-		// Ask to watch the provided paths
 		return this.universalWatcher.watch(this.universalWatchRequests);
 	}
 
@@ -159,9 +132,7 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 		verboseLogging: boolean
 	): AbstractUniversalWatcherClient;
 
-	//#endregion
 
-	//#region File Watching (non-recursive)
 
 	private nonRecursiveWatcher: AbstractNonRecursiveWatcherClient | undefined;
 
@@ -170,7 +141,6 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 
 	private watchNonRecursive(resource: URI, opts: IWatchOptions): IDisposable {
 
-		// Add to list of paths to watch non-recursively
 		const request: INonRecursiveWatchRequest = {
 			path: this.toWatchPath(resource),
 			excludes: opts.excludes,
@@ -181,15 +151,12 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 		};
 		const remove = insert(this.nonRecursiveWatchRequests, request);
 
-		// Trigger update
 		this.refreshNonRecursiveWatchers();
 
 		return toDisposable(() => {
 
-			// Remove from list of paths to watch non-recursively
 			remove();
 
-			// Trigger update
 			this.refreshNonRecursiveWatchers();
 		});
 	}
@@ -202,7 +169,6 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 
 	private doRefreshNonRecursiveWatchers(): Promise<void> {
 
-		// Create watcher if this is the first time
 		if (!this.nonRecursiveWatcher) {
 			this.nonRecursiveWatcher = this._register(this.createNonRecursiveWatcher(
 				changes => this._onDidChangeFile.fire(reviveFileChanges(changes)),
@@ -210,13 +176,11 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 				this.logService.getLevel() === LogLevel.Trace
 			));
 
-			// Apply log levels dynamically
 			this._register(this.logService.onDidChangeLogLevel(() => {
 				this.nonRecursiveWatcher?.setVerboseLogging(this.logService.getLevel() === LogLevel.Trace);
 			}));
 		}
 
-		// Ask to watch the provided paths
 		return this.nonRecursiveWatcher.watch(this.nonRecursiveWatchRequests);
 	}
 
@@ -226,7 +190,6 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 		verboseLogging: boolean
 	): AbstractNonRecursiveWatcherClient;
 
-	//#endregion
 
 	private onWatcherLogMessage(msg: ILogMessage): void {
 		if (msg.type === 'error') {
@@ -247,10 +210,6 @@ export abstract class AbstractDiskFileSystemProvider extends Disposable implemen
 	private toWatchPath(resource: URI): string {
 		const filePath = this.toFilePath(resource);
 
-		// Ensure to have any trailing path separators removed, otherwise
-		// we may believe the path is not "real" and will convert every
-		// event back to this form, which is not warranted.
-		// See also https://github.com/microsoft/vscode/issues/210517
 		return removeTrailingPathSeparator(filePath);
 	}
 }

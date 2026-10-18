@@ -11,7 +11,6 @@
 	flex-direction: column;
 }
 
-/* Card chrome comes from widget/media/chatCard.css. */
 .chat-tool-confirmation-carousel {
 	color: var(--vscode-foreground);
 	max-height: min(300px, 45vh);

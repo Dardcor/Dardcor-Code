@@ -19,7 +19,6 @@ export const IAgentPluginService = createDecorator<IAgentPluginService>('agentPl
 export interface IAgentPluginHook {
 	readonly type: HookType;
 	readonly hooks: readonly IParsedHookCommand[];
-	/** URI where this hook is defined -- not unique, multiple hooks may be in a manifest */
 	readonly uri: URI;
 	readonly originalId: string;
 }
@@ -33,19 +32,10 @@ export type IAgentPluginMcpServerDefinition = IMcpServerDefinition;
 export interface IAgentPlugin {
 	readonly uri: URI;
 	readonly format: PluginFormat;
-	/** Human-readable display name for the plugin. */
 	readonly label: string;
-	/** Version declared by the plugin manifest, falling back to marketplace metadata. */
 	readonly version?: IObservable<string | undefined>;
 	readonly enablement: IObservable<ContributionEnablementState>;
-	/**
-	 * When `true`, the plugin is blocked by enterprise policy. It remains
-	 * visible (shown as disabled) but its contributions are inactive and the
-	 * user cannot re-enable it. Folded into {@link enablement} so all gating
-	 * consumers honor it automatically.
-	 */
 	readonly policyBlocked?: IObservable<boolean>;
-	/** Removes this plugin from its discovery source (config or installed storage). Undefined for policy-managed plugins that cannot be removed by the user. */
 	remove?(): Promise<boolean>;
 	readonly hooks: IObservable<readonly IAgentPluginHook[]>;
 	readonly commands: IObservable<readonly IAgentPluginCommand[]>;
@@ -53,7 +43,6 @@ export interface IAgentPlugin {
 	readonly agents: IObservable<readonly IAgentPluginAgent[]>;
 	readonly instructions: IObservable<readonly IAgentPluginInstruction[]>;
 	readonly mcpServerDefinitions: IObservable<readonly IAgentPluginMcpServerDefinition[]>;
-	/** Set when the plugin was installed from a marketplace repository. */
 	readonly fromMarketplace?: IMarketplacePlugin;
 }
 
@@ -82,9 +71,6 @@ export function getCanonicalPluginCommandId(plugin: { readonly uri: URI; readonl
 		return normalizedCommand;
 	}
 
-	// When the skill name matches the plugin name, use just the plugin
-	// name so the user can invoke `/plugin-name` instead of the redundant
-	// `/plugin-name:plugin-name`.
 	if (prefix === normalizedCommand) {
 		return prefix;
 	}

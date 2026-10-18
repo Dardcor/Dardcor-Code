@@ -72,13 +72,8 @@ type TokenTypeWithoutLexeme =
 	TokenType.Or |
 	TokenType.EOF;
 
-/**
- * Example:
- * `foo == bar'` - note how single quote doesn't have a corresponding closing quote,
- * so it's reported as unexpected
- */
 export type LexingError = {
-	offset: number; /** note that this doesn't take into account escape characters from the original encoding of the string, e.g., within an extension manifest file's JSON encoding  */
+	offset: number;
 	lexeme: string;
 	additionalInfo?: string;
 };
@@ -91,7 +86,7 @@ function hintDidYouMean(...meant: string[]) {
 			return localize('contextkey.scanner.hint.didYouMean2', "Did you mean {0} or {1}?", meant[0], meant[1]);
 		case 3:
 			return localize('contextkey.scanner.hint.didYouMean3', "Did you mean {0}, {1} or {2}?", meant[0], meant[1], meant[2]);
-		default: // we just don't expect that many
+		default:
 			return undefined;
 	}
 }
@@ -99,21 +94,6 @@ function hintDidYouMean(...meant: string[]) {
 const hintDidYouForgetToOpenOrCloseQuote = localize('contextkey.scanner.hint.didYouForgetToOpenOrCloseQuote', "Did you forget to open or close the quote?");
 const hintDidYouForgetToEscapeSlash = localize('contextkey.scanner.hint.didYouForgetToEscapeSlash', "Did you forget to escape the '/' (slash) character? Put two backslashes before it to escape, e.g., '\\\\/\'.");
 
-/**
- * A simple scanner for context keys.
- *
- * Example:
- *
- * ```ts
- * const scanner = new Scanner().reset('resourceFileName =~ /docker/ && !config.docker.enabled');
- * const tokens = [...scanner];
- * if (scanner.errorTokens.length > 0) {
- *     scanner.errorTokens.forEach(err => console.error(`Unexpected token at ${err.offset}: ${err.lexeme}\nHint: ${err.additional}`));
- * } else {
- *     // process tokens
- * }
- * ```
- */
 export class Scanner {
 
 	static getLexeme(token: Token): string {
@@ -207,7 +187,7 @@ export class Scanner {
 
 				case CharCode.ExclamationMark:
 					if (this._match(CharCode.Equals)) {
-						const isTripleEq = this._match(CharCode.Equals); // eat last `=` if `!==`
+						const isTripleEq = this._match(CharCode.Equals);
 						this._tokens.push({ type: TokenType.NotEq, offset: this._start, isTripleEq });
 					} else {
 						this._addToken(TokenType.Neg);
@@ -218,8 +198,8 @@ export class Scanner {
 				case CharCode.Slash: this._regex(); break;
 
 				case CharCode.Equals:
-					if (this._match(CharCode.Equals)) { // support `==`
-						const isTripleEq = this._match(CharCode.Equals); // eat last `=` if `===`
+					if (this._match(CharCode.Equals)) {
+						const isTripleEq = this._match(CharCode.Equals);
 						this._tokens.push({ type: TokenType.Eq, offset: this._start, isTripleEq });
 					} else if (this._match(CharCode.Tilde)) {
 						this._addToken(TokenType.RegexOp);
@@ -248,12 +228,11 @@ export class Scanner {
 					}
 					break;
 
-				// TODO@ulugbekna: 1) rewrite using a regex 2) reconsider what characters are considered whitespace, including unicode, nbsp, etc.
 				case CharCode.Space:
 				case CharCode.CarriageReturn:
 				case CharCode.Tab:
 				case CharCode.LineFeed:
-				case CharCode.NoBreakSpace: // &nbsp
+				case CharCode.NoBreakSpace:
 					break;
 
 				default:
@@ -298,7 +277,6 @@ export class Scanner {
 		this._tokens.push(errToken);
 	}
 
-	// u - unicode, y - sticky // TODO@ulugbekna: we accept double quotes as part of the string rather than as a delimiter (to preserve old parser's behavior)
 	private stringRe = /[a-zA-Z0-9_<>\-\./\\:\*\?\+\[\]\^,#@;"%\$\p{L}-]+/uy;
 	private _string() {
 		this.stringRe.lastIndex = this._start;
@@ -315,9 +293,8 @@ export class Scanner {
 		}
 	}
 
-	// captures the lexeme without the leading and trailing '
 	private _quotedString() {
-		while (this._peek() !== CharCode.SingleQuote && !this._isAtEnd()) { // TODO@ulugbekna: add support for escaping ' ?
+		while (this._peek() !== CharCode.SingleQuote && !this._isAtEnd()) {
 			this._advance();
 		}
 
@@ -326,18 +303,11 @@ export class Scanner {
 			return;
 		}
 
-		// consume the closing '
 		this._advance();
 
 		this._tokens.push({ type: TokenType.QuotedStr, lexeme: this._input.substring(this._start + 1, this._current - 1), offset: this._start + 1 });
 	}
 
-	/*
-	 * Lexing a regex expression: /.../[igsmyu]*
-	 * Based on https://github.com/microsoft/TypeScript/blob/9247ef115e617805983740ba795d7a8164babf89/src/compiler/scanner.ts#L2129-L2181
-	 *
-	 * Note that we want slashes within a regex to be escaped, e.g., /file:\\/\\/\\// should match `file:///`
-	 */
 	private _regex() {
 		let p = this._current;
 
@@ -352,9 +322,9 @@ export class Scanner {
 
 			const ch = this._input.charCodeAt(p);
 
-			if (inEscape) { // parsing an escape character
+			if (inEscape) {
 				inEscape = false;
-			} else if (ch === CharCode.Slash && !inCharacterClass) { // end of regex
+			} else if (ch === CharCode.Slash && !inCharacterClass) {
 				p++;
 				break;
 			} else if (ch === CharCode.OpenSquareBracket) {
@@ -367,7 +337,6 @@ export class Scanner {
 			p++;
 		}
 
-		// Consume flags // TODO@ulugbekna: use regex instead
 		while (p < this._input.length && Scanner._regexFlags.has(this._input.charCodeAt(p))) {
 			p++;
 		}

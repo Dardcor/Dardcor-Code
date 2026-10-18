@@ -16,7 +16,6 @@ export function isMultiplierPricing(model: ILanguageModelChatMetadataAndIdentifi
 }
 
 export function getPriceCategoryLabel(priceCategory: string | undefined): string | undefined {
-	// The value originates from extension provided metadata, so it may not be a string at runtime
 	if (typeof priceCategory !== 'string' || priceCategory.length === 0) {
 		return undefined;
 	}

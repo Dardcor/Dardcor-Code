@@ -12,29 +12,14 @@ import { LogLevel } from '../../../../platform/log/common/log.js';
 import { Range } from '../../../../editor/common/core/range.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 
-/**
- * Mime type used by the output editor.
- */
 export const OUTPUT_MIME = 'text/x-code-output';
 
-/**
- * Id used by the output editor.
- */
 export const OUTPUT_MODE_ID = 'Log';
 
-/**
- * Mime type used by the log output editor.
- */
 export const LOG_MIME = 'text/x-code-log-output';
 
-/**
- * Id used by the log output editor.
- */
 export const LOG_MODE_ID = 'log';
 
-/**
- * Output view id
- */
 export const OUTPUT_VIEW_ID = 'workbench.panel.output';
 
 export const CONTEXT_IN_OUTPUT = new RawContextKey<boolean>('inOutput', false);
@@ -70,76 +55,31 @@ export interface IOutputViewFilters {
 
 export const IOutputService = createDecorator<IOutputService>('outputService');
 
-/**
- * The output service to manage output from the various processes running.
- */
 export interface IOutputService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 *  Output view filters.
-	 */
 	readonly filters: IOutputViewFilters;
 
-	/**
-	 * Given the channel id returns the output channel instance.
-	 * Channel should be first registered via OutputChannelRegistry.
-	 */
 	getChannel(id: string): IOutputChannel | undefined;
 
-	/**
-	 * Given the channel id returns the registered output channel descriptor.
-	 */
 	getChannelDescriptor(id: string): IOutputChannelDescriptor | undefined;
 
-	/**
-	 * Returns an array of all known output channels descriptors.
-	 */
 	getChannelDescriptors(): IOutputChannelDescriptor[];
 
-	/**
-	 * Returns the currently active channel.
-	 * Only one channel can be active at a given moment.
-	 */
 	getActiveChannel(): IOutputChannel | undefined;
 
-	/**
-	 * Show the channel with the passed id.
-	 */
 	showChannel(id: string, preserveFocus?: boolean): Promise<void>;
 
-	/**
-	 * Allows to register on active output channel change.
-	 */
 	readonly onActiveOutputChannel: Event<string>;
 
-	/**
-	 * Register a compound log channel with the given channels.
-	 */
 	registerCompoundLogChannel(channels: IOutputChannelDescriptor[]): string;
 
-	/**
-	 * Save the logs to a file.
-	 */
 	saveOutputAs(outputPath?: URI, ...channels: IOutputChannelDescriptor[]): Promise<void>;
 
-	/**
-	 * Checks if the log level can be set for the given channel.
-	 * @param channel
-	 */
 	canSetLogLevel(channel: IOutputChannelDescriptor): boolean;
 
-	/**
-	 * Returns the log level for the given channel.
-	 * @param channel
-	 */
 	getLogLevel(channel: IOutputChannelDescriptor): LogLevel | undefined;
 
-	/**
-	 * Sets the log level for the given channel.
-	 * @param channel
-	 * @param logLevel
-	 */
 	setLogLevel(channel: IOutputChannelDescriptor, logLevel: LogLevel): void;
 }
 
@@ -160,50 +100,23 @@ export interface ILogEntry {
 
 export interface IOutputChannel {
 
-	/**
-	 * Identifier of the output channel.
-	 */
 	readonly id: string;
 
-	/**
-	 * Label of the output channel to be displayed to the user.
-	 */
 	readonly label: string;
 
-	/**
-	 * URI of the output channel.
-	 */
 	readonly uri: URI;
 
-	/**
-	 * Log entries of the output channel.
-	 */
 	getLogEntries(): readonly ILogEntry[];
 
-	/**
-	 * Appends output to the channel.
-	 */
 	append(output: string): void;
 
-	/**
-	 * Clears all received output for this channel.
-	 */
 	clear(): void;
 
-	/**
-	 * Replaces the content of the channel with given output
-	 */
 	replace(output: string): void;
 
-	/**
-	 * Update the channel.
-	 */
 	update(mode: OutputChannelUpdateMode.Append): void;
 	update(mode: OutputChannelUpdateMode, till: number): void;
 
-	/**
-	 * Disposes the output channel.
-	 */
 	dispose(): void;
 }
 
@@ -248,29 +161,14 @@ export interface IOutputChannelRegistry {
 	readonly onDidRemoveChannel: Event<IOutputChannelDescriptor>;
 	readonly onDidUpdateChannelSources: Event<IMultiSourceOutputChannelDescriptor>;
 
-	/**
-	 * Make an output channel known to the output world.
-	 */
 	registerChannel(descriptor: IOutputChannelDescriptor): void;
 
-	/**
-	 * Update the files for the given output channel.
-	 */
 	updateChannelSources(id: string, sources: IOutputContentSource[]): void;
 
-	/**
-	 * Returns the list of channels known to the output world.
-	 */
 	getChannels(): IOutputChannelDescriptor[];
 
-	/**
-	 * Returns the channel with the passed id.
-	 */
 	getChannel(id: string): IOutputChannelDescriptor | undefined;
 
-	/**
-	 * Remove the output channel with the passed id.
-	 */
 	removeChannel(id: string): void;
 }
 

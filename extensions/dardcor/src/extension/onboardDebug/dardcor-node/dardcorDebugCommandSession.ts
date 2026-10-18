@@ -9,7 +9,7 @@ import { DisposableStore } from '../../../util/dardcor/base/common/lifecycle';
 import { generateUuid } from '../../../util/dardcor/base/common/uuid';
 import { ILaunchConfigService } from '../common/launchConfigService';
 import { IStartOptions } from '../node/dardcorDebugWorker/shared';
-import { CopilotDebugCommandHandle } from './dardcorDebugCommandHandle';
+import { DardcorDebugCommandHandle } from './dardcorDebugCommandHandle';
 
 const TRACKED_SESSION_KEY = '__dardcorTrackedSession';
 
@@ -17,7 +17,7 @@ export const handleDebugSession = (
 	launchConfigService: ILaunchConfigService,
 	workspaceFolder: vscode.WorkspaceFolder | undefined,
 	config: vscode.DebugConfiguration,
-	handle: CopilotDebugCommandHandle,
+	handle: DardcorDebugCommandHandle,
 	once: boolean,
 	startAgain: (opts: Partial<IStartOptions>) => Promise<void>,
 ) => {
@@ -48,7 +48,7 @@ export const handleDebugSession = (
 	}
 
 	async function followup() {
-		switch (once ? 'Q' : await handle.getFollowupKeys(CopilotDebugCommandHandle.COPILOT_LABEL.length + 3)) {
+		switch (once ? 'Q' : await handle.getFollowupKeys(DardcorDebugCommandHandle.DARDCOR_LABEL.length + 3)) {
 			case 'Enter':
 				handleDebugSession(launchConfigService, workspaceFolder, config, handle, once, startAgain);
 				break;
@@ -84,7 +84,6 @@ export const handleDebugSession = (
 				return;
 			}
 
-			// handle nested sessions:
 			const isRoot = !gotRoot;
 			gotRoot = true;
 			sessions.add(session);
@@ -116,7 +115,6 @@ export const handleDebugSession = (
 
 	vscode.debug.startDebugging(workspaceFolder, { ...config, [TRACKED_SESSION_KEY]: trackedId }).then(ok => {
 		if (!ok) {
-			// error will be displayed to user by vscode
 			ended(1);
 		}
 	});

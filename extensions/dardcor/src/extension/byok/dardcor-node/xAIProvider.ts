@@ -11,7 +11,6 @@ import { BYOKKnownModels, BYOKModelCapabilities } from '../common/byokProvider';
 import { AbstractOpenAICompatibleLMProvider } from './abstractLanguageModelChatProvider';
 import { IBYOKStorageService } from './byokStorageService';
 
-// https://docs.x.ai/docs/api-reference#list-language-models
 interface XAIModelData {
 	id: string;
 	fingerprint: string;
@@ -66,11 +65,9 @@ export class XAIBYOKLMProvider extends AbstractOpenAICompatibleLMProvider {
 
 	protected override resolveModelCapabilities(modelData: unknown): BYOKModelCapabilities | undefined {
 		const xaiModelData = modelData as XAIModelData;
-		// Add new model with reasonable defaults
 		let maxInputTokens;
 		let maxOutputTokens;
 
-		// Coding models and Grok 4+ models have larger context windows
 		const parsedVersion = this.parseXAIModelVersion(xaiModelData.id) ?? 0;
 		if (xaiModelData.id.startsWith('grok-code') || parsedVersion >= 4) {
 			maxInputTokens = 120000;
@@ -98,7 +95,7 @@ export class XAIBYOKLMProvider extends AbstractOpenAICompatibleLMProvider {
 		const parts = modelId.split('-').filter(p => p.length > 0);
 		return parts.map(p => {
 			if (/^\d+$/.test(p)) {
-				return p; // keep pure numbers as-is
+				return p;
 			}
 			return p.charAt(0).toUpperCase() + p.slice(1);
 		}).join(' ');

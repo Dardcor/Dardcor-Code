@@ -20,7 +20,7 @@ import { FileAccess } from '../../../../base/common/network.js';
 
 export class OutputLinkProvider extends Disposable {
 
-	private static readonly DISPOSE_WORKER_TIME = 3 * 60 * 1000; // dispose worker after 3 minutes of inactivity
+	private static readonly DISPOSE_WORKER_TIME = 3 * 60 * 1000;
 
 	private worker?: OutputLinkWorkerClient;
 	private disposeWorkerScheduler: RunOnceScheduler;
@@ -46,7 +46,6 @@ export class OutputLinkProvider extends Disposable {
 
 	private updateLinkProviderWorker(): void {
 
-		// Setup link provider depending on folders being opened or not
 		const folders = this.contextService.getWorkspace().folders;
 		if (folders.length > 0) {
 			if (!this.linkProviderRegistration) {
@@ -63,7 +62,6 @@ export class OutputLinkProvider extends Disposable {
 			this.linkProviderRegistration = undefined;
 		}
 
-		// Dispose worker to recreate with folders on next provideLinks request
 		this.disposeWorker();
 		this.disposeWorkerScheduler.cancel();
 	}

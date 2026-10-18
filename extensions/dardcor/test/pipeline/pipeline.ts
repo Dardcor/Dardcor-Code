@@ -48,12 +48,6 @@ function getWorkspaceRecordingSampleCap(options: NesDatagen): number {
 	return options.maxSamplesPerRecording ?? DEFAULT_WORKSPACE_RECORDING_SAMPLE_CAP;
 }
 
-/**
- * Apply the user-supplied config file and force-disable all interactive
- * debounces / cache delays that don't make sense in batch mode. Both
- * pipelines (xtab and cursor-jump) need this exact setup before invoking
- * the production NES code path.
- */
 async function applyBatchModeConfig(configService: IConfigurationService, configs: ReturnType<typeof loadConfigFile>): Promise<void> {
 	await applyConfigFile(configService, configs);
 	await configService.setConfig(ConfigKey.TeamInternal.InlineEditsDebounce, 0);
@@ -64,50 +58,19 @@ async function applyBatchModeConfig(configService: IConfigurationService, config
 
 export type RunPipelineOptions = {
 	readonly nesDatagen: NesDatagen | undefined;
-	/**
-	 * path to config file
-	 */
 	readonly configFile: string | undefined;
 	readonly verbose: number | boolean | undefined;
 	readonly parallelism: number;
 };
 
-/**
- * Result of the shared "parse input + replay into processed rows" front half of
- * both pipelines. Abstracts over the input format so the xtab and cursor-jump
- * pipelines don't need to know whether the rows came from alternative-action or
- * continuous recordings.
- */
 interface ILoadedProcessedRows {
-	/**
-	 * Number of input records that parsed successfully — the starting count for
-	 * the `[1/5]` progress line and the pipeline summary funnel. Parse failures
-	 * are excluded and counted separately in {@link parseErrors}.
-	 */
 	readonly recordCount: number;
-	/** Per-record parse failures. */
 	readonly parseErrors: readonly WithRowIndex<Error>[];
-	/** Successfully replayed rows. Each holds a live replayer the caller must dispose. */
 	readonly processed: IProcessedRow[];
-	/** Per-record replay/processing failures. */
 	readonly replayErrors: readonly WithRowIndex<Error>[];
-	/**
-	 * Resolve the language id for a record by its `originalRowIndex` (the record's
-	 * position in the input file), for error messages. Continuous records have no
-	 * language before replay, so this returns `'?'` for them.
-	 */
 	readonly languageForRow: (originalRowIndex: number) => string;
 }
 
-/**
- * Parse the input and replay each recording into processed rows, dispatching on
- * `--input-format`. This is the format-aware front half shared by both the xtab
- * and cursor-jump pipelines.
- *
- * For continuous input the pivot RNG is seeded from `nesDatagenOpts.seed` and
- * `nesDatagenOpts.rowOffset`, so output is reproducible and independent of how
- * the input is sharded across workers.
- */
 async function loadAndProduceProcessedRows(nesDatagenOpts: NesDatagen, verbose: boolean): Promise<ILoadedProcessedRows> {
 	const inputPath = nesDatagenOpts.input;
 
@@ -163,20 +126,6 @@ async function loadAndProduceProcessedRows(nesDatagenOpts: NesDatagen, verbose: 
 	};
 }
 
-/**
- * Single-process pipeline entry point. Dispatches to the xtab or cursor-jump
- * pipeline based on the configured sample task.
- *
- * For multi-process parallelism (large inputs, multi-core boxes), the caller
- * should invoke `runInputPipelineParallel` instead — it forks N children,
- * each running this function on a chunk, and works for cursor-jump tasks too
- * (`--sample-task` is propagated to every worker).
- *
- * Memory: this function calls `loadAndParseInput`, which reads the entire
- * input chunk into memory. That is intentional within a worker (chunks are
- * sized by `runInputPipelineParallel`), but means single-process runs on
- * unsharded multi-GB inputs can OOM — use `--parallelism > 1` to shard.
- */
 export async function runInputPipeline(opts: RunPipelineOptions, log = console.log.bind(console)): Promise<void> {
 	const nesDatagenOpts = opts.nesDatagen!;
 	if (nesDatagenOpts.sampleTask !== NesDatagenSampleTask.Xtab) {
@@ -205,7 +154,6 @@ async function runXtabPipeline(opts: RunPipelineOptions, log: (...ps: any[]) => 
 		log(`  Input format: workspace-recording (max samples: ${getWorkspaceRecordingSampleCap(nesDatagenOpts)})`);
 	}
 
-	// Step 1+2: Parse input and replay recordings (format-aware)
 	const { recordCount, parseErrors, processed, replayErrors, languageForRow } = await loadAndProduceProcessedRows(nesDatagenOpts, verbose);
 	log(`  [1/5] Input parsed: ${recordCount} rows, ${parseErrors.length} errors`);
 	logErrors(parseErrors.map(e => ({ error: e.value.message })), verbose, log);
@@ -215,7 +163,6 @@ async function runXtabPipeline(opts: RunPipelineOptions, log: (...ps: any[]) => 
 		error: `[sample ${e.originalRowIndex + rowOffset}, ${languageForRow(e.originalRowIndex)}] ${e.value.message}`,
 	})), verbose, log);
 
-	// Step 3: Generate prompts
 	const serviceCollection = createExtensionUnitTestingServices();
 	const testAccessor = serviceCollection.createTestingAccessor();
 
@@ -254,7 +201,6 @@ async function runXtabPipeline(opts: RunPipelineOptions, log: (...ps: any[]) => 
 		log(`  [3/5] Prompts generated: ${prompts.length} ok, ${promptErrors.length} errors (${formatElapsed(promptStartTime)})`);
 		logErrors(promptErrors, verbose, log);
 
-		// Step 4: Generate responses
 		const processedByOriginalIndex = new Map(processed.map(p => [p.originalRowIndex, p]));
 		const responseInputs: IResponseGenerationInput[] = [];
 
@@ -281,7 +227,6 @@ async function runXtabPipeline(opts: RunPipelineOptions, log: (...ps: any[]) => 
 			return { error: `[sample ${e.index + rowOffset}, ${p?.row.activeDocumentLanguageId ?? '?'}] ${e.error}` };
 		}), verbose, log);
 
-		// Step 5: Write output
 		const responseByIndex = new Map(responses.map(r => [r.index, r.response]));
 		const outputPath = resolveOutputPath(inputPath, nesDatagenOpts.output);
 		const samples: ISample[] = [];
@@ -325,7 +270,6 @@ async function runXtabPipeline(opts: RunPipelineOptions, log: (...ps: any[]) => 
 			}
 		}
 
-		// Summary
 		log(`\n  Pipeline: Input(${recordCount}) → Replay(${processed.length}) → Prompt(${prompts.length}) → Response(${responses.length}) → Output(${writeResult.written})`);
 	} finally {
 		for (const p of processed) {
@@ -367,8 +311,6 @@ async function runCursorPipeline(opts: RunPipelineOptions, log: (...ps: any[]) =
 		error: `[sample ${e.originalRowIndex + rowOffset}, ${languageForRow(e.originalRowIndex)}] ${e.value.message}`,
 	})), verbose, log);
 
-	// Detect jumps first — many rows will be skipped here, no point capturing
-	// a prompt for them.
 	type DetectedJump =
 		| { readonly kind: 'sameFile'; readonly sameFile: ReturnType<typeof detectSameFileJump> }
 		| { readonly kind: 'crossFile'; readonly crossFile: ReturnType<typeof detectCrossFileJump> };
@@ -397,7 +339,6 @@ async function runCursorPipeline(opts: RunPipelineOptions, log: (...ps: any[]) =
 				skipReasons.set(sf.err, (skipReasons.get(sf.err) ?? 0) + 1);
 				continue;
 			}
-			// cursor-both: fall through to cross-file detection
 		}
 
 		if (task === NesDatagenSampleTask.CursorCrossFile || task === NesDatagenSampleTask.CursorBoth) {
@@ -449,10 +390,6 @@ async function runCursorPipeline(opts: RunPipelineOptions, log: (...ps: any[]) =
 						prompts.push({ originalRowIndex: p.originalRowIndex, ...result });
 					}
 				} catch (err) {
-					// Catch per-row so one unexpected throw doesn't abort the whole
-					// batch via Promise.all's first-rejection semantics. The row
-					// fails, every other row still gets a chance to produce a
-					// sample.
 					const msg = err instanceof Error ? err.stack ?? err.message : String(err);
 					promptErrors.push({ originalRowIndex: p.originalRowIndex, error: `[sample ${globalIdx}, ${p.row.activeDocumentLanguageId}, ${p.activeFilePath}] unexpected: ${msg}` });
 				}
@@ -466,15 +403,6 @@ async function runCursorPipeline(opts: RunPipelineOptions, log: (...ps: any[]) =
 		log(`  [3/5] Cursor prompts captured: ${prompts.length} ok, ${promptErrors.length} errors (${formatElapsed(start)})`);
 		logErrors(promptErrors, verbose, log);
 
-		// Fail loud if we detected jumps but the cursor-prediction path was
-		// never actually invoked for any of them. The no-capture path returns
-		// `Cursor-jump prompt was not captured ...` per row, which lands in
-		// `promptErrors`. If *every* qualifying row failed that exact way, the
-		// configured `promptingStrategy` likely doesn't emit `NoSuggestions`
-		// for an empty stream (only `UnifiedWithXml` / `CustomDiffPatch` do
-		// reliably), so the cursor-jump fallback in `XtabProvider` is never
-		// reached. Surfacing that as a crash is far better than emitting zero
-		// samples that look like "input had no qualifying rows".
 		if (jumps.size > 0 && prompts.length === 0) {
 			const notCaptured = promptErrors.filter(e => e.error.includes('prompt was not captured')).length;
 			if (notCaptured === jumps.size) {
@@ -527,7 +455,7 @@ async function runCursorPipeline(opts: RunPipelineOptions, log: (...ps: any[]) =
 				responseAdapter,
 				p,
 				'next-cursor-line-prediction',
-				/* modelResponse: expected output mirrors assistant content */ assistant,
+				assistant,
 				classification,
 			));
 		}
@@ -552,23 +480,12 @@ async function runCursorPipeline(opts: RunPipelineOptions, log: (...ps: any[]) =
 	}
 }
 
-/**
- * Build a per-row line-offset resolver for the same-file detector. For a
- * candidate event at `entryIndex`, the resolver replays the `changed`
- * events strictly before it against a copy of the active doc content and
- * returns the 0-based line number for the requested offset against that
- * snapshot. The strict-less-than bound matters when `entryIndex` itself is
- * a `changed` event — its own edit offsets are pre-edit and must not be
- * applied first.
- */
 function buildLineResolver(p: IProcessedRow): (entryIndex: number, offset: number) => number {
 	return (entryIndex: number, offset: number): number => {
 		let c = p.activeDocument.value.get().value;
 		for (let i = 0; i < entryIndex; i++) {
 			const e = p.recordingAfterRequest[i];
 			if (e?.kind === 'changed' && e.id === p.activeDocLogId) {
-				// Apply offset-descending so multi-replacement events don't
-				// shift later original offsets within the same event.
 				c = applyEditsToContent(c, e.edit);
 			}
 		}
@@ -577,11 +494,6 @@ function buildLineResolver(p: IProcessedRow): (entryIndex: number, offset: numbe
 	};
 }
 
-/**
- * Splits the records of the JSON array at `inputPath` into contiguous per-worker
- * chunk files, each written incrementally as a JSON array. Streaming keeps memory
- * usage bounded to a single record regardless of total input size.
- */
 async function writeChunkFiles(inputPath: string, chunkPaths: string[], chunkSize: number): Promise<void> {
 	let currentChunk = -1;
 	let writer: ReturnType<typeof openWriteStream> | undefined;
@@ -615,10 +527,8 @@ async function writeChunkFiles(inputPath: string, chunkPaths: string[], chunkSiz
 			writer = undefined;
 		}
 	} finally {
-		// Best-effort close on the error path so the file descriptor is released
-		// before the caller proceeds to delete the tmp directory.
 		if (writer) {
-			try { await writer.close(); } catch { /* swallow secondary errors */ }
+			try { await writer.close(); } catch { }
 		}
 	}
 }
@@ -687,10 +597,6 @@ async function mergeWorkerResults(workers: readonly IPipelineWorker[], outputPat
 	return writeSamples(outputPath, allSamples);
 }
 
-/**
- * Run the pipeline in parallel by splitting input across N child processes.
- * Each child runs the single-process pipeline on its chunk independently.
- */
 export async function runInputPipelineParallel(opts: SimulationOptions): Promise<void> {
 	const nesDatagenOpts = opts.nesDatagen!;
 	if (nesDatagenOpts.inputFormat === NesDatagenInputFormat.WorkspaceRecording) {
@@ -700,9 +606,6 @@ export async function runInputPipelineParallel(opts: SimulationOptions): Promise
 	const inputPath = nesDatagenOpts.input;
 	const verbose = !!opts.verbose;
 
-	// Stream the input once to count records without loading the whole file into
-	// memory. Node's readFile rejects files larger than 2 GiB and V8 strings have a
-	// maximum length of ~512 MiB, so large inputs cannot be read as a single string.
 	let totalRecords = 0;
 	for await (const _record of streamJsonRecords(inputPath)) {
 		totalRecords++;
@@ -733,8 +636,6 @@ export async function runInputPipelineParallel(opts: SimulationOptions): Promise
 			resultPath: path.join(tmpDir, `result_${workerIndex}.jsonl`),
 		}));
 
-		// Distribute records into contiguous per-worker chunk files by streaming the
-		// input a second time, writing each chunk incrementally as a JSON array.
 		await writeChunkFiles(inputPath, chunkWorkers.map(worker => worker.chunkPath), chunkSize);
 
 		const workers: IPipelineWorker[] = chunkWorkers.map(worker => ({
@@ -749,8 +650,6 @@ export async function runInputPipelineParallel(opts: SimulationOptions): Promise
 				'--sample-task', nesDatagenOpts.sampleTask,
 				'--input-format', nesDatagenOpts.inputFormat,
 				'--pivot-strategy', nesDatagenOpts.pivotStrategy,
-				// Propagate the parent's resolved seed so every worker selects the
-				// same pivots it would in a single-process run (reproducibility).
 				'--seed', String(nesDatagenOpts.seed),
 				'--same-file-jump-min-above', String(nesDatagenOpts.sameFileJumpMinAbove),
 				'--same-file-jump-min-below', String(nesDatagenOpts.sameFileJumpMinBelow),

@@ -43,14 +43,6 @@ type ChatModelCreatedClassification = ChatModelCountClassification & {
 	comment: 'Tracks chat model counts each time a new chat model is created, to detect accumulation of background sessions over the lifetime of a window.';
 };
 
-/**
- * Logs telemetry about how many chat models are live at two moments:
- * 1. At startup, after sessions with pending edits have been revived.
- * 2. Each time a new chat model is created (skipping the very first one).
- *
- * Both events share the same model-count snapshot logic to track background
- * session accumulation.
- */
 export class ChatModelCountTelemetry extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.chatModelCountTelemetry';
@@ -72,7 +64,6 @@ export class ChatModelCountTelemetry extends Disposable implements IWorkbenchCon
 	private onDidCreateModel(newModelLocation: ChatAgentLocation): void {
 		const snapshot = this.getSnapshot();
 
-		// Skip the trivial case of the very first chat model in the window
 		if (snapshot.totalModels <= 1) {
 			return;
 		}

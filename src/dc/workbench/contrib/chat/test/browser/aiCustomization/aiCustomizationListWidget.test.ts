@@ -559,7 +559,6 @@ suite('aiCustomizationListWidget', () => {
 		});
 
 		test('returns undefined for non-extension entries in globalStorage', () => {
-			// e.g. `state.vscdb` or other workspace storage that lacks a publisher.name pattern
 			assert.strictEqual(
 				extractExtensionIdFromPath('/Users/josh/.vscode-oss-dev/User/globalStorage/state.vscdb'),
 				undefined
@@ -651,9 +650,6 @@ suite('aiCustomizationListWidget', () => {
 				onDidExecuteCommand: Event.None,
 			});
 
-			// The widget reads items from the items model; stub it with empty
-			// per-section observables. This avoids needing to wire up the full
-			// ProviderCustomizationItemSource pipeline in tests.
 			instaService.stub(IAICustomizationItemsModel, {
 				getItems: () => observableValue('test', [] as readonly never[]),
 				getCount: () => observableValue('test', 0),

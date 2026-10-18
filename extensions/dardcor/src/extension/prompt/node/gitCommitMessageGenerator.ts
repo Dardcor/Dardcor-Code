@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { CancellationToken } from 'vscode';
-import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { ChatFetchResponseType, ChatLocation } from '../../../platform/chat/common/commonTypes';
 import { IConversationOptions } from '../../../platform/chat/common/conversationOptions';
 import { IInteractionService } from '../../../platform/chat/common/interactionService';
@@ -27,7 +26,6 @@ export class GitCommitMessageGenerator {
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IInteractionService private readonly interactionService: IInteractionService,
-		@IAuthenticationService private readonly authService: IAuthenticationService,
 	) { }
 
 	async generateGitCommitMessage(repositoryName: string, branchName: string, changes: Diff[], recentCommitMessages: RecentCommitMessages, attemptCount: number, token: CancellationToken): Promise<string | undefined> {
@@ -39,7 +37,7 @@ export class GitCommitMessageGenerator {
 
 		const temperature = Math.min(
 			this.conversationOptions.temperature * (1 + attemptCount),
-			2 /* MAX temperature - https://platform.openai.com/docs/api-reference/chat/create#chat/create-temperature */
+			2
 		);
 
 		const requestStartTime = Date.now();
@@ -56,20 +54,6 @@ export class GitCommitMessageGenerator {
 				true
 			);
 
-		/* __GDPR__
-			"git.generateCommitMessage" : {
-				"owner": "lszomoru",
-				"comment": "Metadata about the git commit message generation",
-				"model": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The model that is used in the endpoint." },
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"responseType": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The result type of the response." },
-				"attemptCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "How many times the user has retried." },
-				"diffFileCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The number of files in the commit." },
-				"diffLength": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The length of the diffs in the commit." },
-				"timeToRequest": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "How long it took to start the request." },
-				"timeToComplete": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "isMeasurement": true, "comment": "How long it took to complete the request." }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('git.generateCommitMessage', {
 			model: endpoint.model,
 			requestId: fetchResult.requestId,
@@ -82,8 +66,8 @@ export class GitCommitMessageGenerator {
 			timeToComplete: Date.now() - startTime
 		});
 
-		if (fetchResult.type === ChatFetchResponseType.QuotaExceeded || (fetchResult.type === ChatFetchResponseType.RateLimited && this.authService.dardcorToken?.isNoAuthUser)) {
-			await this.notificationService.showQuotaExceededDialog({ isNoAuthUser: this.authService.dardcorToken?.isNoAuthUser ?? false });
+		if (fetchResult.type === ChatFetchResponseType.QuotaExceeded || fetchResult.type === ChatFetchResponseType.RateLimited) {
+			await this.notificationService.showWarningMessage('Dardcor Router is rate limited or the selected model has reached its quota. Check the Router provider or retry later.');
 			return undefined;
 		}
 
@@ -93,14 +77,6 @@ export class GitCommitMessageGenerator {
 
 		const [responseFormat, commitMessage] = this.processGeneratedCommitMessage(fetchResult.value);
 		if (responseFormat !== 'oneTextCodeBlock') {
-			/* __GDPR__
-				"git.generateCommitMessageIncorrectResponseFormat" : {
-					"owner": "lszomoru",
-					"comment": "Metadata about the git commit message generation when the response is not in the expected format",
-					"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-					"responseFormat": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The type of the response format." }
-				}
-			*/
 			this.telemetryService.sendMSFTTelemetryEvent('git.generateCommitMessageIncorrectResponseFormat', { requestId: fetchResult.requestId, responseFormat });
 		}
 

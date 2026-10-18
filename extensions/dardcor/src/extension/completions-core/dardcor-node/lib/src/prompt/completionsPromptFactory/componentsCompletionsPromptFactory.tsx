@@ -79,9 +79,7 @@ export type CompletionRequestData = {
 	position: Position;
 	telemetryData: TelemetryWithExp;
 	cancellationToken?: CancellationToken;
-	// see inlineCompletions data param
 	data?: unknown;
-	// Context provider items
 	traits?: TraitWithId[];
 	codeSnippets?: CodeSnippetWithId[];
 	diagnostics?: DiagnosticBagWithId[];
@@ -96,15 +94,12 @@ export function isCompletionRequestData(data: unknown): data is CompletionReques
 
 	const req = data as Partial<CompletionRequestData>;
 
-	// Check document
 	if (!req.document) { return false; }
 
-	// Check position
 	if (!req.position) { return false; }
 	if (req.position.line === undefined) { return false; }
 	if (req.position.character === undefined) { return false; }
 
-	// Check telemetryData
 	if (!req.telemetryData) { return false; }
 
 	return true;
@@ -134,7 +129,6 @@ const availableDeclarativePrompts: AvailableDeclarativePrompts = {
 	},
 };
 
-// The weights mimic the PromptPriorityList from prompt/src/wishlist.ts
 function defaultCompletionsPrompt(accessor: ServicesAccessor) {
 	const tdms = accessor.get(ICompletionsTextDocumentManagerService);
 	const instantiationService = accessor.get(IInstantiationService);
@@ -205,8 +199,6 @@ abstract class BaseComponentsCompletionsPromptFactory implements IPromptFactory 
 			return failFastPrompt;
 		}
 
-		// TODO: Prompt ordering changes are triggered by ExP changes.
-		// TODO@benibenj remove this as its always true (except in tests)
 		const promptOrdering = promptOpts?.separateContext ? PromptOrdering.SplitContext : PromptOrdering.Default;
 		this.setPromptOrdering(promptOrdering);
 
@@ -275,7 +267,6 @@ abstract class BaseComponentsCompletionsPromptFactory implements IPromptFactory 
 				.getStatisticsForCompletion(completionId)
 				.computeMatch(promptMatcher);
 			contextProvidersTelemetry = telemetrizeContextItems(this.contextProviderStatistics, completionId, resolvedContextItems);
-			// To support generating context provider metrics of completion in COffE.
 			logger.debug(this.logTarget, `Context providers telemetry: '${JSON.stringify(contextProvidersTelemetry)}'`);
 		}
 		const end = performance.now();
@@ -335,9 +326,6 @@ abstract class BaseComponentsCompletionsPromptFactory implements IPromptFactory 
 		if (this.instantiationService.invokeFunction(useContextProviderAPI, completionState.textDocument.detectedLanguageId, telemetryData)) {
 			resolvedContextItems = await this.contextProviderBridge.resolution(completionId);
 			const { textDocument } = completionState;
-			// Turn off neighboring files if:
-			// - it's not explicitly enabled via EXP flag
-			// - there are matched context providers
 			const matchedContextItems = resolvedContextItems.filter(matchContextItems);
 			if (!this.instantiationService.invokeFunction(similarFilesEnabled, textDocument.detectedLanguageId, matchedContextItems, telemetryData)) {
 				turnOffSimilarFiles = true;
@@ -348,7 +336,7 @@ abstract class BaseComponentsCompletionsPromptFactory implements IPromptFactory 
 				`contextProvider.traits`,
 				traits,
 				textDocument.detectedLanguageId,
-				textDocument.detectedLanguageId, // TextDocumentContext does not have clientLanguageId
+				textDocument.detectedLanguageId,
 				telemetryData
 			);
 
@@ -377,13 +365,12 @@ abstract class BaseComponentsCompletionsPromptFactory implements IPromptFactory 
 		if (cancellationToken?.isCancellationRequested) {
 			return _promptCancelled;
 		}
-		if (await this.ignoreService.isCopilotIgnored(URI.parse(textDocument.uri))) {
+		if (await this.ignoreService.isIgnored(URI.parse(textDocument.uri))) {
 			return _dardcorContentExclusion;
 		}
 
 		const eligibleChars = suffixPercent > 0 ? textDocument.getText().length : textDocument.offsetAt(position);
 		if (eligibleChars < MIN_PROMPT_CHARS && !MIN_PROMPT_EXCLUDED_LANGUAGE_IDS.includes(textDocument.detectedLanguageId)) {
-			// Too short context
 			return _contextTooShort;
 		}
 	}
@@ -480,7 +467,6 @@ abstract class BaseComponentsCompletionsPromptFactory implements IPromptFactory 
 		return new promptInfo.renderer();
 	}
 
-	/** Public for testing */
 	public addDefaultDiagnosticBag(resolvedContextItems: ResolvedContextItem[], bags: DiagnosticBagWithId[] | undefined, completionId: string, completionState: CompletionState, settings: DefaultDiagnosticSettings | undefined): DiagnosticBagWithId[] | undefined {
 		if (settings === undefined) {
 			return bags;
@@ -570,10 +556,6 @@ export class ComponentsCompletionsPromptFactory extends BaseComponentsCompletion
 
 export class TestComponentsCompletionsPromptFactory extends BaseComponentsCompletionsPromptFactory { }
 
-// Similar files is enabled if:
-// - the languageId is C/C++.
-// - it's explicitly enabled via EXP flag or config.
-// - no code snippets are provided (which includes the case when all providers error).
 function similarFilesEnabled(
 	accessor: ServicesAccessor,
 	detectedLanguageId: string,

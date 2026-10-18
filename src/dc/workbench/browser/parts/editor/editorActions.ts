@@ -459,13 +459,11 @@ export class CloseEditorTabAction extends Action {
 	override async run(context?: IEditorCommandsContext): Promise<void> {
 		const group = context ? this.editorGroupService.getGroup(context.groupId) : this.editorGroupService.activeGroup;
 		if (!group) {
-			// group mentioned in context does not exist
 			return;
 		}
 
 		const targetEditor = context?.editorIndex !== undefined ? group.getEditorByIndex(context.editorIndex) : group.activeEditor;
 		if (!targetEditor) {
-			// No editor open or editor at index does not exist
 			return;
 		}
 
@@ -476,7 +474,6 @@ export class CloseEditorTabAction extends Action {
 			editors.push(targetEditor);
 		}
 
-		// Close specific editors in group
 		for (const editor of editors) {
 			await group.closeEditor(editor, { preserveFocus: context?.preserveFocus });
 		}
@@ -508,16 +505,11 @@ export class RevertAndCloseEditorAction extends Action2 {
 
 			const group = activeEditorPane.group;
 
-			// first try a normal revert where the contents of the editor are restored
 			try {
 				await editorService.revert({ editor, groupId: group.id });
 			} catch (error) {
 				logService.error(error);
 
-				// if that fails, since we are about to close the editor, we accept that
-				// the editor cannot be reverted and instead do a soft revert that just
-				// enables us to close the editor. With this, a user can always close a
-				// dirty editor even when reverting fails.
 
 				await editorService.revert({ editor, groupId: group.id }, { soft: true });
 			}
@@ -552,7 +544,6 @@ export class CloseLeftEditorsInGroupAction extends Action2 {
 			return { editor: context.editor, group: editorGroupService.getGroup(context.groupId) };
 		}
 
-		// Fallback to active group
 		return { group: editorGroupService.activeGroup, editor: editorGroupService.activeGroup.activeEditor };
 	}
 }
@@ -562,9 +553,6 @@ abstract class AbstractCloseAllAction extends Action2 {
 	protected groupsToClose(editorGroupService: IEditorGroupsService): IEditorGroup[] {
 		const groupsToClose: IEditorGroup[] = [];
 
-		// Close editors in reverse order of their grid appearance so that the editor
-		// group that is the first (top-left) remains. This helps to keep view state
-		// for editors around that have been opened in this visually first group.
 		const groups = editorGroupService.getGroups(GroupsOrder.GRID_APPEARANCE);
 		for (let i = groups.length - 1; i >= 0; i--) {
 			groupsToClose.push(groups[i]);
@@ -581,13 +569,11 @@ abstract class AbstractCloseAllAction extends Action2 {
 		const filesConfigurationService = accessor.get(IFilesConfigurationService);
 		const fileDialogService = accessor.get(IFileDialogService);
 
-		// Depending on the editor and auto save configuration,
-		// split editors into buckets for handling confirmation
 
 		const dirtyEditorsWithDefaultConfirm = new Set<IEditorIdentifier>();
 		const dirtyAutoSaveOnFocusChangeEditors = new Set<IEditorIdentifier>();
 		const dirtyAutoSaveOnWindowChangeEditors = new Set<IEditorIdentifier>();
-		const editorsWithCustomConfirm = new Map<string /* typeId */, Set<IEditorIdentifier>>();
+		const editorsWithCustomConfirm = new Map<string , Set<IEditorIdentifier>>();
 
 		for (const { editor, groupId } of editorService.getEditors(EditorsOrder.SEQUENTIAL, { excludeSticky: this.excludeSticky })) {
 			if (editor.hasCapability(EditorInputCapabilities.CannotClose)) {
@@ -598,7 +584,7 @@ abstract class AbstractCloseAllAction extends Action2 {
 			let handlerDidError = false;
 			if (editor.closeHandler) {
 				try {
-					confirmClose = editor.closeHandler.showConfirm(); // custom handling of confirmation on close
+					confirmClose = editor.closeHandler.showConfirm();
 				} catch (error) {
 					logService.error(error);
 					handlerDidError = true;
@@ -606,14 +592,13 @@ abstract class AbstractCloseAllAction extends Action2 {
 			}
 
 			if (!editor.closeHandler || handlerDidError) {
-				confirmClose = editor.isDirty() && !editor.isSaving(); // default confirm only when dirty and not saving
+				confirmClose = editor.isDirty() && !editor.isSaving();
 			}
 
 			if (!confirmClose) {
 				continue;
 			}
 
-			// Editor has custom confirm implementation
 			if (typeof editor.closeHandler?.confirm === 'function') {
 				let customEditorsToConfirm = editorsWithCustomConfirm.get(editor.typeId);
 				if (!customEditorsToConfirm) {
@@ -624,34 +609,27 @@ abstract class AbstractCloseAllAction extends Action2 {
 				customEditorsToConfirm.add({ editor, groupId });
 			}
 
-			// Editor will be saved on focus change when a
-			// dialog appears, so just track that separate
 			else if (!editor.hasCapability(EditorInputCapabilities.Untitled) && filesConfigurationService.getAutoSaveMode(editor).mode === AutoSaveMode.ON_FOCUS_CHANGE) {
 				dirtyAutoSaveOnFocusChangeEditors.add({ editor, groupId });
 			}
 
-			// Windows, Linux: editor will be saved on window change
-			// when a native dialog appears, so just track that separate
-			// (see https://github.com/microsoft/vscode/issues/134250)
 			else if ((isNative && (isWindows || isLinux)) && !editor.hasCapability(EditorInputCapabilities.Untitled) && filesConfigurationService.getAutoSaveMode(editor).mode === AutoSaveMode.ON_WINDOW_CHANGE) {
 				dirtyAutoSaveOnWindowChangeEditors.add({ editor, groupId });
 			}
 
-			// Editor will show in generic file based dialog
 			else {
 				dirtyEditorsWithDefaultConfirm.add({ editor, groupId });
 			}
 		}
 
-		// 1.) Show default file based dialog
 		if (dirtyEditorsWithDefaultConfirm.size > 0) {
 			const editors = Array.from(dirtyEditorsWithDefaultConfirm.values());
 
-			await this.revealEditorsToConfirm(editors, editorGroupService); // help user make a decision by revealing editors
+			await this.revealEditorsToConfirm(editors, editorGroupService);
 
 			const confirmation = await fileDialogService.showSaveConfirm(editors.map(({ editor }) => {
 				if (editor instanceof SideBySideEditorInput) {
-					return editor.primary.getName(); // prefer shorter names by using primary's name in this case
+					return editor.primary.getName();
 				}
 
 				return editor.getName();
@@ -669,11 +647,10 @@ abstract class AbstractCloseAllAction extends Action2 {
 			}
 		}
 
-		// 2.) Show custom confirm based dialog
 		for (const [, editorIdentifiers] of editorsWithCustomConfirm) {
 			const editors = Array.from(editorIdentifiers.values());
 
-			await this.revealEditorsToConfirm(editors, editorGroupService); // help user make a decision by revealing editors
+			await this.revealEditorsToConfirm(editors, editorGroupService);
 
 			const confirmation = await editors.at(0)?.editor.closeHandler?.confirm?.(editors);
 			if (typeof confirmation === 'number') {
@@ -690,50 +667,35 @@ abstract class AbstractCloseAllAction extends Action2 {
 			}
 		}
 
-		// 3.) Save autosaveable editors (focus change)
 		if (dirtyAutoSaveOnFocusChangeEditors.size > 0) {
 			const editors = Array.from(dirtyAutoSaveOnFocusChangeEditors.values());
 
 			await editorService.save(editors, { reason: SaveReason.FOCUS_CHANGE });
 		}
 
-		// 4.) Save autosaveable editors (window change)
 		if (dirtyAutoSaveOnWindowChangeEditors.size > 0) {
 			const editors = Array.from(dirtyAutoSaveOnWindowChangeEditors.values());
 
 			await editorService.save(editors, { reason: SaveReason.WINDOW_CHANGE });
 		}
 
-		// 5.) Finally close all editors: even if an editor failed to
-		// save or revert and still reports dirty, the editor part makes
-		// sure to bring up another confirm dialog for those editors
-		// specifically.
 		return this.doCloseAll(editorGroupService);
 	}
 
 	private revertEditors(editorService: IEditorService, logService: ILogService, progressService: IProgressService, editors: IEditorIdentifier[]): Promise<void> {
 		return progressService.withProgress({
-			location: ProgressLocation.Window, 	// use window progress to not be too annoying about this operation
-			delay: 800,							// delay so that it only appears when operation takes a long time
+			location: ProgressLocation.Window,
+			delay: 800,
 			title: localize('reverting', "Reverting Editors..."),
 		}, () => this.doRevertEditors(editorService, logService, editors));
 	}
 
 	private async doRevertEditors(editorService: IEditorService, logService: ILogService, editors: IEditorIdentifier[]): Promise<void> {
 		try {
-			// We first attempt to revert all editors with `soft: false`, to ensure that
-			// working copies revert to their state on disk. Even though we close editors,
-			// it is possible that other parties hold a reference to the working copy
-			// and expect it to be in a certain state after the editor is closed without
-			// saving.
 			await editorService.revert(editors);
 		} catch (error) {
 			logService.error(error);
 
-			// if that fails, since we are about to close the editor, we accept that
-			// the editor cannot be reverted and instead do a soft revert that just
-			// enables us to close the editor. With this, a user can always close a
-			// dirty editor even when reverting fails.
 			await editorService.revert(editors, { soft: true });
 		}
 	}
@@ -752,7 +714,6 @@ abstract class AbstractCloseAllAction extends Action2 {
 				await group?.openEditor(editor);
 			}
 		} catch (error) {
-			// ignore any error as the revealing is just convinience
 		}
 	}
 
@@ -783,7 +744,7 @@ export class CloseAllEditorsAction extends AbstractCloseAllAction {
 	}
 
 	protected get excludeSticky(): boolean {
-		return true; // exclude sticky from this mass-closing operation
+		return true;
 	}
 }
 
@@ -803,7 +764,7 @@ export class CloseAllEditorGroupsAction extends AbstractCloseAllAction {
 	}
 
 	protected get excludeSticky(): boolean {
-		return false; // the intent to close groups means, even sticky are included
+		return false;
 	}
 
 	protected override async doCloseAll(editorGroupService: IEditorGroupsService): Promise<void> {
@@ -904,9 +865,6 @@ abstract class AbstractMoveCopyGroupAction extends Action2 {
 	private findTargetGroup(editorGroupService: IEditorGroupsService, sourceGroup: IEditorGroup): IEditorGroup | undefined {
 		const targetNeighbours: GroupDirection[] = [this.direction];
 
-		// Allow the target group to be in alternative locations to support more
-		// scenarios of moving the group to the taret location.
-		// Helps for https://github.com/microsoft/vscode/issues/50741
 		switch (this.direction) {
 			case GroupDirection.LEFT:
 			case GroupDirection.RIGHT:
@@ -1178,13 +1136,13 @@ export class ToggleMaximizeEditorGroupAction extends Action2 {
 			},
 			menu: [{
 				id: MenuId.EditorTitle,
-				order: -10000, // towards the front
+				order: -10000,
 				group: 'navigation',
 				when: EditorPartMaximizedEditorGroupContext
 			},
 			{
 				id: MenuId.EmptyEditorGroup,
-				order: -10000, // towards the front
+				order: -10000,
 				group: 'navigation',
 				when: EditorPartMaximizedEditorGroupContext
 			}],
@@ -1253,7 +1211,6 @@ export class OpenNextEditor extends AbstractNavigateEditorAction {
 
 	protected navigate(editorGroupService: IEditorGroupsService): IEditorIdentifier | undefined {
 
-		// Navigate in active group if possible
 		const activeGroup = editorGroupService.activeGroup;
 		const activeGroupEditors = activeGroup.getEditors(EditorsOrder.SEQUENTIAL);
 		const activeEditorIndex = activeGroup.activeEditor ? activeGroupEditors.indexOf(activeGroup.activeEditor) : -1;
@@ -1261,7 +1218,6 @@ export class OpenNextEditor extends AbstractNavigateEditorAction {
 			return { editor: activeGroupEditors[activeEditorIndex + 1], groupId: activeGroup.id };
 		}
 
-		// Otherwise try in next group that has editors
 		const handledGroups = new Set<number>();
 		let currentGroup: IEditorGroup | undefined = editorGroupService.activeGroup;
 		while (currentGroup && !handledGroups.has(currentGroup.id)) {
@@ -1301,7 +1257,6 @@ export class OpenPreviousEditor extends AbstractNavigateEditorAction {
 
 	protected navigate(editorGroupService: IEditorGroupsService): IEditorIdentifier | undefined {
 
-		// Navigate in active group if possible
 		const activeGroup = editorGroupService.activeGroup;
 		const activeGroupEditors = activeGroup.getEditors(EditorsOrder.SEQUENTIAL);
 		const activeEditorIndex = activeGroup.activeEditor ? activeGroupEditors.indexOf(activeGroup.activeEditor) : -1;
@@ -1309,7 +1264,6 @@ export class OpenPreviousEditor extends AbstractNavigateEditorAction {
 			return { editor: activeGroupEditors[activeEditorIndex - 1], groupId: activeGroup.id };
 		}
 
-		// Otherwise try in previous group that has editors
 		const handledGroups = new Set<number>();
 		let currentGroup: IEditorGroup | undefined = editorGroupService.activeGroup;
 		while (currentGroup && !handledGroups.has(currentGroup.id)) {
@@ -1698,7 +1652,6 @@ export class ClearRecentFilesAction extends Action2 {
 		const workspacesService = accessor.get(IWorkspacesService);
 		const historyService = accessor.get(IHistoryService);
 
-		// Ask for confirmation
 		const { confirmed } = await dialogService.confirm({
 			type: 'warning',
 			message: localize('confirmClearRecentsMessage', "Do you want to clear all recently opened files and workspaces?"),
@@ -1713,7 +1666,6 @@ export class ClearRecentFilesAction extends Action2 {
 		// Clear global recently opened
 		workspacesService.clearRecentlyOpened();
 
-		// Clear workspace specific recently opened
 		historyService.clearRecentlyOpened();
 	}
 }
@@ -1891,8 +1843,6 @@ export class QuickAccessPreviousEditorFromHistoryAction extends Action2 {
 
 		const keybindings = keybindingService.lookupKeybindings(QuickAccessPreviousEditorFromHistoryAction.ID);
 
-		// Enforce to activate the first item in quick access if
-		// the currently active editor group has n editor opened
 		let itemActivation: ItemActivation | undefined = undefined;
 		if (editorGroupService.activeGroup.count === 0) {
 			itemActivation = ItemActivation.FIRST;
@@ -1990,7 +1940,6 @@ export class ClearEditorHistoryWithoutConfirmAction extends Action2 {
 	override async run(accessor: ServicesAccessor): Promise<void> {
 		const historyService = accessor.get(IHistoryService);
 
-		// Clear editor history
 		historyService.clear();
 	}
 }
@@ -2009,7 +1958,6 @@ export class ClearEditorHistoryAction extends Action2 {
 		const dialogService = accessor.get(IDialogService);
 		const historyService = accessor.get(IHistoryService);
 
-		// Ask for confirmation
 		const { confirmed } = await dialogService.confirm({
 			type: 'warning',
 			message: localize('confirmClearEditorHistoryMessage', "Do you want to clear the history of recently opened editors?"),
@@ -2021,7 +1969,6 @@ export class ClearEditorHistoryAction extends Action2 {
 			return;
 		}
 
-		// Clear editor history
 		historyService.clear();
 	}
 }
@@ -2436,16 +2383,6 @@ abstract class AbstractCreateEditorGroupAction extends Action2 {
 		const editorGroupService = accessor.get(IEditorGroupsService);
 		const layoutService = accessor.get(IWorkbenchLayoutService);
 
-		// We are about to create a new empty editor group. We make an opiniated
-		// decision here whether to focus that new editor group or not based
-		// on what is currently focused. If focus is outside the editor area not
-		// in the <body>, we do not focus, with the rationale that a user might
-		// have focus on a tree/list with the intention to pick an element to
-		// open in the new group from that tree/list.
-		//
-		// If focus is inside the editor area, we want to prevent the situation
-		// of an editor having keyboard focus in an inactive editor group
-		// (see https://github.com/microsoft/vscode/issues/189256)
 
 		const activeDocument = getActiveDocument();
 		const focusNewGroup = layoutService.hasFocus(Parts.EDITOR_PART) || activeDocument.activeElement === activeDocument.body;
@@ -2538,7 +2475,6 @@ export class ToggleEditorTypeAction extends Action2 {
 			return;
 		}
 
-		// Replace the current editor with the next avaiable editor type
 		await editorService.replaceEditors([
 			{
 				editor: activeEditorPane.input,
@@ -2599,7 +2535,7 @@ abstract class BaseMoveCopyEditorToNewWindowAction extends Action2 {
 
 		const auxiliaryEditorPart = await editorGroupsService.createAuxiliaryEditorPart();
 
-		const { group, editors } = resolvedContext.groupedEditors[0]; // only single group supported for move/copy for now
+		const { group, editors } = resolvedContext.groupedEditors[0];
 		const editorsWithOptions = prepareMoveCopyEditors(group, editors, resolvedContext.preserveFocus);
 		if (this.move) {
 			group.moveEditors(editorsWithOptions, auxiliaryEditorPart.activeGroup);

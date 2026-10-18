@@ -100,7 +100,6 @@ export interface IPagedListOptions<T> {
 	readonly multipleSelectionSupport?: boolean;
 	readonly accessibilityProvider?: IListAccessibilityProvider<T>;
 
-	// list view options
 	readonly useShadows?: boolean;
 	readonly verticalScrollMode?: ScrollbarVisibility;
 	readonly setRowLineHeight?: boolean;

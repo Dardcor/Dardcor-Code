@@ -15,7 +15,7 @@ export interface IRecordableLogEntry {
 }
 
 export interface IRecordableEditorLogEntry extends IRecordableLogEntry {
-	modelUri: URI; // This has to be a URI, so that it gets translated automatically in remote scenarios
+	modelUri: URI;
 	modelVersion: number;
 }
 
@@ -49,9 +49,6 @@ interface IFetchResult {
 }
 
 
-/**
- * The sourceLabel must not contain '@'!
-*/
 export function formatRecordableLogEntry<T extends IRecordableLogEntry>(entry: T): string {
 	// eslint-disable-next-line local/code-no-any-casts
 	return entry.sourceId + ' @@ ' + JSON.stringify({ ...entry, modelUri: (entry as any).modelUri?.toString(), sourceId: undefined });

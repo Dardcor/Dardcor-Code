@@ -72,7 +72,6 @@ class NotebookModelReferenceCollection extends ReferenceCollection<Promise<IReso
 	}
 
 	protected async createReferencedObject(key: string, notebookType: string, hasAssociatedFilePath: boolean, limits?: IFileReadLimits, isScratchpad?: boolean, viewType?: string): Promise<IResolvedNotebookEditorModel> {
-		// Untrack as being disposed
 		this.modelsToDispose.delete(key);
 
 		const uri = URI.parse(key);
@@ -95,9 +94,6 @@ class NotebookModelReferenceCollection extends ReferenceCollection<Promise<IReso
 		const result = await model.load({ limits });
 
 
-		// Whenever a notebook model is dirty we automatically reference it so that
-		// we can ensure that at least one reference exists. That guarantees that
-		// a model with unsaved changes is never disposed.
 		let onDirtyAutoReference: IReference<any> | undefined;
 
 		this._modelListener.set(result, combinedDisposable(
@@ -106,8 +102,6 @@ class NotebookModelReferenceCollection extends ReferenceCollection<Promise<IReso
 				const isDirty = result.isDirty();
 				this._dirtyStates.set(result.resource, isDirty);
 
-				// isDirty -> add reference
-				// !isDirty -> free reference
 				if (isDirty && !onDirtyAutoReference) {
 					onDirtyAutoReference = this.acquire(key, notebookType);
 				} else if (onDirtyAutoReference) {
@@ -130,7 +124,6 @@ class NotebookModelReferenceCollection extends ReferenceCollection<Promise<IReso
 				const model = await object;
 
 				if (!this.modelsToDispose.has(key)) {
-					// return if model has been acquired again meanwhile
 					return;
 				}
 
@@ -139,18 +132,16 @@ class NotebookModelReferenceCollection extends ReferenceCollection<Promise<IReso
 				}
 
 				if (!this.modelsToDispose.has(key)) {
-					// return if model has been acquired again meanwhile
 					return;
 				}
 
-				// Finally we can dispose the model
 				this._modelListener.get(model)?.dispose();
 				this._modelListener.delete(model);
 				model.dispose();
 			} catch (err) {
 				this._notebookLoggingService.error('NotebookModelCollection', 'FAILED to destory notebook - ' + err);
 			} finally {
-				this.modelsToDispose.delete(key); // Untrack as being disposed
+				this.modelsToDispose.delete(key);
 			}
 		})();
 	}
@@ -238,7 +229,6 @@ export class NotebookModelResolverServiceImpl implements INotebookEditorModelRes
 
 			await this._onWillFailWithConflict.fireAsync({ resource: resource, viewType }, CancellationToken.None);
 
-			// check again, listener should have done cleanup
 			const existingViewType2 = this._notebookService.getNotebookTextModel(resource)?.viewType;
 			if (existingViewType2 && existingViewType2 !== viewType) {
 				throw new Error(`A notebook with view type '${existingViewType2}' already exists for '${resource}', CANNOT create another notebook with view type ${viewType}`);

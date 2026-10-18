@@ -174,10 +174,6 @@ describe('VsCodeClaudeAgentSdkLoaderService', () => {
 
 		it('returns true without waiting when the extension becomes available between the pre-check and listener registration', async () => {
 			await configurationService.setConfig(ConfigKey.ClaudeAgentSdkExtensionInstallTimeout, 60_000);
-			// First isAvailable check (line 46) sees no extension. By the time the
-			// listener is hooked up and the post-registration re-check runs, the
-			// extension has appeared — but no onDidChange event will fire to wake
-			// the waiter. The post-registration re-check must catch it.
 			let lookupCount = 0;
 			mockState.getExtensionImpl = () => {
 				lookupCount++;

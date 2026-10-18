@@ -15,10 +15,6 @@ import {
 import { DataConsumer, Dispatch, StateUpdater, TypePredicate, UseData, UseState } from './hooks';
 import { DataPipe } from './virtualPrompt';
 
-/**
- * A virtual prompt node is an in-memory representation of a prompt component in its rendered form.
- * It is constructed from a `PromptElement` and contains the name of the component that it was constructed from, and resolved external context and state.
- */
 export type VirtualPromptNode = {
 	name: string;
 	path: string;
@@ -30,16 +26,12 @@ export type VirtualPromptNode = {
 
 type VirtualPromptNodeChild = VirtualPromptNode | undefined;
 
-/**
- * Translate a `PromptComponentChild` object into a virtual prompt node.
- */
 
 export class VirtualPromptReconciler {
 	private lifecycleData: Map<string, PromptElementLifecycleData> = new Map();
 	private vTree: VirtualPromptNode | undefined;
 
 	constructor(prompt: PromptElement) {
-		// Initial virtualization
 		this.vTree = this.virtualizeElement(prompt, '$', 0);
 	}
 
@@ -60,20 +52,17 @@ export class VirtualPromptReconciler {
 		nodeIndex: number,
 		cancellationToken?: CancellationToken
 	): VirtualPromptNodeChild {
-		// If the node has no children or does not have a lifecycle, return it as is (primitive nodes)
 		if (!node.children && !node.lifecycle) { return node; }
 
 		let newNode: VirtualPromptNodeChild = node;
 
 		const needsReconciliation = node.lifecycle?.isRemountRequired();
 
-		// If the node needs reconciliation, virtualize it again
 		if (needsReconciliation) {
 			const oldChildrenPaths = this.collectChildPaths(node);
 			newNode = this.virtualizeElement(node.component, parentNodePath, nodeIndex);
 			const newChildrenPaths = this.collectChildPaths(newNode);
 			this.cleanupState(oldChildrenPaths, newChildrenPaths);
-			// Otherwise, check if the children need reconciliation
 		} else if (node.children) {
 			const children: VirtualPromptNode[] = [];
 			for (let i = 0; i < node.children.length; i++) {
@@ -160,7 +149,6 @@ export class VirtualPromptReconciler {
 				keyCount.set(key, (keyCount.get(key) || 0) + 1);
 			}
 		}
-		// Find all duplicates
 		const duplicates = Array.from(keyCount.entries())
 			.filter(([_, count]) => count > 1)
 			.map(([key]) => key);

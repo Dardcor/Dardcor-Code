@@ -12,10 +12,6 @@ import { ILaunchJSON, ITasksJSON } from '../common/launchConfigService';
 
 export type IStartDebuggingParsedResponse = ILaunchJSON & Partial<ITasksJSON>;
 
-/**
- * Parses a launch configuration from the response or any code blocks it contains.
- * Always returns a well-structured {@link ILaunchJSON}.
- */
 export const parseLaunchConfigFromResponse = (response: string, extensionsService: IExtensionsService): IStartDebuggingParsedResponse | undefined => {
 
 	const codeBlocks = extractCodeBlocks(response);
@@ -52,7 +48,6 @@ function tryGetJsonDataFromPart<T>(attempts: readonly string[], process: (parsed
 				return processed;
 			}
 		} catch {
-			// continue
 		}
 	}
 
@@ -61,7 +56,6 @@ function tryGetJsonDataFromPart<T>(attempts: readonly string[], process: (parsed
 
 const defaultSchema = ['name', 'type', 'request', 'debugServer', 'preLaunchTask', 'postDebugTask', 'presentation', 'internalConsoleOptions', 'suppressMultipleSessionWarning'];
 function processSchemaProperties(parsed: any, extensionsService: IExtensionsService): DebugConfiguration {
-	// See #7684
 	if ('type' in parsed && parsed['type'] === 'python') {
 		parsed['type'] = 'debugpy';
 	}

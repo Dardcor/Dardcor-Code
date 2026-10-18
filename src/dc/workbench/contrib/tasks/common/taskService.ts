@@ -66,7 +66,6 @@ export interface IWorkspaceFolderTaskResult extends IWorkspaceTaskResult {
 export interface ITaskService {
 	readonly _serviceBrand: undefined;
 	readonly onDidStateChange: Event<ITaskEvent>;
-	/** Fired when task providers are registered or unregistered */
 	readonly onDidChangeTaskProviders: Event<void>;
 	isReconnected: boolean;
 	readonly onDidReconnectToTasks: Event<void>;
@@ -80,10 +79,6 @@ export interface ITaskService {
 	terminate(task: Task): Promise<ITaskTerminateResponse>;
 	tasks(filter?: ITaskFilter): Promise<Task[]>;
 	rerun(terminalInstanceId: number): void;
-	/**
-	 * Gets tasks currently known to the task system. Unlike {@link tasks},
-	 * this does not activate extensions or prompt for workspace trust.
-	 */
 	getKnownTasks(filter?: ITaskFilter): Promise<Task[]>;
 	taskTypes(): string[];
 	getWorkspaceTasks(runSource?: TaskRunSource): Promise<Map<string, IWorkspaceFolderTaskResult>>;
@@ -91,9 +86,6 @@ export interface ITaskService {
 	removeRecentlyUsedTask(taskRecentlyUsedKey: string): void;
 	getTerminalsForTasks(tasks: SingleOrMany<Task>): URI[] | undefined;
 	getTaskProblems(instanceId: number): Map<string, { resources: URI[]; markers: IMarkerData[] }> | undefined;
-	/**
-	 * @param alias The task's name, label or defined identifier.
-	 */
 	getTask(workspaceFolder: IWorkspace | IWorkspaceFolder | string, alias: string | ITaskIdentifier, compareId?: boolean): Promise<Task | undefined>;
 	tryResolveTask(configuringTask: ConfiguringTask): Promise<Task | undefined>;
 	createSorter(): TaskSorter;

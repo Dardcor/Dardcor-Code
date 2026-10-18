@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as fs from 'fs';
-import '../../src/extension/intents/node/allIntents'; // make sure all intents are registered
+import '../../src/extension/intents/node/allIntents';
 import { ChatLocation } from '../../src/platform/chat/common/commonTypes';
 import { join } from '../../src/util/dardcor/base/common/path';
 import { ssuite } from '../base/stest';
@@ -11,9 +11,6 @@ import { generateIntentTest } from './intentTest';
 
 ssuite({ title: 'intent', location: 'panel' }, () => {
 	runAdditionalCases(join(__dirname, '../test/intent/panel-chat.json'));
-	// Uncomment this line to run additional intent detection tests
-	// runAdditionalCases(join(__dirname, '../test/intent/panel-chat-github.json'));
-	// runAdditionalCases(join(__dirname, '../test/intent/panel-chat-unknown.json'));
 });
 
 function runAdditionalCases(sourceFile: string) {

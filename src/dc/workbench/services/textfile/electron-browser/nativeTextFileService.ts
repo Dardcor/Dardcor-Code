@@ -60,17 +60,12 @@ export class NativeTextFileService extends AbstractTextFileService {
 
 	private registerListeners(): void {
 
-		// Lifecycle
 		this._register(this.lifecycleService.onWillShutdown(event => event.join(this.onWillShutdown(), { id: 'join.textFiles', label: localize('join.textFiles', "Saving text files") })));
 	}
 
 	private async onWillShutdown(): Promise<void> {
 		let modelsPendingToSave: ITextFileEditorModel[];
 
-		// As long as models are pending to be saved, we prolong the shutdown
-		// until that has happened to ensure we are not shutting down in the
-		// middle of writing to the file
-		// (https://github.com/microsoft/vscode/issues/116600)
 		while ((modelsPendingToSave = this.files.models.filter(model => model.hasState(TextFileEditorModelState.PENDING_SAVE))).length > 0) {
 			await Promises.settled(modelsPendingToSave.map(model => model.joinState(TextFileEditorModelState.PENDING_SAVE)));
 		}
@@ -78,7 +73,6 @@ export class NativeTextFileService extends AbstractTextFileService {
 
 	override async read(resource: URI, options?: IReadTextFileOptions): Promise<ITextFileContent> {
 
-		// ensure platform limits are applied
 		options = this.ensureLimits(options);
 
 		return super.read(resource, options);
@@ -86,7 +80,6 @@ export class NativeTextFileService extends AbstractTextFileService {
 
 	override async readStream(resource: URI, options?: IReadTextFileOptions): Promise<ITextFileStreamContent> {
 
-		// ensure platform limits are applied
 		options = this.ensureLimits(options);
 
 		return super.readStream(resource, options);

@@ -116,8 +116,6 @@ export class NotebookCellEditorPool extends Disposable {
 				const latestActiveCell = this.notebookEditor.getActiveCell();
 
 				if (latestActiveCell !== cell || latestActiveCell.focusMode !== CellFocusMode.Editor) {
-					// focus moves to another cell or cell container
-					// we should stop preserving the editor
 					this._editorDisposable.clear();
 					this._editor.setModel(null);
 					ref.dispose();

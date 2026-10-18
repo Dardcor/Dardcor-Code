@@ -54,8 +54,6 @@ suite('MainThreadChatAgents2', function () {
 		instantiationService = new TestInstantiationService();
 		warnings = [];
 
-		// `$invokeAgent` is kept pending so the `_pendingProgress` entry registered at
-		// the start of `invoke` stays alive while we route a usage chunk through it.
 		const invokePromise = new Promise<unknown>(resolve => { resolveInvoke = resolve; });
 		const proxy = {
 			$acceptActiveChatSession: () => { },
@@ -147,11 +145,6 @@ suite('MainThreadChatAgents2', function () {
 		};
 	}
 
-	/**
-	 * Starts an agent invocation (which registers the pending-progress entry) and routes a
-	 * single usage chunk through `$handleProgressChunk`, returning the parts forwarded to the
-	 * agent's progress callback.
-	 */
 	async function routeUsageChunk(request: IChatAgentRequest): Promise<IChatProgress[]> {
 		const forwarded: IChatProgress[] = [];
 		const invoke = agentImpl.invoke(request, parts => forwarded.push(...parts), [], CancellationToken.None);

@@ -31,13 +31,9 @@ describe('BackOffTracker', () => {
 
 		expect(log).toEqual([
 			{ op: 'initial', threshold: 3, isBackedOff: false },
-			// +1 pass -> 3 + 1*2
 			{ op: 'afterPass', threshold: 5, isBackedOff: true },
-			// +1 noop on top of the pass -> 3 + (1+1)*2
 			{ op: 'afterNoop', threshold: 7, isBackedOff: true },
-			// clearing noops keeps the turn-length growth -> 3 + 1*2
 			{ op: 'afterClearNoops', threshold: 5, isBackedOff: true },
-			// 4 passes total would be 3 + 4*2 = 11, capped at max 9
 			{ op: 'afterThreeMorePasses', threshold: 9, isBackedOff: true },
 			{ op: 'afterReset', threshold: 3, isBackedOff: false },
 		]);
@@ -46,7 +42,7 @@ describe('BackOffTracker', () => {
 	test('isReady is true only once the substantive round count meets the current threshold', () => {
 		const tracker = new BackOffTracker(3, 2, 24);
 		const initial = { below: tracker.isReady(2), at: tracker.isReady(3), above: tracker.isReady(4) };
-		tracker.recordPass(); // threshold grows from 3 to 5
+		tracker.recordPass();
 		const afterPass = { below: tracker.isReady(4), at: tracker.isReady(5), above: tracker.isReady(6) };
 		expect({ initial, afterPass }).toEqual({
 			initial: { below: false, at: true, above: true },

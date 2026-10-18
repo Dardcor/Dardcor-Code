@@ -96,8 +96,7 @@ suite('codexPromptResolver', () => {
 		const imageItem = input.find(i => i.type === 'localImage') as { type: 'localImage'; path: string };
 		assert.ok(imageItem, 'expected localImage item');
 		assert.ok(imageItem.path.endsWith('.png'));
-		// Cleanup so the test doesn't leak the tmp file.
-		try { fs.unlinkSync(cleanupPaths[0]); } catch { /* ignore */ }
+		try { fs.unlinkSync(cleanupPaths[0]); } catch { }
 	});
 
 	test('non-image EmbeddedResource is dropped silently', () => {

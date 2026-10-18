@@ -41,17 +41,14 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerPathResolver(() => [testFile1]);
 			await tracker.takeSnapshot();
 
-			// No changes immediately after snapshot
 			const hasChanges = await tracker.hasChanges();
 			expect(hasChanges).toBe(false);
 		});
 
 		it('should record non-existent files as 0 mtime', async () => {
-			// testFile1 is not mocked, so stat will throw
 			tracker.registerPathResolver(() => [testFile1]);
 			await tracker.takeSnapshot();
 
-			// No changes immediately after snapshot
 			const hasChanges = await tracker.hasChanges();
 			expect(hasChanges).toBe(false);
 		});
@@ -74,7 +71,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerPathResolver(() => [testFile1]);
 			await tracker.takeSnapshot();
 
-			// Simulate file modification by updating mtime
 			mockFs.mockFile(testFile1, '# Updated Instructions', 2000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -82,11 +78,9 @@ describe('ClaudeSettingsChangeTracker', () => {
 		});
 
 		it('should return true when a new file is created', async () => {
-			// File doesn't exist at snapshot time
 			tracker.registerPathResolver(() => [testFile1]);
 			await tracker.takeSnapshot();
 
-			// File is created
 			mockFs.mockFile(testFile1, '# New Instructions', 1000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -99,7 +93,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerPathResolver(() => [testFile1]);
 			await tracker.takeSnapshot();
 
-			// Simulate file deletion by mocking an error
 			mockFs.mockError(testFile1, new Error('ENOENT'));
 
 			const hasChanges = await tracker.hasChanges();
@@ -113,7 +106,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerPathResolver(() => [testFile1, testFile2]);
 			await tracker.takeSnapshot();
 
-			// Modify only second file
 			mockFs.mockFile(testFile2, '{"hooks": []}', 2000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -130,7 +122,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerPathResolver(() => [testFile2]);
 			await tracker.takeSnapshot();
 
-			// Modify second file (from second resolver)
 			mockFs.mockFile(testFile2, '{"updated": true}', 2000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -144,12 +135,10 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerPathResolver(() => dynamicPaths);
 			await tracker.takeSnapshot();
 
-			// Add a new file to the resolver's list and create it
 			dynamicPaths.push(testFile3);
 			mockFs.mockFile(testFile3, '# New file', 1000);
 
 			const hasChanges = await tracker.hasChanges();
-			// testFile3 wasn't in the original snapshot, so it's a "new" file
 			expect(hasChanges).toBe(true);
 		});
 	});
@@ -183,7 +172,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerDirectoryResolver(() => [agentsDir]);
 			await tracker.takeSnapshot();
 
-			// Modify the file
 			mockFs.mockFile(agent1, '# Updated Test Runner', 2000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -199,7 +187,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerDirectoryResolver(() => [agentsDir]);
 			await tracker.takeSnapshot();
 
-			// Add a new file to the directory
 			mockFs.mockDirectory(agentsDir, [
 				['test-runner.md', FileType.File],
 				['code-reviewer.md', FileType.File],
@@ -221,7 +208,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerDirectoryResolver(() => [agentsDir]);
 			await tracker.takeSnapshot();
 
-			// Remove agent2 from directory listing
 			mockFs.mockDirectory(agentsDir, [
 				['test-runner.md', FileType.File],
 			]);
@@ -231,7 +217,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 		});
 
 		it('should handle non-existent directories gracefully', async () => {
-			// Don't mock the directory - it doesn't exist
 			tracker.registerDirectoryResolver(() => [agentsDir]);
 			await tracker.takeSnapshot();
 
@@ -256,7 +241,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerDirectoryResolver(() => [agentsDir], '.md');
 			await tracker.takeSnapshot();
 
-			// Modify the txt file - should NOT trigger change since we only track .md
 			mockFs.mockFile(URI.file('/project/.claude/agents/readme.txt'), 'updated readme', 2000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -274,7 +258,6 @@ describe('ClaudeSettingsChangeTracker', () => {
 			tracker.registerDirectoryResolver(() => [agentsDir], '.md');
 			await tracker.takeSnapshot();
 
-			// Modify the .md file - should trigger change
 			mockFs.mockFile(URI.file('/project/.claude/agents/test-runner.md'), '# Updated', 2000);
 
 			const hasChanges = await tracker.hasChanges();
@@ -287,19 +270,16 @@ describe('ClaudeSettingsChangeTracker', () => {
 			mockFs.mockFile(testFile1, '# Instructions', 1000);
 			mockFs.mockFile(testFile2, '{}', 1000);
 
-			// Register two resolvers
 			tracker.registerPathResolver(() => [testFile1]);
 			tracker.registerPathResolver(() => [testFile2]);
 			await tracker.takeSnapshot();
 
-			// Modify first file
 			mockFs.mockFile(testFile1, '# Updated', 2000);
 
 			mockFs.resetStatCallCount();
 			const hasChanges = await tracker.hasChanges();
 
 			expect(hasChanges).toBe(true);
-			// Should only have called stat once (for testFile1) before returning
 			expect(mockFs.getStatCallCount()).toBe(1);
 		});
 
@@ -315,13 +295,11 @@ describe('ClaudeSettingsChangeTracker', () => {
 			});
 			await tracker.takeSnapshot();
 
-			// Modify first file
 			mockFs.mockFile(testFile1, '# Updated', 2000);
 
 			resolver2Called = false;
 			await tracker.hasChanges();
 
-			// Second resolver should not have been called
 			expect(resolver2Called).toBe(false);
 		});
 
@@ -337,11 +315,9 @@ describe('ClaudeSettingsChangeTracker', () => {
 			});
 			await tracker.takeSnapshot();
 
-			// No modifications
 			resolver2Called = false;
 			await tracker.hasChanges();
 
-			// Both resolvers should have been called
 			expect(resolver2Called).toBe(true);
 		});
 	});

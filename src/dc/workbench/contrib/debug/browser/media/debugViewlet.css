@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Debug viewlet */
 
 .debug-pane {
 	height: 100%;
@@ -118,7 +117,6 @@
 	cursor: initial;
 }
 
-/* Debug viewlet trees */
 
 .debug-pane .line-number {
 	padding-left: 4px;
@@ -136,7 +134,6 @@
 	color: inherit;
 }
 
-/* Call stack */
 
 .debug-pane .call-stack-state-message {
 	flex: 1;
@@ -264,7 +261,6 @@
 	overflow: hidden;
 }
 
-/* Variables & Expression view */
 
 .debug-pane .scope {
 	font-weight: bold;
@@ -331,7 +327,6 @@
 	outline-offset: -1px;
 }
 
-/* Breakpoints */
 
 .debug-pane .monaco-list-row {
 	line-height: 22px;

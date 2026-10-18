@@ -119,7 +119,6 @@ export interface IConfigurationInitData extends IConfigurationData {
 export interface IMainContext extends IRPCProtocol {
 }
 
-// --- main thread
 
 export interface MainThreadGitExtensionShape extends IDisposable {
 	$onDidChangeRepository(handle: number): Promise<void>;
@@ -637,14 +636,6 @@ export interface MainThreadProgressShape extends IDisposable {
 	$progressEnd(handle: number): void;
 }
 
-/**
- * A terminal that is created on the extension host side is temporarily assigned
- * a UUID by the extension host that created it. Once the renderer side has assigned
- * a real numeric id, the numeric id will be used.
- *
- * All other terminals (that are not created on the extension host side) always
- * use the numeric id.
- */
 export type ExtHostTerminalIdentifier = number | string;
 
 export interface TerminalLaunchConfig {
@@ -687,7 +678,6 @@ export interface MainThreadTerminalServiceShape extends IDisposable {
 	$unregisterQuickFixProvider(id: string): void;
 	$setEnvironmentVariableCollection(extensionIdentifier: string, persistent: boolean, collection: ISerializableEnvironmentVariableCollection | undefined, descriptionMap: ISerializableEnvironmentDescriptionMap): void;
 
-	// Optional event toggles
 	$startSendingDataEvents(): void;
 	$stopSendingDataEvents(): void;
 	$startSendingCommandEvents(): void;
@@ -695,7 +685,6 @@ export interface MainThreadTerminalServiceShape extends IDisposable {
 	$startLinkProvider(): void;
 	$stopLinkProvider(): void;
 
-	// Process
 	$sendProcessData(terminalId: number, data: string): void;
 	$sendProcessReady(terminalId: number, pid: number, cwd: string, windowsPty: IProcessReadyWindowsPty | undefined): void;
 	$sendProcessProperty(terminalId: number, property: IProcessProperty<any>): void;
@@ -710,7 +699,6 @@ export type TransferQuickPickItemOrSeparator = TransferQuickPickItem | quickInpu
 export interface TransferQuickPickItem {
 	handle: number;
 
-	// shared properties from IQuickPickItem
 	type?: 'item';
 	label: string;
 	iconPathDto?: IconPathDto;
@@ -721,8 +709,6 @@ export interface TransferQuickPickItem {
 	buttons?: TransferQuickInputButton[];
 	resourceUri?: UriComponents;
 
-	// TODO: These properties are not used for transfer (iconPathDto is used instead) but they cannot be removed
-	// because this type is used as IQuickPickItem on the main thread. Ideally IQuickPickItem should also use IconPath.
 	iconPath?: { light?: URI; dark: URI };
 	iconClass?: string;
 }
@@ -732,8 +718,6 @@ export interface TransferQuickInputButton extends quickInput.IQuickInputButton {
 	iconPathDto: IconPathDto;
 	toggle?: { checked: boolean };
 
-	// TODO: These properties are not used for transfer (iconPathDto is used instead) but they cannot be removed
-	// because this type is used as IQuickInputButton on the main thread. Ideally IQuickInputButton should also use IconPath.
 	iconPath?: { light?: URI; dark: URI };
 	iconClass?: string;
 }
@@ -870,7 +854,6 @@ export interface ExtHostEditorInsetsShape {
 	$onDidReceiveMessage(handle: number, message: any): void;
 }
 
-//#region --- tabs model
 
 export const enum TabInputKind {
 	UnknownInput,
@@ -963,7 +946,6 @@ export interface TabInputDto {
 export type AnyInputDto = UnknownInputDto | TextInputDto | TextDiffInputDto | MultiDiffEditorInputDto | TextMergeInputDto | NotebookInputDto | NotebookDiffInputDto | CustomInputDto | WebviewInputDto | InteractiveEditorInputDto | ChatEditorInputDto | TabInputDto;
 
 export interface MainThreadEditorTabsShape extends IDisposable {
-	// manage tabs: move, close, rearrange etc
 	$moveTab(tabId: string, index: number, viewColumn: EditorGroupColumn, preserveFocus?: boolean): void;
 	$closeTab(tabIds: string[], preserveFocus?: boolean): Promise<boolean>;
 	$closeGroup(groupIds: number[], preservceFocus?: boolean): Promise<boolean>;
@@ -972,15 +954,12 @@ export interface MainThreadEditorTabsShape extends IDisposable {
 export interface IEditorTabGroupDto {
 	isActive: boolean;
 	viewColumn: EditorGroupColumn;
-	// Decided not to go with simple index here due to opening and closing causing index shifts
-	// This allows us to patch the model without having to do full rebuilds
 	tabs: IEditorTabDto[];
 	groupId: number;
 }
 
 export interface TabOperation {
 	readonly kind: TabModelOperationKind.TAB_OPEN | TabModelOperationKind.TAB_CLOSE | TabModelOperationKind.TAB_UPDATE | TabModelOperationKind.TAB_MOVE;
-	// TODO @lramos15 Possibly get rid of index for tab update, it's only needed for open and close
 	readonly index: number;
 	readonly tabDto: IEditorTabDto;
 	readonly groupId: number;
@@ -999,15 +978,11 @@ export interface IEditorTabDto {
 }
 
 export interface IExtHostEditorTabsShape {
-	// Accepts a whole new model
 	$acceptEditorTabModel(tabGroups: IEditorTabGroupDto[]): void;
-	// Only when group property changes (not the tabs inside)
 	$acceptTabGroupUpdate(groupDto: IEditorTabGroupDto): void;
-	// When a tab is added, removed, or updated
 	$acceptTabOperation(operation: TabOperation): void;
 }
 
-//#endregion
 
 export type WebviewHandle = string;
 
@@ -1086,9 +1061,6 @@ export interface WebviewMessageArrayBufferReference {
 
 	readonly index: number;
 
-	/**
-	 * Tracks if the reference is to a view instead of directly to an ArrayBuffer.
-	 */
 	readonly view?: {
 		readonly type: WebviewMessageArrayBufferViewType;
 		readonly byteLength: number;
@@ -1729,9 +1701,7 @@ export interface IChatSessionContextDto {
 }
 
 export interface IChatAgentInvokeResult extends IChatAgentResult {
-	/** Error callstack for telemetry only. Stripped at the RPC boundary — never persisted or sent to the model. */
 	errorCallstack?: string;
-	/** Error name (e.g. 'ChatQuotaExceeded', 'TypeError') for telemetry only. */
 	errorName?: string;
 }
 
@@ -2090,26 +2060,26 @@ export interface SCMGroupFeatures {
 }
 
 export type SCMRawResource = [
-	number /*handle*/,
-	UriComponents /*resourceUri*/,
-	[UriComponents | ThemeIcon | undefined, UriComponents | ThemeIcon | undefined] /*icons: light, dark*/,
-	string /*tooltip*/,
-	boolean /*strike through*/,
-	boolean /*faded*/,
-	string /*context value*/,
-	ICommandDto | undefined /*command*/,
-	UriComponents | undefined /* multiFileDiffEditorOriginalUri */,
-	UriComponents | undefined /* multiFileDiffEditorModifiedUri */,
+	number ,
+	UriComponents ,
+	[UriComponents | ThemeIcon | undefined, UriComponents | ThemeIcon | undefined] ,
+	string ,
+	boolean ,
+	boolean ,
+	string ,
+	ICommandDto | undefined ,
+	UriComponents | undefined ,
+	UriComponents | undefined ,
 ];
 
 export type SCMRawResourceSplice = [
-	number /* start */,
-	number /* delete count */,
+	number ,
+	number ,
 	SCMRawResource[]
 ];
 
 export type SCMRawResourceSplices = [
-	number, /*handle*/
+	number,
 	SCMRawResourceSplice[]
 ];
 
@@ -2175,7 +2145,7 @@ export interface MainThreadSCMShape extends IDisposable {
 	$updateSourceControl(handle: number, features: SCMProviderFeatures): Promise<void>;
 	$unregisterSourceControl(handle: number): Promise<void>;
 
-	$registerGroups(sourceControlHandle: number, groups: [number /*handle*/, string /*id*/, string /*label*/, SCMGroupFeatures, /* multiDiffEditorEnableViewChanges */ boolean][], splices: SCMRawResourceSplices[]): Promise<void>;
+	$registerGroups(sourceControlHandle: number, groups: [number , string , string , SCMGroupFeatures, boolean][], splices: SCMRawResourceSplices[]): Promise<void>;
 	$updateGroup(sourceControlHandle: number, handle: number, features: SCMGroupFeatures): Promise<void>;
 	$updateGroupLabel(sourceControlHandle: number, handle: number, label: string): Promise<void>;
 	$unregisterGroup(sourceControlHandle: number, handle: number): Promise<void>;
@@ -2334,22 +2304,11 @@ export interface MainThreadTimelineShape extends IDisposable {
 }
 
 export interface HoverWithId extends languages.Hover {
-	/**
-	 * Id of the hover
-	 */
 	id: number;
 }
 
-// -- extension host
 
 export interface ICommandMetadataDto {
-	/**
-	 * NOTE: Please use an ILocalizedString. string is in the type for backcompat for now.
-	 * A short summary of what the command does. This will be used in:
-	 * - API commands
-	 * - when showing keybindings that have no other UX
-	 * - when searching for commands in the Command Palette
-	 */
 	readonly description: ILocalizedString | string;
 	readonly args?: ReadonlyArray<{
 		readonly name: string;
@@ -2474,7 +2433,7 @@ export interface DataTransferItemDTO {
 }
 
 export interface DataTransferDTO {
-	items: Array<readonly [/* type */string, DataTransferItemDTO]>;
+	items: Array<readonly [string, DataTransferItemDTO]>;
 }
 
 export interface CheckboxUpdate {
@@ -2483,16 +2442,6 @@ export interface CheckboxUpdate {
 }
 
 export interface ExtHostTreeViewsShape {
-	/**
-	 * To reduce what is sent on the wire:
-	 * w
-	 * 	x
-	 *  y
-	 *   z
-	 *
-	 * for [x,y] returns
-	 * [[1,z]], where the inner array is [original index, ...children]
-	 */
 	$getChildren(treeViewId: string, treeItemHandles?: string[]): Promise<(readonly (number | ITreeItem)[])[] | undefined>;
 	$handleDrop(destinationViewId: string, requestId: number, treeDataTransfer: DataTransferDTO, targetHandle: string | undefined, token: CancellationToken, operationUuid?: string, sourceViewId?: string, sourceTreeItemHandles?: string[]): Promise<void>;
 	$handleDrag(sourceViewId: string, sourceTreeItemHandles: string[], operationUuid: string, token: CancellationToken): Promise<DataTransferDTO | undefined>;
@@ -2598,9 +2547,6 @@ export interface ExtHostSearchShape {
 
 export interface ExtHostExtensionServiceShape {
 	$resolveAuthority(remoteAuthority: string, resolveAttempt: number): Promise<Dto<IResolveAuthorityResult>>;
-	/**
-	 * Returns `null` if no resolver for `remoteAuthority` is found.
-	 */
 	$getCanonicalURI(remoteAuthority: string, uri: UriComponents): Promise<UriComponents | null>;
 	$startExtensionHost(extensionsDelta: IExtensionDescriptionDelta): Promise<void>;
 	$extensionTestsExecute(): Promise<number>;
@@ -2696,11 +2642,9 @@ export interface ISuggestDataDto {
 	[ISuggestDataDtoField.commitCharacters]?: string;
 	[ISuggestDataDtoField.additionalTextEdits]?: ISingleEditOperation[];
 	[ISuggestDataDtoField.kindModifier]?: languages.CompletionItemTag[];
-	// Command
 	[ISuggestDataDtoField.commandIdent]?: string;
 	[ISuggestDataDtoField.commandId]?: string;
 	[ISuggestDataDtoField.commandArguments]?: unknown[];
-	// not-standard
 	x?: ChainedCacheId;
 }
 
@@ -3050,13 +2994,9 @@ export interface ExtHostMeteredConnectionShape {
 }
 
 export interface ITerminalLinkDto {
-	/** The ID of the link to enable activation and disposal. */
 	id: number;
-	/** The startIndex of the link in the line. */
 	startIndex: number;
-	/** The length of the link in the line. */
 	length: number;
-	/** The descriptive label for what the link does when activated. */
 	label?: string;
 }
 
@@ -3118,28 +3058,12 @@ export interface ITerminalCompletionProvider {
 	triggerCharacters?: string[];
 	isBuiltin?: boolean;
 }
-/**
- * Represents a collection of {@link CompletionItem completion items} to be presented
- * in the editor.
- */
 export class TerminalCompletionListDto<T extends ITerminalCompletionItemDto = ITerminalCompletionItemDto> {
 
-	/**
-	 * Resources should be shown in the completions list
-	 */
 	resourceOptions?: TerminalCompletionResourceOptionsDto;
 
-	/**
-	 * The completion items.
-	 */
 	items: T[];
 
-	/**
-	 * Creates a new completion list.
-	 *
-	 * @param items The completion items.
-	 * @param isIncomplete The list is not complete.
-	 */
 	constructor(items?: T[], resourceOptions?: TerminalCompletionResourceOptionsDto) {
 		this.items = items ?? [];
 		this.resourceOptions = resourceOptions;
@@ -3525,7 +3449,6 @@ export interface ExtHostNotebookDocumentsAndEditorsShape {
 }
 
 export type NotebookRawContentEventDto =
-	// notebookCommon.NotebookCellsInitializeEvent<NotebookCellDto>
 	| {
 
 		readonly kind: notebookCommon.NotebookCellsChangeType.ModelChange;
@@ -3553,9 +3476,7 @@ export type NotebookRawContentEventDto =
 	| notebookCommon.NotebookCellsChangeMimeEvent
 	| notebookCommon.NotebookCellsChangeMetadataEvent
 	| notebookCommon.NotebookCellsChangeInternalMetadataEvent
-	// | notebookCommon.NotebookDocumentChangeMetadataEvent
 	| notebookCommon.NotebookCellContentChangeEvent
-	// | notebookCommon.NotebookDocumentUnknownChangeEvent
 	;
 
 export type NotebookCellsChangedEventDto = {
@@ -3637,34 +3558,21 @@ export interface ExtHostTestingShape {
 	$runControllerTests(req: IStartControllerTests[], token: CancellationToken): Promise<{ error?: string }[]>;
 	$startContinuousRun(req: ICallProfileRunHandler[], token: CancellationToken): Promise<{ error?: string }[]>;
 	$cancelExtensionTestRun(runId: string | undefined, taskId: string | undefined): void;
-	/** Handles a diff of tests, as a result of a subscribeToDiffs() call */
 	$acceptDiff(diff: TestsDiffOp.Serialized[]): void;
-	/** Expands a test item's children, by the given number of levels. */
 	$expandTest(testId: string, levels: number): Promise<void>;
-	/** Requests coverage details for a test run. Errors if not available. */
 	$getCoverageDetails(coverageId: string, testId: string | undefined, token: CancellationToken): Promise<CoverageDetails.Serialized[]>;
-	/** Disposes resources associated with a test run. */
 	$disposeRun(runId: string): void;
-	/** Configures a test run config. */
 	$configureRunProfile(controllerId: string, configId: number): void;
-	/** Asks the controller to refresh its tests */
 	$refreshTests(controllerId: string, token: CancellationToken): Promise<void>;
-	/** Ensures any pending test diffs are flushed */
 	$syncTests(): Promise<void>;
-	/** Sets the active test run profiles */
-	$setDefaultRunProfiles(profiles: Record</* controller id */string, /* profile id */ number[]>): void;
+	$setDefaultRunProfiles(profiles: Record< string, number[]>): void;
 	$getTestsRelatedToCode(uri: UriComponents, position: IPosition, token: CancellationToken): Promise<string[]>;
 	$getCodeRelatedToTest(testId: string, token: CancellationToken): Promise<ILocationDto[]>;
 
-	// --- test results:
 
-	/** Publishes that a test run finished. */
 	$publishTestResults(results: ISerializedTestResults[]): void;
-	/** Requests followup actions for a test (failure) message */
 	$provideTestFollowups(req: TestMessageFollowupRequest, token: CancellationToken): Promise<TestMessageFollowupResponse[]>;
-	/** Actions a followup actions for a test (failure) message */
 	$executeTestFollowup(id: number): Promise<void>;
-	/** Disposes followup actions for a test (failure) message */
 	$disposeTestFollowups(id: number[]): void;
 }
 
@@ -3691,12 +3599,6 @@ export interface IMcpAuthenticationDetails {
 	resourceMetadata: IAuthorizationProtectedResourceMetadata | undefined;
 	scopes: string[] | undefined;
 	clientId?: string;
-	/**
-	 * When true, the MCP server has opted into enterprise-managed authentication
-	 * (OAuth Identity Assertion Authorization Grant). The main thread is expected
-	 * to route token acquisition through the XAA authentication provider for the
-	 * configured issuer rather than the per-resource dynamic auth provider.
-	 */
 	enterpriseManaged?: boolean;
 }
 
@@ -3762,59 +3664,32 @@ export interface ITestControllerPatch {
 }
 
 export interface MainThreadTestingShape {
-	// --- test lifecycle:
 
-	/** Registers that there's a test controller with the given ID */
 	$registerTestController(controllerId: string, label: string, capability: TestControllerCapability): void;
-	/** Updates the label of an existing test controller. */
 	$updateController(controllerId: string, patch: ITestControllerPatch): void;
-	/** Diposes of the test controller with the given ID */
 	$unregisterTestController(controllerId: string): void;
-	/** Requests tests published to VS Code. */
 	$subscribeToDiffs(): void;
-	/** Stops requesting tests published to VS Code. */
 	$unsubscribeFromDiffs(): void;
-	/** Publishes that new tests were available on the given source. */
 	$publishDiff(controllerId: string, diff: TestsDiffOp.Serialized[]): void;
-	/** Gets coverage details from a test result. */
 	$getCoverageDetails(resultId: string, taskIndex: number, uri: UriComponents, token: CancellationToken): Promise<CoverageDetails.Serialized[]>;
 
-	// --- test run configurations:
 
-	/** Called when a new test run configuration is available */
 	$publishTestRunProfile(config: ITestRunProfile): void;
-	/** Updates an existing test run configuration */
 	$updateTestRunConfig(controllerId: string, configId: number, update: Partial<ITestRunProfile>): void;
-	/** Removes a previously-published test run config */
 	$removeTestProfile(controllerId: string, configId: number): void;
 
 
-	// --- test run handling:
 
-	/** Request by an extension to run tests. */
 	$runTests(req: ResolvedTestRunRequest, token: CancellationToken): Promise<string>;
-	/**
-	 * Adds tests to the run. The tests are given in descending depth. The first
-	 * item will be a previously-known test, or a test root.
-	 */
 	$addTestsToRun(controllerId: string, runId: string, tests: ITestItem.Serialized[]): void;
-	/** Updates the state of a test run in the given run. */
 	$updateTestStateInRun(runId: string, taskId: string, testId: string, state: TestResultState, duration?: number): void;
-	/** Appends a message to a test in the run. */
 	$appendTestMessagesInRun(runId: string, taskId: string, testId: string, messages: ITestMessage.Serialized[]): void;
-	/** Appends raw output to the test run.. */
 	$appendOutputToRun(runId: string, taskId: string, output: VSBuffer, location?: ILocationDto, testId?: string): void;
-	/** Triggered when coverage is added to test results. */
 	$appendCoverage(runId: string, taskId: string, coverage: IFileCoverage.Serialized): void;
-	/** Signals a task in a test run started. */
 	$startedTestRunTask(runId: string, task: ITestRunTask): void;
-	/** Signals a task in a test run ended. */
 	$finishedTestRunTask(runId: string, taskId: string): void;
-	/** Start a new extension-provided test run. */
 	$startedExtensionTestRun(req: ExtensionRunTestsRequest): void;
-	/** Signals that an extension-provided test run finished. */
 	$finishedExtensionTestRun(runId: string): void;
-	/** Marks a test (or controller) as retired in all results. */
 	$markTestRetired(testIds: string[] | undefined): void;
 }
 
@@ -4030,7 +3905,6 @@ export interface ExtHostGitExtensionShape {
 	$diffBetweenWithStats2(handle: number, ref: string, path?: string): Promise<GitDiffChangeDto[]>;
 }
 
-// --- proxy identifiers
 
 export const MainContext = {
 	MainThreadAuthentication: createProxyIdentifier<MainThreadAuthenticationShape>('MainThreadAuthentication'),

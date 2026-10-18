@@ -105,7 +105,7 @@ export class SettingsFileSystemProvider extends Disposable implements IFileSyste
 
 	private getSchemaContent(uri: URI): string {
 		const startTime = Date.now();
-		const content = schemaRegistry.getSchemaContent(uri.toString()) ?? '{}' /* Use empty schema if not yet registered */;
+		const content = schemaRegistry.getSchemaContent(uri.toString()) ?? '{}' ;
 		const logLevel = this.logService.getLevel();
 		if (logLevel === LogLevel.Debug || logLevel === LogLevel.Trace) {
 			const endTime = Date.now();

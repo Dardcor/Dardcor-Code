@@ -53,9 +53,6 @@ class FixtureQuickInputService extends QuickInputService {
 	}
 
 	override dispose(): void {
-		// Force-hide any open picks so PromptFilePickers' onDidHide handler
-		// disposes its internal DisposableStore (it skips disposal while
-		// `ignoreFocusOut` is true).
 		for (const pick of this._activePicks) {
 			pick.ignoreFocusOut = false;
 			pick.hide();
@@ -221,7 +218,6 @@ async function renderPromptFilePickerFixture({ container, disposableStore, theme
 		type,
 	});
 
-	// Wait for the quickpick widget to render and have dimensions
 	const quickInputWidget = await waitForElement<HTMLElement>(
 		quickInputHost,
 		'.quick-input-widget',
@@ -229,16 +225,13 @@ async function renderPromptFilePickerFixture({ container, disposableStore, theme
 	);
 
 	if (quickInputWidget) {
-		// Reset positioning
 		quickInputWidget.style.position = 'relative';
 		quickInputWidget.style.top = '0';
 		quickInputWidget.style.left = '0';
 
-		// Move widget to container and remove host
 		container.appendChild(quickInputWidget);
 		quickInputHost.remove();
 
-		// Set explicit dimensions on container to match widget
 		const rect = quickInputWidget.getBoundingClientRect();
 		container.style.width = `${rect.width}px`;
 		container.style.height = `${rect.height}px`;
@@ -255,7 +248,6 @@ async function waitForElement<T extends HTMLElement>(
 	while (Date.now() - start < timeout) {
 		const el = root.querySelector<T>(selector);
 		if (el && condition(el)) {
-			// Wait one more frame to ensure layout is complete
 			await new Promise(resolve => mainWindow.requestAnimationFrame(resolve));
 			return el;
 		}

@@ -47,7 +47,7 @@ suite('Stateful Linkifier', () => {
 			['\n',
 				'```',
 				'\n',
-				'[file.ts](file.ts)', // no linkification here
+				'[file.ts](file.ts)',
 				'\n',
 				'```',
 				'\n'
@@ -63,7 +63,6 @@ suite('Stateful Linkifier', () => {
 		).createLinkifier(emptyContext);
 
 		{
-			// Tokens for `[file.ts](file.ts)`
 			const parts: string[] = [
 				'[file',
 				'.ts',
@@ -79,7 +78,6 @@ suite('Stateful Linkifier', () => {
 			]);
 		}
 		{
-			// Another potential tokenization for `[file.ts](file.ts)`
 			const parts: string[] = [
 				'[',
 				'file',
@@ -96,7 +94,6 @@ suite('Stateful Linkifier', () => {
 			]);
 		}
 		{
-			// With leading space potential tokenization for `[file.ts](file.ts)`
 			const parts: string[] = [
 				' [',
 				'file',
@@ -179,17 +176,17 @@ suite('Stateful Linkifier', () => {
 				'\n',
 				'```md',
 				'\n',
-				'[file.ts](file.ts)', // No linkification
+				'[file.ts](file.ts)',
 				'\n',
 				'\t```ts',
 				'\n',
 				`\t1 + 1`,
 				'\n',
-				'\t[file.ts](file.ts)', // No linkification
+				'\t[file.ts](file.ts)',
 				'\n',
 				'\t```',
 				'\n',
-				'[file.ts](file.ts)', // No linkification
+				'[file.ts](file.ts)',
 				'\n',
 				'```',
 				'\n',
@@ -222,7 +219,7 @@ suite('Stateful Linkifier', () => {
 				'\n',
 				'~~~',
 				'\n',
-				'[file.ts](file.ts)', // no linkification here
+				'[file.ts](file.ts)',
 				'\n',
 				'~~~',
 				'\n',
@@ -242,7 +239,7 @@ suite('Stateful Linkifier', () => {
 			'```ts',
 			'\n',
 			'[file.ts](file.ts)',
-			'\n``', // Split ending backtick
+			'\n``',
 			'`',
 			'\n',
 			'[file.ts](file.ts)',
@@ -255,7 +252,7 @@ suite('Stateful Linkifier', () => {
 				'\n',
 				'```ts',
 				'\n',
-				'[file.ts](file.ts)', // no linkification here
+				'[file.ts](file.ts)',
 				'\n',
 				'```',
 				'\n',
@@ -272,11 +269,11 @@ suite('Stateful Linkifier', () => {
 		const parts: string[] = [
 			'[file.ts](file.ts)',
 			'\n',
-			'``', // Split opening backticks
+			'``',
 			'`ts',
 			'\n',
 			'[file.ts](file.ts)',
-			'\n``', // Split ending backtick
+			'\n``',
 			'`',
 			'\n',
 			'[file.ts](file.ts)',
@@ -289,7 +286,7 @@ suite('Stateful Linkifier', () => {
 				'\n',
 				'```ts',
 				'\n',
-				'[file.ts](file.ts)', // no linkification here
+				'[file.ts](file.ts)',
 				'\n',
 				'```',
 				'\n',

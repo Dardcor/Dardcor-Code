@@ -90,7 +90,6 @@ export class MainThreadOutputService extends Disposable implements MainThreadOut
 		this._outputService.showChannel(channel.id, preserveFocus);
 	}
 
-	// Show status bar indicator
 	private _showChannelQuietly(channel: IOutputChannel) {
 		const statusProperties: IStatusbarEntry = {
 			name: localize('status.showOutput', "Show Output"),

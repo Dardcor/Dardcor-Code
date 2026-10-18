@@ -108,9 +108,6 @@ export abstract class Random {
 		return edit.replacements[0];
 	}
 
-	/**
-	 * Fills the given array with random data.
-	*/
 	public nextRandomValues(data: Uint8Array): void {
 		for (let i = 0; i < data.length; i++) {
 			data[i] = this.nextIntRange(0, 256);
@@ -133,7 +130,6 @@ export abstract class Random {
 
 		this.nextRandomValues(this._data);
 
-		// set version bits
 		this._data[6] = (this._data[6] & 0x0f) | 0x40;
 		this._data[8] = (this._data[8] & 0x3f) | 0x80;
 

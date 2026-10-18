@@ -22,10 +22,6 @@ import { identityAgentHostResourceUriMapper } from '../common/agentHostUri.js';
 
 const notSupported = () => { throw new Error('Local agent host is not supported in the browser.'); };
 
-/**
- * Null implementation of {@link IAgentHostService} for browser contexts
- * where a local agent host process is not available.
- */
 export class NullAgentHostService implements IAgentHostService {
 	declare readonly _serviceBrand: undefined;
 
@@ -38,8 +34,8 @@ export class NullAgentHostService implements IAgentHostService {
 	readonly onMcpNotification = Event.None;
 
 	readonly authenticationPending: IObservable<boolean> = constObservable(false);
-	setAuthenticationPending(_pending: boolean): void { /* no-op */ }
-	startAgentHost(): void { /* no-op */ }
+	setAuthenticationPending(_pending: boolean): void { }
+	startAgentHost(): void { }
 
 	readonly initializeResult: IObservable<InitializeResult | undefined> = constObservable(undefined);
 

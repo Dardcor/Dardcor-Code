@@ -68,7 +68,7 @@ interface DocumentPasteWithProviderEditsSession {
 export type PastePreference =
 	| { readonly only: HierarchicalKind }
 	| { readonly preferences: readonly HierarchicalKind[] }
-	| { readonly providerId: string } // Only used internally
+	| { readonly providerId: string }
 	;
 
 interface CopyOperation {
@@ -90,13 +90,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 
 	private static _configureDefaultAction?: IAction;
 
-	/**
-	 * Global tracking the last copy operation.
-	 *
-	 * This is shared across all editors so that you can copy and paste between groups.
-	 *
-	 * TODO: figure out how to make this work with multiple windows
-	 */
 	private static _currentCopyOperation?: {
 		readonly handle: string;
 		readonly operations: ReadonlyArray<CopyOperation>;
@@ -172,9 +165,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 			return;
 		}
 
-		// Explicitly clear the clipboard internal state.
-		// This is needed because on web, the browser clipboard is faked out using an in-memory store.
-		// This means the resources clipboard is not properly updated when copying from the editor.
 		this._clipboardService.clearInternalState?.();
 
 		if (!this.isPasteAsEnabled()) {
@@ -205,7 +195,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 		const dataTransfer = new VSDataTransfer();
 		const providerCopyMimeTypes = providers.flatMap(x => x.copyMimeTypes ?? []);
 
-		// Save off a handle pointing to data that VS Code maintains.
 		const handle = generateUuid();
 		this.setCopyMetadata(e.clipboardData, {
 			id: handle,
@@ -253,8 +242,8 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 		}
 
 		if (
-			this._editor.getOption(EditorOption.readOnly) // Never enabled if editor is readonly.
-			|| (!this.isPasteAsEnabled() && !this._pasteAsActionContext) // Or feature disabled (but still enable if paste was explicitly requested)
+			this._editor.getOption(EditorOption.readOnly)
+			|| (!this.isPasteAsEnabled() && !this._pasteAsActionContext)
 		) {
 			return;
 		}
@@ -268,16 +257,12 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 			...e.clipboardData.types,
 			...fileTypes,
 			...metadata?.providerCopyMimeTypes ?? [],
-			// TODO: always adds `uri-list` because this get set if there are resources in the system clipboard.
-			// However we can only check the system clipboard async. For this early check, just add it in.
-			// We filter providers again once we have the final dataTransfer we will use.
 			Mimes.uriList,
 		];
 
 		const allProviders = this._languageFeaturesService.documentPasteEditProvider
 			.ordered(model)
 			.filter(provider => {
-				// Filter out providers that don't match the requested paste types
 				const preference = this._pasteAsActionContext?.preferred;
 				if (preference) {
 					if (!this.providerMatchesPreference(provider, preference)) {
@@ -285,22 +270,17 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 					}
 				}
 
-				// And providers that don't handle any of mime types in the clipboard
 				return provider.pasteMimeTypes?.some(type => matchesMimeType(type, allPotentialMimeTypes));
 			});
 		if (!allProviders.length) {
 			if (this._pasteAsActionContext?.preferred) {
 				this.showPasteAsNoEditMessage(selections, this._pasteAsActionContext.preferred);
 
-				// Also prevent default paste from applying
 				e.setHandled();
 			}
 			return;
 		}
 
-		// Prevent the editor's default paste handler from running.
-		// Note that after this point, we are fully responsible for handling paste.
-		// If we can't provider a paste for any reason, we need to explicitly delegate pasting back to the editor.
 		e.setHandled();
 
 		if (this._pasteAsActionContext) {
@@ -349,7 +329,7 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 
 				const supportedProviders = allProviders.filter(provider => this.isSupportedPasteProvider(provider, dataTransfer));
 				if (!supportedProviders.length
-					|| (supportedProviders.length === 1 && supportedProviders[0] instanceof DefaultTextPasteOrDropEditProvider) // Only our default text provider is active
+					|| (supportedProviders.length === 1 && supportedProviders[0] instanceof DefaultTextPasteOrDropEditProvider)
 				) {
 					return this.applyDefaultPasteHandler(dataTransfer, metadata, token, clipboardEvent);
 				}
@@ -364,7 +344,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 					return;
 				}
 
-				// If the only edit returned is our default text edit, use the default paste handler
 				if (editSession.edits.length === 1 && editSession.edits[0].provider instanceof DefaultTextPasteOrDropEditProvider) {
 					return this.applyDefaultPasteHandler(dataTransfer, metadata, token, clipboardEvent);
 				}
@@ -431,10 +410,8 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 					return;
 				}
 
-				// Filter out any providers the don't match the full data transfer we will send them.
 				let supportedProviders = allProviders.filter(provider => this.isSupportedPasteProvider(provider, dataTransfer, preference));
 				if (preference) {
-					// We are looking for a specific edit
 					supportedProviders = supportedProviders.filter(provider => this.providerMatchesPreference(provider, preference));
 				}
 
@@ -447,7 +424,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 					return;
 				}
 
-				// Filter out any edits that don't match the requested kind
 				if (preference) {
 					editSession = {
 						edits: editSession.edits.filter(edit => {
@@ -535,7 +511,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 	private fetchCopyMetadata(e: IClipboardPasteEvent): CopyMetadata | undefined {
 		this._logService.trace('CopyPasteController#fetchCopyMetadata');
 
-		// Prefer using the clipboard data we saved off
 		const rawMetadata = e.clipboardData.getData(vscodeClipboardMime);
 		if (rawMetadata) {
 			try {
@@ -561,7 +536,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 	private async mergeInDataFromCopy(allProviders: readonly DocumentPasteEditProvider[], dataTransfer: VSDataTransfer, metadata: CopyMetadata | undefined, token: CancellationToken): Promise<void> {
 		this._logService.trace('CopyPasteController#mergeInDataFromCopy with metadata : ', metadata?.id);
 		if (metadata?.id && CopyPasteController._currentCopyOperation?.handle === metadata.id) {
-			// Only resolve providers that have data we may care about
 			const toResolve = CopyPasteController._currentCopyOperation.operations
 				.filter(op => allProviders.some(provider => provider.pasteMimeTypes.some(type => matchesMimeType(type, op.providerMimeTypes))))
 				.map(op => op.operation);
@@ -571,8 +545,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				return;
 			}
 
-			// Values from higher priority providers should overwrite values from lower priority ones.
-			// Reverse the array to so that the calls to `DataTransfer.replace` later will do this
 			for (const toMergeData of toMergeResults.reverse()) {
 				if (toMergeData) {
 					for (const [key, value] of toMergeData) {
@@ -640,11 +612,6 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 		this._editor.trigger('keyboard', Handler.Paste, payload);
 	}
 
-	/**
-	 * Filter out providers if they:
-	 * - Don't handle any of the data transfer types we have
-	 * - Don't match the preferred paste kind
-	 */
 	private isSupportedPasteProvider(provider: DocumentPasteEditProvider, dataTransfer: VSDataTransfer, preference?: PastePreference): boolean {
 		if (!provider.pasteMimeTypes?.some(type => dataTransfer.matches(type))) {
 			return false;

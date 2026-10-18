@@ -20,7 +20,6 @@ import { Codicon } from '../../../base/common/codicons.js';
 
 const UNIFIED_AGENTS_BAR_SETTING = 'chat.unifiedAgentsBar.enabled';
 
-//#region Quick access management commands and keys
 
 const globalQuickAccessKeybinding = {
 	primary: KeyMod.CtrlCmd | KeyCode.KeyP,
@@ -148,7 +147,7 @@ registerAction2(class QuickAccessAction extends Action2 {
 
 	run(accessor: ServicesAccessor, prefix: undefined): void {
 		const quickInputService = accessor.get(IQuickInputService);
-		quickInputService.quickAccess.show(typeof prefix === 'string' ? prefix : undefined, { preserveValue: typeof prefix === 'string' /* preserve as is if provided */ });
+		quickInputService.quickAccess.show(typeof prefix === 'string' ? prefix : undefined, { preserveValue: typeof prefix === 'string' });
 	}
 });
 
@@ -201,9 +200,7 @@ CommandsRegistry.registerCommand('workbench.action.quickOpenPreviousEditor', asy
 	quickInputService.quickAccess.show('', { itemActivation: ItemActivation.SECOND });
 });
 
-//#endregion
 
-//#region Workbench actions
 
 class BaseQuickAccessNavigateAction extends Action2 {
 
@@ -283,4 +280,3 @@ registerAction2(QuickAccessSelectPreviousAction);
 registerAction2(QuickAccessNavigateNextAction);
 registerAction2(QuickAccessNavigatePreviousAction);
 
-//#endregion

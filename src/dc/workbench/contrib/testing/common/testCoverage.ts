@@ -20,9 +20,6 @@ export interface ICoverageAccessor {
 
 let incId = 0;
 
-/**
- * Class that exposese coverage information for a run.
- */
 export class TestCoverage {
 	private readonly fileCoverage = new ResourceMap<FileCoverage>();
 	public readonly didAddCoverage = observableSignal<IPrefixTreeNode<AbstractFileCoverage>[]>(this);
@@ -36,7 +33,6 @@ export class TestCoverage {
 		private readonly accessor: ICoverageAccessor,
 	) { }
 
-	/** Gets all test IDs that were included in this test run. */
 	public *allPerTestIDs() {
 		const seen = new Set<string>();
 		for (const root of this.tree.nodes) {
@@ -65,20 +61,15 @@ export class TestCoverage {
 			}
 		};
 
-		// We insert using the non-canonical path to normalize for casing differences
-		// between URIs, but when inserting an intermediate node always use 'a' canonical
-		// version.
-		const canonical = [...this.treePathForUri(coverage.uri, /* canonical = */ true)];
+		const canonical = [...this.treePathForUri(coverage.uri, true)];
 		const chain: IPrefixTreeNode<AbstractFileCoverage>[] = [];
 
-		this.tree.mutatePath(this.treePathForUri(coverage.uri, /* canonical = */ false), node => {
+		this.tree.mutatePath(this.treePathForUri(coverage.uri, false), node => {
 			chain.push(node);
 
 			if (chain.length === canonical.length) {
-				// we reached our destination node, apply the coverage as necessary:
 				if (node.value) {
 					const v = node.value;
-					// if ID was generated from a test-specific coverage, reassign it to get its real ID in the extension host.
 					v.id = coverage.id;
 					v.statement = coverage.statement;
 					v.branch = coverage.branch;
@@ -88,11 +79,7 @@ export class TestCoverage {
 					this.fileCoverage.set(coverage.uri, v);
 				}
 			} else {
-				// Otherwise, if this is not a partial per-test coverage, merge the
-				// coverage changes into the chain. Per-test coverages are not complete
-				// and we don't want to consider them for computation.
 				if (!node.value) {
-					// clone because later intersertions can modify the counts:
 					const intermediate = deepClone(coverage);
 					intermediate.id = String(incId++);
 					intermediate.uri = this.treePathToUri(canonical.slice(0, chain.length));
@@ -118,9 +105,6 @@ export class TestCoverage {
 		}
 	}
 
-	/**
-	 * Builds a new tree filtered to per-test coverage data for the given ID.
-	 */
 	public filterTreeForTest(testId: TestId) {
 		const tree = new WellDefinedPrefixTree<AbstractFileCoverage>();
 		for (const node of this.tree.values()) {
@@ -129,9 +113,9 @@ export class TestCoverage {
 					continue;
 				}
 
-				const canonical = [...this.treePathForUri(node.uri, /* canonical = */ true)];
+				const canonical = [...this.treePathForUri(node.uri, true)];
 				const chain: IPrefixTreeNode<AbstractFileCoverage>[] = [];
-				tree.mutatePath(this.treePathForUri(node.uri, /* canonical = */ false), n => {
+				tree.mutatePath(this.treePathForUri(node.uri, false), n => {
 					chain.push(n);
 					n.value ??= new BypassedFileCoverage(this.treePathToUri(canonical.slice(0, chain.length)), node.fromResult);
 				});
@@ -141,26 +125,16 @@ export class TestCoverage {
 		return tree;
 	}
 
-	/**
-	 * Gets coverage information for all files.
-	 */
 	public getAllFiles() {
 		return this.fileCoverage;
 	}
 
-	/**
-	 * Gets coverage information for a specific file.
-	 */
 	public getUri(uri: URI) {
 		return this.fileCoverage.get(uri);
 	}
 
-	/**
-	 * Gets computed information for a file, including DFS-computed information
-	 * from child tests.
-	 */
 	public getComputedForUri(uri: URI) {
-		return this.tree.find(this.treePathForUri(uri, /* canonical = */ false));
+		return this.tree.find(this.treePathForUri(uri, false));
 	}
 
 	private *treePathForUri(uri: URI, canconicalPath: boolean) {
@@ -201,17 +175,10 @@ export abstract class AbstractFileCoverage {
 	public declaration?: ICoverageCount;
 	public readonly didChange = observableSignal(this);
 
-	/**
-	 * Gets the total coverage percent based on information provided.
-	 * This is based on the Clover total coverage formula
-	 */
 	public get tpc() {
 		return getTotalCoveragePercent(this.statement, this.branch, this.declaration);
 	}
 
-	/**
-	 * Per-test coverage data for this file, if available.
-	 */
 	public perTestData?: Set<string>;
 
 	constructor(coverage: IFileCoverage, public readonly fromResult: LiveTestResult) {
@@ -223,15 +190,8 @@ export abstract class AbstractFileCoverage {
 	}
 }
 
-/**
- * File coverage info computed from children in the tree, not provided by the
- * extension.
- */
 export class ComputedFileCoverage extends AbstractFileCoverage { }
 
-/**
- * A virtual node that doesn't have any added coverage info.
- */
 export class BypassedFileCoverage extends ComputedFileCoverage {
 	constructor(uri: URI, result: LiveTestResult) {
 		super({ id: String(incId++), uri, statement: { covered: 0, total: 0 } }, result);
@@ -243,7 +203,6 @@ export class FileCoverage extends AbstractFileCoverage {
 	private resolved?: boolean;
 	private _detailsForTest?: Map<string, Promise<CoverageDetails[]>>;
 
-	/** Gets whether details are synchronously available */
 	public get hasSynchronousDetails() {
 		return this._details instanceof Array || this.resolved;
 	}
@@ -252,9 +211,6 @@ export class FileCoverage extends AbstractFileCoverage {
 		super(coverage, fromResult);
 	}
 
-	/**
-	 * Gets per-line coverage details.
-	 */
 	public async detailsForTest(_testId: TestId, token = CancellationToken.None) {
 		this._detailsForTest ??= new Map();
 		const testId = _testId.toString();
@@ -276,9 +232,6 @@ export class FileCoverage extends AbstractFileCoverage {
 		return promise;
 	}
 
-	/**
-	 * Gets per-line coverage details.
-	 */
 	public async details(token = CancellationToken.None) {
 		this._details ??= this.accessor.getCoverageDetails(this.id, undefined, token);
 

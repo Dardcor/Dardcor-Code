@@ -83,7 +83,6 @@ const compressionExclusive: string[] = [
 	"--zstd",
 ];
 
-// --create && --append && --update && --list && --extract
 const compressionOptions: Fig.Option[] = [
 	{
 		name: ["a", "-a", "--auto-compress"],
@@ -169,7 +168,6 @@ const compressionOptions: Fig.Option[] = [
 	},
 ];
 
-// --create && --append && --update
 const dumpOptions: Fig.Option[] = [
 	{
 		name: "--ignore-failed-read",
@@ -428,7 +426,6 @@ const dumpOptions: Fig.Option[] = [
 	...compressionOptions,
 ];
 
-// --delete && --diff && --extract && --list
 const occurrenceOption: Fig.Option = {
 	name: "--occurrence",
 	description: "Process only the Nth occurrence of each file in the archive",
@@ -439,7 +436,6 @@ const occurrenceOption: Fig.Option = {
 	},
 };
 
-// --list && --extract
 const readOptions: Fig.Option[] = [
 	{
 		name: ["n", "-n", "--seek"],
@@ -530,7 +526,6 @@ const completionSpec: Fig.Spec = {
 	name: "tar",
 	description: "Manipulating archive files",
 	options: [
-		// Operation modifiers
 		{
 			name: ["g", "-g", "--listed-incremental"],
 			description: "Handle new GNU-format incremental backups",
@@ -573,7 +568,6 @@ const completionSpec: Fig.Spec = {
 			description: "Handle sparse files efficiently",
 			isPersistent: true,
 		},
-		// Output stream selection
 		{
 			name: "--ignore-command-error",
 			description: "Ignore subprocess exit codes",
@@ -586,13 +580,11 @@ const completionSpec: Fig.Spec = {
 			isPersistent: true,
 			exclusiveOn: ["--ignore-command-error"],
 		},
-		// Handling of file attributes
 		{
 			name: "--numeric-owner",
 			description: "Always use numbers for user/group names",
 			isPersistent: true,
 		},
-		// Extended file attributes
 		{
 			name: "--acls",
 			description: "Enable POSIX ACLs support",
@@ -642,7 +634,6 @@ const completionSpec: Fig.Spec = {
 			isPersistent: true,
 			args: { name: "PATTERN", description: "A POSIX regular expression" },
 		},
-		// Local file selection
 		{
 			name: "--backup",
 			description: "Backup before removal",
@@ -756,7 +747,6 @@ const completionSpec: Fig.Spec = {
 			isPersistent: true,
 			args: { name: "FILE", template: "filepaths" },
 		},
-		// Informative output
 		{
 			name: "--index-file",
 			description: "Send verbose output to FILE",
@@ -1335,7 +1325,6 @@ const completionSpec: Fig.Spec = {
 								name: "no-record-size",
 								description: 'No "Record size = %lu blocks"',
 							},
-							// Keywords controlling incremental extraction
 							{
 								name: "rename-directory",
 								description:

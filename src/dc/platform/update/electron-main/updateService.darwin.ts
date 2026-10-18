@@ -52,11 +52,11 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 
 	handleRelaunch(options?: IRelaunchOptions): boolean {
 		if (options?.addArgs || options?.removeArgs) {
-			return false; // we cannot apply an update and restart with different args
+			return false;
 		}
 
 		if (this.state.type !== StateType.Ready) {
-			return false; // we only handle the relaunch when we have a pending update
+			return false;
 		}
 
 		this.logService.trace('update#handleRelaunch(): running raw#quitAndInstall()');
@@ -83,12 +83,10 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		this.telemetryService.publicLog2<{ messageHash: string }, UpdateErrorClassification>('update:error', { messageHash: String(hash(String(err))) });
 		this.logService.error('UpdateService error:', err);
 
-		// Only react while actively checking/downloading; a late error must not clobber Disabled or Ready.
 		if (this.state.type !== StateType.CheckingForUpdates && this.state.type !== StateType.Downloading && this.state.type !== StateType.Overwriting) {
 			return;
 		}
 
-		// only show message when explicitly checking for updates
 		const message = (this.state.type === StateType.CheckingForUpdates && this.state.explicit) ? err : undefined;
 		this.setState(State.Idle(UpdateType.Archive, message));
 	}
@@ -104,7 +102,6 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 			this.logService.trace('update#buildUpdateFeedUrl - setting feed URL for Electron autoUpdater', { url, assetID, quality, commit, headers });
 			electron.autoUpdater.setFeedURL({ url, headers });
 		} catch (e) {
-			// application is very likely not signed
 			this.logService.error('Failed to set update feed URL', e);
 			return undefined;
 		}
@@ -133,7 +130,6 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 			return;
 		}
 
-		// When connection is metered and this is not an explicit check, avoid electron call as to not to trigger auto-download.
 		if (!explicit && this.meteredConnectionService.isConnectionMetered) {
 			this.logService.info('update#doCheckForUpdates - checking for update without auto-download because connection is metered');
 			this.checkForUpdateNoDownload(url);
@@ -144,11 +140,6 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		electron.autoUpdater.checkForUpdates();
 	}
 
-	/**
-	 * Manually check the update feed URL without triggering Electron's auto-download.
-	 * Used when connection is metered or in the embedded app.
-	 * @param canInstall When false, signals that the update cannot be installed from this app.
-	 */
 	private async checkForUpdateNoDownload(url: string, canInstall?: boolean): Promise<void> {
 		const headers = getUpdateRequestHeaders(this.productService.version);
 		this.logService.trace('update#checkForUpdateNoDownload - checking update server', { url, headers });
@@ -234,7 +225,6 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 			return;
 		}
 
-		// Rebuild feed URL and trigger download via Electron's auto-updater
 		this.buildUpdateFeedUrl(this.quality!, state.update.version, { internalOrg: this.getInternalOrg() });
 		this.setState(State.CheckingForUpdates(true));
 		electron.autoUpdater.checkForUpdates();

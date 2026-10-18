@@ -27,9 +27,6 @@ export abstract class AbstractEditorCommandsQuickAccessProvider extends Abstract
 		super(options, instantiationService, keybindingService, commandService, telemetryService, dialogService);
 	}
 
-	/**
-	 * Subclasses to provide the current active editor control.
-	 */
 	protected abstract activeTextEditorControl: IEditor | undefined;
 
 	protected getCodeEditorCommandPicks(): ICommandQuickPick[] {

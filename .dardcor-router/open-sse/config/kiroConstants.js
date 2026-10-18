@@ -1,19 +1,3 @@
-/**
- * Kiro-specific constants and helpers.
- *
- * Mirrors the behaviour of `internal/translator/kiro/common/constants.go` and
- * `internal/translator/kiro/claude/kiro_claude_request.go` from the
- * CLIProxyAPIPlus reference implementation, scoped down to what dardcor-code needs:
- *
- *   - `-agentic` model suffix detection + chunked-write system prompt
- *   - reasoning / thinking trigger detection (Anthropic-Beta header,
- *     Claude `thinking`, OpenAI `reasoning_effort`, AMP/Cursor magic tag)
- *   - schema-specific native effort fields for supported GPT and Claude models
- *   - legacy `<thinking_mode>` system-prompt injection for other models
- *
- * Kiro upstream does not advertise `-agentic` model IDs; they are a dardcor-code
- * fiction. The suffix is stripped before the request leaves this process.
- */
 
 import { extractThinking, parseSuffix } from "../translator/concerns/thinkingUnified.js";
 import { effortToBudget } from "../translator/concerns/thinking.js";
@@ -27,18 +11,13 @@ export const KIRO_CODEWHISPERER_TARGET =
   "AmazonCodeWhispererStreamingService.GenerateAssistantResponse";
 export const KIRO_ENDPOINT_FALLBACK_STATUSES = new Set([401, 403, 404]);
 
-// Public default CodeWhisperer profile ARNs (us-east-1), keyed by auth method.
-// Used when an account cannot resolve its own profileArn. Builder ID and social
-// (Google/GitHub) sign-ins map to different shared profiles.
 export const KIRO_DEFAULT_PROFILE_ARNS = {
   "builder-id": "arn:aws:codewhisperer:us-east-1:638616132270:profile/AAAACCCCXXXX",
   social: "arn:aws:codewhisperer:us-east-1:699475941385:profile/EHGA3GRVQMUK",
 };
 
-// Back-compat single default (Builder ID).
 export const KIRO_DEFAULT_PROFILE_ARN = KIRO_DEFAULT_PROFILE_ARNS["builder-id"];
 
-/** Resolve the shared default profileArn for a given auth method. */
 export function resolveDefaultProfileArn(authMethod) {
   const social = authMethod === "google" || authMethod === "github";
   return social ? KIRO_DEFAULT_PROFILE_ARNS.social : KIRO_DEFAULT_PROFILE_ARNS["builder-id"];
@@ -46,10 +25,6 @@ export function resolveDefaultProfileArn(authMethod) {
 
 export const KIRO_THINKING_BUDGET_DEFAULT = 16000;
 
-/**
- * Resolve a Kiro model after consuming the generic model(level) suffix.
- * The suffix is a dardcor-code request override, not part of Kiro's upstream model id.
- */
 export function resolveKiroModelIntent(model) {
   const { cleanModel, override } = parseSuffix(model);
   return {
@@ -59,7 +34,6 @@ export function resolveKiroModelIntent(model) {
   };
 }
 
-/** Apply a parsed model(level) override without mutating the caller's body. */
 export function applyKiroThinkingOverride(body, override) {
   if (!override) return body;
 
@@ -130,20 +104,6 @@ WRONG: Generating massive code blocks without chunking -> TIMEOUT
 REMEMBER: When in doubt, write LESS per operation. Multiple small operations > one large operation.
 `.trim();
 
-/**
- * Resolve the Kiro thinking budget requested by a client.
- *
- * Reuses the shared thinkingUnified parser (extractThinking) so every client
- * shape (Claude output_config.effort / thinking.budget_tokens, OpenAI
- * reasoning_effort / reasoning.effort, Gemini, Qwen) maps consistently. Explicit
- * `none`/`off`/disabled wins and returns null (no prefix injected).
- * buildThinkingSystemPrefix performs Kiro's final 1..32000 clamp.
- *
- * @param {object} body OpenAI/Claude-shaped request body
- * @param {object} [headers] Original inbound HTTP headers (case-insensitive)
- * @param {string} [model] Model id the caller asked for
- * @returns {number|null} budget to inject, or null when thinking is disabled
- */
 export function resolveKiroThinkingBudget(body, headers, model) {
   const cfg = extractThinking(body);
   if (cfg) {
@@ -192,7 +152,6 @@ function extractKiroGptEffortLevel(body) {
   if (typeof effort !== "string") return null;
   const normalized = effort.toLowerCase();
   if (normalized === "max") return "xhigh";
-  // Kiro CLI does not advertise an explicit GPT "none" wire value; omit it.
   if (["low", "medium", "high", "xhigh"].includes(normalized)) {
     return normalized;
   }
@@ -205,10 +164,8 @@ export function buildKiroAdditionalModelRequestFields(body, effortPath = "output
     : extractKiroEffortLevel(body);
   if (!effort) return undefined;
   if (effortPath === "reasoning") {
-    // Mirrors Kiro CLI/KAS buildEffortRequestFields("reasoning") for GPT.
     return { reasoning: { effort } };
   }
-  // Mirrors Kiro CLI/KAS buildEffortRequestFields("output_config").
   return {
     thinking: { type: "adaptive", display: "summarized" },
     output_config: { effort },
@@ -228,9 +185,6 @@ export function resolveKiroEffortPath(model) {
   const major = Number(majorText);
   const minor = minorText === undefined ? null : Number(minorText);
   const dateSuffixMinor = minor !== null && minor >= 1000;
-  // Kiro rejected additionalModelRequestFields on legacy 4.5 models in live smoke.
-  // Default future Claude/Kiro models to supported so new model releases do not
-  // need a code allowlist update.
   return major < 4 || (major === 4 && (minor === null || minor <= 5 || dateSuffixMinor))
     ? null
     : "output_config";
@@ -251,85 +205,28 @@ export function buildKiroAdditionalModelRequestFieldsForModel(body, model) {
   return buildKiroAdditionalModelRequestFields(body, effortPath);
 }
 
-/**
- * Detect whether an inbound request is asking for reasoning / thinking output.
- * Thin wrapper over resolveKiroThinkingBudget (single source of truth).
- *
- * @param {object} body OpenAI-shaped request body (post-translation)
- * @param {object} [headers] Original inbound HTTP headers (case-insensitive)
- * @param {string} [model] Model id the caller asked for (post-strip ok)
- * @returns {boolean}
- */
 export function isThinkingEnabled(body, headers, model) {
   return resolveKiroThinkingBudget(body, headers, model) !== null;
 }
 
-/**
- * Detect whether a model id refers to a dardcor-code synthetic agentic variant.
- * Agentic variants share the same upstream model as the base; the only
- * difference is the chunked-write system prompt this module injects.
- *
- * @param {string} model
- * @returns {boolean}
- */
 export function isAgenticModel(model) {
   return typeof model === "string" && model.endsWith(KIRO_AGENTIC_SUFFIX);
 }
 
-/**
- * Strip the `-agentic` suffix from a model id, leaving the upstream-real id.
- *
- * @param {string} model
- * @returns {string}
- */
 export function stripAgenticSuffix(model) {
   if (!isAgenticModel(model)) return model;
   return model.slice(0, -KIRO_AGENTIC_SUFFIX.length);
 }
 
-/**
- * Detect whether a model id is a dardcor-code synthetic thinking variant
- * (e.g. `claude-sonnet-4.5-thinking`). Same upstream model as the base; the
- * only difference is `<thinking_mode>enabled</thinking_mode>` injection.
- *
- * Note: real Kiro thinking-capable variants exist (e.g. `kimi-k2-thinking` in
- * other providers), but for the `kr/` namespace there is no `-thinking`
- * model on Kiro upstream. Treat the suffix as a synthetic alias.
- *
- * @param {string} model Model id with `-agentic` already stripped
- * @returns {boolean}
- */
 export function isThinkingModel(model) {
   return typeof model === "string" && model.endsWith(KIRO_THINKING_SUFFIX);
 }
 
-/**
- * Strip the `-thinking` suffix from a model id.
- *
- * @param {string} model
- * @returns {string}
- */
 export function stripThinkingSuffix(model) {
   if (!isThinkingModel(model)) return model;
   return model.slice(0, -KIRO_THINKING_SUFFIX.length);
 }
 
-/**
- * Resolve a dardcor-code model id to the real upstream Kiro model id, plus flags
- * describing which behaviours the suffixes implied.
- *
- *   resolveKiroModel("claude-sonnet-4.5-thinking-agentic")
- *     => { upstream: "claude-sonnet-4.5", agentic: true, thinking: true }
- *   resolveKiroModel("claude-sonnet-4.5-thinking")
- *     => { upstream: "claude-sonnet-4.5", agentic: false, thinking: true }
- *   resolveKiroModel("claude-sonnet-4.5-agentic")
- *     => { upstream: "claude-sonnet-4.5", agentic: true, thinking: false }
- *   resolveKiroModel("claude-sonnet-4.5")
- *     => { upstream: "claude-sonnet-4.5", agentic: false, thinking: false }
- *
- * @param {string} model
- * @returns {{ upstream: string, agentic: boolean, thinking: boolean }}
- */
 export function resolveKiroModel(model) {
   let upstream = model;
   let agentic = false;
@@ -345,12 +242,6 @@ export function resolveKiroModel(model) {
   return { upstream, agentic, thinking };
 }
 
-/**
- * Build the magic system-prompt prefix that turns Kiro reasoning on.
- * Same shape as CLIProxyAPIPlus.
- *
- * @param {number} [budget=KIRO_THINKING_BUDGET_DEFAULT]
- */
 export function buildThinkingSystemPrefix(budget = KIRO_THINKING_BUDGET_DEFAULT) {
   const safeBudget = Math.max(1, Math.min(32000, Number(budget) || KIRO_THINKING_BUDGET_DEFAULT));
   return `<thinking_mode>enabled</thinking_mode>\n<max_thinking_length>${safeBudget}</max_thinking_length>`;

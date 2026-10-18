@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Test file to verify the code-no-reader-after-await ESLint rule works correctly
 
 import { observableValue, derived, autorun } from '../../src/vs/base/common/observable.js';
 

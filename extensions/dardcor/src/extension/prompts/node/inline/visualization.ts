@@ -39,9 +39,7 @@ type IOffsetRange = [start: number, endEx: number];
 
 
 export function subtractRange(range: OffsetRange, ranges: OffsetRange[]): OffsetRange[] {
-	// idx of first element that touches range or that is after range
 	const joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(ranges, r => r.endExclusive >= range.start);
-	// idx of element after { last element that touches range or that is before range }
 	const joinRangeEndIdxExclusive = findLastIdxMonotonous(ranges, r => r.start <= range.endExclusive) + 1;
 
 	if (joinRangeStartIdx === joinRangeEndIdxExclusive) {

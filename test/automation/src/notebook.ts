@@ -31,7 +31,6 @@ export class Notebook {
 
 	async focusNextCell() {
 		await this.code.dispatchKeybinding('down', async () => {
-			// TODO: Add an accept callback to verify the keybinding was successful
 		});
 	}
 
@@ -41,7 +40,6 @@ export class Notebook {
 
 	async editCell() {
 		await this.code.dispatchKeybinding('enter', async () => {
-			// TODO: Add an accept callback to verify the keybinding was successful
 		});
 	}
 

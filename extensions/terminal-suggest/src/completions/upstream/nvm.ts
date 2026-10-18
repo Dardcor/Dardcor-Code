@@ -1,4 +1,3 @@
-// args
 const version: Fig.Arg = {
 	name: "version",
 	description: "Node version",
@@ -41,7 +40,6 @@ const colorCodes: Fig.Arg = {
 	description: 'Using format "yMeBg"',
 };
 
-// options
 const noColors: Fig.Option = {
 	name: "--no-colors",
 	description: "Suppress colored output",

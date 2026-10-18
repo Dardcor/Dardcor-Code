@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// THIS IS GENERATED FILE. DO NOT MODIFY.
 
 import { IEntries } from './phpGlobals';
 

@@ -12,9 +12,6 @@ import { INotificationSource, NotificationPriority } from '../../notification/co
 
 export const IProgressService = createDecorator<IProgressService>('progressService');
 
-/**
- * A progress service that can be used to report progress to various locations of the UI.
- */
 export interface IProgressService {
 
 	readonly _serviceBrand: undefined;
@@ -28,16 +25,9 @@ export interface IProgressService {
 
 export interface IProgressIndicator {
 
-	/**
-	 * Show progress customized with the provided flags.
-	 */
 	show(infinite: true, delay?: number): IProgressRunner;
 	show(total: number, delay?: number): IProgressRunner;
 
-	/**
-	 * Indicate progress for the duration of the provided promise. Progress will stop in
-	 * any case of promise completion, error or cancellation.
-	 */
 	showWhile(promise: Promise<unknown>, delay?: number): Promise<void>;
 }
 
@@ -123,10 +113,6 @@ export class Progress<T> implements IProgress<T> {
 	}
 }
 
-/**
- * A helper to show progress during a long running operation. If the operation
- * is started multiple times, only the last invocation will drive the progress.
- */
 export interface IOperation {
 	id: number;
 	isCurrent: () => boolean;
@@ -134,10 +120,6 @@ export interface IOperation {
 	stop(): void;
 }
 
-/**
- * RAII-style progress instance that allows imperative reporting and hides
- * once `dispose()` is called.
- */
 export class UnmanagedProgress extends Disposable {
 	private readonly deferred = new DeferredPromise<void>();
 	private reporter?: IProgress<IProgressStep>;
@@ -183,10 +165,8 @@ export class LongRunningOperation extends Disposable {
 
 	start(progressDelay: number): IOperation {
 
-		// Stop any previous operation
 		this.stop();
 
-		// Start new
 		const newOperationId = ++this.currentOperationId;
 		const newOperationToken = new CancellationTokenSource();
 		this.currentProgressTimeout = setTimeout(() => {
@@ -220,9 +200,6 @@ export class LongRunningOperation extends Disposable {
 
 export const IEditorProgressService = createDecorator<IEditorProgressService>('editorProgressService');
 
-/**
- * A progress service that will report progress local to the editor triggered from.
- */
 export interface IEditorProgressService extends IProgressIndicator {
 
 	readonly _serviceBrand: undefined;

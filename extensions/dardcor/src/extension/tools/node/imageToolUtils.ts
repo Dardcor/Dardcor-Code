@@ -6,7 +6,6 @@
 import { URI } from '../../../util/dardcor/base/common/uri';
 import { ChatImageMimeType } from '../../conversation/common/languageModelChatMessageHelpers';
 
-/** Maximum image file size in bytes (20 MB) */
 export const MAX_IMAGE_FILE_SIZE = 20 * 1024 * 1024;
 
 const imageExtensionToMimeType: Record<string, ChatImageMimeType> = {

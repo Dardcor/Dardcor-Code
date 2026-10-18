@@ -17,8 +17,6 @@ enableHotReload();
 registerSingleton(IWebWorkerService, StandaloneWebWorkerService, InstantiationType.Eager);
 const descriptors = getSingletonServiceDescriptors();
 
-// Patch push to ignore future IWebWorkerService registrations.
-// This is hot-reload dev only, so it is fine.
 const originalPush = descriptors.push;
 descriptors.push = function (item: any) {
 	if (item[0] === IWebWorkerService) {

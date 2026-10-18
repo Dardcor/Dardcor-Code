@@ -9,10 +9,6 @@ import { IOutline, IOutlineCreator, IOutlineService, OutlineTarget } from '../..
 import { ChatOutline, ChatOutlineEntry } from './chatOutline.js';
 import { ChatEditor } from './widgetHosts/editor/chatEditor.js';
 
-/**
- * Registers a {@link ChatOutline} for the chat editor pane so Go to Symbol, the
- * Outline pane, and Breadcrumbs work for chat sessions opened as an editor.
- */
 export class ChatOutlineCreator implements IOutlineCreator<ChatEditor, ChatOutlineEntry> {
 
 	static readonly ID = 'chat.chatOutlineCreator';

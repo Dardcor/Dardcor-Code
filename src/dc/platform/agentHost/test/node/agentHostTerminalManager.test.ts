@@ -19,17 +19,8 @@ import { AgentHostStateManager } from '../../node/agentHostStateManager.js';
 import { AgentHostTerminalManager, formatTerminalText, removeTerminalQueriesSuppressedFromClient, type ITerminalQueryFilterState } from '../../node/agentHostTerminalManager.js';
 import { Osc633Event, Osc633EventType, Osc633Parser } from '../../node/osc633Parser.js';
 
-/**
- * Tests for the command detection integration in AgentHostTerminalManager.
- *
- * Since AgentHostTerminalManager.createTerminal requires node-pty, these tests
- * exercise the data-handling logic (OSC parsing → action dispatch → content
- * tracking) in isolation by simulating the internal flow.
- */
 
-// ── Helpers to simulate the terminal manager's data pipeline ─────────
 
-/** Minimal command tracker mirroring AgentHostTerminalManager's ICommandTracker. */
 interface ITestCommandTracker {
 	readonly parser: Osc633Parser;
 	readonly nonce: string;
@@ -40,10 +31,6 @@ interface ITestCommandTracker {
 	activeCommandTimestamp?: number;
 }
 
-/**
- * Simplified version of AgentHostTerminalManager's data handling pipeline
- * that can be tested without node-pty or a real AgentHostStateManager.
- */
 class TestTerminalDataHandler {
 	readonly dispatched: StateAction[] = [];
 	content: TerminalContentPart[] = [];
@@ -55,14 +42,9 @@ class TestTerminalDataHandler {
 		readonly tracker: ITestCommandTracker,
 	) { }
 
-	/** Simulates AgentHostTerminalManager._handlePtyData */
 	handlePtyData(rawData: string): string {
 		let cleanedForClient = '';
 
-		// Data is dispatched in stream order relative to command events: flush
-		// pending data before handling each event so subscribers observe
-		// CommandExecuted -> data -> CommandFinished exactly like the raw
-		// stream — see _handlePtyData.
 		let pendingClientData = '';
 		const flushClientData = (): void => {
 			if (pendingClientData.length === 0) {
@@ -612,17 +594,12 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 	test('full command lifecycle dispatches correct actions', () => {
 		const handler = createHandler();
 
-		// Shell prompt
 		handler.handlePtyData(`${osc633('A')}$ ${osc633('B')}`);
-		// Command entered, shell reports command line and executes
 		handler.handlePtyData(`${osc633('E;echo\\x20hello;test-nonce')}${osc633('C')}`);
-		// Command output
 		handler.handlePtyData('hello\r\n');
-		// Command finishes
 		handler.handlePtyData(osc633('D;0'));
 
 		const actions = handler.dispatched;
-		// Expect: DetectionAvailable, CommandExecuted, CommandFinished
 		assert.strictEqual(actions[0].type, ActionType.TerminalCommandDetectionAvailable);
 
 		const executed = actions.find(a => a.type === ActionType.TerminalCommandExecuted);
@@ -639,15 +616,10 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 	test('content parts are structured correctly after command lifecycle', () => {
 		const handler = createHandler();
 
-		// Prompt output (before command)
 		handler.handlePtyData(`${osc633('A')}user@host:~ $ ${osc633('B')}`);
-		// Command line + execute
 		handler.handlePtyData(`${osc633('E;ls;test-nonce')}${osc633('C')}`);
-		// Command output
 		handler.handlePtyData('file1\nfile2\n');
-		// Command finishes
 		handler.handlePtyData(osc633('D;0'));
-		// New prompt
 		handler.handlePtyData(`${osc633('A')}user@host:~ $ `);
 
 		assert.deepStrictEqual(handler.content.map(p => ({
@@ -676,13 +648,11 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 	test('nonce validation rejects untrusted command lines', () => {
 		const handler = createHandler('my-secret-nonce');
 
-		// Malicious output containing a fake command line with wrong nonce
 		handler.handlePtyData(osc633('E;rm\\x20-rf\\x20/;wrong-nonce'));
 		handler.handlePtyData(osc633('C'));
 
 		const executed = handler.dispatched.find(a => a.type === ActionType.TerminalCommandExecuted);
 		assert.ok(executed);
-		// Command line should be empty because the nonce didn't match
 		assert.strictEqual(executed.commandLine, '');
 	});
 
@@ -700,11 +670,9 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 	test('multiple sequential commands get sequential IDs', () => {
 		const handler = createHandler();
 
-		// First command
 		handler.handlePtyData(`${osc633('E;cmd1;test-nonce')}${osc633('C')}`);
 		handler.handlePtyData(osc633('D;0'));
 
-		// Second command
 		handler.handlePtyData(`${osc633('E;cmd2;test-nonce')}${osc633('C')}`);
 		handler.handlePtyData(osc633('D;1'));
 
@@ -767,7 +735,6 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 	test('CommandFinished without active command is ignored', () => {
 		const handler = createHandler();
 
-		// Emit a PromptStart to trigger detection available, then finish without execute
 		handler.handlePtyData(osc633('A'));
 		handler.handlePtyData(osc633('D;0'));
 
@@ -790,12 +757,6 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 	});
 
 	test('output and CommandFinished arriving in one PTY read are attributed to the command', async () => {
-		// A fast command (e.g. `echo`) frequently emits its output and the
-		// CommandExecuted/CommandFinished markers in a single PTY read. The
-		// output that precedes the CommandFinished marker must be attributed to
-		// the command before the finished event snapshots it, otherwise it is
-		// lost from the command result (regression for the flaky agent-host
-		// sandbox smoke test, where the shell tool returned an empty output).
 		const logService = new NullLogService();
 		const stateManager = disposables.add(new AgentHostStateManager(logService));
 		const configurationService = disposables.add(new AgentConfigurationService(stateManager, logService));
@@ -822,9 +783,6 @@ suite('AgentHostTerminalManager – command detection integration', () => {
 			output: event.output,
 		})));
 
-		// Clients rebuild per-command output from the action stream, so the
-		// data must also be DISPATCHED between the executed and finished
-		// actions, not after the whole chunk.
 		const dispatched: { type: string; data?: string }[] = [];
 		disposables.add(stateManager.onDidEmitEnvelope(envelope => {
 			const action = envelope.action;
@@ -881,7 +839,7 @@ suite('AgentHostTerminalManager – output-only terminals', () => {
 		manager.appendOutputTerminalData(uri, 'tick 1\n');
 		manager.appendOutputTerminalData(uri, 'tick 2\n');
 		manager.finalizeOutputTerminal(uri, 0);
-		manager.finalizeOutputTerminal(uri, 1); // recorded exit is immutable
+		manager.finalizeOutputTerminal(uri, 1);
 
 		assert.deepStrictEqual(manager.getTerminalState(uri), {
 			title: 'Run Shell Command',
@@ -895,7 +853,6 @@ suite('AgentHostTerminalManager – output-only terminals', () => {
 			{ type: ActionType.TerminalData, data: 'tick 2\n' },
 			{ type: ActionType.TerminalExited, exitCode: 0 },
 		]);
-		// Output channels are discovered through tool result content, not generic PTY terminal APIs.
 		assert.strictEqual(manager.hasTerminal(uri), false);
 		assert.deepStrictEqual(manager.getTerminalInfos(), []);
 	});

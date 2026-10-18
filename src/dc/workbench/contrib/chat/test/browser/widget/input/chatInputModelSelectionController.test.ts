@@ -37,12 +37,6 @@ function targetedModel(identifier: string, sessionType: string): ILanguageModelC
 	return { ...result, metadata: { ...result.metadata, targetChatSessionType: sessionType } };
 }
 
-/**
- * Conversation-owned intent storage, standing in for `IInputModel.intendedModel`. Keying by
- * conversation reproduces the production guarantee — one record per conversation, reachable only
- * while that conversation is bound — rather than assuming it.
- */
-/** An agent-host model; `byokModelIdentifier` marks it as a copy bridged in from a BYOK provider. */
 function hostModel(identifier: string, byokModelIdentifier?: string): ILanguageModelChatMetadataAndIdentifier {
 	const base = targetedModel(identifier, 'agent-host-copilotcli');
 	return { ...base, metadata: { ...base.metadata, vendor: 'agent-host-copilotcli', byokModelIdentifier } };
@@ -64,17 +58,9 @@ interface IRuntimeState {
 	models: ILanguageModelChatMetadataAndIdentifier[];
 	readonly sessionType: string;
 	configuredModel?: string;
-	/** Defaults to `true` (a new/empty session). Set to `false` to model a reopened conversation with history. */
 	isEmpty?: boolean;
-	/** The conversation the input is bound to. Reassign to model the input rebinding to another chat. */
 	conversationKey?: string;
-	/**
-	 * The intended model each conversation owns, standing in for `IInputModel.intendedModel`.
-	 * Keyed by conversation so the production guarantee — one record per conversation, reachable
-	 * only while that conversation is bound — is reproduced rather than assumed.
-	 */
 	readonly intents?: Map<string | undefined, IIntendedModelSelection | undefined>;
-	/** Set to report the session type as still loading until a model targets it. */
 	readonly awaitsSessionModels?: boolean;
 }
 
@@ -113,10 +99,6 @@ function runConformanceScenario(
 	]);
 	const availableModels = catalog.map(identifier => models.get(identifier)!);
 	const rememberedModelId = rememberedModel ? models.get(rememberedModel)!.identifier : undefined;
-	// `initialize` resolves the remembered identifier without a conclusive catalog, so this arm
-	// speaks only for a catalog that may still publish. A scenario whose answer turned on the
-	// resolved case would be answered here under the other semantics, so it is rejected outright
-	// rather than quietly compared against the Sessions arm's different question.
 	assert.ok(
 		!catalogResolved || !rememberedModelId || availableModels.some(candidate => candidate.identifier === rememberedModelId),
 		`${scenario.name}: a remembered model absent from a resolved catalog is not surface-neutral`,
@@ -134,13 +116,8 @@ function runConformanceScenario(
 	const controller = register(new ChatInputModelSelectionController(createRuntime(state, modelChanges, applied)));
 
 	controller.beginConversationSwitch();
-	// Production order, and the reason the remembered preference is seeded even when the
-	// conversation carries a model: the input initializes from storage first, then the
-	// conversation's own state syncs in over it.
 	controller.initialize(rememberedModelId);
 	if (chatModel) {
-		// Both surfaces adopt a conversation's model the same way — through the restore path,
-		// saying who chose it. The authority, not the entry point, is what carries the difference.
 		const selectedModel = models.get(chatModel)!;
 		controller.syncFromConversationState(
 			selectedModel,
@@ -284,7 +261,6 @@ suite('ChatInputModelSelectionController', () => {
 		controller.initialize(remembered.identifier);
 		models = [first];
 		modelChanges.fire('partial');
-		// The catalog calls the model conclusively gone; the reclaim must not depend on that verdict.
 		const resolutionAfterPartial = resolveModelIdentifierFromCatalog(models, remembered.identifier, {
 			hasLiveModels: vendor => models.some(model => model.metadata.vendor === vendor),
 			hasResolved: () => true,
@@ -523,7 +499,6 @@ suite('ChatInputModelSelectionController', () => {
 		}, {
 			duringRestart: other.identifier,
 			current: selected.identifier,
-			// The restore reinstates the original authority rather than downgrading to `Remembered`.
 			reason: ModelSelectionReason.UserSelection,
 			pending: false,
 			applied: [other.identifier, selected.identifier],
@@ -538,7 +513,6 @@ suite('ChatInputModelSelectionController', () => {
 		const applied: string[] = [];
 		const controller = disposables.add(new ChatInputModelSelectionController(createRuntime(state, modelChanges, applied)));
 
-		// The remembered model is already available, so `initialize` applies it and arms no wait.
 		controller.initialize(remembered.identifier);
 		state.models = [other];
 		modelChanges.fire('model-gone');
@@ -582,7 +556,6 @@ suite('ChatInputModelSelectionController', () => {
 			current: controller.currentModel.get()?.identifier,
 			applied,
 		}, {
-			// The shared family makes `substitute` a best match, so it stands in rather than the default.
 			duringOutage: substitute.identifier,
 			current: selected.identifier,
 			applied: [substitute.identifier, selected.identifier],
@@ -638,7 +611,6 @@ suite('ChatInputModelSelectionController', () => {
 		state.models = [configured, picked];
 		modelChanges.fire('picked-back');
 		const afterReturn = controller.currentModel.get()?.identifier;
-		// A later refresh must not let the configured default reclaim an explicit pick.
 		modelChanges.fire('later-refresh');
 
 		assert.deepStrictEqual({
@@ -827,9 +799,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('late configured default does not overwrite a restored conversation model', () => {
-		// A genuine reopened conversation is NON-empty, so the configured default must never override
-		// its restored model. The empty/new-session case (where the configured default wins over a
-		// spilled-over restore) is covered by the empty-session tests above.
 		const restored = model('test/restored');
 		const configured = model('copilot/configured');
 		let models = [restored];
@@ -938,10 +907,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('re-applies the configured default over a spilled-over session-restore on an empty session', () => {
-		// Regression for the local "+ new session" / back-to-list cases: a new empty session that
-		// inherits the previous session's model as a session-restore must still reset to the
-		// configured `chat.defaultModel`. See the SessionRestore-is-not-a-blocker rule in
-		// `applyConfiguredDefault`.
 		const gpt = model('test/gpt');
 		const opus = model('test/opus');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -963,9 +928,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('an explicit pick is not demoted when the conversation echoes it back', () => {
-		// Applying a model writes it into the conversation's draft state, which comes straight back
-		// as a restore. Workbench reads the authority off the conversation's own intent for exactly
-		// this, so the echo must not turn the user's pick into a carried-over model the default can claim.
 		const picked = model('test/picked');
 		const configured = model('test/configured');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -980,8 +942,6 @@ suite('ChatInputModelSelectionController', () => {
 		const controller = disposables.add(new ChatInputModelSelectionController(createRuntime(state, modelChanges, applied)));
 
 		controller.applySelection(picked, () => applied.push(picked.identifier), true);
-		// The echo: `chatInputPart` derives the authority from the conversation's intent, which the
-		// pick above recorded as a user selection.
 		const restoredAs = intents.get('chat:one')?.reason === ModelSelectionReason.UserSelection
 			? ModelSelectionReason.RestoredChoice
 			: ModelSelectionReason.SessionRestore;
@@ -1000,9 +960,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('resetting to the default is not undone by the remembered model when the catalog moves', () => {
-		// A reset says "forget what was preferred and take the default". The remembered preference
-		// is what the reset is overriding, so leaving it on the conversation lets the next catalog
-		// change quietly restore it and undo the reset.
 		const remembered = model('test/remembered');
 		const fallback = model('test/fallback');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1013,7 +970,6 @@ suite('ChatInputModelSelectionController', () => {
 		controller.initialize(remembered.identifier);
 		controller.resetToDefault();
 		const afterReset = controller.currentModel.get()?.identifier;
-		// The catalog republishes, which is when reconciliation reruns.
 		modelChanges.fire('published');
 
 		assert.deepStrictEqual({ afterReset, afterCatalogChange: controller.currentModel.get()?.identifier }, {
@@ -1023,8 +979,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a sync for a conversation the input has left does not move the active one', () => {
-		// Conversation state can arrive late, after the input has rebound elsewhere. Acting on it
-		// would apply the outgoing conversation's model to the incoming one.
 		const outgoing = model('test/outgoing');
 		const active = model('test/active');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1042,12 +996,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a restored choice is applied under its own reason, not the one it is replacing', () => {
-		// The surface writing the model through to a backend reads `selectionReason` while
-		// `applyModel` runs, so the reason has to be in force by then. A model the conversation
-		// chose that has to fall back to a match must not be written under a stale reason, or it
-		// persists as something `chat.defaultModel` may later overwrite.
-		// The chat's model is targeted at another pool, so it cannot be applied as-is, but this
-		// pool publishes the same family under another identifier — the equivalent-match path.
 		const chosen = { ...targetedModel('other/chosen', 'other-target') };
 		chosen.metadata = { ...chosen.metadata, family: 'shared-family' };
 		const republished = { ...model('test/chosen') };
@@ -1075,9 +1023,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a restored choice survives a cold pool and still outranks a late configured default', () => {
-		// The conversation's own model is missing only because its targeted pool has not published
-		// yet. That says nothing about who chose it, so the authority must survive the wait — or
-		// `chat.defaultModel` claims the conversation the moment the model finally arrives.
 		const chosen = targetedModel('test/chosen', 'test');
 		const configured = model('test/configured');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1091,7 +1036,6 @@ suite('ChatInputModelSelectionController', () => {
 
 		controller.beginConversationSwitch();
 		controller.syncFromConversationState(chosen, undefined, 'test', 'chat:one', false, ModelSelectionReason.RestoredChoice);
-		// Both the conversation's model and the configured default publish together.
 		state.models = [chosen, configured];
 		modelChanges.fire('published');
 
@@ -1102,9 +1046,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a restored model the surface vouches for outranks the configured default on an empty session', () => {
-		// Same shape as the spilled-over case above, but the surface can say the conversation chose
-		// this model. That is the difference the Agents Window could always see (its providers
-		// report where a model came from) and Workbench could not, so the two used to disagree here.
 		const gpt = model('test/gpt');
 		const opus = model('test/opus');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1126,8 +1067,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('keeps a reopened conversation on its own model instead of the configured default', () => {
-		// Switching back to a chat that already has history must not re-seed it from
-		// `chat.defaultModel` — that busts the prompt cache on every switch.
 		const gpt = model('test/gpt');
 		const opus = model('test/opus');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1199,7 +1138,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('leaves the spilled-over model sticky when no default model is configured', () => {
-		// The fix must be inert when `chat.defaultModel` is unset: sticky "last-used" behavior wins.
 		const gpt = model('test/gpt');
 		const opus = model('test/opus');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1259,8 +1197,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a BYOK-only wave leaves the awaited model alone and yields to the first non-BYOK model', () => {
-		// A wave carrying only bridged BYOK copies used to reset the picker and take one as "first
-		// available", moving the conversation onto the user's own API key.
 		const sessionType = 'agent-host-copilotcli';
 		const chosen = hostModel('agent-host-copilotcli:gpt-5.6-terra');
 		const anthropic = hostModel('agent-host-copilotcli:anthropic/Anthropic/claude-opus-5', 'anthropic/Anthropic/claude-opus-5');
@@ -1272,11 +1208,9 @@ suite('ChatInputModelSelectionController', () => {
 		const controller = disposables.add(new ChatInputModelSelectionController(createRuntime(state, modelChanges, applied)));
 
 		controller.syncFromConversationState(chosen, undefined, sessionType, 'chat:one', false, ModelSelectionReason.RestoredChoice);
-		// Only the two BYOK providers are on offer: neither is picked, and neither is ranked above the other.
 		state.models = [anthropic, openrouter];
 		modelChanges.fire('byok-only-wave');
 		const duringByokOnly = controller.currentModel.get()?.identifier;
-		// A non-BYOK model publishes, but still not the awaited one.
 		state.models = [anthropic, openrouter, free];
 		modelChanges.fire('free-model-wave');
 
@@ -1288,8 +1222,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a conversation with no model to keep is still seeded by the pool that arrives', () => {
-		// The guard must not become a permanent no-op: with nothing awaited, a BYOK-only pool still
-		// seeds the conversation — for a signed-out user it is the only way to run at all.
 		const sessionType = 'agent-host-copilotcli';
 		const bridged = hostModel('agent-host-copilotcli:anthropic/Anthropic/claude-opus-5', 'anthropic/Anthropic/claude-opus-5');
 		const modelChanges = disposables.add(new Emitter<string>());
@@ -1356,10 +1288,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('syncFromConversationState reclaims the conversation model however late the pool publishes', () => {
-		// Cold-restart race: the agent-host vendor is registered but its models arrive later, and it
-		// publishes in waves — first the workbench's BYOK models mirrored in over the bridge, then its
-		// own. Whatever stand-in is shown meanwhile, the conversation's model is reclaimed the moment
-		// it appears; no wave has to arrive by any particular deadline for the restore to be honoured.
 		const sessionType = 'agent-host-copilotcli';
 		const hostModel = (identifier: string, byokModelIdentifier?: string): ILanguageModelChatMetadataAndIdentifier => {
 			const base = targetedModel(identifier, sessionType);
@@ -1392,11 +1320,9 @@ suite('ChatInputModelSelectionController', () => {
 
 		controller.syncFromConversationState(desired, { effort: 'high' }, sessionType, 'chat:one');
 		const awaitingWhileEmpty = controller.isAwaitingRememberedModel();
-		// Wave one: bridged BYOK copies only — the host's own catalog is still in flight.
 		models = [bridged];
 		modelChanges.fire('byok-bridge');
 		const awaitingAfterBridge = controller.isAwaitingRememberedModel();
-		// Wave two: the host's own models arrive.
 		models = [bridged, desired];
 		modelChanges.fire('loaded');
 
@@ -1418,11 +1344,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a stand-in echoed back by the conversation does not displace the model being awaited', () => {
-		// Applying a model writes it into the conversation's input state, which the agent host
-		// republishes as the session draft and syncs straight back. Without the echo guard that
-		// round-trip is read as the session's own model, overwrites the model being waited for, and
-		// makes a transient stand-in permanent — which is exactly how a restored session ends up
-		// pinned to an arbitrary model from a half-published pool.
 		const sessionType = 'agent-host-copilotcli';
 		const hostModel = (identifier: string): ILanguageModelChatMetadataAndIdentifier => {
 			const base = targetedModel(identifier, sessionType);
@@ -1453,11 +1374,9 @@ suite('ChatInputModelSelectionController', () => {
 		const controller = disposables.add(new ChatInputModelSelectionController(runtime));
 
 		controller.syncFromConversationState(desired, undefined, sessionType, 'chat:one');
-		// Wave one publishes bridged copies only, so a stand-in is shown.
 		models = [bridged];
 		modelChanges.fire('byok-bridge');
 		const standIn = controller.currentModel.get()?.identifier;
-		// The stand-in round-trips through the draft and comes back as the session's model.
 		controller.syncFromConversationState(bridged, undefined, sessionType, 'chat:one');
 		const awaitingAfterEcho = controller.isAwaitingRememberedModel();
 		models = [bridged, desired];
@@ -1475,10 +1394,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a peer client genuinely selecting the stand-in supersedes the model being awaited', () => {
-		// The echo guard keys on the local round-trip of our own stand-in. A state pushed in by
-		// another connected client carries `ChatInputStateOrigin.Remote`, and that IS a real statement
-		// about the session even when it names the very model we happen to be displaying — so it must
-		// not be discarded as an echo.
 		const sessionType = 'agent-host-copilotcli';
 		const hostModel = (identifier: string): ILanguageModelChatMetadataAndIdentifier => {
 			const base = targetedModel(identifier, sessionType);
@@ -1511,10 +1426,8 @@ suite('ChatInputModelSelectionController', () => {
 		controller.syncFromConversationState(desired, undefined, sessionType, 'chat:one');
 		models = [bridged];
 		modelChanges.fire('byok-bridge');
-		// A peer picks the model we are showing as a stand-in.
 		controller.syncFromConversationState(bridged, undefined, sessionType, 'chat:one', true);
 		const awaitingAfterPeerPick = controller.isAwaitingRememberedModel();
-		// The originally awaited model finally publishes — it must NOT reclaim the selection.
 		models = [bridged, desired];
 		modelChanges.fire('loaded');
 
@@ -1555,10 +1468,8 @@ suite('ChatInputModelSelectionController', () => {
 		controller.initialize(remembered.identifier);
 		const pendingAfterInit = controller.isAwaitingRememberedModel();
 		const appliedAfterInit = [...applied];
-		// An intermediate empty re-resolution must not end the wait or apply a default.
 		modelChanges.fire('still-empty');
 		const pendingAfterEmpty = controller.isAwaitingRememberedModel();
-		// The remembered model finally appears.
 		models = [remembered];
 		modelChanges.fire('loaded');
 
@@ -1586,8 +1497,6 @@ suite('ChatInputModelSelectionController', () => {
 		const matchBase = targetedModel('test/match', sessionType);
 		const match = { ...matchBase, metadata: { ...matchBase.metadata, id: desired.metadata.id } };
 		const configured = targetedModel('test/configured', sessionType);
-		// A genuine reopened conversation is NON-empty, so its best-match restore stays authoritative and
-		// the configured default must not override it. The empty-session behavior is covered above.
 		const state: IRuntimeState = { models: [], sessionType, configuredModel: configured.metadata.id, isEmpty: false };
 		const applied: string[] = [];
 		const controller = disposables.add(new ChatInputModelSelectionController(createRuntime(state, modelChanges, applied)));
@@ -1609,8 +1518,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a genuinely different conversation model cancels an outstanding restore', () => {
-		// Distinct from the echoed stand-in above: this model was never applied by the controller,
-		// so it is a real statement about the session and supersedes the model being waited for.
 		const modelChanges = disposables.add(new Emitter<string>());
 		const sessionType = 'agent-host-test';
 		const staleDesired = targetedModel('test/stale', sessionType);
@@ -1708,7 +1615,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('initialize restores a remembered model after a non-empty initial catalog', () => {
-		// The initial fallback remains provisional even when the catalog reports the remembered model unavailable.
 		const modelChanges = disposables.add(new Emitter<string>());
 		const fallback = model('test/fallback');
 		const remembered = model('test/remembered');
@@ -1751,8 +1657,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('initialize does not arm a restore wait when there is nothing to wait for', () => {
-		// Guard against over-arming: no remembered model, or a remembered model that is already
-		// available, must not leave a catalog subscription armed.
 		const build = (rememberedId: string | undefined, models: ILanguageModelChatMetadataAndIdentifier[]) => {
 			const applied: string[] = [];
 			const runtime: IChatInputModelSelectionRuntime = {
@@ -1788,8 +1692,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('an explicit selection cancels the initialize restore wait', () => {
-		// While the wait is armed, an explicit user pick must win permanently: the wait is cancelled
-		// and a later appearance of the remembered model does not override the explicit selection.
 		const modelChanges = disposables.add(new Emitter<string>());
 		const fallback = model('test/fallback');
 		const explicit = model('test/explicit');
@@ -1841,19 +1743,14 @@ suite('ChatInputModelSelectionController', () => {
 		const state: IRuntimeState = { models: [first, second], sessionType: 'test', isEmpty: false };
 		const controller = disposables.add(new ChatInputModelSelectionController(createRuntime(state, modelChanges, [])));
 
-		// The user explicitly picks `second` in the conversation the input is bound to.
 		controller.applySelection(second, () => { }, true, false);
 		const afterPick = controller.currentModel.get()?.identifier;
 
-		// The input rebinds to a different conversation, which lands on `first`. That
-		// conversation carries no model of its own, so nothing re-remembers here.
 		state.conversationKey = 'chat:two';
 		controller.beginConversationSwitch();
 		controller.applySelection(first, () => { }, false);
 		const afterSwitch = controller.currentModel.get()?.identifier;
 
-		// The agent host republishes its catalog, as it does periodically. The pick belongs
-		// to the other conversation and must not be dragged into this one.
 		modelChanges.fire('republished');
 
 		assert.deepStrictEqual({
@@ -1875,20 +1772,15 @@ suite('ChatInputModelSelectionController', () => {
 		const state: IRuntimeState = { models: [first, second], sessionType: 'test', conversationKey: 'chat:untitled', intents };
 		const controller = disposables.add(new ChatInputModelSelectionController(createRuntime(state, modelChanges, [])));
 
-		// The user picks `second` in an untitled conversation.
 		controller.applySelection(second, () => { }, true, false);
 
-		// The first send materializes it into a real session, which carries the untitled
-		// conversation's intended model over to the real one (see `_materializeUntitledSession`).
 		intents.set('chat:real', intents.get('chat:untitled'));
 		state.conversationKey = 'chat:real';
 
-		// Meanwhile the catalog momentarily drops the picked model, so a stand-in takes over.
 		state.models = [first];
 		modelChanges.fire('dropped');
 		const whileMissing = controller.currentModel.get()?.identifier;
 
-		// The catalog republishes the picked model.
 		state.models = [first, second];
 		modelChanges.fire('republished');
 
@@ -1902,9 +1794,6 @@ suite('ChatInputModelSelectionController', () => {
 	});
 
 	test('a conversation waiting for its own model is not reset by a pool rebind', () => {
-		// `loadRemoteSession` seeds the conversation's model from request history as a bare id when
-		// the catalog has not published it yet. Re-initializing from the profile preference (which
-		// happens on every pool rebind) must not erase what the conversation is waiting for.
 		const modelChanges = disposables.add(new Emitter<string>());
 		const profilePreference = model('test/profile');
 		const conversationModel = model('test/conversation');

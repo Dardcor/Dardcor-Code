@@ -3,11 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Agent host end-to-end tests (Copilot customizations, mocked LLM).
- *
- * agent host log file: ~/.vscode-insiders/tmp/tmp_vscode_1/ahp-customizations-home-mock-ZBucPX/Library/Application Support/Code - OSS Dev/logs/20260701T192836/agenthost-server.log
- */
 
 import assert from 'assert';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'fs/promises';
@@ -21,21 +16,6 @@ import { type AhpNotification } from '../../../common/state/sessionProtocol.js';
 import { createProviderSession, dispatchTurn, type IAgentHostProviderTestConfig } from '../providerIntegrationTestHelpers.js';
 import { fetchSessionWithChat, getActionEnvelope, getAgentHostE2ETestTimeout, isActionNotification, IServerHandle, startRealServer, TestProtocolClient } from '../serverIntegrationTestHelpers.js';
 
-/**
- * Whether `notification` is a *settled* `session/customizationsChanged` for
- * `sessionUri`.
- *
- * Filesystem customization discovery is asynchronous: a client
- * `SessionActiveClientSet`/`sync` can publish a snapshot before the initial
- * disk scan has settled, producing a transient `customizations: []`
- * notification (see `SessionPluginController.getCustomizationsSettled`).
- * Because `clearReceived()` clears the local buffer but cannot retract an
- * already-sent socket message, such a pre-discovery snapshot may even be
- * delivered *after* a `clearReceived()`. These empty snapshots are not
- * meaningful state changes, so the tests match and count only non-empty
- * (settled) notifications — every session discovers at least the standard
- * customization directories, so a settled snapshot always has a non-empty list.
- */
 function isSettledCustomizationsNotification(notification: AhpNotification, sessionUri: string): boolean {
 	if (!isActionNotification(notification, ActionType.SessionCustomizationsChanged) || getActionEnvelope(notification).channel !== sessionUri) {
 		return false;
@@ -46,7 +26,7 @@ function isSettledCustomizationsNotification(notification: AhpNotification, sess
 const COPILOT_CONFIG: IAgentHostProviderTestConfig = {
 	provider: 'copilotcli',
 	scheme: 'copilotcli',
-	githubToken: 'not-a-real-token', // The tests will use a mocked LLM, so the token doesn't need to be valid.
+	githubToken: 'not-a-real-token',
 };
 
 const SETUP_TIMEOUT_MS = getAgentHostE2ETestTimeout(45_000, 120_000);
@@ -54,20 +34,11 @@ const TEST_TIMEOUT_MS = getAgentHostE2ETestTimeout(90_000, 180_000);
 const NOTIFICATION_TIMEOUT_MS = getAgentHostE2ETestTimeout(10_000, 30_000);
 const WATCH_ASSERT_TIMEOUT_MS = getAgentHostE2ETestTimeout(30_000, 90_000);
 const WATCH_ASSERT_POLL_INTERVAL_MS = 100;
-/**
- * Cadence at which {@link applyAndWaitForAssert} re-applies its mutation.
- *
- * Must stay comfortably above the agent's own refresh debounce
- * (`REFRESH_DEBOUNCE_MS`). That debounce is a `Delayer`, so each new change
- * event cancels and restarts its timer: a mutation stream at (or faster than)
- * the debounce window starves the delayer and the re-scan never runs at all.
- */
 const WATCH_MUTATION_RETRY_INTERVAL_MS = 2_000;
 
 interface IWaitForAssertOptions {
 	readonly timeoutMs?: number;
 	readonly pollIntervalMs?: number;
-	/** Run before each attempt, inside the same try/catch as the assertion. */
 	readonly beforeAttempt?: () => Promise<void> | void;
 }
 
@@ -97,23 +68,6 @@ async function waitForAssert(
 	);
 }
 
-/**
- * Apply a filesystem mutation and wait for the session's customization state
- * to reflect it, periodically re-applying the mutation.
- *
- * Recursive filesystem watchers are subscribed asynchronously by the OS
- * watcher process, so a mutation issued right after the initial discovery
- * settles can land before the subscription is live and is then never
- * reported: nothing triggers a re-scan and the wait burns its full timeout.
- * Re-applying the mutation emits a fresh change event, so the first attempt
- * that lands after the watcher is live drives the re-scan.
- *
- * The mutation is re-applied on {@link WATCH_MUTATION_RETRY_INTERVAL_MS}
- * rather than on every poll so it can never starve the agent's refresh
- * debounce. The mutation runs inside the retry loop, so a transient failure
- * to apply it is retried too. A watcher that never comes up still fails the
- * assertion.
- */
 async function applyAndWaitForAssert(mutate: () => Promise<void>, assertion: () => Promise<void> | void): Promise<void> {
 	let nextMutationAt = 0;
 	await waitForAssert(assertion, {
@@ -151,7 +105,7 @@ suite('Agent Host Provider Integration — Copilot Customizations', function () 
 		for (const dir of tempDirs) {
 			try {
 				await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-			} catch { /* best-effort */ }
+			} catch { }
 		}
 		tempDirs.length = 0;
 	});
@@ -287,7 +241,6 @@ suite('Agent Host Provider Integration — Copilot Customizations', function () 
 		const workspaceDir = await mkdtemp(`${tmpdir()}/${prefix}`);
 		tempDirs.push(workspaceDir);
 		if (isRepoRoot) {
-			// Create a minimal repository root so discovery does not traverse into an outer repository.
 			const gitDir = join(workspaceDir, '.git');
 			await Promise.all([
 				mkdir(join(gitDir, 'objects'), { recursive: true }),
@@ -349,9 +302,6 @@ suite('Agent Host Provider Integration — Copilot Customizations', function () 
 	}
 
 	const builtInCustomizations = (customization: { type: CustomizationType; contents?: CustomizationType; uri: string }): boolean => {
-		// Filter out skills shipped inside the Copilot CLI package (node_modules/@github/copilot-<target>/builtin/<skill>),
-		// e.g. `customize-cloud-agent` and `github-pr-media`. These vary with the bundled CLI version and are not part of
-		// the workspace/user customizations under test.
 		const isBuiltInSkill = customization.type === CustomizationType.Directory
 			&& customization.contents === CustomizationType.Skill
 			&& /\/builtin\/[^/]+$/.test(customization.uri);

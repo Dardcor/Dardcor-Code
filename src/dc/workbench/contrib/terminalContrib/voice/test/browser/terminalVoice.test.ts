@@ -84,7 +84,6 @@ suite('TerminalVoiceSession', () => {
 		store.clear();
 	});
 
-	/** Lets tests control completion of the built-in engine's final transcription. */
 	function stubBuiltinEngine(transcriptEmitter: Emitter<IChatDictationTranscript>, stateEmitter: Emitter<ChatSpeechToTextState>, transcribe: () => Promise<string | undefined>): void {
 		let state = ChatSpeechToTextState.Idle;
 		instantiationService.stub(ISpeechService, new class extends mock<ISpeechService>() { });
@@ -107,10 +106,6 @@ suite('TerminalVoiceSession', () => {
 		});
 	}
 
-	// Stopping the built-in engine fetches its final transcript asynchronously.
-	// A teardown-only stop() racing in during that await (e.g. the active
-	// terminal instance changing as the command palette closes when the Stop
-	// Dictation command runs) must not cancel the engine and drop the text.
 	test('keeps dictated text when the active instance changes during accept', async () => {
 		const transcriptEmitter = store.add(new Emitter<IChatDictationTranscript>());
 		const stateEmitter = store.add(new Emitter<ChatSpeechToTextState>());

@@ -9,9 +9,7 @@ export interface IChatFindHighlightWindow {
 }
 
 export interface IChatFindHighlightRegistry {
-	/** Replaces `owner`'s ranges for `name` and repaints the merged highlight. */
 	setRanges(owner: object, name: string, ranges: readonly Range[], priority?: number): void;
-	/** Removes all of `owner`'s ranges and repaints any affected highlights. */
 	clear(owner: object): void;
 }
 
@@ -21,7 +19,6 @@ export function supportsCssHighlightApi(targetWindow: IChatFindHighlightWindow):
 
 const registries = new WeakMap<object, IChatFindHighlightRegistry>();
 
-/** Returns the shared highlight registry for a window. */
 export function getChatFindHighlightRegistry(targetWindow: IChatFindHighlightWindow): IChatFindHighlightRegistry {
 	let registry = registries.get(targetWindow);
 	if (!registry) {

@@ -22,12 +22,6 @@ interface ITurnStartCheckpoint {
 export class AgentHostCheckpointService extends Disposable implements IAgentHostCheckpointService {
 	declare readonly _serviceBrand: undefined;
 
-	/**
-	 * Serializes capture/dispose per session so back-to-back end-of-turn
-	 * captures don't race on the temp-index files or the `setTurnCheckpointRef`
-	 * write, and a dispose can't run concurrently with an in-flight capture.
-	 * Keyed by session URI string.
-	 */
 	private readonly _sequencer = new SequencerByKey<string>();
 	private readonly _turnStartCheckpoints = new Map<string, Map<string, ITurnStartCheckpoint>>();
 
@@ -38,13 +32,6 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 		@ILogService private readonly _logService: ILogService,
 	) {
 		super();
-		// Cleanup hook: when a session's data directory is about to be
-		// deleted, enumerate and delete every checkpoint ref we created
-		// for that session BEFORE the database file disappears. The
-		// `waitUntil` API blocks `deleteSessionData` until our promise
-		// settles, so the deletion can't race the ref read. The working
-		// directories come from the event because the session has already
-		// been removed from the state manager by this point.
 		this._register(this._sessionDataService.onWillDeleteSessionData(e => {
 			e.waitUntil(this._sequencer.queue(e.session.toString(), async () => {
 				this._turnStartCheckpoints.delete(e.session.toString());
@@ -68,25 +55,21 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 
 		for (const workingDirectoryUri of workingDirectories) {
 			try {
-				// Check that the working directory has a git repository
 				const repositoryRootUri = await this._gitService.getRepositoryRoot(workingDirectoryUri);
 				if (!repositoryRootUri) {
 					continue;
 				}
 
-				// Check if the baseline ref already exists
 				const baselineCheckpointRef = await this.getBaselineCheckpoint(sessionUri, repositoryRootUri);
 				if (baselineCheckpointRef) {
 					continue;
 				}
 
-				// Create checkpoint commit
 				const commit = await this._writeCheckpointCommit(repositoryRootUri, undefined, `Agent host session ${sanitized} - baseline checkpoint`);
 				if (!commit) {
 					continue;
 				}
 
-				// Update the baseline ref to point to the new commit
 				await this._gitService.updateRef(repositoryRootUri, baselineRefName, commit);
 				this._logService.trace(`[AgentHostCheckpoint] Captured baseline for ${sessionUri.toString()} at ${baselineRefName} in working directory ${workingDirectoryUri.toString()}`);
 			} catch (err) {
@@ -214,22 +197,17 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 			]);
 
 			if (checkpointRef) {
-				// Already captured for this
-				// turn, return the existing ref.
 				return;
 			}
 
 			let capturedCheckpointRef = false;
 			for (const workingDirectoryUri of workingDirectories) {
 				try {
-					// Check that the working directory has a git repository
 					const repositoryRootUri = await this._gitService.getRepositoryRoot(workingDirectoryUri);
 					if (!repositoryRootUri) {
 						continue;
 					}
 
-					// Check if the baseline ref exists for this repository. If it
-					// doesn't exist, we cannot capture a turn checkpoint for this repository.
 					const baselineCheckpointRef = await this.getBaselineCheckpoint(sessionUri, repositoryRootUri);
 					if (!baselineCheckpointRef) {
 						continue;
@@ -348,16 +326,12 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 	private async _adoptLegacyCheckpoints(sessionUri: URI, workingDirectory: URI, rawSessionId: string, turnIds: readonly string[]): Promise<void> {
 		const repoRoot = await this._gitService.getRepositoryRoot(workingDirectory);
 		if (!repoRoot || !this._gitService.listRefNamesWithOids) {
-			return; // non-git session (no checkpoints existed) or capability unavailable
+			return;
 		}
-		// Legacy EH checkpoint refs are `refs/sessions/<id>/checkpoints/turn/<N>`.
-		// Pass the id prefix (no glob) so git's for-each-ref prefix match returns
-		// every nested ref regardless of depth.
 		const legacy = await this._gitService.listRefNamesWithOids(repoRoot, `refs/sessions/${rawSessionId}`);
 		if (legacy.length === 0) {
 			return;
 		}
-		// Parse the turn number from each legacy ref's trailing path segment.
 		const oidByTurn = new Map<number, string>();
 		for (const { ref, oid } of legacy) {
 			const n = parseInt(ref.substring(ref.lastIndexOf('/') + 1), 10);
@@ -366,7 +340,6 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 			}
 		}
 		const sanitized = this._sanitizedSessionId(sessionUri);
-		// Re-point each legacy commit under the agent-host ref namespace (same OIDs).
 		const refByTurn = new Map<number, string>();
 		for (const [n, oid] of oidByTurn) {
 			const refName = buildCheckpointRefName(sanitized, n);
@@ -375,10 +348,6 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 		}
 		const ref = this._sessionDataService.openDatabase(sessionUri);
 		try {
-			// The baseline (turn 0) and per-turn commits are discoverable by the
-			// `buildCheckpointRefName` convention (re-pointed above via updateRef), so
-			// only the per-turn checkpoint index needs seeding here. The i-th resumed
-			// turn (0-based) corresponds to end-of-turn checkpoint N=i+1.
 			for (let i = 0; i < turnIds.length; i++) {
 				const refName = refByTurn.get(i + 1);
 				if (refName) {
@@ -388,7 +357,6 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 		} finally {
 			ref.dispose();
 		}
-		// Drop the legacy refs now the commits are reachable via the agent-host namespace.
 		await this._gitService.deleteRefs(repoRoot, legacy.map(l => l.ref)).catch(() => { });
 		this._logService.info(`[AgentHostCheckpoint] Adopted ${refByTurn.size} legacy checkpoint refs for ${sessionUri.toString()}`);
 	}
@@ -423,9 +391,6 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 						continue;
 					}
 
-					// Dedup baseRef and turnRefs (a no-op turn may reuse its
-					// parent's ref). Deleting the same ref twice is harmless but
-					// noisy, and the batch API takes a list.
 					const checkpointRefs = new Set<string>([baselineCheckpointRef, ...turnRefs]);
 					await this._gitService.deleteRefs(repositoryRootUri, [...checkpointRefs]);
 					this._logService.trace(`[AgentHostCheckpoint] Deleted ${checkpointRefs.size} checkpoint refs for ${sessionUri.toString()} in working directory ${workingDirectory}`);
@@ -471,10 +436,6 @@ export class AgentHostCheckpointService extends Disposable implements IAgentHost
 		}
 	}
 
-	/**
-	 * Parses the highest turn number from the existing refs and returns
-	 * the next one. Falls back to 1 (baseline is always 0).
-	 */
 	private async _nextTurnNumber(db: ISessionDatabase): Promise<number> {
 		const refs = await db.getAllCheckpointRefs();
 		let max = 0;

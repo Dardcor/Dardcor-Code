@@ -84,7 +84,6 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 	test('skips empty slices (no edits)', async () => {
 		sender = makeSender();
 
-		// No edits at all — after a full tick + idle wait, nothing should be sent
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS + IDLE_MS);
 		expect(telemetry.enhancedEvents).toHaveLength(0);
 	});
@@ -94,11 +93,9 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 
 		addDocAndEdit('hello');
 
-		// Before interval, nothing fired
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS - 1);
 		expect(telemetry.enhancedEvents).toHaveLength(0);
 
-		// Tick fires at INTERVAL_MS; then idle wait of IDLE_MS (no edits during this period)
 		await vi.advanceTimersByTimeAsync(1 + IDLE_MS);
 		expect(telemetry.enhancedEvents).toHaveLength(1);
 
@@ -116,10 +113,8 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 
 		addDocAndEdit('initial');
 
-		// Reach the first tick
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS);
 
-		// Type continuously for 30s — idle timer keeps resetting but hard cap should still fire
 		for (let i = 0; i < 15; i++) {
 			await vi.advanceTimersByTimeAsync(2_000);
 			editExistingDoc();
@@ -133,16 +128,13 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 
 		addDocAndEdit('a');
 
-		// First send (tick + idle wait, no edits during idle)
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS + IDLE_MS);
 		expect(telemetry.enhancedEvents).toHaveLength(1);
 
-		// Keep editing periodically so the second slice has content
 		for (let i = 0; i < 4; i++) {
 			await vi.advanceTimersByTimeAsync(60_000);
 			editExistingDoc();
 		}
-		// Drain idle wait
 		await vi.advanceTimersByTimeAsync(IDLE_MS);
 		expect(telemetry.enhancedEvents).toHaveLength(2);
 
@@ -159,7 +151,6 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 	test('caps entries when serialised payload exceeds 200 KB', async () => {
 		sender = makeSender();
 
-		// Add an edit large enough to push the serialised payload past the cap
 		const id = DocumentId.create('file:///workspace/large.ts');
 		const doc = workspace.addDocument({ id, workspaceRoot, initialValue: '' });
 		const huge = 'x'.repeat(250 * 1024);
@@ -178,20 +169,17 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 
 		addDocAndEdit('hello');
 
-		// Reach idle-wait phase
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS);
 		expect(telemetry.enhancedEvents).toHaveLength(0);
 
 		sender.dispose();
 		sender = undefined;
 
-		// Past idle + hard cap — still nothing
 		await vi.advanceTimersByTimeAsync(IDLE_MS + HARD_CAP_MS);
 		expect(telemetry.enhancedEvents).toHaveLength(0);
 	});
 
 	test('a throw from the telemetry service does not kill the loop', async () => {
-		// First call throws, subsequent calls succeed — emulates a transient failure.
 		let calls = 0;
 		const throwingTelemetry = new (class extends RecordingTelemetryService {
 			override sendEnhancedGHTelemetryEvent(eventName: string, properties?: TelemetryEventProperties, measurements?: TelemetryEventMeasurements): void {
@@ -211,17 +199,13 @@ describe('ContinuousEnhancedTelemetrySender', () => {
 
 		addDocAndEdit('a');
 
-		// First tick — the telemetry send throws, but the error is swallowed as best-effort
-		// telemetry and reschedule() still fires, so the loop keeps running.
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS + IDLE_MS);
 		expect(calls).toBe(1);
 		expect(throwingTelemetry.enhancedEvents).toHaveLength(0);
 
-		// Type something so the next slice has content and produce another full cycle.
 		editExistingDoc();
 		await vi.advanceTimersByTimeAsync(INTERVAL_MS + IDLE_MS);
 
-		// Second tick succeeded — loop kept ticking.
 		expect(calls).toBe(2);
 		expect(throwingTelemetry.enhancedEvents).toHaveLength(1);
 	});

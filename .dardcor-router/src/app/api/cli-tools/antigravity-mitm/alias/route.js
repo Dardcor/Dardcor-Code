@@ -5,7 +5,6 @@ import { getMitmAlias, setMitmAliasAll } from "@/models";
 import { getMitmStatus } from "@/mitm/manager";
 import { writeAliasForTool } from "@/lib/mitmAliasCache";
 
-// GET - Get MITM aliases for a tool
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -18,7 +17,6 @@ export async function GET(request) {
   }
 }
 
-// PUT - Save MITM aliases for a specific tool
 export async function PUT(request) {
   try {
     const { tool, mappings } = await request.json();
@@ -27,7 +25,6 @@ export async function PUT(request) {
       return NextResponse.json({ error: "tool and mappings required" }, { status: 400 });
     }
 
-    // Check if DNS is enabled for this tool
     const status = await getMitmStatus();
     if (!status.dnsStatus || !status.dnsStatus[tool]) {
       return NextResponse.json(

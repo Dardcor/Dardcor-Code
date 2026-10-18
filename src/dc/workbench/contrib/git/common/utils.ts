@@ -71,7 +71,6 @@ function getOrderedRemotes(repositoryState: GitRepositoryState): readonly GitRem
 
 	const remotes = new Map<string, GitRemote>();
 
-	// If there's an upstream remote, use that
 	const remoteIndex = repositoryState.remotes.findIndex(r => r.name === repositoryState.HEAD?.upstream?.remote);
 	if (remoteIndex !== -1) {
 		const fetchUrl = repositoryState.remotes[remoteIndex].fetchUrl;
@@ -80,7 +79,6 @@ function getOrderedRemotes(repositoryState: GitRepositoryState): readonly GitRem
 		}
 	}
 
-	// If there's a remote named "origin", use that
 	const originIndex = repositoryState.remotes.findIndex(r => r.name === 'origin');
 	if (originIndex !== -1) {
 		const fetchUrl = repositoryState.remotes[originIndex].fetchUrl;
@@ -89,7 +87,6 @@ function getOrderedRemotes(repositoryState: GitRepositoryState): readonly GitRem
 		}
 	}
 
-	// Add everything else
 	for (const remote of repositoryState.remotes) {
 		if (!remotes.has(remote.name)) {
 			remotes.set(remote.name, remote);
@@ -102,8 +99,6 @@ function getOrderedRemotes(repositoryState: GitRepositoryState): readonly GitRem
 function parseRemoteUrl(fetchUrl: string): { scheme: string; host: string; rawHost: string; path: string } | undefined {
 	fetchUrl = fetchUrl.trim();
 	try {
-		// Normalize git shorthand syntax (git@github.com:user/repo.git) into an explicit ssh:// url
-		// See https://git-scm.com/docs/git-clone/2.35.0#_git_urls
 		if (/^[\w\d\-]+@/i.test(fetchUrl)) {
 			const parts = fetchUrl.split(':');
 			if (parts.length !== 2) {
@@ -120,7 +115,7 @@ function parseRemoteUrl(fetchUrl: string): { scheme: string; host: string; rawHo
 		}
 
 		const splitAuthority = authority.split('@');
-		if (splitAuthority.length > 2) { // Invalid, too many @ symbols
+		if (splitAuthority.length > 2) {
 			return undefined;
 		}
 
@@ -131,11 +126,11 @@ function parseRemoteUrl(fetchUrl: string): { scheme: string; host: string; rawHo
 
 		const rawHost = extractedHost
 			.toLowerCase()
-			.replace(/:\d+$/, ''); // Remove optional port
+			.replace(/:\d+$/, '');
 
 		const normalizedHost = rawHost
-			.replace(/^[\w\-]+-/, '') // Remove common ssh syntax: abc-github.com
-			.replace(/-[\w\-]+$/, '');// Remove common ssh syntax: github.com-abc
+			.replace(/^[\w\-]+-/, '')
+			.replace(/-[\w\-]+$/, '');
 
 		return { scheme: repoUrl.scheme, host: normalizedHost, rawHost, path: path };
 	} catch (err) {

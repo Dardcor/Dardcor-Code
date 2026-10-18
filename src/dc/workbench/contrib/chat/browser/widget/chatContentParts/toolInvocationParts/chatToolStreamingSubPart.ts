@@ -14,10 +14,6 @@ import { IChatContentPartRenderContext } from '../chatContentParts.js';
 import { ChatProgressContentPart } from '../chatProgressContentPart.js';
 import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
 
-/**
- * Sub-part for rendering a tool invocation in the streaming state.
- * This shows progress while the tool arguments are being streamed from the LM.
- */
 export class ChatToolStreamingSubPart extends BaseChatToolInvocationSubPart {
 	public readonly domNode: HTMLElement;
 
@@ -47,22 +43,17 @@ export class ChatToolStreamingSubPart extends BaseChatToolInvocationSubPart {
 			return container;
 		}
 
-		// Observe streaming message changes
 		this._register(autorun(reader => {
 			const currentState = toolInvocation.state.read(reader);
 			if (currentState.type !== IChatToolInvocation.StateKind.Streaming) {
-				// State changed - clear the container DOM before triggering re-render
-				// This prevents the old streaming message from lingering
 				dom.clearNode(container);
 				this._onNeedsRerender.fire();
 				return;
 			}
 
-			// Read the streaming message
 			const streamingMessage = currentState.streamingMessage.read(reader);
 			const displayMessage = streamingMessage ?? toolInvocation.invocationMessage;
 
-			// Don't render anything if there's no meaningful content
 			const messageText = typeof displayMessage === 'string' ? displayMessage : displayMessage.value;
 			if (!messageText || messageText.trim().length === 0) {
 				dom.clearNode(container);
@@ -78,8 +69,6 @@ export class ChatToolStreamingSubPart extends BaseChatToolInvocationSubPart {
 				content
 			};
 
-			// Tool calls grouped under a thinking part rely on the thinking header for the working
-			// indicator, so their rows stay static; standalone streaming rows shimmer instead.
 			const shimmer = !toolInvocation.isAttachedToThinking;
 			const part = reader.store.add(this.instantiationService.createInstance(
 				ChatProgressContentPart,

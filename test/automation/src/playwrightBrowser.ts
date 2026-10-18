@@ -18,10 +18,8 @@ let port = 9000;
 
 export async function launch(options: LaunchOptions): Promise<{ serverProcess: ChildProcess; driver: PlaywrightDriver }> {
 
-	// Launch server
 	const { serverProcess, endpoint } = await launchServer(options);
 
-	// Launch browser
 	const { browser, context, page, pageLoadedPromise } = await launchBrowser(options, endpoint);
 
 	return {
@@ -124,18 +122,13 @@ async function launchBrowser(options: LaunchOptions, endpoint: string) {
 		try {
 			await measureAndLog(() => context.tracing.start({ screenshots: true, snapshots }), 'context.tracing.start()', logger);
 		} catch (error) {
-			logger.log(`Playwright (Browser): Failed to start playwright tracing (${error})`); // do not fail the build when this fails
+			logger.log(`Playwright (Browser): Failed to start playwright tracing (${error})`);
 		}
 	}
 
 	const page = await measureAndLog(() => context.newPage(), 'context.newPage()', logger);
 	await measureAndLog(() => page.setViewportSize({ width: 1440, height: 900 }), 'page.setViewportSize', logger);
 
-	// Always log failed requests and console errors/warnings (even without
-	// `--verbose`) so that hard-to-reproduce startup stalls can be root caused
-	// from CI logs. A stalled or aborted module fetch can prevent the workbench
-	// from rendering (e.g. `.monaco-workbench` never appears) without producing
-	// a page error, crash or HTTP error response, making it otherwise invisible.
 	context.on('requestfailed', e => logger.log(`Playwright (Browser): context.on('requestfailed') [${e.failure()?.errorText} for ${e.url()}]`));
 	page.on('requestfailed', e => logger.log(`Playwright (Browser): page.on('requestfailed') [${e.failure()?.errorText} for ${e.url()}]`));
 	page.on('console', e => {
@@ -169,7 +162,6 @@ async function launchBrowser(options: LaunchOptions, endpoint: string) {
 		`["logLevel","${options.verbose ? 'trace' : 'info'}"]`
 	].join(',')}]`;
 
-	// Build URL with optional workspace path
 	let url = `${endpoint}&`;
 	if (workspacePath) {
 		const workspaceParam = workspacePath.endsWith('.code-workspace') ? 'workspace' : 'folder';
@@ -191,7 +183,7 @@ function waitForEndpoint(server: ChildProcess, logger: Logger): Promise<string> 
 
 		server.stdout?.on('data', data => {
 			if (!endpointFound) {
-				logger.log(`[server] stdout: ${data}`); // log until endpoint found to diagnose issues
+				logger.log(`[server] stdout: ${data}`);
 			}
 
 			const matches = data.toString('ascii').match(/Web UI available at (.+)/);
@@ -204,7 +196,7 @@ function waitForEndpoint(server: ChildProcess, logger: Logger): Promise<string> 
 
 		server.stderr?.on('data', error => {
 			if (!endpointFound) {
-				logger.log(`[server] stderr: ${error}`); // log until endpoint found to diagnose issues
+				logger.log(`[server] stderr: ${error}`);
 			}
 
 			if (error.toString().indexOf('EADDRINUSE') !== -1) {

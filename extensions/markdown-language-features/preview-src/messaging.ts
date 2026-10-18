@@ -8,9 +8,6 @@ import type { FromWebviewMessage } from '../types/previewMessaging';
 import { SettingsManager } from './settings';
 
 export interface MessagePoster {
-	/**
-	 * Post a message to the markdown extension
-	 */
 	postMessage<T extends FromWebviewMessage.Type>(
 		type: T['type'],
 		body: Omit<T, 'source' | 'type'>

@@ -1,4 +1,3 @@
-// Runway ML — async submit + /tasks/{id} polling
 import { sleep, nowSec, sizeToAspectRatio, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 
@@ -7,7 +6,6 @@ const BASE_URL = PROVIDER_MEDIA["runwayml"]?.imageConfig?.baseUrl;
 export default {
   async: true,
   buildUrl: (model) => {
-    // Image models (gen4_image*) → text_to_image; video models → image_to_video
     return `${BASE_URL}/${model.includes("image") ? "text_to_image" : "image_to_video"}`;
   },
   buildHeaders: (creds) => {

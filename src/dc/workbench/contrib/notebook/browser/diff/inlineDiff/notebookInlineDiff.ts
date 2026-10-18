@@ -155,7 +155,6 @@ export class NotebookInlineDiffDecorationContribution extends Disposable impleme
 			}
 		});
 
-		// Dispose old decorators
 		this.cellDecorators.forEach((v, cell) => {
 			if (!validDiffDecorators.has(v)) {
 				v.dispose();

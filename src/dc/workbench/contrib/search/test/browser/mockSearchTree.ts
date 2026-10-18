@@ -10,9 +10,6 @@ import { RenderableMatch } from '../../browser/searchTreeModel/searchTreeCommon.
 
 const someEvent = new Emitter().event;
 
-/**
- * Add stub methods as needed
- */
 export class MockObjectTree<T, TRef> implements IDisposable {
 
 	get onDidChangeFocus() { return someEvent; }

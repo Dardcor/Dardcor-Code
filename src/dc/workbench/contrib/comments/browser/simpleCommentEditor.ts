@@ -11,7 +11,6 @@ import { IContextKeyService, RawContextKey, IContextKey } from '../../../../plat
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 
-// Allowed Editor Contributions:
 import { MenuPreventer } from '../../codeEditor/browser/menuPreventer.js';
 import { EditorDictation } from '../../codeEditor/browser/dictation/editorDictation.js';
 import { ContextMenuController } from '../../../../editor/contrib/contextmenu/browser/contextmenu.js';
@@ -75,7 +74,7 @@ export class SimpleCommentEditor extends CodeEditorWidget {
 				{ id: ContextMenuController.ID, ctor: ContextMenuController, instantiation: EditorContributionInstantiation.BeforeFirstInteraction },
 				{ id: SuggestController.ID, ctor: SuggestController, instantiation: EditorContributionInstantiation.Eager },
 				{ id: SnippetController2.ID, ctor: SnippetController2, instantiation: EditorContributionInstantiation.Lazy },
-				{ id: TabCompletionController.ID, ctor: TabCompletionController, instantiation: EditorContributionInstantiation.Eager }, // eager because it needs to define a context key
+				{ id: TabCompletionController.ID, ctor: TabCompletionController, instantiation: EditorContributionInstantiation.Eager },
 				{ id: EditorDictation.ID, ctor: EditorDictation, instantiation: EditorContributionInstantiation.Lazy },
 				...EditorExtensionsRegistry.getSomeEditorContributions([
 					CopyPasteController.ID,
@@ -158,7 +157,7 @@ export class SimpleCommentEditor extends CodeEditorWidget {
 export function calculateEditorHeight(parentEditor: LayoutableEditor, editor: ICodeEditor, currentHeight: number): number {
 	const layoutInfo = editor.getLayoutInfo();
 	const lineHeight = editor.getOption(EditorOption.lineHeight);
-	const contentHeight = (editor._getViewModel()?.getLineCount()! * lineHeight); // Can't just call getContentHeight() because it returns an incorrect, large, value when the editor is first created.
+	const contentHeight = (editor._getViewModel()?.getLineCount()! * lineHeight);
 	if ((contentHeight > layoutInfo.height) ||
 		(contentHeight < layoutInfo.height && currentHeight > MIN_EDITOR_HEIGHT)) {
 		const linesToAdd = Math.ceil((contentHeight - layoutInfo.height) / lineHeight);

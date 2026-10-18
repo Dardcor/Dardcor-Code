@@ -19,7 +19,7 @@ import { Range } from '../../../../../editor/common/core/range.js';
 import { DocumentSymbol, getAriaLabelForSymbol, SymbolKind, symbolKindNames, SymbolKinds, SymbolTag } from '../../../../../editor/common/languages.js';
 import { ITextResourceConfigurationService } from '../../../../../editor/common/services/textResourceConfiguration.js';
 import { OutlineElement, OutlineGroup, OutlineModel } from '../../../../../editor/contrib/documentSymbols/browser/outlineModel.js';
-import '../../../../../editor/contrib/symbolIcons/browser/symbolIcons.js'; // The codicon symbol colors are defined here and must be loaded to get colors
+import '../../../../../editor/contrib/symbolIcons/browser/symbolIcons.js';
 import { localize } from '../../../../../nls.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { fillInSymbolsDragData, IResourceStat } from '../../../../../platform/dnd/browser/dnd.js';
@@ -88,7 +88,6 @@ export class DocumentSymbolDragAndDrop implements ITreeDragAndDrop<DocumentSymbo
 	}
 
 	getDragLabel(elements: DocumentSymbolItem[], originalEvent: DragEvent): string | undefined {
-		// Multi select not supported
 		if (elements.length !== 1) {
 			return undefined;
 		}
@@ -219,7 +218,6 @@ export class DocumentSymbolRenderer implements ITreeRenderer<OutlineElement, Fuz
 			title: localize('title.template', "{0} ({1})", element.symbol.name, symbolKindNames[element.symbol.kind])
 		};
 		if (this._configurationService.getValue(OutlineConfigKeys.icons)) {
-			// add styles for the icons
 			template.iconClass.className = '';
 			template.iconClass.classList.add('outline-element-icon', 'inline', 'codicon-colored', ...ThemeIcon.asClassNameArray(SymbolKinds.toIcon(element.symbol.kind)));
 		}
@@ -246,7 +244,6 @@ export class DocumentSymbolRenderer implements ITreeRenderer<OutlineElement, Fuz
 		const color = this._themeService.getColorTheme().getColor(topSev === MarkerSeverity.Error ? listErrorForeground : listWarningForeground);
 		const cssColor = color ? color.toString() : 'inherit';
 
-		// color of the label
 		const problem = this._configurationService.getValue('problems.visibility');
 		const configProblems = this._configurationService.getValue(OutlineConfigKeys.problemsColors);
 
@@ -256,7 +253,6 @@ export class DocumentSymbolRenderer implements ITreeRenderer<OutlineElement, Fuz
 			template.container.style.setProperty('--outline-element-color', cssColor);
 		}
 
-		// badge with color/rollup
 		if (problem === undefined) {
 			return;
 		}

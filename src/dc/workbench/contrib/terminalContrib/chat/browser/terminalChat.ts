@@ -57,48 +57,33 @@ export const enum TerminalChatContextKeyStrings {
 
 export namespace TerminalChatContextKeys {
 
-	/** Whether the chat widget is focused */
 	export const focused = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatFocus, false, localize('chatFocusedContextKey', "Whether the chat view is focused."));
 
-	/** Whether the chat widget is visible */
 	export const visible = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatVisible, false, localize('chatVisibleContextKey', "Whether the chat view is visible."));
 
-	/** Whether there is an active chat request */
 	export const requestActive = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatActiveRequest, false, localize('chatRequestActiveContextKey', "Whether there is an active chat request."));
 
-	/** Whether the chat input has text */
 	export const inputHasText = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatInputHasText, false, localize('chatInputHasTextContextKey', "Whether the chat input has text."));
 
-	/** The chat response contains at least one code block */
 	export const responseContainsCodeBlock = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatResponseContainsCodeBlock, false, localize('chatResponseContainsCodeBlockContextKey', "Whether the chat response contains a code block."));
 
-	/** The chat response contains multiple code blocks */
 	export const responseContainsMultipleCodeBlocks = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatResponseContainsMultipleCodeBlocks, false, localize('chatResponseContainsMultipleCodeBlocksContextKey', "Whether the chat response contains multiple code blocks."));
 
-	/** A chat agent exists for the terminal location */
 	export const hasChatAgent = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatAgentRegistered, false, localize('chatAgentRegisteredContextKey', "Whether a chat agent is registered for the terminal location."));
 
-	/** Has terminals created via chat */
 	export const hasChatTerminals = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatHasTerminals, false, localize('terminalHasChatTerminals', "Whether there are any chat terminals."));
 
-	/** Has hidden chat terminals */
 	export const hasHiddenChatTerminals = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatHasHiddenTerminals, false, localize('terminalHasHiddenChatTerminals', "Whether there are any hidden chat terminals."));
 
-	/** Whether the per-instance terminal tool progress part has a terminal instance attached */
 	export const chatToolHasInstance = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatToolHasInstance, false);
 
-	/** Whether the continue-in-background action is available */
 	export const chatToolCanContinueInBackground = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatToolCanContinueInBackground, false);
 
-	/** Whether terminal output is available for display */
 	export const chatToolHasOutput = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatToolHasOutput, false);
 
-	/** Whether the terminal tool uses a collapsible wrapper */
 	export const chatToolUsesCollapsible = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatToolUsesCollapsible, false);
 
-	/** Whether the associated terminal is hidden from the user */
 	export const chatToolIsHiddenTerminal = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatToolIsHiddenTerminal, false);
 
-	/** Whether the terminal output section is currently expanded */
 	export const chatToolOutputExpanded = new RawContextKey<boolean>(TerminalChatContextKeyStrings.ChatToolOutputExpanded, false);
 }

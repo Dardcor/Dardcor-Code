@@ -19,11 +19,6 @@ interface LastTerminalActivity {
 	readonly timestamp: number;
 }
 
-/**
- * Monitors terminal activity and tracks the last terminal command execution.
- * Similar to UserInteractionMonitor, this class listens to terminal events
- * to understand user terminal activity patterns.
- */
 export class TerminalMonitor extends Disposable {
 
 	private _lastActivity: LastTerminalActivity | undefined;
@@ -33,12 +28,10 @@ export class TerminalMonitor extends Disposable {
 	) {
 		super();
 
-		// Listen to terminal shell execution end events to track command completions
 		this._register(this._terminalService.onDidEndTerminalShellExecution(e => {
 			this._recordTerminalActivity(e);
 		}));
 
-		// Clear last activity if the terminal is closed
 		this._register(this._terminalService.onDidCloseTerminal(terminal => {
 			if (this._lastActivity?.terminal === terminal) {
 				this._lastActivity = undefined;
@@ -59,11 +52,6 @@ export class TerminalMonitor extends Disposable {
 		};
 	}
 
-	/**
-	 * Gets the terminal output data for telemetry, including how long ago the last command was executed.
-	 * Data is primarily sourced from onDidEndTerminalShellExecution to ensure consistency
-	 * (buffer, command, and metadata all come from the same terminal).
-	 */
 	public getData(): string {
 		const now = Date.now();
 		const terminalCount = this._terminalService.terminals.length;
@@ -74,18 +62,15 @@ export class TerminalMonitor extends Disposable {
 			});
 		}
 
-		// Get buffer from the same terminal where the last command was executed
 		const buffer = this._terminalService.getBufferForTerminal(this._lastActivity.terminal, MAX_BUFFER_CHARS * 2);
 		const msAgo = now - this._lastActivity.timestamp;
 
 		const data = {
-			// All data from the same terminal that executed the last tracked command
 			terminalName: this._lastActivity.terminalName,
 			commandLine: this._lastActivity.commandLine,
 			cwd: this._lastActivity.cwd,
 			exitCode: this._lastActivity.exitCode,
 			msAgo,
-			// Buffer from the same terminal
 			buffer: buffer.length <= MAX_BUFFER_CHARS ? {
 				fits: true,
 				content: buffer,
@@ -97,7 +82,6 @@ export class TerminalMonitor extends Disposable {
 				length: buffer.length,
 				truncatedChars: buffer.length - MAX_BUFFER_CHARS,
 			},
-			// General terminal state
 			terminalCount,
 		};
 

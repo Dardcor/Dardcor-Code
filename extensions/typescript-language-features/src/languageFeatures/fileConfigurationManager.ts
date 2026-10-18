@@ -41,10 +41,6 @@ export default class FileConfigurationManager extends Disposable {
 		super();
 		this.formatOptions = new ResourceMap(undefined, { onCaseInsensitiveFileSystem });
 		vscode.workspace.onDidCloseTextDocument(textDocument => {
-			// When a document gets closed delete the cached formatting options.
-			// This is necessary since the tsserver now closed a project when its
-			// last file in it closes which drops the stored formatting options
-			// as well.
 			this.formatOptions.delete(textDocument.uri);
 		}, undefined, this._disposables);
 	}
@@ -117,7 +113,7 @@ export default class FileConfigurationManager extends Disposable {
 		}
 
 		const args: Proto.ConfigureRequestArguments = {
-			file: undefined /*global*/,
+			file: undefined ,
 			...this.getFileOptions(document, formattingOptions),
 		};
 		await this.client.execute('configure', args, token);
@@ -147,7 +143,6 @@ export default class FileConfigurationManager extends Disposable {
 			tabSize: options.tabSize,
 			indentSize: options.tabSize,
 			convertTabsToSpaces: options.insertSpaces,
-			// We can use \n here since the editor normalizes later on to its line endings.
 			newLineCharacter: '\n',
 			insertSpaceAfterCommaDelimiter: readUnifiedConfig<boolean>('format.insertSpaceAfterCommaDelimiter', true, { scope: document, fallbackSection }),
 			insertSpaceAfterConstructor: readUnifiedConfig<boolean>('format.insertSpaceAfterConstructor', false, { scope: document, fallbackSection }),
@@ -210,10 +205,7 @@ export default class FileConfigurationManager extends Disposable {
 	private getAutoImportFileExcludePatternsPreference(scope: UnifiedConfigurationScope, fallbackSection: string, workspaceFolder: vscode.Uri | undefined): string[] | undefined {
 		const patterns = readUnifiedConfig<string[] | undefined>('preferences.autoImportFileExcludePatterns', undefined, { scope, fallbackSection });
 		return workspaceFolder && patterns?.map(p => {
-			// Normalization rules: https://github.com/microsoft/TypeScript/pull/49578
 			const isRelative = /^\.\.?($|[\/\\])/.test(p);
-			// In TypeScript < 5.3, the first path component cannot be a wildcard, so we need to prefix
-			// it with a path root (e.g. `/` or `c:\`)
 			const wildcardPrefix = this.client.apiVersion.gte(API.v540)
 				? ''
 				: path.parse(this.client.toTsFilePath(workspaceFolder)!).root;
@@ -310,14 +302,12 @@ function getOrganizeImportsPreferences(scope: UnifiedConfigurationScope, fallbac
 	const organizeImportsCollation = readUnifiedConfig<'ordinal' | 'unicode'>('preferences.organizeImports.unicodeCollation', 'ordinal', { scope, fallbackSection });
 	const organizeImportsCaseSensitivity = readUnifiedConfig<'auto' | 'caseInsensitive' | 'caseSensitive'>('preferences.organizeImports.caseSensitivity', 'auto', { scope, fallbackSection });
 	return {
-		// More specific settings
 		organizeImportsTypeOrder: withDefaultAsUndefined(readUnifiedConfig<'auto' | 'last' | 'inline' | 'first'>('preferences.organizeImports.typeOrder', 'auto', { scope, fallbackSection }), 'auto'),
 		organizeImportsIgnoreCase: organizeImportsCaseSensitivity === 'caseInsensitive' ? true
 			: organizeImportsCaseSensitivity === 'caseSensitive' ? false
 				: 'auto',
 		organizeImportsCollation,
 
-		// The rest of the settings are only applicable when using unicode collation
 		...(organizeImportsCollation === 'unicode' ? {
 			organizeImportsCaseFirst: organizeImportsCaseSensitivity === 'caseInsensitive' ? undefined : withDefaultAsUndefined(readUnifiedConfig<'default' | 'upper' | 'lower' | false>('preferences.organizeImports.caseFirst', false, { scope, fallbackSection }), 'default'),
 			organizeImportsAccentCollation: readUnifiedConfig<boolean | undefined>('preferences.organizeImports.accentCollation', undefined, { scope, fallbackSection }),

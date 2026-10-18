@@ -359,10 +359,6 @@ const sharedCommands: Record<string, Fig.Subcommand> = {
 							return ["grep", "-iE", "FROM.*AS", dockerfilePath];
 						},
 						postProcess: function (out) {
-							// This just searches the Dockerfile for the alias name after AS,
-							// and due to the grep above, will only match lines where FROM and AS
-							// are on the same line. This could certainly be made more robust
-							// down the line.
 							const imageNameRegexp = /(?:[aA][sS]\s+)([\w:.-]+)/;
 							return out
 								.split("\n")
@@ -2005,7 +2001,6 @@ default-cgroupns-mode option on the daemon (default)`,
 			},
 			{
 				name: "command",
-				// description: "The command to run in the container"
 			},
 		],
 	},
@@ -2153,7 +2148,6 @@ default-cgroupns-mode option on the daemon (default)`,
 	top: {
 		name: "top",
 		description: "Display the running processes of a container",
-		// TODO: You can pass in psOptions?
 		args: containersArg,
 	},
 	unpause: {
@@ -2167,8 +2161,6 @@ default-cgroupns-mode option on the daemon (default)`,
 	update: {
 		name: "update",
 		description: "Update configuration of one or more containers",
-		// INFO: You can do this on any container, even if it's not running - Is that useful though?
-		// INFO: For now, only displaying running containers
 		args: containersArg,
 		options: [
 			{
@@ -2481,7 +2473,6 @@ default-cgroupns-mode option on the daemon (default)`,
 	push: {
 		name: "push",
 		description: "Push an image or a repository to a registry",
-		// TODO: Autocomplete images
 		args: {
 			name: "NAME[:TAG]",
 		},
@@ -2605,8 +2596,6 @@ const completionSpec: Fig.Spec = {
 			name: "inspect",
 			description: "Return low-level information on Docker objects",
 			args: {
-				// TODO: There are more types of docker objects beyond running containers
-				// that can be inspected
 				name: "Name or ID",
 				generators: [
 					{

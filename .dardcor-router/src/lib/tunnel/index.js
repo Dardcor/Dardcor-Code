@@ -1,4 +1,3 @@
-// Cloudflare service
 export {
   enableTunnel,
   disableTunnel,
@@ -16,7 +15,6 @@ export {
 } from "./cloudflare/cloudflared.js";
 export { probeUrlAlive as probeCloudflareAlive } from "./cloudflare/healthCheck.js";
 
-// Tailscale service
 export {
   enableTailscale,
   disableTailscale,
@@ -41,7 +39,6 @@ export {
 } from "./tailscale/tailscale.js";
 export { probeUrlAlive as probeTailscaleAlive } from "./tailscale/healthCheck.js";
 
-// Shared
 export { loadState, generateShortId } from "./shared/state.js";
 export { checkInternet } from "./shared/internetCheck.js";
 export {

@@ -92,34 +92,19 @@ export const commonOptions: Fig.Option[] = [
 		args: {
 			name: 'locale',
 			suggestions: [
-				// Supported locales: https://code.visualstudio.com/docs/getstarted/locales#_available-locales
-				// allow-any-unicode-next-line
 				{ name: 'en', icon: '🇺🇸', description: 'English (US)' },
-				// allow-any-unicode-next-line
 				{ name: 'zh-CN', icon: '🇨🇳', description: 'Simplified Chinese' },
-				// allow-any-unicode-next-line
 				{ name: 'zh-TW', icon: '🇹🇼', description: 'Traditional Chinese' },
-				// allow-any-unicode-next-line
 				{ name: 'fr', icon: '🇫🇷', description: 'French' },
-				// allow-any-unicode-next-line
 				{ name: 'de', icon: '🇩🇪', description: 'German' },
-				// allow-any-unicode-next-line
 				{ name: 'it', icon: '🇮🇹', description: 'Italian' },
-				// allow-any-unicode-next-line
 				{ name: 'es', icon: '🇪🇸', description: 'Spanish' },
-				// allow-any-unicode-next-line
 				{ name: 'ja', icon: '🇯🇵', description: 'Japanese' },
-				// allow-any-unicode-next-line
 				{ name: 'ko', icon: '🇰🇷', description: 'Korean' },
-				// allow-any-unicode-next-line
 				{ name: 'ru', icon: '🇷🇺', description: 'Russian' },
-				// allow-any-unicode-next-line
 				{ name: 'bg', icon: '🇧🇬', description: 'Bulgarian' },
-				// allow-any-unicode-next-line
 				{ name: 'hu', icon: '🇭🇺', description: 'Hungarian' },
-				// allow-any-unicode-next-line
 				{ name: 'pt-br', icon: '🇧🇷', description: 'Portuguese (Brazil)' },
-				// allow-any-unicode-next-line
 				{ name: 'tr', icon: '🇹🇷', description: 'Turkish' },
 			],
 		},

@@ -157,17 +157,11 @@ class DeclarationCoverageNode {
 		}
 	}
 
-	/** Gets whether this function has a defined range and contains the given range. */
 	public contains(location: Range | Position) {
 		const own = this.data.location;
 		return own instanceof Range && (location instanceof Range ? own.containsRange(location) : own.containsPosition(location));
 	}
 
-	/**
-	 * If the function defines a range, we can look at statements within the
-	 * function to get total coverage for the function, rather than a boolean
-	 * yes/no.
-	 */
 	@memoize
 	public attributableCoverage() {
 		const { location, count } = this.data;
@@ -221,7 +215,6 @@ class LoadingDetails {
 	public readonly label = localize('loadingCoverageDetails', "Loading Coverage Details...");
 }
 
-/** Type of nodes returned from {@link TestCoverage}. Note: value is *always* defined. */
 type TestCoverageFileNode = IPrefixTreeNode<ComputedFileCoverage | FileCoverage>;
 type CoverageTreeElement = TestCoverageFileNode | DeclarationCoverageNode | LoadingDetails | RevealUncoveredDeclarations | CurrentlyFilteredTo;
 
@@ -340,14 +333,12 @@ class TestCoverageTree extends Disposable {
 
 		let tree = coverage.tree;
 
-		// Filter to only a test, generate a new tree with only those items selected
 		if (showOnlyTest) {
 			tree = coverage.filterTreeForTest(showOnlyTest);
 		}
 
 		const files: TestCoverageFileNode[] = [];
 		for (let node of tree.nodes) {
-			// when showing initial children, only show from the first file or tee
 			while (!(node.value instanceof FileCoverage) && node.children?.size === 1) {
 				node = Iterable.first(node.children.values())!;
 			}
@@ -360,7 +351,6 @@ class TestCoverageTree extends Disposable {
 				element: value,
 				incompressible: isFile,
 				collapsed: isFile,
-				// directories can be expanded, and items with function info can be expanded
 				collapsible: !isFile || !!value.value?.declaration?.total,
 				children: value.children && Iterable.map(value.children?.values(), toChild)
 			};
@@ -402,7 +392,7 @@ class TestCoverageTree extends Disposable {
 
 	private updateWithDetails(el: IPrefixTreeNode<FileCoverage>, details: readonly CoverageDetails[]) {
 		if (!this.tree.hasElement(el)) {
-			return; // avoid any issues if the tree changes in the meanwhile
+			return;
 		}
 
 		const decl: DeclarationCoverageNode[] = [];
@@ -556,7 +546,6 @@ class FileCoverageRenderer implements ICompressibleTreeRenderer<CoverageTreeElem
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) { }
 
-	/** @inheritdoc */
 	public renderTemplate(container: HTMLElement): FileTemplateData {
 		const templateDisposables = new DisposableStore();
 		container.classList.add('testing-stdtree-container', 'test-coverage-list-item');
@@ -572,12 +561,10 @@ class FileCoverageRenderer implements ICompressibleTreeRenderer<CoverageTreeElem
 		};
 	}
 
-	/** @inheritdoc */
 	public renderElement(node: ITreeNode<CoverageTreeElement, FuzzyScore>, _index: number, templateData: FileTemplateData): void {
 		this.doRender(node.element as TestCoverageFileNode, templateData, node.filterData);
 	}
 
-	/** @inheritdoc */
 	public renderCompressedElements(node: ITreeNode<ICompressedTreeNode<CoverageTreeElement>, FuzzyScore>, _index: number, templateData: FileTemplateData): void {
 		this.doRender(node.element.elements, templateData, node.filterData);
 	}
@@ -586,7 +573,6 @@ class FileCoverageRenderer implements ICompressibleTreeRenderer<CoverageTreeElem
 		templateData.templateDisposables.dispose();
 	}
 
-	/** @inheritdoc */
 	private doRender(element: CoverageTreeElement | CoverageTreeElement[], templateData: FileTemplateData, filterData: FuzzyScore | undefined) {
 		templateData.elementsDisposables.clear();
 
@@ -629,7 +615,6 @@ class DeclarationCoverageRenderer implements ICompressibleTreeRenderer<CoverageT
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) { }
 
-	/** @inheritdoc */
 	public renderTemplate(container: HTMLElement): DeclarationTemplateData {
 		const templateDisposables = new DisposableStore();
 		container.classList.add('test-coverage-list-item', 'testing-stdtree-container');
@@ -646,12 +631,10 @@ class DeclarationCoverageRenderer implements ICompressibleTreeRenderer<CoverageT
 		};
 	}
 
-	/** @inheritdoc */
 	public renderElement(node: ITreeNode<CoverageTreeElement, FuzzyScore>, _index: number, templateData: DeclarationTemplateData): void {
 		this.doRender(node.element as DeclarationCoverageNode, templateData, node.filterData);
 	}
 
-	/** @inheritdoc */
 	public renderCompressedElements(node: ITreeNode<ICompressedTreeNode<CoverageTreeElement>, FuzzyScore>, _index: number, templateData: DeclarationTemplateData): void {
 		this.doRender(node.element.elements[node.element.elements.length - 1] as DeclarationCoverageNode, templateData, node.filterData);
 	}
@@ -660,7 +643,6 @@ class DeclarationCoverageRenderer implements ICompressibleTreeRenderer<CoverageT
 		templateData.templateDisposables.dispose();
 	}
 
-	/** @inheritdoc */
 	private doRender(element: DeclarationCoverageNode, templateData: DeclarationTemplateData, _filterData: FuzzyScore | undefined) {
 		const covered = !!element.hits;
 		const icon = covered ? testingWasCovered : testingStatesToIcons.get(TestResultState.Unset);
@@ -688,7 +670,6 @@ class BasicRenderer implements ICompressibleTreeRenderer<CoverageTreeElement, Fu
 	}
 
 	disposeTemplate(): void {
-		// no-op
 	}
 
 	private renderInner(element: CoverageTreeElement, container: HTMLElement) {

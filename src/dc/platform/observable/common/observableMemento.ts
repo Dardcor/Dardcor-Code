@@ -19,22 +19,12 @@ interface IObservableMementoOpts<T> {
 	fromStorage: (value: string) => T;
 }
 
-/**
- * Defines an observable memento. Returns a function that can be called with
- * the specific storage scope, target, and service to use in a class.
- *
- * Note that the returned Observable is a disposable, because it interacts
- * with storage service events, and must be tracked appropriately.
- */
 export function observableMemento<T>(opts: IObservableMementoOpts<T>) {
 	return (scope: StorageScope, target: StorageTarget, storageService: IStorageService): ObservableMemento<T> => {
 		return new ObservableMemento<T>(opts, scope, target, storageService);
 	};
 }
 
-/**
- * A value that is stored, and is also observable. Note: T should be readonly.
- */
 export class ObservableMemento<T> extends ObservableValue<T> implements IDisposable {
 	private readonly _store = new DisposableStore();
 	private _noStorageUpdateNeeded = false;

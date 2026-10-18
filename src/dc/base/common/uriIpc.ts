@@ -90,7 +90,6 @@ function _transformOutgoingURIs(obj: any, transformer: IURITransformer, depth: n
 			return transformer.transformOutgoing(obj);
 		}
 
-		// walk object (or array)
 		for (const key in obj) {
 			if (Object.hasOwnProperty.call(obj, key)) {
 				const r = _transformOutgoingURIs(obj[key], transformer, depth + 1);
@@ -107,7 +106,6 @@ function _transformOutgoingURIs(obj: any, transformer: IURITransformer, depth: n
 export function transformOutgoingURIs<T>(obj: T, transformer: IURITransformer): T {
 	const result = _transformOutgoingURIs(obj, transformer, 0);
 	if (result === null) {
-		// no change
 		return obj;
 	}
 	return result;
@@ -130,7 +128,6 @@ function _transformIncomingURIs(obj: any, transformer: IURITransformer, revive: 
 			return null;
 		}
 
-		// walk object (or array)
 		for (const key in obj) {
 			if (Object.hasOwnProperty.call(obj, key)) {
 				const r = _transformIncomingURIs(obj[key], transformer, revive, depth + 1);
@@ -147,7 +144,6 @@ function _transformIncomingURIs(obj: any, transformer: IURITransformer, revive: 
 export function transformIncomingURIs<T>(obj: T, transformer: IURITransformer): T {
 	const result = _transformIncomingURIs(obj, transformer, false, 0);
 	if (result === null) {
-		// no change
 		return obj;
 	}
 	return result;
@@ -156,7 +152,6 @@ export function transformIncomingURIs<T>(obj: T, transformer: IURITransformer): 
 export function transformAndReviveIncomingURIs<T>(obj: T, transformer: IURITransformer): T {
 	const result = _transformIncomingURIs(obj, transformer, true, 0);
 	if (result === null) {
-		// no change
 		return obj;
 	}
 	return result;

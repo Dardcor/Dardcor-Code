@@ -13,23 +13,6 @@ interface IGitBlobUriQuery {
 	readonly repoRelativePath: string;
 }
 
-/**
- * Builds a `git-blob:` URI that references a file blob at a specific git
- * commit, scoped to a given session. Resolved by reading the session's
- * working directory and shelling out to `git show <sha>:<path>`.
- *
- * The URI path is the absolute working-tree path so resource labels show a
- * recognizable file path and so the "before" side lines up with the
- * working-tree "after" side in diff editors. The session URI, SHA, and
- * repository-relative path needed to fetch the blob are carried in the
- * query.
- *
- * @param sessionUri Session the blob belongs to; used to find the working
- *   directory.
- * @param sha Git commit/ref the blob is read from.
- * @param repoRelativePath Repository-relative path passed to `git show`.
- * @param absolutePath Absolute working-tree path used as the display path.
- */
 export function buildGitBlobUri(sessionUri: string, sha: string, repoRelativePath: string, absolutePath: string): string {
 	return URI.from({
 		scheme: GIT_BLOB_SCHEME,
@@ -38,25 +21,13 @@ export function buildGitBlobUri(sessionUri: string, sha: string, repoRelativePat
 	}).toString();
 }
 
-/** Parsed fields from a `git-blob:` content URI. */
 export interface IGitBlobUriFields {
 	readonly sessionUri: string;
 	readonly sha: string;
 	readonly repoRelativePath: string;
-	/**
-	 * Absolute working-tree path of the blob, taken from the URI `path` set by
-	 * {@link buildGitBlobUri}. Used SERVER-SIDE only to select which of the
-	 * session's own repository roots to run `git show` in — never as a working
-	 * directory itself. Empty for legacy URIs that encoded no path, which
-	 * callers treat as "fall back to the primary directory".
-	 */
 	readonly absolutePath: string;
 }
 
-/**
- * Parses a `git-blob:` URI produced by {@link buildGitBlobUri}.
- * Returns `undefined` if the URI is not a valid `git-blob:` URI.
- */
 export function parseGitBlobUri(raw: string): IGitBlobUriFields | undefined {
 	let parsed: URI;
 	try {

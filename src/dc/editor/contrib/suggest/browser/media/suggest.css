@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Suggest widget*/
 
 .monaco-editor .suggest-widget {
 	width: 430px;
@@ -41,7 +40,6 @@
 	box-shadow: none;
 }
 
-/* Styles for status bar part */
 
 
 .monaco-editor .suggest-widget .suggest-status-bar {
@@ -86,13 +84,11 @@
 	width: 100%;
 }
 
-/* Styles for Message element for when widget is loading or is empty */
 
 .monaco-editor .suggest-widget > .message {
 	padding-left: 22px;
 }
 
-/** Styles for the list element **/
 
 .monaco-editor .suggest-widget > .tree {
 	height: 100%;
@@ -105,7 +101,6 @@
 	border-radius: var(--vscode-cornerRadius-large);
 }
 
-/** Styles for each row in the list element **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row {
 	display: flex;
@@ -165,7 +160,6 @@
 	color: var(--vscode-editorSuggestWidget-focusHighlightForeground);
 }
 
-/** ReadMore Icon styles **/
 
 .monaco-editor .suggest-details > .monaco-scrollable-element > .body > .header > .codicon-close,
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .readMore::before {
@@ -186,7 +180,6 @@
 	opacity: 1;
 }
 
-/** signature, qualifier, type/details styling **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .details-label {
 	color: var(--vscode-editorSuggestWidget-foreground);
@@ -212,7 +205,6 @@
 	align-self: center;
 }
 
-/** Type Info and icon next to the label in the focused completion item **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .details-label {
 	font-size: 85%;
@@ -226,7 +218,6 @@
 	display: inline;
 }
 
-/** Details: if using CompletionItem#details, show on focus **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .details-label {
 	display: none;
@@ -236,14 +227,12 @@
 	display: inline;
 }
 
-/** Details: if using CompletionItemLabel#details, always show **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row:not(.string-label) > .contents > .main > .right > .details-label,
 .monaco-editor .suggest-widget.docs-side .monaco-list .monaco-list-row.focused:not(.string-label) > .contents > .main > .right > .details-label {
 	display: inline;
 }
 
-/** Ellipsis on hover **/
 
 .monaco-editor .suggest-widget:not(.docs-side) .monaco-list .monaco-list-row.focused:hover > .contents > .main > .right.can-expand-details > .details-label {
 	width: calc(100% - 26px);
@@ -273,7 +262,6 @@
 	max-width: 70%;
 }
 
-/** When fitting the widget width to the inline detail, prioritize showing the full label: the label keeps its width and the detail truncates instead. **/
 .monaco-editor .suggest-widget.fit-width-to-details .monaco-list .monaco-list-row > .contents > .main > .left {
 	flex-shrink: 0;
 }
@@ -291,19 +279,16 @@
 	visibility: hidden;
 }
 
-/** Do NOT display ReadMore when docs is side/below **/
 
 .monaco-editor .suggest-widget.docs-side .monaco-list .monaco-list-row > .contents > .main > .right > .readMore {
 	display: none !important;
 }
 
-/** Do NOT display ReadMore when using plain CompletionItemLabel (details/documentation might not be resolved) **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row.string-label > .contents > .main > .right > .readMore {
 	display: none;
 }
 
-/** Focused item can show ReadMore, but can't when docs is side/below **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row.focused.string-label > .contents > .main > .right > .readMore {
 	display: inline-block;
@@ -313,7 +298,6 @@
 	visibility: visible;
 }
 
-/** Styles for each row in the list **/
 
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row .monaco-icon-label.deprecated {
 	opacity: 0.66;
@@ -361,7 +345,6 @@
 	display: inline-block;
 }
 
-/** Styles for the docs of the completion item in focus **/
 
 .monaco-editor .suggest-details-container {
 	z-index: 41;

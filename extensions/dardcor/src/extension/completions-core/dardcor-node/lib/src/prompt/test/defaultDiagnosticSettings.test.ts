@@ -264,7 +264,7 @@ suite('DefaultDiagnosticSettings', function () {
 
 		test('should return undefined when config value is not a string', function () {
 			const configService = accessor.get(IConfigurationService);
-			Sinon.stub(configService, 'getExperimentBasedConfig').returns(123); // non-string value
+			Sinon.stub(configService, 'getExperimentBasedConfig').returns(123);
 
 			const result = getDefaultDiagnosticSettings(accessor);
 			assert.strictEqual(result, undefined);

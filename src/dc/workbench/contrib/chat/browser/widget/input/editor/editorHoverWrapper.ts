@@ -12,10 +12,6 @@ import { IKeybindingService } from '../../../../../../../platform/keybinding/com
 const $ = dom.$;
 const h = dom.h;
 
-/**
- * This borrows some of HoverWidget so that a chat editor hover can be rendered in the same way as a workbench hover.
- * Maybe it can be reusable in a generic way.
- */
 export class ChatEditorHoverWrapper {
 	public readonly domNode: HTMLElement;
 

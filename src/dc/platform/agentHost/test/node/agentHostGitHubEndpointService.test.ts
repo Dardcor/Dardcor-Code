@@ -65,16 +65,13 @@ suite('AgentHostGitHubEndpointService', () => {
 		let fires = 0;
 		disposables.add(service.onDidChange(() => fires++));
 
-		// An unrelated root-config change must NOT fire.
 		configService.updateRootConfig({ [AgentHostConfigKey.AllowSignedOutWhenUsable]: true });
 		assert.strictEqual(fires, 0);
 
-		// Setting the enterprise URI fires once and repoints the endpoints.
 		configService.updateRootConfig({ [AgentHostConfigKey.GithubEnterpriseUri]: 'https://ghe.acme.com' });
 		assert.strictEqual(fires, 1);
 		assert.strictEqual(service.getApiBaseUri(), 'https://ghe.acme.com/api/v3');
 
-		// Re-applying the same URI must NOT fire again.
 		configService.updateRootConfig({ [AgentHostConfigKey.GithubEnterpriseUri]: 'https://ghe.acme.com' });
 		assert.strictEqual(fires, 1);
 	});

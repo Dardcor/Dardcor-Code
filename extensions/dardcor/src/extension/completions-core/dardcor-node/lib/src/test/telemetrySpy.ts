@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CopilotTelemetryReporter } from '../telemetry';
+import { DardcorTelemetryReporter } from '../telemetry';
 import * as assert from 'assert';
 
 type ReportedEvent = { name: string; properties: { [key: string]: string }; measurements: { [key: string]: number } };
@@ -14,7 +14,7 @@ type ReportedError = {
 	errorProps?: string[];
 };
 
-export class TelemetrySpy implements CopilotTelemetryReporter {
+export class TelemetrySpy implements DardcorTelemetryReporter {
 	readonly events: ReportedEvent[] = [];
 	readonly errors: ReportedError[] = [];
 
@@ -118,7 +118,6 @@ export class TelemetrySpy implements CopilotTelemetryReporter {
 		return this.exceptions.filter(filter);
 	}
 
-	// equivalent of assertHasProperty in testing/telemetry.ts
 	assertHasProperty(assertion: (m: { [key: string]: string }) => boolean) {
 		assert.ok(this.eventsMatching(e => e.name !== 'ghostText.produced').every(e => assertion(e.properties)));
 	}

@@ -91,7 +91,6 @@ const getGlobalPackagesGenerator: Fig.Generator = {
 	},
 };
 
-// generate package list of direct and indirect dependencies
 const allDependenciesGenerator: Fig.Generator = {
 	script: ['yarn', 'list', '--depth=0', '--json'],
 	postProcess: (out) => {
@@ -121,8 +120,6 @@ const configList: Fig.Generator = {
 			const startIndex = out.indexOf('{');
 			const endIndex = out.indexOf('}');
 			let output = out.substring(startIndex, endIndex + 1);
-			// TODO: fix hacky code
-			// reason: JSON parse was not working without double quotes
 			output = output
 				.replace(/\'/gi, '\'')
 				.replace('lastUpdateCheck', '\'lastUpdateCheck\'')
@@ -369,7 +366,7 @@ export const createCLIsGenerator: Fig.Generator = {
 		];
 	},
 	cache: {
-		ttl: 100 * 24 * 60 * 60 * 3, // 3 days
+		ttl: 100 * 24 * 60 * 60 * 3,
 	},
 	postProcess: function (out) {
 		try {
@@ -1538,9 +1535,7 @@ const completionSpec: Fig.Spec = {
 					}));
 				};
 
-				// For yarn >= 2.0.0
 				const getWorkspacesDefinitionsVOther = async () => {
-					// yarn workspaces list --json
 					const out = (
 						await executeShellCommand({
 							command: 'yarn',
@@ -1552,9 +1547,9 @@ const completionSpec: Fig.Spec = {
 
 				try {
 					const workspacesDefinitions = isYarnV1
-						? // transform Yarn V1 output to array of workspaces like Yarn V2
+						?
 						await getWorkspacesDefinitionsV1()
-						: // in yarn v>=2.0.0, workspaces definitions are a list of JSON lines
+						:
 						await getWorkspacesDefinitionsVOther();
 
 					const subcommands: Fig.Subcommand[] = workspacesDefinitions.map(
@@ -1566,7 +1561,7 @@ const completionSpec: Fig.Spec = {
 								generators: {
 									cache: {
 										strategy: 'stale-while-revalidate',
-										ttl: 60_000, // 60s
+										ttl: 60_000,
 									},
 									script: ['cat', `${location}/package.json`],
 									postProcess: function (out: string) {

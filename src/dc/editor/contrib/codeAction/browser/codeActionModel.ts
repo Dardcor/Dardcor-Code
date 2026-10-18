@@ -89,20 +89,16 @@ class CodeActionOracle extends Disposable {
 			const { lineNumber, column } = selection.getPosition();
 			const line = model.getLineContent(lineNumber);
 			if (line.length === 0) {
-				// empty line
 				return undefined;
 			} else if (column === 1) {
-				// look only right
 				if (/\s/.test(line[0])) {
 					return undefined;
 				}
 			} else if (column === model.getLineMaxColumn(lineNumber)) {
-				// look only left
 				if (/\s/.test(line[line.length - 1])) {
 					return undefined;
 				}
 			} else {
-				// look left and right
 				if (/\s/.test(line[column - 2]) && /\s/.test(line[column - 1])) {
 					return undefined;
 				}
@@ -257,7 +253,6 @@ export class CodeActionModel extends Disposable {
 							return emptyCodeActionSet;
 						}
 
-						// Search for non-AI quickfixes in the current code action set - if AI code actions are the only thing found, continue searching for diagnostics in line.
 						const foundQuickfix = codeActionSet.validActions?.some(action => {
 							return action.action.kind &&
 								CodeActionKind.QuickFix.contains(new HierarchicalKind(action.action.kind)) &&
@@ -272,7 +267,6 @@ export class CodeActionModel extends Disposable {
 							}
 							return { validActions: codeActionSet.validActions, allActions: allCodeActions, documentation: codeActionSet.documentation, hasAutoFix: codeActionSet.hasAutoFix, hasAIFix: codeActionSet.hasAIFix, allAIFixes: codeActionSet.allAIFixes, dispose: () => { this.codeActionsDisposable.value = codeActionSet; } };
 						} else if (!foundQuickfix) {
-							// If markers exist, and there are no quickfixes found or length is zero, check for quickfixes on that line.
 							if (allMarkers.length > 0) {
 								const currPosition = trigger.selection.getPosition();
 								let trackedPosition = currPosition;
@@ -284,7 +278,6 @@ export class CodeActionModel extends Disposable {
 									const row = marker.endLineNumber;
 									const startRow = marker.startLineNumber;
 
-									// Found quickfix on the same line and check relative distance to other markers
 									if ((row === currPosition.lineNumber || startRow === currPosition.lineNumber)) {
 										trackedPosition = new Position(row, col);
 										const newCodeActionTrigger: CodeActionTrigger = {
@@ -313,7 +306,6 @@ export class CodeActionModel extends Disposable {
 												allCodeActions.push(...actionsAtMarker.allActions);
 											}
 
-											// Already filtered through to only get quickfixes, so no need to filter again.
 											if (Math.abs(currPosition.column - col) < distance) {
 												currentActions.unshift(...actionsAtMarker.validActions);
 											} else {
@@ -340,13 +332,11 @@ export class CodeActionModel extends Disposable {
 									}
 								});
 
-								// Only retriggers if actually found quickfix on the same line as cursor
 								return { validActions: filteredActions, allActions: allCodeActions, documentation: codeActionSet.documentation, hasAutoFix: codeActionSet.hasAutoFix, hasAIFix: codeActionSet.hasAIFix, allAIFixes: codeActionSet.allAIFixes, dispose: () => { this.codeActionsDisposable.value = codeActionSet; } };
 							}
 						}
 					}
 
-					// Case for manual triggers - specifically Source Actions and Refactors
 					if (trigger.trigger.type === CodeActionTriggerType.Invoke) {
 						const codeActions = await getCodeActions(this._registry, model, trigger.selection, trigger.trigger, Progress.None, token);
 						this.codeActionsDisposable.value = codeActions;
@@ -364,18 +354,15 @@ export class CodeActionModel extends Disposable {
 				const newState = new CodeActionsState.Triggered(trigger.trigger, startPosition, actions);
 				let isManualToAutoTransition = false;
 				if (this._state.type === CodeActionsState.Type.Triggered) {
-					// Check if the current state is manual and the new state is automatic
 					isManualToAutoTransition = this._state.trigger.type === CodeActionTriggerType.Invoke &&
 						newState.type === CodeActionsState.Type.Triggered &&
 						newState.trigger.type === CodeActionTriggerType.Auto &&
 						this._state.position !== newState.position;
 				}
 
-				// Do not trigger state if current state is manual and incoming state is automatic
 				if (!isManualToAutoTransition) {
 					this.setState(newState);
 				} else {
-					// Reset the new state after getting code actions back.
 					setTimeout(() => {
 						this.setState(newState);
 					}, 500);
@@ -399,7 +386,6 @@ export class CodeActionModel extends Disposable {
 			return;
 		}
 
-		// Cancel old request
 		if (this._state.type === CodeActionsState.Type.Triggered) {
 			this._state.cancel();
 		}

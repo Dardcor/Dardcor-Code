@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { URI } from '../../../../util/dardcor/base/common/uri';
 import type { IGitService, RepoContext } from '../../../git/common/gitService';
-import { CopilotChatAttr, GitHubCopilotAttr } from '../genAiAttributes';
+import { DardcorChatAttr, DardcorAttr } from '../genAiAttributes';
 import { resolveWorkspaceOTelMetadata, workspaceMetadataToOTelAttributes } from '../workspaceOTelMetadata';
 
 function createMockGitService(repoContext?: Partial<RepoContext>): IGitService {
@@ -103,10 +103,10 @@ describe('workspaceMetadataToOTelAttributes', () => {
 			remoteUrl: 'github.com/org/repo',
 			fileRelativePath: 'src/index.ts',
 		});
-		expect(attrs[CopilotChatAttr.REPO_HEAD_BRANCH_NAME]).toBe('main');
-		expect(attrs[CopilotChatAttr.REPO_HEAD_COMMIT_HASH]).toBe('abc123');
-		expect(attrs[CopilotChatAttr.REPO_REMOTE_URL]).toBe('github.com/org/repo');
-		expect(attrs[CopilotChatAttr.FILE_RELATIVE_PATH]).toBe('src/index.ts');
+		expect(attrs[DardcorChatAttr.REPO_HEAD_BRANCH_NAME]).toBe('main');
+		expect(attrs[DardcorChatAttr.REPO_HEAD_COMMIT_HASH]).toBe('abc123');
+		expect(attrs[DardcorChatAttr.REPO_REMOTE_URL]).toBe('github.com/org/repo');
+		expect(attrs[DardcorChatAttr.FILE_RELATIVE_PATH]).toBe('src/index.ts');
 	});
 
 	it('dual-emits github.dardcor.git.* alongside dardcor_chat.repo.* and derives github.org', () => {
@@ -115,19 +115,18 @@ describe('workspaceMetadataToOTelAttributes', () => {
 			headCommitHash: 'cafef00d',
 			remoteUrl: 'https://github.com/microsoft/vscode.git',
 		});
-		expect(attrs[GitHubCopilotAttr.GIT_BRANCH]).toBe('feature/x');
-		expect(attrs[GitHubCopilotAttr.GIT_COMMIT_SHA]).toBe('cafef00d');
-		expect(attrs[GitHubCopilotAttr.GIT_REPOSITORY]).toBe('https://github.com/microsoft/vscode.git');
-		expect(attrs[GitHubCopilotAttr.GITHUB_ORG]).toBe('microsoft');
-		// Legacy keys must still be present.
-		expect(attrs[CopilotChatAttr.REPO_HEAD_BRANCH_NAME]).toBe('feature/x');
+		expect(attrs[DardcorAttr.GIT_BRANCH]).toBe('feature/x');
+		expect(attrs[DardcorAttr.GIT_COMMIT_SHA]).toBe('cafef00d');
+		expect(attrs[DardcorAttr.GIT_REPOSITORY]).toBe('https://github.com/microsoft/vscode.git');
+		expect(attrs[DardcorAttr.GITHUB_ORG]).toBe('microsoft');
+		expect(attrs[DardcorChatAttr.REPO_HEAD_BRANCH_NAME]).toBe('feature/x');
 	});
 
 	it('omits github.org for non-github remotes', () => {
 		const attrs = workspaceMetadataToOTelAttributes({
 			remoteUrl: 'https://gitlab.com/org/repo.git',
 		});
-		expect(attrs[GitHubCopilotAttr.GIT_REPOSITORY]).toBe('https://gitlab.com/org/repo.git');
-		expect(attrs[GitHubCopilotAttr.GITHUB_ORG]).toBeUndefined();
+		expect(attrs[DardcorAttr.GIT_REPOSITORY]).toBe('https://gitlab.com/org/repo.git');
+		expect(attrs[DardcorAttr.GITHUB_ORG]).toBeUndefined();
 	});
 });

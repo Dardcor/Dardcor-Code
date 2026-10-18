@@ -24,8 +24,6 @@ export default {
     validateUrl: "https://api.tokenrouter.com/v1/models",
     thinkingFormat: "tokenrouter",
   },
-  // Seed snapshot from live /v1/models. Latest catalogue is
-  // fetched via modelsFetcher; other ids still accepted via passthroughModels.
   models: [
     { id: "anthropic/claude-haiku-4.5", name: "Claude Haiku 4.5" },
     { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6" },

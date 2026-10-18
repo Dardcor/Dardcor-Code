@@ -88,17 +88,12 @@ class TestStatelessNextEditProvider implements IStatelessNextEditProvider {
 
 	constructor(private readonly _modelTelemetry?: IStatelessNextEditModelTelemetry) { }
 
-	/**
-	 * When set, each `provideNextEdit` call will assign this to `request.requestEditWindow`
-	 * (mirroring how the real XtabProvider sets the edit window early in its execution).
-	 */
 	public editWindow: RequestEditWindow | RequestEditWindowWithCursorJump | undefined;
 
 	public enqueueBehavior(behavior: ProviderBehavior): void {
 		this._behaviors.push(behavior);
 	}
 
-	/** Returns a promise that resolves when the Nth call (1-based) arrives. */
 	public waitForCall(callNumber: number): Promise<void> {
 		if (this.calls.length >= callNumber) {
 			return Promise.resolve();
@@ -174,15 +169,10 @@ class TestStatelessNextEditProvider implements IStatelessNextEditProvider {
 			}
 
 			if (behavior.kind === 'throwBeforeFirstYield') {
-				// Fails the stream before anything is yielded, so `firstEdit`/`result` are only
-				// settled by `_runSpeculativeProviderCall`'s outer catch.
 				throw behavior.error;
 			}
 
 			if (behavior.kind === 'waitThenYieldEditThenNoSuggestions') {
-				// Blocks *before* the first yield, so the request stays unsettled while the
-				// test attaches multiple joiners. `yieldEditThenWait` can't do this: its first
-				// edit settles `firstEdit`/`result` and so releases the claim immediately.
 				await Promise.race([behavior.startSignal.p, cancellationRequested.p]);
 				if (!call.wasCancelled) {
 					yield new WithStatelessProviderTelemetry({ edit: behavior.edit, isFromCursorJump: false, targetDocument: activeDocId, window: streamedEditWindow, originalWindow: streamedOriginalWindow }, telemetryBuilder.build(Result.ok(undefined)));
@@ -476,9 +466,6 @@ describe('NextEditProvider speculative requests', () => {
 		nextEditProvider.handleShown(suggestion);
 		await statelessProvider.waitForCall(2);
 
-		// Inserting at the start of the document breaks the trajectory's prefix
-		// (the doc no longer starts with `pre[0..editStart]`). The speculative
-		// can no longer be reached via type-through-then-accept — cancel.
 		doc.applyEdit(StringEdit.insert(0, '/* diverged */\n'));
 		await statelessProvider.calls[1].cancellationRequested.p;
 
@@ -489,8 +476,6 @@ describe('NextEditProvider speculative requests', () => {
 		await configService.setConfig(ConfigKey.TeamInternal.InlineEditsSpeculativeRequests, SpeculativeRequestsEnablement.On);
 
 		const statelessProvider = new TestStatelessNextEditProvider();
-		// Suggestion inserts `'barbaz'` between `'foo'` and `'();'`.
-		// Resulting precise edit: replace [3, 3) with 'barbaz' (a pure insertion).
 		statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(1, 'foobarbaz();') });
 		statelessProvider.enqueueBehavior({ kind: 'waitForCancellation' });
 		const { nextEditProvider, workspace } = createProviderAndWorkspace(statelessProvider);
@@ -506,9 +491,6 @@ describe('NextEditProvider speculative requests', () => {
 		nextEditProvider.handleShown(suggestion);
 		await statelessProvider.waitForCall(2);
 
-		// User types characters of the suggestion at the edit position — each
-		// keystroke keeps the document on a type-through trajectory toward
-		// `postEditContent`, so the speculative must NOT be cancelled.
 		doc.applyEdit(StringEdit.insert(3, 'b'));
 		await flushMicrotasks();
 		expect(statelessProvider.calls[1].wasCancelled).toBe(false);
@@ -521,9 +503,6 @@ describe('NextEditProvider speculative requests', () => {
 		await flushMicrotasks();
 		expect(statelessProvider.calls[1].wasCancelled).toBe(false);
 
-		// Now the user types a character that doesn't match the suggestion's
-		// next character (`'b'` would be expected; they typed `'X'`). The
-		// trajectory is broken — cancel.
 		doc.applyEdit(StringEdit.insert(6, 'X'));
 		await statelessProvider.calls[1].cancellationRequested.p;
 
@@ -590,8 +569,6 @@ describe('NextEditProvider speculative requests', () => {
 
 			const statelessProvider = new TestStatelessNextEditProvider();
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(1, 'const value = 2;') });
-			// The speculative request yields an edit but stays in-flight until we signal it,
-			// so the second getNextEdit joins the pending speculative request rather than hitting cache.
 			const specContinue = new DeferredPromise<void>();
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenWait', edit: lineReplacement(2, 'console.log(value + 1);'), continueSignal: specContinue });
 			const { nextEditProvider, workspace } = createProviderAndWorkspace(statelessProvider);
@@ -602,18 +579,14 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request: fresh
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			nextEditProvider.handleShown(firstSuggestion);
 			await statelessProvider.waitForCall(2);
-			// Speculative request is now in-flight (yielded edit but waiting on continueSignal)
 
-			// Accept and apply the edit
 			nextEditProvider.handleAcceptance(doc.id, firstSuggestion);
 			doc.applyEdit(firstSuggestion.result.edit.toEdit());
 
-			// Second request: should join the still-in-flight speculative request
 			const { suggestion: secondSuggestion, telemetry } = await getNextEditWithTelemetry(nextEditProvider, doc.id);
 			assert(secondSuggestion.result?.edit);
 
@@ -622,7 +595,6 @@ describe('NextEditProvider speculative requests', () => {
 			expect(telemetry.isFromCache).toBe(false);
 			expect(telemetry.reusedRequest).toBe(ReusedRequestKind.Speculative);
 
-			// Clean up: let the speculative request finish
 			specContinue.complete();
 			await statelessProvider.calls[1].completed.p;
 		});
@@ -645,18 +617,14 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request (fresh, no cache delay since enforceCacheDelay=false)
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			nextEditProvider.handleShown(firstSuggestion);
 			await statelessProvider.waitForCall(2);
 
-			// Accept and apply the suggestion — doc now matches speculative request's postEditContent
 			nextEditProvider.handleAcceptance(doc.id, firstSuggestion);
 			doc.applyEdit(firstSuggestion.result.edit.toEdit());
 
-			// Second request with enforceCacheDelay=true — should still return fast because the result
-			// comes from a speculative request, which uses speculativeRequestDelay (0) instead of cacheDelay (5000)
 			const context: NESInlineCompletionContext = {
 				triggerKind: 1,
 				selectedCompletionInfo: undefined,
@@ -694,22 +662,18 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request: fresh
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			nextEditProvider.handleShown(firstSuggestion);
 			await statelessProvider.waitForCall(2);
 			await statelessProvider.calls[1].completed.p;
 
-			// Accept and apply (speculative result is now cached)
 			nextEditProvider.handleAcceptance(doc.id, firstSuggestion);
 			doc.applyEdit(firstSuggestion.result.edit.toEdit());
 
-			// Clear the speculative pending request by requesting once (consumes it from pending)
 			const consumeResult = await getNextEdit(nextEditProvider, doc.id);
 			assert(consumeResult.result?.edit);
 
-			// Now the result is in cache. Request again at same document state.
 			const { suggestion: cachedSuggestion, telemetry } = await getNextEditWithTelemetry(nextEditProvider, doc.id);
 			assert(cachedSuggestion.result?.edit);
 
@@ -846,15 +810,12 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First suggestion is from a normal (non-speculative) request
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
 			nextEditProvider.handleShown(suggestion);
 			await statelessProvider.waitForCall(2);
 
-			// The speculative request triggered from a non-speculative first edit
-			// should NOT expand the edit window in Smart mode
 			expect(statelessProvider.calls[1].request.expandedEditWindowNLines).toBeUndefined();
 
 			nextEditProvider.handleRejection(doc.id, suggestion);
@@ -867,11 +828,8 @@ describe('NextEditProvider speculative requests', () => {
 			await configService.setConfig(ConfigKey.TeamInternal.InlineEditsAutoExpandEditWindowLines, 20);
 
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// First normal request
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(1, 'const value = 2;') });
-			// Speculative request after first edit
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(2, 'console.log(value + 1);') });
-			// Speculative request after second (speculative-sourced) edit
 			statelessProvider.enqueueBehavior({ kind: 'waitForCancellation' });
 			const { nextEditProvider, workspace } = createProviderAndWorkspace(statelessProvider);
 
@@ -881,30 +839,23 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// Step 1: Get first edit (normal, non-speculative)
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 
-			// Step 2: Show → triggers speculative request (call 2)
 			nextEditProvider.handleShown(firstSuggestion);
 			await statelessProvider.waitForCall(2);
 			await statelessProvider.calls[1].completed.p;
 
-			// Step 3: Accept and apply → doc matches speculative post-edit state
 			nextEditProvider.handleAcceptance(doc.id, firstSuggestion);
 			doc.applyEdit(firstSuggestion.result.edit.toEdit());
 
-			// Step 4: Get second edit → reuses speculative result (source.isSpeculative = true)
 			const secondSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(secondSuggestion.result?.edit);
 			assert(secondSuggestion.source.isSpeculative);
 
-			// Step 5: Show second suggestion → triggers another speculative request (call 3)
 			nextEditProvider.handleShown(secondSuggestion);
 			await statelessProvider.waitForCall(3);
 
-			// The 3rd call is a speculative request triggered by a speculative-sourced edit,
-			// so in Smart mode, isModelOnRightTrack = true and edit window should be expanded
 			expect(statelessProvider.calls[2].request.expandedEditWindowNLines).toBe(20);
 
 			nextEditProvider.handleRejection(doc.id, secondSuggestion);
@@ -932,19 +883,15 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// Get first edit (E0) — stream is paused on continueSignal
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
-			// Show E0 — stream still running → speculative is scheduled (not fired)
 			nextEditProvider.handleShown(suggestion);
 
-			// Resume stream — E1 arrives → clears the scheduled speculative
 			continueSignal.complete();
 			await statelessProvider.calls[0].completed.p;
 			await flushMicrotasks();
 
-			// Only the original request was made — no speculative request
 			expect(statelessProvider.calls.length).toBe(1);
 		});
 
@@ -967,17 +914,12 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// Get first edit (E0) — stream paused on continueSignal
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
-			// Show E0 — stream still running → speculative is scheduled
 			nextEditProvider.handleShown(suggestion);
 
-			// Resume stream — no more edits → stream ends → scheduled speculative fires
 			continueSignal.complete();
-			// The speculative fires from handleStreamEnd (background IIFE), so we need
-			// microtasks to propagate through the async chain before the call arrives.
 			await flushMicrotasks();
 
 			expect(statelessProvider.calls.length).toBe(2);
@@ -1005,22 +947,17 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// Get E0, stream paused
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
-			// Show → schedules speculative
 			nextEditProvider.handleShown(suggestion);
 
-			// Reject before stream completes → clears schedule
 			nextEditProvider.handleRejection(doc.id, suggestion);
 
-			// Let stream finish
 			continueSignal.complete();
 			await statelessProvider.calls[0].completed.p;
 			await flushMicrotasks();
 
-			// No speculative request was created
 			expect(statelessProvider.calls.length).toBe(1);
 		});
 
@@ -1045,18 +982,14 @@ describe('NextEditProvider speculative requests', () => {
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
-			// Show → schedules speculative
 			nextEditProvider.handleShown(suggestion);
 
-			// Ignored (shown, not superseded) before stream completes → clears schedule
 			nextEditProvider.handleIgnored(doc.id, suggestion, undefined);
 
-			// Let stream finish
 			continueSignal.complete();
 			await statelessProvider.calls[0].completed.p;
 			await flushMicrotasks();
 
-			// No speculative request was created
 			expect(statelessProvider.calls.length).toBe(1);
 		});
 
@@ -1077,10 +1010,8 @@ describe('NextEditProvider speculative requests', () => {
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
-			// Ensure the background IIFE has completed (stream is done, pending request cleared)
 			await flushMicrotasks();
 
-			// Now handleShown sees no pending request → fires immediately (not scheduled)
 			nextEditProvider.handleShown(suggestion);
 			await statelessProvider.waitForCall(2);
 
@@ -1095,14 +1026,12 @@ describe('NextEditProvider speculative requests', () => {
 			await configService.setConfig(ConfigKey.TeamInternal.InlineEditsSpeculativeRequests, SpeculativeRequestsEnablement.On);
 
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// Stream A: yields E0, then waits (simulating a paused multi-edit stream)
 			const streamAContinue = new DeferredPromise<void>();
 			statelessProvider.enqueueBehavior({
 				kind: 'yieldEditThenWait',
 				edit: lineReplacement(1, 'const value = 2;'),
 				continueSignal: streamAContinue,
 			});
-			// Stream B: the new request that supersedes stream A
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(1, 'const value = 3;') });
 			const { nextEditProvider, workspace } = createProviderAndWorkspace(statelessProvider);
 
@@ -1112,25 +1041,18 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// 1. Get E0 from stream A — stream is paused on streamAContinue
 			const suggestionA = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestionA.result?.edit);
 
-			// 2. handleShown(E0) → speculative is scheduled (not fired, stream A still running)
 			nextEditProvider.handleShown(suggestionA);
 
-			// 3. A new getNextEdit supersedes stream A — should clear the scheduled speculative
 			const suggestionB = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestionB.result?.edit);
 
-			// 4. Let stream A's background IIFE finish (after cancellation).
-			//    Without the fix, handleStreamEnd would see the stale scheduled speculative
-			//    and fire _triggerSpeculativeRequest for stream A's E0.
 			streamAContinue.complete();
 			await statelessProvider.calls[0].completed.p;
 			await flushMicrotasks();
 
-			// Only 2 calls: stream A and stream B. No stale speculative request fired.
 			expect(statelessProvider.calls.length).toBe(2);
 		});
 
@@ -1156,18 +1078,13 @@ describe('NextEditProvider speculative requests', () => {
 			const suggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(suggestion.result?.edit);
 
-			// First handleShown → schedules speculative (stream still running)
 			nextEditProvider.handleShown(suggestion);
 
-			// Second handleShown for the same suggestion → clears the previous schedule
-			// and sets a new one for the same headerRequestId
 			nextEditProvider.handleShown(suggestion);
 
-			// Resume stream → stream ends → the (second) scheduled speculative fires
 			continueSignal.complete();
 			await flushMicrotasks();
 
-			// Exactly one speculative request was created (not two)
 			expect(statelessProvider.calls.length).toBe(2);
 			expect(statelessProvider.calls[1].request.isSpeculative).toBe(true);
 
@@ -1179,7 +1096,6 @@ describe('NextEditProvider speculative requests', () => {
 	describe('edit window cursor check for request reuse', () => {
 		it('does not reuse in-flight request when cursor moves outside edit window', async () => {
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// Edit window covers offsets 0–20 of the document
 			statelessProvider.editWindow = new RequestEditWindow(new OffsetRange(0, 20));
 			const continueSignal1 = new DeferredPromise<void>();
 			const continueSignal2 = new DeferredPromise<void>();
@@ -1193,23 +1109,17 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request — yields first edit, stream still running in background
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Move cursor far outside the edit window (offset 40)
 			doc.setSelection([new OffsetRange(40, 40)], undefined);
 
-			// Second request — should NOT reuse the in-flight request because cursor is outside edit window
-			// The first request's stream is still running, but cursor is outside its edit window, so a new request is made
 			const secondSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(secondSuggestion.result?.edit);
 
-			// Two separate provider calls were made
 			expect(statelessProvider.calls.length).toBe(2);
 
-			// Clean up
 			continueSignal1.complete();
 			continueSignal2.complete();
 			await statelessProvider.calls[0].completed.p;
@@ -1218,7 +1128,6 @@ describe('NextEditProvider speculative requests', () => {
 
 		it('reuses in-flight request when cursor stays within edit window', async () => {
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// Edit window covers offsets 0–50 (whole document)
 			statelessProvider.editWindow = new RequestEditWindow(new OffsetRange(0, 50));
 			const continueSignal = new DeferredPromise<void>();
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenWait', edit: lineReplacement(1, 'const value = 2;'), continueSignal });
@@ -1230,29 +1139,23 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request — yields first edit, stream still running
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Move cursor but still within the edit window (offset 10)
 			doc.setSelection([new OffsetRange(10, 10)], undefined);
 
-			// Second request — should reuse the in-flight request
 			const secondSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(secondSuggestion.result?.edit);
 
-			// Only one provider call was made (reused)
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Clean up
 			continueSignal.complete();
 			await statelessProvider.calls[0].completed.p;
 		});
 
 		it('reuses in-flight request when editWindow is undefined (graceful fallback)', async () => {
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// No editWindow set — should allow reuse
 			const continueSignal = new DeferredPromise<void>();
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenWait', edit: lineReplacement(1, 'const value = 2;'), continueSignal });
 			const { nextEditProvider, workspace } = createProviderAndWorkspace(statelessProvider);
@@ -1263,21 +1166,17 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request — yields first edit, stream still running
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Move cursor far away — but editWindow is undefined so reuse is allowed
 			doc.setSelection([new OffsetRange(40, 40)], undefined);
 
-			// Second request — should reuse (no edit window to check)
 			const secondSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(secondSuggestion.result?.edit);
 
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Clean up
 			continueSignal.complete();
 			await statelessProvider.calls[0].completed.p;
 		});
@@ -1286,11 +1185,9 @@ describe('NextEditProvider speculative requests', () => {
 			await configService.setConfig(ConfigKey.TeamInternal.InlineEditsSpeculativeRequests, SpeculativeRequestsEnablement.On);
 
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// Edit window covers offsets 0–20
 			statelessProvider.editWindow = new RequestEditWindow(new OffsetRange(0, 20));
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(1, 'const value = 2;') });
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(2, 'console.log(value + 1);') });
-			// Third behavior for the new request that will be needed since speculative won't be reused
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenNoSuggestions', edit: lineReplacement(2, 'console.log(value + 1);') });
 			const { nextEditProvider, workspace } = createProviderAndWorkspace(statelessProvider);
 
@@ -1306,23 +1203,18 @@ describe('NextEditProvider speculative requests', () => {
 			await statelessProvider.waitForCall(2);
 			await statelessProvider.calls[1].completed.p;
 
-			// Accept and apply the edit
 			nextEditProvider.handleAcceptance(doc.id, firstSuggestion);
 			doc.applyEdit(firstSuggestion.result.edit.toEdit());
 
-			// Move cursor outside the speculative request's edit window
 			doc.setSelection([new OffsetRange(40, 40)], undefined);
 
-			// This should NOT reuse the speculative request (cursor is outside)
 			await getNextEdit(nextEditProvider, doc.id);
 
-			// Three calls: original, speculative, and a new one (speculative was not reused)
 			expect(statelessProvider.calls.length).toBe(3);
 		});
 
 		it('reuses in-flight request when cursor is within originalWindow of cursor jump edit window', async () => {
 			const statelessProvider = new TestStatelessNextEditProvider();
-			// Cursor jump: new window is at 30–50, original window is at 0–20
 			statelessProvider.editWindow = new RequestEditWindowWithCursorJump(new OffsetRange(30, 50), new OffsetRange(0, 20));
 			const continueSignal = new DeferredPromise<void>();
 			statelessProvider.enqueueBehavior({ kind: 'yieldEditThenWait', edit: lineReplacement(1, 'const value = 2;'), continueSignal });
@@ -1334,21 +1226,17 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request — yields first edit, stream still running
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Move cursor to offset 10 — inside originalWindow (0–20) but outside jump target (30–50)
 			doc.setSelection([new OffsetRange(10, 10)], undefined);
 
-			// Second request — should reuse because cursor is in originalWindow
 			const secondSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(secondSuggestion.result?.edit);
 
 			expect(statelessProvider.calls.length).toBe(1);
 
-			// Clean up
 			continueSignal.complete();
 			await statelessProvider.calls[0].completed.p;
 		});
@@ -1372,22 +1260,16 @@ describe('NextEditProvider speculative requests', () => {
 			});
 			doc.setSelection([new OffsetRange(0, 0)], undefined);
 
-			// First request (fresh)
 			const firstSuggestion = await getNextEdit(nextEditProvider, doc.id);
 			assert(firstSuggestion.result?.edit);
 
-			// Show → triggers speculative request; wait for it to complete and cache
 			nextEditProvider.handleShown(firstSuggestion);
 			await statelessProvider.waitForCall(2);
 			await statelessProvider.calls[1].completed.p;
 
-			// Accept and apply — doc now matches speculative request's postEditContent
 			nextEditProvider.handleAcceptance(doc.id, firstSuggestion);
 			doc.applyEdit(firstSuggestion.result.edit.toEdit());
 
-			// Next getNextEdit hits the cache path (speculative result already cached).
-			// With enforceCacheDelay=true, it should use speculativeRequestDelay (0ms),
-			// NOT the normal cacheDelay (5000ms).
 			const context: NESInlineCompletionContext = {
 				triggerKind: 1,
 				selectedCompletionInfo: undefined,
@@ -1404,8 +1286,6 @@ describe('NextEditProvider speculative requests', () => {
 				const elapsed = Date.now() - start;
 				assert(cachedSuggestion.result?.edit);
 
-				// The result comes from a speculative request's cache, so it should
-				// use the speculative delay (0ms) rather than the cache delay (5000ms)
 				expect(elapsed).toBeLessThan(100);
 			} finally {
 				telemetryBuilder.dispose();
@@ -1458,8 +1338,6 @@ describe('NextEditProvider speculative requests', () => {
 			nextEditProvider.handleShown(suggestion);
 			await statelessProvider.waitForCall(2);
 
-			// Closing the document removes it from openDocuments — the speculative's
-			// cached result would never be hit again, so cancel it.
 			doc.dispose();
 			await statelessProvider.calls[1].cancellationRequested.p;
 
@@ -1494,11 +1372,6 @@ describe('NextEditProvider speculative requests', () => {
 
 	describe('concurrent reuse of a claimed speculative', () => {
 
-		/**
-		 * Drives a document to the point where its speculative request is in flight, gated
-		 * before its first yield, and the originating suggestion has been accepted+applied —
-		 * i.e. the next `getNextEdit` will claim the speculative.
-		 */
 		async function acceptSuggestionWithGatedSpeculative(
 			nextEditProvider: NextEditProvider,
 			statelessProvider: TestStatelessNextEditProvider,
@@ -1531,8 +1404,6 @@ describe('NextEditProvider speculative requests', () => {
 
 			await acceptSuggestionWithGatedSpeculative(nextEditProvider, statelessProvider, doc, 2);
 
-			// Both callers arrive while the speculative is still in flight: the first claims it,
-			// the second must find the claimed request rather than issuing a duplicate.
 			const first = getNextEditWithTelemetry(nextEditProvider, doc.id);
 			const second = getNextEditWithTelemetry(nextEditProvider, doc.id);
 			await flushMicrotasks();
@@ -1577,14 +1448,12 @@ describe('NextEditProvider speculative requests', () => {
 			const second = getNextEditWithTelemetry(nextEditProvider, doc.id);
 			await flushMicrotasks();
 
-			// The second joiner still depends on the request, so `liveDependentants` must keep
-			// it alive despite the first joiner going away.
 			firstCts.cancel();
 			await flushMicrotasks();
 
 			startSignal.complete();
 			const b = await second;
-			await first.catch(() => { /* the cancelled caller's outcome is irrelevant here */ });
+			await first.catch(() => { });
 
 			expect({
 				providerCalls: statelessProvider.calls.length,
@@ -1630,7 +1499,6 @@ describe('NextEditProvider speculative requests', () => {
 			const claim2 = getNextEditWithTelemetry(nextEditProvider, doc2.id);
 			await flushMicrotasks();
 
-			// doc1's speculative was claimed before doc2's; claiming doc2's must not evict it.
 			const secondClaim1 = getNextEditWithTelemetry(nextEditProvider, doc1.id);
 			await flushMicrotasks();
 
@@ -1673,8 +1541,6 @@ describe('NextEditProvider speculative requests', () => {
 			const claimed = getNextEditWithTelemetry(nextEditProvider, doc.id);
 			await flushMicrotasks();
 
-			// The speculative is claimed, so it is no longer reachable via `pending` — hard
-			// invalidation must still reach it, otherwise it could repopulate the cleared cache.
 			nextEditProvider.clearCache();
 			await statelessProvider.calls[1].cancellationRequested.p;
 
@@ -1708,13 +1574,8 @@ describe('NextEditProvider speculative requests', () => {
 			nextEditProvider.handleAcceptance(doc.id, suggestion);
 			doc.applyEdit(suggestion.result.edit.toEdit());
 
-			// Claims the failed speculative. Before the outer catch settled `firstEdit`/`result`
-			// this awaited forever; now the failure surfaces as `NoNextEditReason.Unexpected`,
-			// which `getNextEdit` rethrows as the underlying provider error.
 			await expect(getNextEdit(nextEditProvider, doc.id)).rejects.toThrow('provider exploded');
 
-			// The claimed entry must have been released, so the next call issues a fresh request
-			// rather than reusing (or re-failing on) the dead speculative.
 			const afterFailure = await getNextEdit(nextEditProvider, doc.id);
 
 			expect({

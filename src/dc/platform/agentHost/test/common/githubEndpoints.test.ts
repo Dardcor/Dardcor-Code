@@ -44,8 +44,6 @@ suite('githubEndpoints', () => {
 	});
 
 	test('deriveGitHubEndpoints: GitHub Enterprise Server uses /api/v3 and /api/graphql', () => {
-		// The GraphQL endpoint is `/api/graphql`, NOT `apiBaseUri + /graphql`
-		// (which would give the wrong `/api/v3/graphql`).
 		assert.deepStrictEqual(deriveGitHubEndpoints('https://ghe.acme.com'), {
 			apiBaseUri: 'https://ghe.acme.com/api/v3',
 			graphQlUri: 'https://ghe.acme.com/api/graphql',
@@ -101,8 +99,6 @@ suite('githubEndpoints', () => {
 	});
 
 	test('github.com resources are byte-for-byte the canonical protected-resource constants', () => {
-		// Backward-compat invariant: with no enterprise URI, token-store keys and
-		// advertised metadata must be unchanged for the common non-enterprise case.
 		const endpoints = deriveGitHubEndpoints(undefined);
 		assert.deepStrictEqual({
 			copilot: gitHubCopilotResource(endpoints),

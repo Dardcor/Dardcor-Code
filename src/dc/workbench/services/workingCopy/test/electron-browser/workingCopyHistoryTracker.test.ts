@@ -60,7 +60,7 @@ suite('WorkingCopyHistoryTracker', () => {
 	async function addEntry(descriptor: IWorkingCopyHistoryEntryDescriptor, token: CancellationToken): Promise<IWorkingCopyHistoryEntry> {
 		const entry = await workingCopyHistoryService.addEntry({
 			...descriptor,
-			timestamp: increasingTimestampCounter++ // very important to get tests to not be flaky with stable sort order
+			timestamp: increasingTimestampCounter++
 		}, token);
 
 		return assertReturnsDefined(entry);
@@ -143,7 +143,6 @@ suite('WorkingCopyHistoryTracker', () => {
 	test('history entry skipped when setting disabled (exclude)', () => {
 		configurationService.setUserConfiguration('workbench.localHistory.exclude', { '**/foo.txt': true });
 
-		// Recreate to apply settings
 		tracker.dispose();
 		tracker = disposables.add(createTracker());
 

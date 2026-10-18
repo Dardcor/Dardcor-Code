@@ -208,7 +208,6 @@ suite('AiContributionFeature', () => {
 		dA.applyEdit(StringEditWithReason.replace(dA.findRange('hello'), 'foo', chatEdit));
 		await timeout(1500);
 
-		// Returns true if any of the resources has AI contributions
 		assert.strictEqual(hasAiContributions([fileA, fileB], 'all'), true);
 		assert.strictEqual(hasAiContributions([fileB, fileA], 'all'), true);
 		assert.strictEqual(hasAiContributions([fileB], 'all'), false);

@@ -5,7 +5,7 @@
 
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import { Event } from '../../../../util/dardcor/base/common/event';
-import { GenAiAttr, GenAiOperationName, GenAiProviderName, GenAiTokenType, GitHubCopilotAttr, StdAttr } from '../genAiAttributes';
+import { GenAiAttr, GenAiOperationName, GenAiProviderName, GenAiTokenType, DardcorAttr, StdAttr } from '../genAiAttributes';
 import { GenAiMetrics } from '../genAiMetrics';
 import { resolveOTelConfig } from '../otelConfig';
 import type { IOTelService } from '../otelService';
@@ -167,12 +167,12 @@ describe('GenAiMetrics', () => {
 
 		expect(otel.incrementCounter).toHaveBeenCalledWith('dardcor_chat.cloud.operation.count', 1, {
 			operation: 'createSession',
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: 'v2',
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: 'v2',
 			success: true,
 		});
 		expect(otel.recordMetric).toHaveBeenCalledWith('dardcor_chat.cloud.operation.duration', 1200, {
 			operation: 'createSession',
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: 'v2',
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: 'v2',
 		});
 	});
 
@@ -183,7 +183,7 @@ describe('GenAiMetrics', () => {
 
 		expect(otel.incrementCounter).toHaveBeenCalledWith('dardcor_chat.cloud.operation.count', 1, {
 			operation: 'followUp',
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: 'v1',
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: 'v1',
 			success: false,
 		});
 		expect(otel.recordMetric).not.toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('GenAiMetrics', () => {
 
 		expect(otel.incrementCounter).toHaveBeenCalledWith('dardcor_chat.cloud.error.count', 1, {
 			operation: 'fetchSessionList',
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: 'v2',
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: 'v2',
 			[StdAttr.ERROR_TYPE]: 'http_500',
 		});
 	});
@@ -209,10 +209,10 @@ describe('GenAiMetrics', () => {
 
 		expect(otel.incrementCounter).toHaveBeenCalledWith('dardcor_chat.cloud.session.count', 1, {
 			partner_agent: 'dardcor',
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: 'v2',
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: 'v2',
 		});
 		expect(otel.incrementCounter).toHaveBeenCalledWith('dardcor_chat.cloud.pr_ready.count', 1, {
-			[GitHubCopilotAttr.CLOUD_BACKEND_VERSION]: 'v1',
+			[DardcorAttr.CLOUD_BACKEND_VERSION]: 'v1',
 		});
 	});
 });

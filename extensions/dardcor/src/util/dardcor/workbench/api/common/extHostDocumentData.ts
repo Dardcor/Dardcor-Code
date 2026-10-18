@@ -1,4 +1,3 @@
-//!!! DO NOT modify, this file was COPIED from 'microsoft/dardcor'
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
@@ -45,16 +44,13 @@ export class ExtHostDocumentData extends MirrorTextModel {
 		private _languageId: string,
 		private _isDirty: boolean,
 		private _encoding: string,
-		private readonly _strictInstanceofChecks = true // used for code reuse
+		private readonly _strictInstanceofChecks = true
 	) {
 		super(uri, lines, eol, versionId);
 	}
 
 	// eslint-disable-next-line local/code-must-use-super-dispose
 	override dispose(): void {
-		// we don't really dispose documents but let
-		// extensions still read from them. some
-		// operations, live saving, will now error tho
 		ok(!this._isDisposed);
 		this._isDisposed = true;
 		this._isDirty = false;
@@ -174,11 +170,9 @@ export class ExtHostDocumentData extends MirrorTextModel {
 
 		const lineLength = this._lines[out.index].length;
 
-		// Ensure we return a valid position
 		return new Position(out.index, Math.min(out.remainder, lineLength));
 	}
 
-	// ---- range math
 
 	private _validateRange(range: vscode.Range): vscode.Range {
 		if (this._strictInstanceofChecks) {
@@ -250,11 +244,9 @@ export class ExtHostDocumentData extends MirrorTextModel {
 		const position = this._validatePosition(_position);
 
 		if (!regexp) {
-			// use default when custom-regexp isn't provided
 			regexp = getWordDefinitionFor(this._languageId);
 
 		} else if (regExpLeadsToEndlessLoop(regexp)) {
-			// use default when custom-regexp is bad
 			throw new Error(`[getWordRangeAtPosition]: ignoring custom regexp '${regexp.source}' because it matches the empty string.`);
 		}
 
@@ -304,7 +296,6 @@ export class ExtHostDocumentLine implements vscode.TextLine {
 	}
 
 	public get firstNonWhitespaceCharacterIndex(): number {
-		//TODO@api, rename to 'leadingWhitespaceLength'
 		return /^(\s*)/.exec(this._text)![1].length;
 	}
 

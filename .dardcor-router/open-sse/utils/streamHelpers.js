@@ -1,10 +1,8 @@
 import { FORMATS } from "../translator/formats.js";
 
-// Parse SSE data line
 export function parseSSELine(line, format = null) {
   if (!line) return null;
 
-  // NDJSON format (Ollama): raw JSON lines without "data:" prefix
   if (format === FORMATS.OLLAMA) {
     const trimmed = line.trim();
     if (trimmed.startsWith("{")) {
@@ -17,8 +15,7 @@ export function parseSSELine(line, format = null) {
     return null;
   }
 
-  // Standard SSE format: "data: {...}"
-  if (line.charCodeAt(0) !== 100) return null; // 'd' = 100
+  if (line.charCodeAt(0) !== 100) return null;
 
   const data = line.slice(5).trim();
   if (data === "[DONE]") return { done: true };
@@ -33,9 +30,7 @@ export function parseSSELine(line, format = null) {
   }
 }
 
-// Check if chunk has valuable content (not empty)
 export function hasValuableContent(chunk, format) {
-  // OpenAI format
   if (format === FORMATS.OPENAI && chunk.choices?.[0]?.delta) {
     const delta = chunk.choices[0].delta;
     return delta.content && delta.content !== "" ||
@@ -45,7 +40,6 @@ export function hasValuableContent(chunk, format) {
            delta.role;
   }
 
-  // Claude format
   if (format === FORMATS.CLAUDE) {
     const isContentBlockDelta = chunk.type === "content_block_delta";
     const hasText = chunk.delta?.text && chunk.delta.text !== "";
@@ -58,10 +52,9 @@ export function hasValuableContent(chunk, format) {
     return true;
   }
 
-  return true; // Other formats: keep all chunks
+  return true;
 }
 
-// Fix invalid id (generic or too short)
 export function fixInvalidId(parsed) {
   if (parsed.id && (parsed.id === "chat" || parsed.id === "completion" || parsed.id.length < 8)) {
     const fallbackId = parsed.extend_fields?.requestId || 
@@ -100,12 +93,10 @@ function cleanUsagePayload(payload) {
   return cleaned;
 }
 
-// Format output as SSE
 export function formatSSE(data, sourceFormat) {
   if (data === null || data === undefined) return "data: null\n\n";
   if (data && data.done) return "data: [DONE]\n\n";
 
-  // OpenAI Responses API format
   if (data && data.event && data.data) {
     const cleanedEventData = cleanUsagePayload(data.data);
     return `event: ${data.event}\ndata: ${JSON.stringify(cleanedEventData)}\n\n`;
@@ -113,7 +104,6 @@ export function formatSSE(data, sourceFormat) {
 
   data = cleanUsagePayload(data);
 
-  // Claude format
   if (sourceFormat === FORMATS.CLAUDE && data && data.type) {
     return `event: ${data.type}\ndata: ${JSON.stringify(data)}\n\n`;
   }

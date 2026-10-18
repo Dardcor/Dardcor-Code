@@ -46,7 +46,7 @@ const DONOT_MAKE_REQUESTS_UNTIL_KEY = 'sync.donot-make-requests-until';
 const USER_SESSION_ID_KEY = 'sync.user-session-id';
 const MACHINE_SESSION_ID_KEY = 'sync.machine-session-id';
 const REQUEST_SESSION_LIMIT = 100;
-const REQUEST_SESSION_INTERVAL = 1000 * 60 * 5; /* 5 minutes */
+const REQUEST_SESSION_INTERVAL = 1000 * 60 * 5;
 
 type UserDataSyncStore = IUserDataSyncStore & { defaultType: UserDataSyncStoreType };
 
@@ -63,7 +63,7 @@ export abstract class AbstractUserDataSyncStoreManagementService extends Disposa
 		return this.storageService.get(SYNC_SERVICE_URL_TYPE, StorageScope.APPLICATION) as UserDataSyncStoreType;
 	}
 	protected set userDataSyncStoreType(type: UserDataSyncStoreType | undefined) {
-		this.storageService.store(SYNC_SERVICE_URL_TYPE, type, StorageScope.APPLICATION, isWeb ? StorageTarget.USER /* sync in web */ : StorageTarget.MACHINE);
+		this.storageService.store(SYNC_SERVICE_URL_TYPE, type, StorageScope.APPLICATION, isWeb ? StorageTarget.USER : StorageTarget.MACHINE);
 	}
 
 	constructor(
@@ -86,7 +86,6 @@ export abstract class AbstractUserDataSyncStoreManagementService extends Disposa
 		if (!configurationSyncStore) {
 			return undefined;
 		}
-		// Check for web overrides for backward compatibility while reading previous store
 		configurationSyncStore = isWeb && configurationSyncStore.web ? { ...configurationSyncStore, ...configurationSyncStore.web } : configurationSyncStore;
 		if (isString(configurationSyncStore.url)
 			&& isObject(configurationSyncStore.authenticationProviders)
@@ -199,7 +198,6 @@ export class UserDataSyncStoreClient extends Disposable {
 				return headers;
 			});
 
-		/* A requests session that limits requests per sessions */
 		this.session = new RequestsSession(REQUEST_SESSION_LIMIT, REQUEST_SESSION_INTERVAL, this.requestService, this.logService);
 		this.initDonotMakeRequestsUntil();
 		this._register(toDisposable(() => {
@@ -238,7 +236,7 @@ export class UserDataSyncStoreClient extends Disposable {
 			if (this._donotMakeRequestsUntil) {
 				this.storageService.store(DONOT_MAKE_REQUESTS_UNTIL_KEY, this._donotMakeRequestsUntil.getTime(), StorageScope.APPLICATION, StorageTarget.MACHINE);
 				this.resetDonotMakeRequestsUntilPromise = createCancelablePromise(token => timeout(this._donotMakeRequestsUntil!.getTime() - Date.now(), token).then(() => this.setDonotMakeRequestsUntil(undefined)));
-				this.resetDonotMakeRequestsUntilPromise.then(null, e => null /* ignore error */);
+				this.resetDonotMakeRequestsUntilPromise.then(null, e => null );
 			} else {
 				this.storageService.remove(DONOT_MAKE_REQUESTS_UNTIL_KEY, StorageScope.APPLICATION);
 			}
@@ -247,7 +245,6 @@ export class UserDataSyncStoreClient extends Disposable {
 		}
 	}
 
-	// #region Collection
 
 	async getAllCollections(headers: IHeaders = {}): Promise<string[]> {
 		if (!this.userDataSyncStoreUrl) {
@@ -291,9 +288,7 @@ export class UserDataSyncStoreClient extends Disposable {
 		await this.request(url, { type: 'DELETE', headers, callSite: 'userDataSync.deleteCollection' }, [], CancellationToken.None);
 	}
 
-	// #endregion
 
-	// #region Resource
 
 	async getAllResourceRefs(resource: ServerResource, collection?: string): Promise<IResourceRefHandle[]> {
 		if (!this.userDataSyncStoreUrl) {
@@ -306,7 +301,7 @@ export class UserDataSyncStoreClient extends Disposable {
 		const context = await this.request(uri.toString(), { type: 'GET', headers, callSite: 'userDataSync.getAllResourceRefs' }, [], CancellationToken.None);
 
 		const result = await asJson<{ url: string; created: number }[]>(context) || [];
-		return result.map(({ url, created }) => ({ ref: relativePath(uri, uri.with({ path: url }))!, created: created * 1000 /* Server returns in seconds */ }));
+		return result.map(({ url, created }) => ({ ref: relativePath(uri, uri.with({ path: url }))!, created: created * 1000 }));
 	}
 
 	async resolveResourceContent(resource: ServerResource, ref: string, collection?: string, headers: IHeaders = {}): Promise<string | null> {
@@ -352,7 +347,6 @@ export class UserDataSyncStoreClient extends Disposable {
 
 		const url = joinPath(this.getResourceUrl(this.userDataSyncStoreUrl, collection, resource), 'latest').toString();
 		headers = { ...headers };
-		// Disable caching as they are cached by synchronisers
 		headers['Cache-Control'] = 'no-cache';
 		if (oldValue) {
 			headers['If-None-Match'] = oldValue.ref;
@@ -403,7 +397,6 @@ export class UserDataSyncStoreClient extends Disposable {
 		return newRef;
 	}
 
-	// #endregion
 
 	async manifest(oldValue: IUserDataManifest | null, headers: IHeaders = {}): Promise<IUserDataManifest | null> {
 		if (!this.userDataSyncStoreUrl) {
@@ -443,17 +436,14 @@ export class UserDataSyncStoreClient extends Disposable {
 		const currentSessionId = this.storageService.get(USER_SESSION_ID_KEY, StorageScope.APPLICATION);
 
 		if (currentSessionId && manifest && currentSessionId !== manifest.session) {
-			// Server session is different from client session so clear cached session.
 			this.clearSession();
 		}
 
 		if (manifest === null && currentSessionId) {
-			// server session is cleared so clear cached session.
 			this.clearSession();
 		}
 
 		if (manifest) {
-			// update session
 			this.storageService.store(USER_SESSION_ID_KEY, manifest.session, StorageScope.APPLICATION, StorageTarget.MACHINE);
 		}
 
@@ -468,7 +458,6 @@ export class UserDataSyncStoreClient extends Disposable {
 		await this.deleteCollection();
 		await this.deleteResources();
 
-		// clear cached session.
 		this.clearSession();
 	}
 
@@ -570,7 +559,6 @@ export class UserDataSyncStoreClient extends Disposable {
 			'authorization': `Bearer ${this.authToken.token}`,
 		};
 
-		// Add session headers
 		this.addSessionHeaders(options.headers);
 
 		this.logService.trace('Sending request to server', { url, type: options.type, headers: { ...options.headers, ...{ authorization: undefined } } });
@@ -583,27 +571,22 @@ export class UserDataSyncStoreClient extends Disposable {
 				let code = UserDataSyncErrorCode.RequestFailed;
 				const errorMessage = getErrorMessage(e).toLowerCase();
 
-				// Request timed out
 				if (errorMessage.includes('xhr timeout')) {
 					code = UserDataSyncErrorCode.RequestTimeout;
 				}
 
-				// Request protocol not supported
 				else if (errorMessage.includes('protocol') && errorMessage.includes('not supported')) {
 					code = UserDataSyncErrorCode.RequestProtocolNotSupported;
 				}
 
-				// Request path not escaped
 				else if (errorMessage.includes('request path contains unescaped characters')) {
 					code = UserDataSyncErrorCode.RequestPathNotEscaped;
 				}
 
-				// Request header not an object
 				else if (errorMessage.includes('headers must be an object')) {
 					code = UserDataSyncErrorCode.RequestHeadersNotObject;
 				}
 
-				// Request canceled
 				else if (isCancellationError(e)) {
 					code = UserDataSyncErrorCode.RequestCanceled;
 				}
@@ -726,7 +709,7 @@ export class RequestsSession {
 
 	constructor(
 		private readonly limit: number,
-		private readonly interval: number, /* in ms */
+		private readonly interval: number,
 		private readonly requestService: IRequestService,
 		private readonly logService: IUserDataSyncLogService,
 	) { }

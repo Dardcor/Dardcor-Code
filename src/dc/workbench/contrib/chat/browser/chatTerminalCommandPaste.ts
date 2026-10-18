@@ -11,16 +11,10 @@ import { IStorageService, StorageScope, StorageTarget } from '../../../../platfo
 
 const terminalCommandPasteDontAskAgainStorageKey = 'chat.terminalCommandPaste.dontAskAgain';
 
-/**
- * Returns whether the current input `value` would be executed as a terminal
- * command, i.e. a `prefix` is advertised and the value begins with it. Chat
- * inputs use this to switch to a monospace font while a command is composed.
- */
 export function isTerminalCommandInput(value: string, prefix: string | undefined): boolean {
 	return !!prefix && value.startsWith(prefix);
 }
 
-/** Paste context used to detect terminal command prefixes at the start of chat input. */
 interface ITerminalCommandPaste {
 	readonly prefix: string;
 	readonly pastedText: string;
@@ -29,7 +23,6 @@ interface ITerminalCommandPaste {
 	readonly selectionEndOffset: number;
 }
 
-/** Returns whether applying the paste would make the input start with the command prefix. */
 export function isTerminalCommandPaste(paste: ITerminalCommandPaste): boolean {
 	const selectionStartOffset = Math.max(0, Math.min(paste.selectionStartOffset, paste.currentValue.length));
 	const selectionEndOffset = Math.max(selectionStartOffset, Math.min(paste.selectionEndOffset, paste.currentValue.length));
@@ -40,12 +33,9 @@ export function isTerminalCommandPaste(paste: ITerminalCommandPaste): boolean {
 
 	const resultingText = paste.currentValue.slice(0, selectionStartOffset) + paste.pastedText + paste.currentValue.slice(selectionEndOffset);
 
-	// Match the host-side bang parser (`parseBangCommand`): the prefix only runs
-	// as a terminal command when it is at offset 0 with no leading whitespace.
 	return resultingText.startsWith(paste.prefix);
 }
 
-/** Returns whether the user has globally suppressed terminal command paste warnings. */
 function isTerminalCommandPasteWarningSuppressed(storageService: IStorageService): boolean {
 	return storageService.getBoolean(terminalCommandPasteDontAskAgainStorageKey, StorageScope.APPLICATION, false);
 }
@@ -85,20 +75,6 @@ async function shouldPasteTerminalCommand(
 	return result === 'paste' ? 'paste' : 'cancel';
 }
 
-/**
- * Shared capture-phase paste handler for chat inputs. When the attached session
- * advertises a terminal command `prefix` and the pasted text would make the
- * input begin with that prefix (i.e. run as a command), warns the user before
- * inserting — unless they have globally suppressed the warning. On confirmation
- * the text is inserted via the editor's paste command; on cancel nothing is
- * inserted. When the paste would not become a command the event is left
- * untouched for default handling.
- *
- * This intercepts at the capture-phase DOM `paste` event — strictly before the
- * editor's own paste handling (`onWillPaste`/`CopyPasteController`) — because a
- * veto/confirmation must gate the paste before any of that runs. Register with
- * `addDisposableListener(editor.getDomNode(), EventType.PASTE, ..., true)`.
- */
 export function handleTerminalCommandPaste(
 	e: ClipboardEvent,
 	editor: ICodeEditor,
@@ -128,12 +104,6 @@ export function handleTerminalCommandPaste(
 		return;
 	}
 
-	// Veto the default paste synchronously (before the editor's paste pipeline
-	// runs), then confirm asynchronously and insert the text via the editor's
-	// paste command. This inserts the raw text directly (firing `onDidPaste`
-	// but not `onWillPaste`), so it does NOT re-enter this DOM handler and does
-	// NOT run paste-into providers / `CopyPasteController` — intended for a chat
-	// input, where a terminal command should be inserted verbatim.
 	e.preventDefault();
 	e.stopImmediatePropagation();
 

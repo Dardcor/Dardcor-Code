@@ -11,7 +11,6 @@ class WindowManager {
 
 	static readonly INSTANCE = new WindowManager();
 
-	// --- Zoom Level
 
 	private readonly mapWindowIdToZoomLevel = new Map<number, number>();
 
@@ -31,7 +30,6 @@ class WindowManager {
 		this._onDidChangeZoomLevel.fire(targetWindowId);
 	}
 
-	// --- Zoom Factor
 
 	private readonly mapWindowIdToZoomFactor = new Map<number, number>();
 
@@ -42,7 +40,6 @@ class WindowManager {
 		this.mapWindowIdToZoomFactor.set(this.getWindowId(targetWindow), zoomFactor);
 	}
 
-	// --- Fullscreen
 
 	private readonly _onDidChangeFullscreen = new Emitter<number>();
 	readonly onDidChangeFullscreen = this._onDidChangeFullscreen.event;
@@ -74,7 +71,6 @@ export function addMatchMediaChangeListener(targetWindow: Window, query: string 
 	query.addEventListener('change', callback);
 }
 
-/** A zoom index, e.g. 1, 2, 3 */
 export function setZoomLevel(zoomLevel: number, targetWindow: Window): void {
 	WindowManager.INSTANCE.setZoomLevel(zoomLevel, targetWindow);
 }
@@ -83,7 +79,6 @@ export function getZoomLevel(targetWindow: Window): number {
 }
 export const onDidChangeZoomLevel = WindowManager.INSTANCE.onDidChangeZoomLevel;
 
-/** The zoom scale for an index, e.g. 1, 1.2, 1.4 */
 export function getZoomFactor(targetWindow: Window): number {
 	return WindowManager.INSTANCE.getZoomFactor(targetWindow);
 }
@@ -115,12 +110,9 @@ if (typeof mainWindow.matchMedia === 'function') {
 	const fullScreenMatchMedia = mainWindow.matchMedia('(display-mode: fullscreen)');
 	standalone = standaloneMatchMedia.matches;
 	addMatchMediaChangeListener(mainWindow, standaloneMatchMedia, ({ matches }) => {
-		// entering fullscreen would change standaloneMatchMedia.matches to false
-		// if standalone is true (running as PWA) and entering fullscreen, skip this change
 		if (standalone && fullScreenMatchMedia.matches) {
 			return;
 		}
-		// otherwise update standalone (browser to PWA or PWA to browser)
 		standalone = matches;
 	});
 }
@@ -131,15 +123,10 @@ export function isMobileStandalone(): boolean {
 	return (isAndroid || isIOS) && standalone;
 }
 
-// Visible means that the feature is enabled, not necessarily being rendered
-// e.g. visible is true even in fullscreen mode where the controls are hidden
-// See docs at https://developer.mozilla.org/en-US/docs/Web/API/WindowControlsOverlay/visible
 export function isWCOEnabled(): boolean {
 	return !!(navigator as Navigator & { windowControlsOverlay?: { visible: boolean } })?.windowControlsOverlay?.visible;
 }
 
-// Returns the bounding rect of the titlebar area if it is supported and defined
-// See docs at https://developer.mozilla.org/en-US/docs/Web/API/WindowControlsOverlay/getTitlebarAreaRect
 export function getWCOTitlebarAreaRect(targetWindow: Window): DOMRect | undefined {
 	return (targetWindow.navigator as Navigator & { windowControlsOverlay?: { getTitlebarAreaRect: () => DOMRect } })?.windowControlsOverlay?.getTitlebarAreaRect();
 }

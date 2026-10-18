@@ -49,7 +49,7 @@ const REMOTE_TUNNEL_USED_STORAGE_KEY = 'remoteTunnelServiceUsed';
 const REMOTE_TUNNEL_PROMPTED_PREVIEW_STORAGE_KEY = 'remoteTunnelServicePromptedPreview';
 const REMOTE_TUNNEL_EXTENSION_RECOMMENDED_KEY = 'remoteTunnelExtensionRecommended';
 const REMOTE_TUNNEL_HAS_USED_BEFORE = 'remoteTunnelHasUsed';
-const REMOTE_TUNNEL_EXTENSION_TIMEOUT = 4 * 60 * 1000; // show the recommendation that a machine started using tunnels if it joined less than 4 minutes ago
+const REMOTE_TUNNEL_EXTENSION_TIMEOUT = 4 * 60 * 1000;
 
 const INVALID_TOKEN_RETRIES = 2;
 
@@ -65,7 +65,6 @@ export interface IRemoteTunnelStartOptions {
 	readonly showSuccessNotification?: boolean;
 }
 
-/** Matches `is_valid_name` in the CLI's `cli/src/tunnels/dev_tunnels.rs`. */
 const TUNNEL_NAME_REGEX = /^[\w-]+$/;
 
 export const RemoteTunnelCommandIds = {
@@ -80,7 +79,6 @@ export const RemoteTunnelCommandIds = {
 	learnMore: 'workbench.remoteTunnel.actions.learnMore',
 } as const;
 
-// name shown in nofications
 namespace RemoteTunnelCommandLabels {
 	export const turnOn = localize('remoteTunnel.actions.turnOn', 'Turn on Remote Tunnel Access...');
 	export const turnOff = localize('remoteTunnel.actions.turnOff', 'Turn off Remote Tunnel Access...');
@@ -217,7 +215,6 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 				}
 				usedTunnelName = hostName;
 			} catch (_) {
-				// problems parsing the message, likly the old message format
 				return false;
 			}
 			const currentTunnelName = await this.remoteTunnelService.getTunnelName();
@@ -280,7 +277,7 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 		this.handleTunnelStatusUpdate(status);
 
 		if (mode.active && mode.session.token) {
-			return; // already initialized, token available
+			return;
 		}
 
 		const doInitialStateDiscovery = async (progress?: IProgress<IProgressStep>) => {
@@ -494,9 +491,6 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 		return options;
 	}
 
-	/**
-	 * Returns all authentication sessions available from {@link getAuthenticationProviders}.
-	 */
 	private async getAllSessions(authenticationProviders?: readonly IAuthenticationProvider[]): Promise<ExistingSessionItem[]> {
 		const accounts = new Map<string, ExistingSessionItem>();
 		const currentAccount = await this.remoteTunnelService.getMode();
@@ -533,20 +527,13 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 		return undefined;
 	}
 
-	/**
-	 * Returns all authentication providers which can be used to authenticate
-	 * to the remote storage service, based on product.json configuration
-	 * and registered authentication providers.
-	 */
 	private async getAuthenticationProviders(): Promise<IAuthenticationProvider[]> {
-		// Get the list of authentication providers configured in product.json
 		const authenticationProviders = this.serverConfiguration.authenticationProviders;
 		const configuredAuthenticationProviders = Object.keys(authenticationProviders).reduce<IAuthenticationProvider[]>((result, id) => {
 			result.push({ id, scopes: authenticationProviders[id].scopes });
 			return result;
 		}, []);
 
-		// Filter out anything that isn't currently available through the authenticationService
 		const availableAuthenticationProviders = this.authenticationService.declaredProviders;
 
 		return configuredAuthenticationProviders.filter(({ id }) => availableAuthenticationProviders.some(provider => provider.id === id));
@@ -617,10 +604,10 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 					});
 
 				if (asService === undefined) {
-					return; // no-op
+					return;
 				}
 
-				const connectionInfo = await that.startTunnel(/* installAsService= */ asService, options?.authenticationProviderId);
+				const connectionInfo = await that.startTunnel( asService, options?.authenticationProviderId);
 
 				if (connectionInfo) {
 					if (options?.showSuccessNotification !== false) {
@@ -637,7 +624,7 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 											comment: ['{0} will be the tunnel name, {1} will the link address to the web UI, {6} an extension name, {7} a link to the extension documentation. [label](command:commandId) is a markdown link. Only translate the label, do not modify the format']
 										},
 										"You can now access this machine anywhere via the secure tunnel [{0}](command:{4}). To connect via a different machine, use the generated [{1}]({2}) link or use the [{6}]({7}) extension in the desktop or web. You can [configure](command:{3}) or [turn off](command:{5}) this access via the VS Code Accounts menu.",
-										connectionInfo.tunnelName, connectionInfo.domain, linkToOpenForMarkdown, RemoteTunnelCommandIds.manage, RemoteTunnelCommandIds.configure, RemoteTunnelCommandIds.turnOff, remoteExtension.friendlyName, 'https://code.visualstudio.com/docs/remote/tunnels'
+										connectionInfo.tunnelName, connectionInfo.domain, linkToOpenForMarkdown, RemoteTunnelCommandIds.manage, RemoteTunnelCommandIds.configure, RemoteTunnelCommandIds.turnOff, remoteExtension.friendlyName, 'https://www.dardcor-code.web.id/docs/remote/tunnels'
 									),
 								actions: {
 									primary: [
@@ -839,7 +826,7 @@ export class RemoteTunnelWorkbenchContribution extends Disposable implements IWo
 
 			async run(accessor: ServicesAccessor) {
 				const openerService = accessor.get(IOpenerService);
-				await openerService.open('https://aka.ms/vscode-server-doc');
+				await openerService.open('https://www.dardcor-code.web.id/docs/remote/server');
 			}
 		}));
 	}

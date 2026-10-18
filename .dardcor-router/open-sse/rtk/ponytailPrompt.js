@@ -1,5 +1,3 @@
-// Ponytail intensity-level prompts injected into system message to bias toward minimal code.
-// Adapted from ponytail skill (https://github.com/DietrichGebert/ponytail).
 
 export const PONYTAIL_LEVELS = {
   LITE: "lite",

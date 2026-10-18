@@ -7,9 +7,6 @@ import { createServiceIdentifier } from '../../../util/common/services';
 
 export const IUrlOpener = createServiceIdentifier<IUrlOpener>('IUrlOpener');
 
-/**
- * Encapsulates all the functionality related opening urls in a browser.
- */
 export interface IUrlOpener {
 	readonly _serviceBrand: undefined;
 	open(target: string): void;

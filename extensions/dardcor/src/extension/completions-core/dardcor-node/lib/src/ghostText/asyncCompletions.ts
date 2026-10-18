@@ -75,13 +75,8 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 
 	#logger = new Logger('AsyncCompletionManager');
 
-	/** Mapping of headerRequestId to completion request */
 	private readonly requests = new LRUCacheMap<string, AsyncCompletionRequest>(100);
 
-	/** The most recently requested (either via getFirstMatchingRequest or
-	 * getFirstMatchingRequestWithTimeout) header request ID. Serves as a lock
-	 * for cancellation. Since we only want to cancel requests that don't match
-	 * the most recent request prefix. */
 	private mostRecentRequestId = '';
 
 	constructor(
@@ -93,18 +88,7 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 		this.requests.clear();
 	}
 
-	/**
-	 * Check if there are any candidate completions for the current position.
-	 * We need to strike the right balance between queuing completions as the
-	 * user types, without queuing one per keystroke. This method should return
-	 * true if we don't have any completions that match the current position.
-	 * This method should return false if we have reasonable candidates that
-	 * match the current position.
-	 */
 	shouldWaitForAsyncCompletions(prefix: string, prompt: Prompt): boolean {
-		// TODO: Consider adding a minimum threshold for candidate completions,
-		// where we will queue more if the user's typing seems to be diverging
-		// from current speculation.
 		for (const [_, request] of this.requests) {
 			if (isCandidate(prefix, prompt, request)) {
 				return true;
@@ -113,10 +97,6 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 		return false;
 	}
 
-	/**
-	 * Called from a FinishedCallback to report partial results as a completion
-	 * is streamed back from the server.
-	 */
 	updateCompletion(headerRequestId: string, text: string) {
 		const request = this.requests.get(headerRequestId);
 		if (request === undefined) { return; }
@@ -124,10 +104,6 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 		request.subject.next(request);
 	}
 
-	/**
-	 * Adds an in-flight completion request to the requests map for tracking.
-	 * Once the request is completed it is removed from the requests map.
-	 */
 	queueCompletionRequest(
 		headerRequestId: string,
 		prefix: string,
@@ -178,7 +154,6 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 			});
 	}
 
-	/** Returns the first matching completion or times out. */
 	getFirstMatchingRequestWithTimeout(
 		headerRequestId: string,
 		prefix: string,
@@ -204,10 +179,6 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 		});
 	}
 
-	/**
-	 * Returns the first resolved matching completion request. Modifies the
-	 * returned APIChoice to match the current prompt.
-	 */
 	async getFirstMatchingRequest(
 		headerRequestId: string,
 		prefix: string,
@@ -224,7 +195,6 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 			subscription();
 			subscriptions.delete(id);
 			if (!resolved && subscriptions.size === 0) {
-				// TODO: Check for new candidates before resolving.
 				resolved = true;
 				this.#logger.debug(this.logTarget, `[${headerRequestId}] No matching completions found`);
 				deferred.resolve(undefined);
@@ -276,15 +246,6 @@ export class AsyncCompletionManager implements ICompletionsAsyncManagerService {
 		});
 	}
 
-	/**
-	 * Attempts to cancel a request if it is still pending and the request
-	 * attempting the cancellation (that it no longer matches) is the most
-	 * recent request.
-	 *
-	 * @param headerRequestId The request id for the call to
-	 * getFirstMatchingRequest that the `request` no longer matches.
-	 * @param request The request to cancel
-	 */
 	private cancelRequest(headerRequestId: string, request: AsyncCompletionRequest) {
 		if (headerRequestId !== this.mostRecentRequestId) { return; }
 		if (request.state === AsyncCompletionRequestState.Completed) { return; }

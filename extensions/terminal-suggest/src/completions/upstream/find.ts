@@ -9,7 +9,6 @@ const completionSpec: Fig.Spec = {
 			template: ["folders"],
 		},
 		{
-			// TODO Suggestions for primaries and operands. See `man find`
 			name: "expression",
 			description: "Composition of primaries and operands",
 			isOptional: true,

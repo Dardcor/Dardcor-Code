@@ -13,7 +13,6 @@ import type { IAgentConnection, IAgentHostService } from '../../common/agentServ
 import { ChangesetKind } from '../../common/changesetUri.js';
 import type { IRemoteAgentHostConnectionInfo, IRemoteAgentHostService } from '../../common/remoteAgentHostService.js';
 
-/** A connection stand-in identified by a `marker` so equality checks read clearly. */
 function fakeConnection(marker: string): IAgentConnection {
 	return { marker } as unknown as IAgentConnection;
 }
@@ -48,7 +47,6 @@ suite('AgentHostConnectionsService', () => {
 		return { service, ambient: agentHostService as unknown as IAgentConnection, fireRemoteChange: () => onRemoteChange.fire() };
 	}
 
-	// Mirror agentHostAuthority for the simple alphanumeric/host cases used here.
 	function toAuthority(address: string): string {
 		return /^[a-zA-Z0-9]+$/.test(address) ? address : address.replaceAll(':', '__');
 	}
@@ -107,7 +105,6 @@ suite('AgentHostConnectionsService', () => {
 		assert.strictEqual(remote?.connectionAuthority, 'myhost');
 		assert.strictEqual(remote?.backendSession.toString(), 'copilotcli:/xyz789');
 
-		// Non-agent-host scheme and unknown remote authority resolve to undefined.
 		assert.strictEqual(service.resolveSessionResource(URI.parse('vscode-chat-editor:/foo')), undefined);
 		assert.strictEqual(service.resolveSessionResource(URI.parse('remote-unknown-copilotcli:/foo')), undefined);
 	});

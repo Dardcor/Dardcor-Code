@@ -29,8 +29,6 @@ class ProfileAnalysisWorker implements IWebWorkerServerRequestHandler, IProfileA
 			.filter(s => !s.isSpecial);
 
 		if (samples.length === 0 || samples[0].percentage < 10) {
-			// ignore this profile because 90% of the time is spent inside "special" frames
-			// like idle, GC, or program
 			return { kind: ProfilingOutput.Irrelevant, samples: [] };
 		}
 
@@ -39,11 +37,9 @@ class ProfileAnalysisWorker implements IWebWorkerServerRequestHandler, IProfileA
 
 	$analyseByUrlCategory(profile: IV8Profile, categories: [url: URI, category: string][]): [category: string, aggregated: number][] {
 
-		// build search tree
 		const searchTree = TernarySearchTree.forUris<string>();
 		searchTree.fill(categories);
 
-		// cost by categories
 		const model = buildModel(profile);
 		const aggegrateByCategory = new Map<string, number>();
 
@@ -53,7 +49,6 @@ class ProfileAnalysisWorker implements IWebWorkerServerRequestHandler, IProfileA
 			try {
 				category = searchTree.findSubstr(URI.parse(loc.callFrame.url));
 			} catch {
-				// ignore
 			}
 			if (!category) {
 				category = printCallFrameShort(loc.callFrame);
@@ -154,7 +149,6 @@ function bottomUp(model: IProfileModel, topN: number) {
 			isSpecial: isSpecial(node.callFrame)
 		};
 
-		// follow the heaviest caller paths
 		const stack = [node];
 		while (stack.length) {
 			const node = stack.pop()!;

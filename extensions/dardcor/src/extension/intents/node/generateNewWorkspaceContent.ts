@@ -79,9 +79,7 @@ export class FileContentsGenerator extends NewWorkspaceContentGenerator {
 		}
 
 		if (filePath.endsWith('.md')) {
-			// If returned as a markdown codeblock, strip the codeblock markers
 			const fromCodeblock = safeParse(chatResponse, /^```([a-zA-Z]+)?\s*([\s\S]+?)\s*```$/);
-			// If returned as bare text, remove any text before the first header
 			const [preamble, ...withoutPreamble] = fromCodeblock.split('#');
 			if (preamble.length) {
 				return ['', ...withoutPreamble].join('#');

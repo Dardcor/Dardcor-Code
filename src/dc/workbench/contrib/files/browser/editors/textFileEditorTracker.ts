@@ -40,51 +40,44 @@ export class TextFileEditorTracker extends Disposable implements IWorkbenchContr
 
 	private registerListeners(): void {
 
-		// Ensure dirty text file and untitled models are always opened as editors
 		this._register(this.textFileService.files.onDidChangeDirty(model => this.ensureDirtyFilesAreOpenedWorker.work(model.resource)));
 		this._register(this.textFileService.files.onDidSaveError(model => this.ensureDirtyFilesAreOpenedWorker.work(model.resource)));
 		this._register(this.textFileService.untitled.onDidChangeDirty(model => this.ensureDirtyFilesAreOpenedWorker.work(model.resource)));
 
-		// Update visible text file editors when focus is gained
 		this._register(this.hostService.onDidChangeFocus(hasFocus => hasFocus ? this.reloadVisibleTextFileEditors() : undefined));
 
-		// Lifecycle
 		this._register(this.lifecycleService.onDidShutdown(() => this.dispose()));
 	}
 
-	//#region Text File: Ensure every dirty text and untitled file is opened in an editor
 
 	private readonly ensureDirtyFilesAreOpenedWorker = this._register(new RunOnceWorker<URI>(units => this.ensureDirtyTextFilesAreOpened(units), this.getDirtyTextFileTrackerDelay()));
 
 	protected getDirtyTextFileTrackerDelay(): number {
-		return 800; // encapsulated in a method for tests to override
+		return 800;
 	}
 
 	private ensureDirtyTextFilesAreOpened(resources: URI[]): void {
 		this.doEnsureDirtyTextFilesAreOpened(distinct(resources.filter(resource => {
 			if (!this.textFileService.isDirty(resource)) {
-				return false; // resource must be dirty
+				return false;
 			}
 
 			const fileModel = this.textFileService.files.get(resource);
 			if (fileModel?.hasState(TextFileEditorModelState.PENDING_SAVE)) {
-				return false; // resource must not be pending to save
+				return false;
 			}
 
 			if (resource.scheme !== Schemas.untitled && !fileModel?.hasState(TextFileEditorModelState.ERROR) && this.filesConfigurationService.hasShortAutoSaveDelay(resource)) {
-				// leave models auto saved after short delay unless
-				// the save resulted in an error and not for untitled
-				// that are not auto-saved anyway
 				return false;
 			}
 
 			if (this.editorService.isOpened({ resource, typeId: resource.scheme === Schemas.untitled ? UntitledTextEditorInput.ID : FILE_EDITOR_INPUT_ID, editorId: DEFAULT_EDITOR_ASSOCIATION.id })) {
-				return false; // model must not be opened already as file (fast check via editor type)
+				return false;
 			}
 
 			const model = fileModel ?? this.textFileService.untitled.get(resource);
 			if (model && this.workingCopyEditorService.findEditor(model)) {
-				return false; // model must not be opened already as file (slower check via working copy)
+				return false;
 			}
 
 			return true;
@@ -102,15 +95,9 @@ export class TextFileEditorTracker extends Disposable implements IWorkbenchContr
 		})));
 	}
 
-	//#endregion
 
-	//#region Window Focus Change: Update visible code editors when focus is gained that have a known text file model
 
 	private reloadVisibleTextFileEditors(): void {
-		// the window got focus and we use this as a hint that files might have been changed outside
-		// of this window. since file events can be unreliable, we queue a load for models that
-		// are visible in any editor. since this is a fast operation in the case nothing has changed,
-		// we tolerate the additional work.
 		distinct(
 			coalesce(this.codeEditorService.listCodeEditors()
 				.map(codeEditor => {
@@ -130,5 +117,4 @@ export class TextFileEditorTracker extends Disposable implements IWorkbenchContr
 		).forEach(model => this.textFileService.files.resolve(model.resource, { reload: { async: true } }));
 	}
 
-	//#endregion
 }

@@ -26,7 +26,6 @@ suite('codexThreadList', () => {
 
 	suite('collectThreadListPages', () => {
 
-		/** Serve `pages` in order, recording the request each page was fetched with. */
 		function pagedSource(pages: readonly IThreadListPage<string>[]) {
 			const requests: IThreadListPageRequest[] = [];
 			let index = 0;

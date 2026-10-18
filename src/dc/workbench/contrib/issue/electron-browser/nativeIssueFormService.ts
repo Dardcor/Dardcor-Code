@@ -27,11 +27,6 @@ import { IssueReporter } from './issueReporterService.js';
 
 export class NativeIssueFormService extends IssueFormService implements IIssueFormService {
 
-	/**
-	 * Holds the currently-rendered legacy IssueReporter so its listeners on long-lived services
-	 * (e.g. authentication onDidChangeSessions) are released when the aux window closes or a new
-	 * reporter is opened.
-	 */
 	private readonly legacyReporter = this._register(new MutableDisposable<IssueReporter>());
 
 	constructor(
@@ -61,7 +56,6 @@ export class NativeIssueFormService extends IssueFormService implements IIssueFo
 
 		const useWizard = this.configurationService.getValue<boolean>('issueReporter.wizard.enabled');
 		if (!useWizard) {
-			// Legacy reporter needs OS properties synchronously for the issue body.
 			const { arch, release, type } = await this.nativeHostService.getOSProperties();
 			this.arch = arch;
 			this.release = release;
@@ -69,21 +63,11 @@ export class NativeIssueFormService extends IssueFormService implements IIssueFo
 			return this.openAuxIssueReporterLegacy(data);
 		}
 
-		// Wizard path pulls system info from IProcessService.getSystemInfo() inside
-		// the editor pane, so it does not depend on arch/release/type here.
 		const input = this.instantiationService.createInstance(IssueReporterEditorInput, data);
 
-		// When editors are forced modal (`workbench.editor.useModal: 'all'`), the
-		// issue reporter still needs to sit alongside the rest of the app so the
-		// user can capture screenshots and recordings.
 		await this.editorService.openEditor(input, { pinned: true });
 	}
 
-	/**
-	 * Desktop legacy path uses the native `IssueReporter` (so it can populate
-	 * system/performance info via `IProcessService`) and centers the auxiliary
-	 * window on the active window via `getActiveWindowPosition()`.
-	 */
 	override async openAuxIssueReporterLegacy(data: IssueReporterData): Promise<void> {
 		const bounds = await this.nativeHostService.getActiveWindowPosition();
 		await this.openAuxIssueReporter(data, bounds);

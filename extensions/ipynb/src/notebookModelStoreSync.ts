@@ -10,18 +10,8 @@ import type * as nbformat from '@jupyterlab/nbformat';
 import { generateUuid } from './helper';
 
 const noop = () => {
-	//
 };
 
-/**
- * Code here is used to ensure the Notebook Model is in sync the ipynb JSON file.
- * E.g. assume you add a new cell, this new cell will not have any metadata at all.
- * However when we save the ipynb, the metadata will be an empty object `{}`.
- * Now thats completely different from the metadata os being `empty/undefined` in the model.
- * As a result, when looking at things like diff view or accessing metadata, we'll see differences.
-*
-* This code ensures that the model is in sync with the ipynb file.
-*/
 export const pendingNotebookCellModelUpdates = new WeakMap<NotebookDocument, Set<Thenable<void>>>();
 export function activate(context: ExtensionContext) {
 	workspace.onDidChangeNotebookDocument(onDidChangeNotebookCells, undefined, context.subscriptions);
@@ -52,17 +42,13 @@ export function debounceOnDidChangeNotebookDocument() {
 		if (!mergedEvents) {
 			mergedEvents = e;
 		} else if (mergedEvents.notebook === e.notebook) {
-			// Same notebook, we can merge the updates.
 			mergedEvents = {
 				cellChanges: e.cellChanges.concat(mergedEvents.cellChanges),
 				contentChanges: e.contentChanges.concat(mergedEvents.contentChanges),
 				notebook: e.notebook
 			};
 		} else {
-			// Different notebooks, we cannot merge the updates.
-			// Hence we need to process the previous notebook and start a new timer for the new notebook.
 			triggerDebouncedNotebookDocumentChangeEvent();
-			// Start a new timer for the new notebook.
 			mergedEvents = e;
 		}
 		if (timer) {
@@ -132,12 +118,8 @@ function onDidChangeNotebookCells(e: NotebookDocumentChangeEventEx) {
 	const notebook = e.notebook;
 	const notebookMetadata = getNotebookMetadata(e.notebook);
 
-	// use the preferred language from document metadata or the first cell language as the notebook preferred cell language
 	const preferredCellLanguage = notebookMetadata.metadata?.language_info?.name;
 	const updates: { cell: NotebookCell; metadata: CellMetadata & { vscode?: { languageId: string } } }[] = [];
-	// When we change the language of a cell,
-	// Ensure the metadata in the notebook cell has been updated as well,
-	// Else model will be out of sync with ipynb https://github.com/microsoft/vscode/issues/207968#issuecomment-2002858596
 	e.cellChanges.forEach(e => {
 		if (!preferredCellLanguage || e.cell.kind !== NotebookCellKind.Code) {
 			return;
@@ -151,25 +133,16 @@ function onDidChangeNotebookCells(e: NotebookDocumentChangeEventEx) {
 			metadata.execution_count = e.executionSummary.executionOrder;
 			metadataUpdated = true;
 		} else if (!e.executionSummary && !e.metadata && e.outputs?.length === 0 && currentMetadata.execution_count) {
-			// Clear all (user hit clear all).
-			// NOTE: At this point we're updating the `execution_count` in metadata to `null`.
-			// Thus this is a change in metadata, which we will need to update in the model.
 			metadata.execution_count = null;
 			metadataUpdated = true;
-			// Note: We will get another event for this, see below for the check.
-			// track the fact that we're expecting an update for this cell.
 			pendingCellUpdates.add(e.cell);
 		} else if ((!e.executionSummary || (!e.executionSummary?.executionOrder && !e.executionSummary?.success && !e.executionSummary?.timing))
 			&& !e.metadata && !e.outputs && currentMetadata.execution_count && pendingCellUpdates.has(e.cell)) {
-			// This is a result of the cell being cleared (i.e. we perfomed an update request and this is now the update event).
 			metadata.execution_count = null;
 			metadataUpdated = true;
 			pendingCellUpdates.delete(e.cell);
 		} else if (!e.executionSummary?.executionOrder && !e.executionSummary?.success && !e.executionSummary?.timing
 			&& !e.metadata && !e.outputs && currentMetadata.execution_count && !pendingCellUpdates.has(e.cell)) {
-			// This is a result of the cell without outupts but has execution count being cleared
-			// Create two cells, one that produces output and one that doesn't. Run both and then clear the output or all cells.
-			// This condition will be satisfied for first cell without outputs.
 			metadata.execution_count = null;
 			metadataUpdated = true;
 		}
@@ -190,15 +163,10 @@ function onDidChangeNotebookCells(e: NotebookDocumentChangeEventEx) {
 		}
 	});
 
-	// Ensure all new cells in notebooks with nbformat >= 4.5 have an id.
-	// Details of the spec can be found here https://jupyter.org/enhancement-proposals/62-cell-id/cell-id.html#
 	e.contentChanges.forEach(change => {
 		change.addedCells.forEach(cell => {
-			// When ever a cell is added, always update the metadata
-			// as metadata is always an empty `{}` in ipynb JSON file
 			const cellMetadata = getCellMetadata({ cell });
 
-			// Avoid updating the metadata if it's not required.
 			if (cellMetadata.metadata) {
 				if (!isCellIdRequired(notebookMetadata)) {
 					return;
@@ -208,7 +176,6 @@ function onDidChangeNotebookCells(e: NotebookDocumentChangeEventEx) {
 				}
 			}
 
-			// Don't edit the metadata directly, always get a clone (prevents accidental singletons and directly editing the objects).
 			const metadata: CellMetadata = { ...JSON.parse(JSON.stringify(cellMetadata || {})) };
 			metadata.metadata = metadata.metadata || {};
 
@@ -225,9 +192,6 @@ function onDidChangeNotebookCells(e: NotebookDocumentChangeEventEx) {
 }
 
 
-/**
- * Cell ids are required in notebooks only in notebooks with nbformat >= 4.5
- */
 function isCellIdRequired(metadata: Pick<Partial<nbformat.INotebookContent>, 'nbformat' | 'nbformat_minor'>) {
 	if ((metadata.nbformat || 0) >= 5) {
 		return true;
@@ -240,8 +204,6 @@ function isCellIdRequired(metadata: Pick<Partial<nbformat.INotebookContent>, 'nb
 
 function generateCellId(notebook: NotebookDocument) {
 	while (true) {
-		// Details of the id can be found here https://jupyter.org/enhancement-proposals/62-cell-id/cell-id.html#adding-an-id-field,
-		// & here https://jupyter.org/enhancement-proposals/62-cell-id/cell-id.html#updating-older-formats
 		const id = generateUuid().replace(/-/g, '').substring(0, 8);
 		let duplicate = false;
 		for (let index = 0; index < notebook.cellCount; index++) {

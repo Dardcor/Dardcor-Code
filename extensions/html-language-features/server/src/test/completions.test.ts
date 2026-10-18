@@ -174,7 +174,6 @@ suite('HTML Path Completion', () => {
 	});
 
 	test('Empty Path Value', async () => {
-		// document: index.html
 		await testCompletionFor('<script src="|">', {
 			items: [
 				{ label: 'about/', resultText: '<script src="about/">' },
@@ -182,7 +181,6 @@ suite('HTML Path Completion', () => {
 				{ label: 'src/', resultText: '<script src="src/">' },
 			]
 		}, indexHtmlUri);
-		// document: about.html
 		await testCompletionFor('<script src="|">', {
 			items: [
 				{ label: 'about.css', resultText: '<script src="about.css">' },
@@ -208,7 +206,6 @@ suite('HTML Path Completion', () => {
 	});
 
 	test('No leading dot or slash', async () => {
-		// document: index.html
 		await testCompletionFor('<script src="s|">', {
 			items: [
 				{ label: 'about/', resultText: '<script src="about/">' },
@@ -231,7 +228,6 @@ suite('HTML Path Completion', () => {
 			]
 		}, indexHtmlUri, [fixtureWorkspace]);
 
-		// document: about.html
 		await testCompletionFor('<script src="s|">', {
 			items: [
 				{ label: 'about.css', resultText: '<script src="about.css">' },
@@ -254,7 +250,6 @@ suite('HTML Path Completion', () => {
 	});
 
 	test('Trigger completion in middle of path', async () => {
-		// document: index.html
 		await testCompletionFor('<script src="src/f|eature.js">', {
 			items: [
 				{ label: 'feature.js', resultText: '<script src="src/feature.js">' },
@@ -270,7 +265,6 @@ suite('HTML Path Completion', () => {
 			]
 		}, indexHtmlUri, [fixtureWorkspace]);
 
-		// document: about.html
 		await testCompletionFor('<script src="media/f|eature.js">', {
 			items: [
 				{ label: 'icon.pic', resultText: '<script src="media/icon.pic">' }
@@ -312,12 +306,5 @@ suite('HTML Path Completion', () => {
 	});
 
 	test('Unquoted Path', async () => {
-		/* Unquoted value is not supported in html language service yet
-		testCompletionFor(`<div><a href=about/|>`, {
-			items: [
-				{ label: 'about.html', resultText: `<div><a href=about/about.html>` }
-			]
-		}, testUri);
-		*/
 	});
 });

@@ -48,17 +48,11 @@ export class TSServerRequestCommand implements Command {
 			}
 		}
 
-		// The list can be found in the TypeScript compiler as `const enum CommandTypes`,
-		// to avoid extensions making calls which could affect the internal tsserver state
-		// these are only read-y sorts of commands
 		const allowList = [
-			// Seeing the JS/DTS output for a file
 			'emit-output',
-			// Grabbing a file's diagnostics
 			'semanticDiagnosticsSync',
 			'syntacticDiagnosticsSync',
 			'suggestionDiagnosticsSync',
-			// Introspecting code at a position
 			'quickinfo',
 			'quickinfo-full',
 			'completionInfo'

@@ -6,9 +6,6 @@
 import { StringEdit } from '../../../util/dardcor/editor/common/core/edits/stringEdit';
 import { OffsetRange } from '../../../util/dardcor/editor/common/core/ranges/offsetRange';
 
-/**
- * Tracks how much given edits surive after applying other edits through `handleEdits`.
- */
 export class EditSurvivalTracker {
 	private _text: string;
 	private readonly _originalEdits: StringEdit;
@@ -32,10 +29,6 @@ export class EditSurvivalTracker {
 		this._text = newText;
 	}
 
-	/**
-	 * fourGram: Number between 0 (no edits survived) and 1 (all edits survived).
-	 * noRevert: Number between 0 (the text after user edits equals the text before the AI edits) and 1 (the text after user edits does not revert any text to the initial state)
-	 */
 	computeTrackedEditsSurvivalScore(): { fourGram: number; noRevert: number; textBeforeAiEdits: string[]; textAfterAiEdits: string[]; textAfterUserEdits: string[] } {
 		let similarityScoreSumFourGram = 0;
 		let similarityScoreSumMax = 0;
@@ -67,7 +60,6 @@ export class EditSurvivalTracker {
 			const aiEditSimilarity = compute4GramTextSimilarity(textAfterAiEdits, textBeforeAiEdits);
 			const userEditSimilarity = compute4GramTextSimilarity(textAfterUserEdits, textBeforeAiEdits);
 			if (aiEditSimilarity !== 1) {
-				// Should not happen, as the ai edit does not do no-ops
 				const v = 1 - Math.max(userEditSimilarity - aiEditSimilarity, 0) / (1 - aiEditSimilarity);
 				noRevertSum += originalEdit.replaceRange.length * v;
 				noRevertSumMax += originalEdit.replaceRange.length;
@@ -90,10 +82,6 @@ export class EditSurvivalTracker {
 	}
 }
 
-/**
- * Computes a number between 0 and 1 that reflects how similar the two texts are.
- * Counts how many 4-grams are shared between the two texts.
- */
 export function compute4GramTextSimilarity(text1: string, text2: string): number {
 	const n = 4;
 
@@ -130,14 +118,12 @@ export function compute4GramTextSimilarity(text1: string, text2: string): number
 export function applyEditsToRanges(sortedRanges: OffsetRange[], edits: StringEdit): OffsetRange[] {
 	sortedRanges = sortedRanges.slice();
 
-	// treat edits as deletion of the replace range and then as insertion that extends the first range
 	const result: OffsetRange[] = [];
 
 	let offset = 0;
 
 	for (const e of edits.replacements) {
 		while (true) {
-			// ranges before the current edit
 			const r = sortedRanges[0];
 			if (!r || r.endExclusive >= e.replaceRange.start) {
 				break;
@@ -171,9 +157,6 @@ export function applyEditsToRanges(sortedRanges: OffsetRange[], edits: StringEdi
 				r = r.delta(e.newText.length);
 			}
 
-			// We already took our offset into account.
-			// Because we add r back to the queue (which then adds offset again),
-			// we have to remove it here.
 			r = r.delta(-(e.newText.length - e.replaceRange.length));
 
 			sortedRanges.unshift(r);

@@ -38,9 +38,9 @@ suite('agentHost editChunkExtractor', () => {
 			file_path: '/x.ts',
 			edits: [
 				{ old_string: 'a', new_string: '1' },
-				{ old_string: 'b' },                 // missing new_string
-				null,                                // not an object
-				{ old_string: 'c', new_string: 42 }, // wrong type
+				{ old_string: 'b' },
+				null,
+				{ old_string: 'c', new_string: 42 },
 				{ old_string: 'd', new_string: '4' },
 			],
 		});
@@ -58,17 +58,13 @@ suite('agentHost editChunkExtractor', () => {
 		assert.deepStrictEqual(extractAiChunks('Edit', undefined), []);
 		assert.deepStrictEqual(extractAiChunks('Edit', 'string'), []);
 		assert.deepStrictEqual(extractAiChunks('Edit', 42), []);
-		assert.deepStrictEqual(extractAiChunks('Edit', { file_path: '/x.ts' }), []); // missing new_string
-		assert.deepStrictEqual(extractAiChunks('Edit', { new_string: 42 }), []);     // wrong type
+		assert.deepStrictEqual(extractAiChunks('Edit', { file_path: '/x.ts' }), []);
+		assert.deepStrictEqual(extractAiChunks('Edit', { new_string: 42 }), []);
 		assert.deepStrictEqual(extractAiChunks('MultiEdit', { edits: 'not an array' }), []);
-		assert.deepStrictEqual(extractAiChunks('Write', { file_path: '/x.ts' }), []); // missing content
+		assert.deepStrictEqual(extractAiChunks('Write', { file_path: '/x.ts' }), []);
 	});
 
 	test('empty chunks are preserved (caller decides how to score)', () => {
-		// An Edit whose new_string is "" (pure deletion) still produces
-		// one chunk. The reporter's chunked scoring treats an empty
-		// chunk as fraction-present = 1, which is correct: there is
-		// nothing to find.
 		assert.deepStrictEqual(extractAiChunks('Edit', { old_string: 'a', new_string: '' }), ['']);
 	});
 
@@ -96,11 +92,11 @@ suite('agentHost editChunkExtractor', () => {
 
 		test('Copilot snake_case tools reject malformed input', () => {
 			assert.deepStrictEqual(extractAiChunks('create', null), []);
-			assert.deepStrictEqual(extractAiChunks('create', { path: '/x.ts' }), []);     // missing file_text
-			assert.deepStrictEqual(extractAiChunks('create', { file_text: 42 }), []);     // wrong type
-			assert.deepStrictEqual(extractAiChunks('edit', { path: '/x.ts' }), []);       // missing new_str
-			assert.deepStrictEqual(extractAiChunks('str_replace', { new_str: null }), []);// wrong type
-			assert.deepStrictEqual(extractAiChunks('insert', { new_str: 7 }), []);        // wrong type
+			assert.deepStrictEqual(extractAiChunks('create', { path: '/x.ts' }), []);
+			assert.deepStrictEqual(extractAiChunks('create', { file_text: 42 }), []);
+			assert.deepStrictEqual(extractAiChunks('edit', { path: '/x.ts' }), []);
+			assert.deepStrictEqual(extractAiChunks('str_replace', { new_str: null }), []);
+			assert.deepStrictEqual(extractAiChunks('insert', { new_str: 7 }), []);
 		});
 
 		test('str_replace_editor dispatches on command', () => {
@@ -122,7 +118,7 @@ suite('agentHost editChunkExtractor', () => {
 			assert.deepStrictEqual(extractAiChunks('str_replace_editor', { command: 'view', path: '/x.ts' }), []);
 			assert.deepStrictEqual(extractAiChunks('str_replace_editor', { command: 'undo_edit', path: '/x.ts' }), []);
 			assert.deepStrictEqual(extractAiChunks('str_replace_editor', { command: 'unknown' }), []);
-			assert.deepStrictEqual(extractAiChunks('str_replace_editor', { path: '/x.ts' }), []); // missing command
+			assert.deepStrictEqual(extractAiChunks('str_replace_editor', { path: '/x.ts' }), []);
 		});
 
 		test('apply_patch accepts a bare patch string', () => {
@@ -163,9 +159,7 @@ suite('agentHost editChunkExtractor', () => {
 				extractAiChunks('apply_patch', patch, '/workspace/b.ts'),
 				['b-line-1\n'],
 			);
-			// Delete-only file has no '+' lines.
 			assert.deepStrictEqual(extractAiChunks('apply_patch', patch, '/workspace/c.ts'), []);
-			// File not in patch.
 			assert.deepStrictEqual(extractAiChunks('apply_patch', patch, '/workspace/missing.ts'), []);
 		});
 
@@ -191,7 +185,7 @@ suite('agentHost editChunkExtractor', () => {
 		test('apply_patch ignores +++ unified-diff marker', () => {
 			const patch = [
 				'*** Update File: /a.ts',
-				'+++ /a.ts',           // unified-diff header, must be ignored
+				'+++ /a.ts',
 				'+real addition',
 			].join('\n');
 			assert.deepStrictEqual(extractAiChunks('apply_patch', patch), ['real addition\n']);
@@ -203,7 +197,6 @@ suite('agentHost editChunkExtractor', () => {
 			assert.deepStrictEqual(extractAiChunks('apply_patch', {}), []);
 			assert.deepStrictEqual(extractAiChunks('apply_patch', { input: 42 }), []);
 			assert.deepStrictEqual(extractAiChunks('apply_patch', ''), []);
-			// '+' lines before any file header are dropped.
 			assert.deepStrictEqual(extractAiChunks('apply_patch', '+orphan addition\n'), []);
 		});
 

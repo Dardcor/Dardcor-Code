@@ -101,7 +101,6 @@ class SCMInputWidgetActionRunner extends ActionRunner {
 
 	protected override async runAction(action: IAction): Promise<void> {
 		try {
-			// Cancel previous action
 			if (this.runningActions.size !== 0) {
 				this._cts?.cancel();
 
@@ -110,7 +109,6 @@ class SCMInputWidgetActionRunner extends ActionRunner {
 				}
 			}
 
-			// Create action context
 			const context: ISCMInputValueProviderContext[] = [];
 			for (const group of this.input.repository.provider.groups) {
 				context.push({
@@ -119,14 +117,12 @@ class SCMInputWidgetActionRunner extends ActionRunner {
 				});
 			}
 
-			// Run action
 			this._runningActions.add(action);
 			this._cts = new CancellationTokenSource();
 			await action.run(...[this.input.repository.provider.rootUri, context, this._cts.token]);
 		} finally {
 			this._runningActions.delete(action);
 
-			// Save last action
 			if (this._runningActions.size === 0) {
 				const actionId = action.id === SCMInputWidgetCommandId.SetupAction
 					? product.defaultChatAgent?.generateCommitMessageCommand ?? action.id
@@ -329,11 +325,9 @@ class SCMInputWidgetEditorOptions {
 	}
 
 	private _getEditorLanguageConfiguration(): IEditorOptions {
-		// editor.rulers
 		const rulersConfig = this.configurationService.inspect('editor.rulers', { overrideIdentifier: 'scminput' });
 		const rulers = rulersConfig.overrideIdentifiers?.includes('scminput') ? EditorOptions.rulers.validate(rulersConfig.value) : [];
 
-		// editor.wordWrap
 		const wordWrapConfig = this.configurationService.inspect('editor.wordWrap', { overrideIdentifier: 'scminput' });
 		const wordWrap = wordWrapConfig.overrideIdentifiers?.includes('scminput') ? EditorOptions.wordWrap.validate(wordWrapConfig.value) : 'on';
 
@@ -379,8 +373,6 @@ export class SCMInputWidget {
 	private validationHasFocus: boolean = false;
 	private _validationTimer: Timeout | undefined;
 
-	// This is due to "Setup height change listener on next tick" above
-	// https://github.com/microsoft/vscode/issues/108067
 	private lastLayoutWasTrash = false;
 	private shouldFocusAfterLayout = false;
 
@@ -414,7 +406,6 @@ export class SCMInputWidget {
 			this.configurationService.updateValue('editor.wordBasedSuggestions', 'off', { resource: textModel.uri }, ConfigurationTarget.MEMORY);
 		}
 
-		// Validation
 		const validationDelayer = new ThrottledDelayer<void>(200);
 		const validate = async () => {
 			const position = this.inputEditor.getSelection()?.getStartPosition();
@@ -428,16 +419,14 @@ export class SCMInputWidget {
 		this.repositoryDisposables.add(validationDelayer);
 		this.repositoryDisposables.add(this.inputEditor.onDidChangeCursorPosition(triggerValidation));
 
-		// Adaptive indentation rules
 		const opts = this.modelService.getCreationOptions(textModel.getLanguageId(), textModel.uri, textModel.isForSimpleWidget);
 		const onEnter = Event.filter(this.inputEditor.onKeyDown, e => e.keyCode === KeyCode.Enter, this.repositoryDisposables);
 		this.repositoryDisposables.add(onEnter(() => textModel.detectIndentation(opts.insertSpaces, opts.tabSize)));
 
-		// Keep model in sync with API
 		textModel.setValue(input.value);
 		this.repositoryDisposables.add(input.onDidChange(({ value, reason }) => {
 			const currentValue = textModel.getValue();
-			if (value === currentValue) { // circuit breaker
+			if (value === currentValue) {
 				return;
 			}
 
@@ -455,13 +444,11 @@ export class SCMInputWidget {
 		this.repositoryDisposables.add(input.onDidChangeValidateInput((e) => triggerValidation()));
 		this.repositoryDisposables.add(input.onDidClearValidation(() => this.clearValidation()));
 
-		// Keep API in sync with model and validate
 		this.repositoryDisposables.add(textModel.onDidChangeContent(() => {
 			input.setValue(textModel.getValue(), true);
 			triggerValidation();
 		}));
 
-		// Aria label & placeholder text
 		const accessibilityVerbosityConfig = observableConfigValue(
 			AccessibilityVerbositySettingId.SourceControl, true, this.configurationService);
 
@@ -503,7 +490,6 @@ export class SCMInputWidget {
 
 		updatePlaceholderText();
 
-		// Update input template
 		let commitTemplate = '';
 		this.repositoryDisposables.add(autorun(reader => {
 			if (!input.visible) {
@@ -521,17 +507,14 @@ export class SCMInputWidget {
 			textModel.setValue(commitTemplate);
 		}));
 
-		// Update input enablement
 		const updateEnablement = (enabled: boolean) => {
 			this.inputEditor.updateOptions({ readOnly: !enabled });
 		};
 		this.repositoryDisposables.add(input.onDidChangeEnablement(enabled => updateEnablement(enabled)));
 		updateEnablement(input.enabled);
 
-		// Toolbar
 		this.toolbar.setInput(input);
 
-		// Save model
 		this.model = { input, textModel };
 	}
 
@@ -661,7 +644,6 @@ export class SCMInputWidget {
 
 		this.onDidChangeContentHeight = Event.signal(Event.filter(this.inputEditor.onDidContentSizeChange, e => e.contentHeightChanged, this.disposables));
 
-		// Toolbar
 		this.toolbar = instantiationService2.createInstance(SCMInputWidgetToolbar, this.toolbarContainer, {
 			actionViewItemProvider: (action, options) => {
 				if (action instanceof MenuItemAction && this.toolbar.dropdownActions.length > 1) {
@@ -817,8 +799,8 @@ export class SCMInputWidget {
 		}
 
 		return this.toolbar.dropdownActions.length === 0 ?
-			26 /* 22px action + 4px margin */ :
-			39 /* 35px action + 4px margin */;
+			26 :
+			39 ;
 	}
 
 	clearValidation(): void {

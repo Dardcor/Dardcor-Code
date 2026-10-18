@@ -67,7 +67,6 @@ export class StandaloneCodeEditorService extends AbstractCodeEditorService {
 
 				const schema = input.resource.scheme;
 				if (schema === Schemas.http || schema === Schemas.https) {
-					// This is a fully qualified http or https URL
 					windowOpenNoOpener(input.resource.toString());
 					return editor;
 				}

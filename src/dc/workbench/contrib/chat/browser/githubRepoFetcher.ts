@@ -14,10 +14,6 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IRequestService, asJson, isClientError, isSuccess, readHeader, retryAfterFromHeaders } from '../../../../platform/request/common/request.js';
 
-/**
- * GitHub `owner/repo` parsed from a clone URL. Only `https://github.com/...` URLs
- * are supported in the browser implementation.
- */
 export interface IGitHubRepoRef {
 	readonly owner: string;
 	readonly repo: string;
@@ -25,11 +21,6 @@ export interface IGitHubRepoRef {
 
 const GITHUB_HOSTS = new Set(['github.com', 'www.github.com']);
 
-/**
- * Parse a clone URL into an `owner/repo` pair.
- * @returns the parsed reference, or `undefined` if the URL is not a recognised
- * GitHub HTTPS clone URL.
- */
 export function parseGitHubCloneUrl(cloneUrl: string): IGitHubRepoRef | undefined {
 	let url: URL;
 	try {
@@ -40,26 +31,18 @@ export function parseGitHubCloneUrl(cloneUrl: string): IGitHubRepoRef | undefine
 	if (url.protocol !== 'https:' || !GITHUB_HOSTS.has(url.hostname.toLowerCase())) {
 		return undefined;
 	}
-	// Trim slashes before stripping `.git` so `.../o/r.git/` normalises to `o/r`.
 	const path = url.pathname.replace(/^\/+/, '').replace(/\/+$/, '').replace(/\.git$/i, '');
 	const segments = path.split('/');
-	// Require exactly two segments to avoid mis-parsing `.../owner/repo/issues/42`.
 	if (segments.length !== 2 || !segments[0] || !segments[1]) {
 		return undefined;
 	}
 	return { owner: segments[0], repo: segments[1] };
 }
 
-/** Response shape from GitHub's `GET /repos/{owner}/{repo}/commits/{ref}`. */
 interface IGitHubCommitResponse {
 	readonly sha: string;
 }
 
-/**
- * Wrap a `requestService.request` call so transport-level errors (browser
- * `fetch` throws an opaque `TypeError: Failed to fetch` for CORS / DNS /
- * connection failures) include the URL and call site.
- */
 async function loggedRequest(
 	requestService: IRequestService,
 	options: { url: string; headers: Record<string, string>; callSite: string },
@@ -73,10 +56,6 @@ async function loggedRequest(
 	}
 }
 
-/**
- * Resolve a ref (branch / tag / SHA / undefined for default branch) to a
- * commit SHA via the GitHub commits API.
- */
 export async function resolveGitHubRefToSha(
 	requestService: IRequestService,
 	repo: IGitHubRepoRef,
@@ -118,10 +97,6 @@ export async function resolveGitHubRefToSha(
 	return body.sha;
 }
 
-/**
- * Thrown when GitHub responds with 401/403 to indicate the caller needs to
- * sign in (or has insufficient permissions) for a private repository.
- */
 export class GitHubAuthRequiredError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -129,12 +104,6 @@ export class GitHubAuthRequiredError extends Error {
 	}
 }
 
-/**
- * Thrown when GitHub responds with 403 + `X-RateLimit-Remaining: 0` to
- * indicate the caller has exhausted the request quota for the current
- * window. Distinct from {@link GitHubAuthRequiredError} so callers don't
- * push users to sign in when the actual fix is "wait".
- */
 export class GitHubRateLimitError extends Error {
 	constructor(message: string, public readonly retryAfterSeconds?: number) {
 		super(message);
@@ -149,26 +118,9 @@ function isRateLimited(headers: Record<string, string | string[] | undefined> | 
 	if (readHeader(headers, 'x-ratelimit-remaining') === '0') {
 		return true;
 	}
-	// Secondary rate limit: GitHub omits X-RateLimit-Remaining but sets Retry-After.
 	return readHeader(headers, 'retry-after') !== undefined;
 }
 
-/**
- * Fetches the file tree of a GitHub repository at the given SHA and writes
- * each blob into {@link targetDir} via {@link IFileService}.
- *
- * Uses two CORS-friendly endpoints on `api.github.com` (the `/tarball/` host
- * has no CORS, and `raw.githubusercontent.com` rejects the OPTIONS preflight
- * forced by an `Authorization` header):
- *
- *  - `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1` for the listing.
- *  - `GET /repos/{owner}/{repo}/git/blobs/{blob_sha}` for each blob (base64).
- *
- * Extraction is staged to a sibling directory and atomically swapped into
- * place on success; failures clean up the staging dir and leave `targetDir`
- * untouched. Symlinks (`mode === '120000'`) and submodules (`type === 'commit'`)
- * are skipped — neither is representable in the workbench virtual file system.
- */
 export async function fetchAndExtractGitHubRepo(
 	requestService: IRequestService,
 	fileService: IFileService,
@@ -181,7 +133,6 @@ export async function fetchAndExtractGitHubRepo(
 ): Promise<void> {
 	const tree = await fetchGitHubTree(requestService, repo, sha, authToken, token);
 	if (tree.truncated) {
-		// GitHub caps the recursive tree response at ~100K entries / ~7MB.
 		logService.warn(`[GitHubRepoFetcher] Tree for ${repo.owner}/${repo.repo}@${sha} is truncated; some files will be missing from the install`);
 	}
 
@@ -219,7 +170,6 @@ export async function fetchAndExtractGitHubRepo(
 				logService.trace(`[GitHubRepoFetcher] Skipping tree entry with unsupported type '${entry.type}': ${entry.path}`);
 				continue;
 			}
-			// Pre-create the parent directory so parallel blob writes don't race on `createFolder`.
 			const parent = dirname(dest);
 			if (parent.toString() !== dest.toString() && !createdDirs.has(parent.toString())) {
 				await fileService.createFolder(parent);
@@ -250,24 +200,16 @@ export async function fetchAndExtractGitHubRepo(
 	}
 }
 
-/** Maximum number of blob downloads to issue in parallel. */
 const MAX_PARALLEL_BLOB_FETCHES = 10;
 
-/** A single entry in a GitHub git-trees API response. */
 interface IGitHubTreeEntry {
 	readonly path: string;
-	/**
-	 * File mode as a string of octal digits. The values we care about are
-	 * `'120000'` (symlink, skipped) and the various blob/tree modes.
-	 */
 	readonly mode: string;
-	/** `'blob'` for files, `'tree'` for directories, `'commit'` for submodules. */
 	readonly type: 'blob' | 'tree' | 'commit';
 	readonly sha: string;
 	readonly size?: number;
 }
 
-/** Response shape from `GET /repos/{owner}/{repo}/git/trees/{sha}?recursive=1`. */
 interface IGitHubTreeResponse {
 	readonly sha: string;
 	readonly tree: readonly IGitHubTreeEntry[];
@@ -322,9 +264,6 @@ async function fetchGitHubBlob(
 	authToken: string | undefined,
 	token: CancellationToken,
 ): Promise<VSBuffer> {
-	// Use api.github.com's blobs endpoint rather than raw.githubusercontent.com:
-	// the raw host rejects the OPTIONS preflight that an `Authorization` header
-	// forces. The blob SHA comes from the tree response.
 	const url = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/git/blobs/${encodeURIComponent(entry.sha)}`;
 	const headers: Record<string, string> = {
 		'Accept': 'application/vnd.github+json',
@@ -355,24 +294,14 @@ async function fetchGitHubBlob(
 	if (body.encoding !== 'base64') {
 		throw new Error(`GitHub blob response for '${entry.path}' has unsupported encoding '${body.encoding}'`);
 	}
-	// GitHub wraps base64 at 60 columns; strip whitespace before decoding.
 	return decodeBase64(body.content.replace(/\s+/g, ''));
 }
 
-/** Response shape from `GET /repos/{owner}/{repo}/git/blobs/{sha}`. */
 interface IGitHubBlobResponse {
 	readonly content: string;
 	readonly encoding: string;
 }
 
-/**
- * Sanitize a tree entry path to safe segments under {@link targetDir}. Rejects
- * NUL bytes, absolute paths, `.`/`..` segments, and segments containing a
- * backslash (which Windows path APIs would treat as a separator). The result
- * is double-checked with `isEqualOrParent` as defence in depth.
- *
- * @returns the resolved URI, or `undefined` for paths that should be skipped.
- */
 function safeJoinUnderTarget(targetDir: URI, inner: string): URI | undefined {
 	if (inner.includes('\0') || inner.startsWith('/') || inner.startsWith('\\')) {
 		return undefined;
@@ -391,8 +320,6 @@ function safeJoinUnderTarget(targetDir: URI, inner: string): URI | undefined {
 		return undefined;
 	}
 	const dest = joinPath(targetDir, ...segments);
-	// Defence in depth: ensure the joined URI has not escaped via any
-	// platform-specific normalisation we missed.
 	if (!isEqualOrParent(dest, targetDir)) {
 		return undefined;
 	}

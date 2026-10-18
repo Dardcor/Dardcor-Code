@@ -32,8 +32,7 @@ import { ToolRegistry } from '../common/toolsRegistry';
 export interface ICodebaseToolParams {
 	query: string;
 
-	// Internal parameter only.
-	scopedDirectories?: string[]; // Allows to scope the search to a specific set of directories.
+	scopedDirectories?: string[];
 }
 
 export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParams> {
@@ -51,7 +50,7 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<ICodebaseToolParams>, token: CancellationToken) {
 		if (this._input && this._isCodebaseAgentCall(options)) {
 			const input = this._input;
-			this._input = undefined; // consumed
+			this._input = undefined;
 			return this.invokeCodebaseAgent(input, token);
 		}
 
@@ -68,7 +67,7 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 			async searchToken => {
 				const hasSemanticSearch = await this.workspaceChunkSearchService.isAvailable();
 				if (!hasSemanticSearch) {
-					return null; // Use null as undefined is treated as a timeout by raceTimeoutAndCancellationError
+					return null;
 				}
 
 				return renderPromptElementJSON(this.instantiationService, WorkspaceContextWrapper, {
@@ -98,15 +97,6 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 		]);
 		references = getUniqueReferences(references);
 
-		/* __GDPR__
-			"codebaseToolInvoked" : {
-				"owner": "roblourens",
-				"comment": "Tracks the timing and result count of codebase tool invocations",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The id of the current request turn." },
-				"resultCount": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Number of results returned", "isMeasurement": true },
-				"durationMs": { "classification": "SystemMetaData", "purpose": "PerformanceAndHealth", "comment": "Duration of the codebase search in milliseconds", "isMeasurement": true }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent('codebaseToolInvoked', {
 			requestId: options.chatRequestId,
 		}, {
@@ -144,7 +134,7 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 
 	private _input: IBuildPromptContext | undefined;
 	async provideInput(promptContext: IBuildPromptContext): Promise<IBuildPromptContext> {
-		this._input = promptContext; // TODO@joyceerhl @roblourens HACK: Avoid types in the input being serialized and not deserialized when they go through invokeTool
+		this._input = promptContext;
 		return promptContext;
 	}
 
@@ -178,10 +168,8 @@ export class CodebaseTool implements vscode.LanguageModelTool<ICodebaseToolParam
 		const agentEnabled = this.configurationService.getConfig(ConfigKey.CodeSearchAgentEnabled);
 		const noScopedDirectories = input.scopedDirectories === undefined || input.scopedDirectories.length === 0;
 
-		// When anonymous (no GitHub session), always force agent path so we avoid relying on semantic index features.
 		const isAnonymous = !this.authenticationService.anyGitHubSession;
 
-		// Don't trigger nested tool calling loop if we're already in a subagent
 		if (this._input?.tools?.subAgentInvocationId) {
 			return false;
 		}
@@ -260,7 +248,6 @@ class WorkspaceContextWrapper extends PromptElement<WorkspaceContextProps> {
 	}
 
 	render() {
-		// Main limit is set via maxChunks. Set a TokenLimit just to be sure.
 		return <TokenLimit max={28_000}>
 			<WorkspaceContext {...this.props} />
 		</TokenLimit>;

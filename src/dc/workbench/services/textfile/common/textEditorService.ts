@@ -31,27 +31,10 @@ export interface ITextEditorService {
 
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * @deprecated this method should not be used, rather consider using
-	 * `IEditorResolverService` instead with `DEFAULT_EDITOR_ASSOCIATION.id`.
-	 */
 	createTextEditor(input: IUntypedEditorInput): EditorInput;
 
-	/**
-	 * @deprecated this method should not be used, rather consider using
-	 * `IEditorResolverService` instead with `DEFAULT_EDITOR_ASSOCIATION.id`.
-	 */
 	createTextEditor(input: IUntypedFileEditorInput): IFileEditorInput;
 
-	/**
-	 * A way to create text editor inputs from an untyped editor input. Depending
-	 * on the passed in input this will be:
-	 * - a `IFileEditorInput` for file resources
-	 * - a `UntitledEditorInput` for untitled resources
-	 * - a `TextResourceEditorInput` for virtual resources
-	 *
-	 * @param input the untyped editor input to create a typed input from
-	 */
 	resolveTextEditor(input: IUntypedEditorInput): Promise<EditorInput>;
 	resolveTextEditor(input: IUntypedFileEditorInput): Promise<IFileEditorInput>;
 }
@@ -83,8 +66,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 	) {
 		super();
 
-		// Register the default editor to the editor resolver
-		// service so that it shows up in the editors picker
 		this.registerDefaultEditor();
 	}
 
@@ -116,12 +97,10 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 	createTextEditor(input: IUntypedFileEditorInput): IFileEditorInput;
 	createTextEditor(input: IUntypedEditorInput | IUntypedFileEditorInput): EditorInput | IFileEditorInput {
 
-		// Merge Editor Not Supported (we fallback to showing the result only)
 		if (isResourceMergeEditorInput(input)) {
 			return this.createTextEditor(input.result);
 		}
 
-		// Diff Editor Support
 		if (isResourceDiffEditorInput(input)) {
 			const original = this.createTextEditor(input.original);
 			const modified = this.createTextEditor(input.modified);
@@ -129,7 +108,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 			return this.instantiationService.createInstance(DiffEditorInput, input.label, input.description, original, modified, undefined);
 		}
 
-		// Side by Side Editor Support
 		if (isResourceSideBySideEditorInput(input)) {
 			const primary = this.createTextEditor(input.primary);
 			const secondary = this.createTextEditor(input.secondary);
@@ -137,7 +115,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 			return this.instantiationService.createInstance(SideBySideEditorInput, input.label, input.description, secondary, primary);
 		}
 
-		// Untitled text file support
 		const untitledInput = input as IUntitledTextResourceEditorInput;
 		if (untitledInput.forceUntitled || !untitledInput.resource || (untitledInput.resource.scheme === Schemas.untitled)) {
 			const untitledOptions: Partial<INewUntitledTextEditorOptions> = {
@@ -146,13 +123,11 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 				encoding: untitledInput.encoding
 			};
 
-			// Untitled resource: use as hint for an existing untitled editor
 			let untitledModel: IUntitledTextEditorModel;
 			if (untitledInput.resource?.scheme === Schemas.untitled) {
 				untitledModel = this.untitledTextEditorService.create({ untitledResource: untitledInput.resource, ...untitledOptions });
 			}
 
-			// Other resource: use as hint for associated filepath
 			else {
 				untitledModel = this.untitledTextEditorService.create({ associatedResource: untitledInput.resource, ...untitledOptions });
 			}
@@ -160,39 +135,28 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 			return this.createOrGetCached(untitledModel.resource, () => this.instantiationService.createInstance(UntitledTextEditorInput, untitledModel));
 		}
 
-		// Text File/Resource Editor Support
 		const textResourceEditorInput = input as IUntypedFileEditorInput;
 		if (textResourceEditorInput.resource instanceof URI) {
 
-			// Derive the label from the path if not provided explicitly
 			const label = textResourceEditorInput.label || basename(textResourceEditorInput.resource);
 
-			// We keep track of the preferred resource this input is to be created
-			// with but it may be different from the canonical resource (see below)
 			const preferredResource = textResourceEditorInput.resource;
 
-			// From this moment on, only operate on the canonical resource
-			// to ensure we reduce the chance of opening the same resource
-			// with different resource forms (e.g. path casing on Windows)
 			const canonicalResource = this.uriIdentityService.asCanonicalUri(preferredResource);
 
 			return this.createOrGetCached(canonicalResource, () => {
 
-				// File
 				if (textResourceEditorInput.forceFile || this.fileService.hasProvider(canonicalResource)) {
 					return this.fileEditorFactory.createFileEditor(canonicalResource, preferredResource, textResourceEditorInput.label, textResourceEditorInput.description, textResourceEditorInput.encoding, textResourceEditorInput.languageId, textResourceEditorInput.contents, this.instantiationService);
 				}
 
-				// Resource
 				return this.instantiationService.createInstance(TextResourceEditorInput, canonicalResource, textResourceEditorInput.label, textResourceEditorInput.description, textResourceEditorInput.languageId, textResourceEditorInput.contents);
 			}, cachedInput => {
 
-				// Untitled
 				if (cachedInput instanceof UntitledTextEditorInput) {
 					return;
 				}
 
-				// Files
 				else if (!(cachedInput instanceof TextResourceEditorInput)) {
 					cachedInput.setPreferredResource(preferredResource);
 
@@ -217,7 +181,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 					}
 				}
 
-				// Resources
 				else {
 					if (label) {
 						cachedInput.setName(label);
@@ -247,7 +210,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 		cachedFn?: (input: TextResourceEditorInput | IFileEditorInput | UntitledTextEditorInput) => void
 	): TextResourceEditorInput | IFileEditorInput | UntitledTextEditorInput {
 
-		// Return early if already cached
 		let input = this.editorInputCache.get(resource);
 		if (input) {
 			cachedFn?.(input);
@@ -255,19 +217,15 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 			return input;
 		}
 
-		// Otherwise create and add to cache
 		input = factoryFn();
 		this.editorInputCache.set(resource, input);
 
-		// Track Leaks
 		const leakId = this.trackLeaks(input);
 
 		Event.once(input.onWillDispose)(() => {
 
-			// Remove from cache
 			this.editorInputCache.delete(resource);
 
-			// Untrack Leaks
 			if (leakId) {
 				this.untrackLeaks(leakId);
 			}
@@ -276,7 +234,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 		return input;
 	}
 
-	//#region Leak Monitoring
 
 	private static readonly LEAK_TRACKING_THRESHOLD = 256;
 	private static readonly LEAK_REPORTING_THRESHOLD = 2 * this.LEAK_TRACKING_THRESHOLD;
@@ -316,7 +273,6 @@ export class TextEditorService extends Disposable implements ITextEditorService 
 		}
 	}
 
-	//#endregion
 }
 
-registerSingleton(ITextEditorService, TextEditorService, InstantiationType.Eager /* do not change: https://github.com/microsoft/vscode/issues/137675 */);
+registerSingleton(ITextEditorService, TextEditorService, InstantiationType.Eager );

@@ -3,14 +3,8 @@ import { getDistinctProviders } from "@/lib/requestDetailsDb";
 import { getProviderNodes } from "@/lib/localDb";
 import { AI_PROVIDERS, getProviderByAlias } from "@/shared/constants/providers";
 
-/**
- * GET /api/usage/providers
- * Returns list of unique providers from request details
- */
 export async function GET() {
   try {
-    // Query DISTINCT provider column directly — avoids parsing every row's
-    // full JSON blob (can be hundreds of MB), which previously caused OOM.
     const providerIds = await getDistinctProviders();
 
     const providerNodes = await getProviderNodes();

@@ -11,10 +11,6 @@ import { ViewContext } from '../../../common/viewModel/viewContext.js';
 import * as viewEvents from '../../../common/viewEvents.js';
 import { ViewEventHandler } from '../../../common/viewEventHandler.js';
 
-/**
- * The overview ruler appears underneath the editor scroll bar and shows things
- * like the cursor, various decorations, etc.
- */
 export class OverviewRuler extends ViewEventHandler implements IOverviewRuler {
 
 	private readonly _context: ViewContext;
@@ -48,7 +44,6 @@ export class OverviewRuler extends ViewEventHandler implements IOverviewRuler {
 		super.dispose();
 	}
 
-	// ---- begin view event handlers
 
 	public override onConfigurationChanged(e: viewEvents.ViewConfigurationChangedEvent): boolean {
 		const options = this._context.configuration.options;
@@ -85,7 +80,6 @@ export class OverviewRuler extends ViewEventHandler implements IOverviewRuler {
 		return true;
 	}
 
-	// ---- end view event handlers
 
 	public getDomNode(): HTMLElement {
 		return this._domNode.domNode;
@@ -136,7 +130,7 @@ export class OverviewRuler extends ViewEventHandler implements IOverviewRuler {
 
 	private _renderOneLane(ctx: CanvasRenderingContext2D, colorZones: ColorZone[], id2Color: string[], width: number): void {
 
-		let currentColorId = 0; // will never match a real color id which is > 0
+		let currentColorId = 0;
 		let currentFrom = 0;
 		let currentTo = 0;
 

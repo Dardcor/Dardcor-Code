@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Based on @sergeche's work on the emmet plugin for atom
 
 import * as path from 'path';
 import * as http from 'http';
@@ -20,24 +19,16 @@ export type ImageInfoWithScale = {
 	height: number;
 };
 
-/**
- * Get size of given image file. Supports files from local filesystem,
- * as well as URLs
- */
 export function getImageSize(file: string): Promise<ImageInfoWithScale | undefined> {
 	file = file.replace(/^file:\/\//, '');
 	return reUrl.test(file) ? getImageSizeFromURL(file) : getImageSizeFromFile(file);
 }
 
-/**
- * Get image size from file on local file system
- */
 function getImageSizeFromFile(file: string): Promise<ImageInfoWithScale | undefined> {
 	return new Promise((resolve, reject) => {
 		const isDataUrl = file.match(/^data:.+?;base64,/);
 
 		if (isDataUrl) {
-			// NB should use sync version of `sizeOf()` for buffers
 			try {
 				const data = Buffer.from(file.slice(isDataUrl[0].length), 'base64');
 				return resolve(sizeForFileName('', imageSize(data)));
@@ -56,9 +47,6 @@ function getImageSizeFromFile(file: string): Promise<ImageInfoWithScale | undefi
 	});
 }
 
-/**
- * Get image size from given remove URL
- */
 function getImageSizeFromURL(urlStr: string): Promise<ImageInfoWithScale | undefined> {
 	return new Promise((resolve, reject) => {
 		const url = new URL(urlStr);
@@ -77,10 +65,9 @@ function getImageSizeFromURL(urlStr: string): Promise<ImageInfoWithScale | undef
 				try {
 					const size: ISizeCalculationResult = imageSize(Buffer.concat(chunks, bufSize));
 					resp.removeListener('data', onData);
-					resp.destroy(); // no need to read further
+					resp.destroy();
 					resolve(sizeForFileName(path.basename(urlPath), size));
 				} catch (err) {
-					// might not have enough data, skip error
 				}
 			};
 
@@ -101,10 +88,6 @@ function getImageSizeFromURL(urlStr: string): Promise<ImageInfoWithScale | undef
 	});
 }
 
-/**
- * Returns size object for given file name. If file name contains `@Nx` token,
- * the final dimentions will be downscaled by N
- */
 function sizeForFileName(fileName: string, size?: ISizeCalculationResult): ImageInfoWithScale | undefined {
 	const m = fileName.match(/@(\d+)x\./);
 	const scale = m ? +m[1] : 1;

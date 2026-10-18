@@ -81,8 +81,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 		this._register(decorationsService.registerDecorationsProvider(_instantiationService.createInstance(ChatDecorationsProvider, this.editingSessionsObs)));
 		this._register(multiDiffSourceResolverService.registerResolver(_instantiationService.createInstance(ChatEditingMultiDiffSourceResolver, this.editingSessionsObs, resource => this.getEditingSession(resource))));
 
-		// TODO@jrieken
-		// some ugly casting so that this service can pass itself as argument instad as service dependeny
 		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
 		this._register(textModelService.registerTextModelContentProvider(ChatEditingTextModelContentProvider.scheme, _instantiationService.createInstance(ChatEditingTextModelContentProvider as any, this)));
 		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
@@ -96,7 +94,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 			}
 		}));
 
-		// todo@connor4312: temporary until chatReadonlyPromptReference proposal is finalized
 		const readonlyEnabledContextKey = chatEditingAgentSupportsReadonlyReferencesContextKey.bindTo(contextKeyService);
 		const setReadonlyFilesEnabled = () => {
 			const enabled = productService.quality !== 'stable' && extensionService.extensions.some(e => e.enabledApiProposals?.includes('chatReadonlyPromptReference'));
@@ -151,7 +148,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 		for (const item of Iterable.concat(this.editingSessionsObs.get())) {
 			const candidate = item.getEntry(uri);
 			if (candidate instanceof AbstractChatEditingModifiedFileEntry) {
-				// make sure to ref-count this object
 				return candidate.acquire();
 			}
 		}
@@ -277,10 +273,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 	}
 
 	private observerEditsInResponse(requestId: string, responseModel: IChatResponseModel, session: ChatEditingSession, observerDisposables: DisposableStore) {
-		// Sparse array: the indicies are indexes of `responseModel.response.value`
-		// that are edit groups, and then this tracks the edit application for
-		// each of them. Note that text edit groups can be updated
-		// multiple times during the process of response streaming.
 		const enum K { Stream, Workspace }
 		const editsSeen: ({ kind: K.Stream; seen: number; stream: IStreamingEdits } | { kind: K.Workspace })[] = [];
 
@@ -333,7 +325,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 				}
 
 				if (part.kind === 'workspaceEdit') {
-					// Track if we've already started processing this workspace edit
 					if (!editsSeen[i]) {
 						editsSeen[i] = { kind: K.Workspace };
 						session.applyWorkspaceEdit(part, responseModel, undoStop ?? responseModel.requestId);
@@ -345,7 +336,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 					continue;
 				}
 
-				// Skip external edits - they're already applied on disk
 				if (part.isExternalEdit) {
 					continue;
 				}
@@ -354,7 +344,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 					ensureEditorOpen(part.uri);
 				}
 
-				// get new edits and start editing session
 				let entry = editsSeen[i];
 				if (!entry) {
 					entry = { kind: K.Stream, seen: 0, stream: session.startStreamingEdits(CellUri.parse(part.uri)?.notebook ?? part.uri, responseModel, undoStop) };
@@ -415,9 +404,6 @@ export class ChatEditingService extends Disposable implements IChatEditingServic
 	}
 }
 
-/**
- * Emits an event containing the added or removed elements of the observable.
- */
 function observeArrayChanges<T>(obs: IObservable<T[]>, compare: (a: T, b: T) => number, store: DisposableStore): Event<T[]> {
 	const emitter = store.add(new Emitter<T[]>());
 	store.add(runOnChange(obs, (newArr, oldArr) => {
@@ -454,8 +440,6 @@ class ChatDecorationsProvider extends Disposable implements IDecorationsProvider
 		for (const session of sessions) {
 			const sessionRunning = session.isRunning?.read(r) ?? false;
 			for (const entry of session.entries.read(r)) {
-				// Show spinner when the entry is being streamed OR when the whole
-				// agent-host session is running tool calls (external edit model).
 				if (entry.isCurrentlyBeingModifiedBy.read(r) || sessionRunning) {
 					const entryUri = entry.modifiedURI;
 					if (!uris.some(u => isEqual(u, entryUri))) {
@@ -568,7 +552,6 @@ class ChatEditingMultiDiffSource implements IResolvedMultiDiffSource {
 				undefined,
 				{
 					[chatEditingResourceContextKey.key]: entry.entryId,
-					// [inChatEditingSessionContextKey.key]: true
 				},
 			);
 		});

@@ -17,14 +17,6 @@ import { scanClaudeDiskCustomizations } from '../../../node/claude/customization
 import { MockAgent } from '../mockAgent.js';
 import { claudeTestUserHome as userHome, claudeTestWorkspace as workspace, createInMemoryFileService, seedFile } from './claudeCustomizationTestUtils.js';
 
-/**
- * End-to-end coverage for the seam that surfaces Claude custom slash commands
- * (`.claude/commands/*.md`) in the agent host's `/` autocomplete. It exercises
- * the same pipeline a live session runs — disk scan → `buildDiscoveredCustomizations`
- * (optionally filtered by the SDK's `supportedCommands()` snapshot) → the slash
- * completion provider — so a regression in any single stage is caught here even
- * though each stage is unit-tested in isolation elsewhere.
- */
 suite('Claude .claude/commands → slash completion (end-to-end)', () => {
 
 	const disposables = new DisposableStore();
@@ -40,16 +32,9 @@ suite('Claude .claude/commands → slash completion (end-to-end)', () => {
 	});
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/** An SDK snapshot whose `supportedCommands()` reports the given command names. */
 	const sdkWith = (...names: string[]): ISdkResolvedCustomizations =>
 		({ agents: [], commands: names.map(name => ({ name, description: '', argumentHint: '' })), mcpServers: [], plugins: [] });
 
-	/**
-	 * Runs the real pipeline: scan `.claude`, project it through
-	 * `buildDiscoveredCustomizations` (pre-materialize when `sdk` is undefined,
-	 * SDK-filtered otherwise), feed the result to the completion provider via a
-	 * mock agent, and return the `/` completions for `text`.
-	 */
 	async function slashCompletions(text: string, sdk: ISdkResolvedCustomizations | undefined): Promise<readonly CompletionItem[]> {
 		const discovered = await scanClaudeDiskCustomizations(workspace, userHome, fileService);
 		const customizations = buildDiscoveredCustomizations(discovered, [], [], [], workspace, userHome, sdk);
@@ -66,8 +51,6 @@ suite('Claude .claude/commands → slash completion (end-to-end)', () => {
 	test('a flat .claude/commands/*.md file becomes a /<name> completion (pre-session)', async () => {
 		const commandUri = await seed('/workspace/.claude/commands/speckit.specify.md', '---\ndescription: Create a spec\n---\nBody');
 
-		// Pre-materialize: no live SDK snapshot, so the full disk set is shown.
-		// Filter on `/speckit` so curated built-in commands don't enter the assertion.
 		const items = await slashCompletions('/speckit', undefined);
 
 		assert.deepStrictEqual(items, [{
@@ -90,14 +73,12 @@ suite('Claude .claude/commands → slash completion (end-to-end)', () => {
 	test('the command survives the live SDK filter once a session materializes', async () => {
 		await seed('/workspace/.claude/commands/speckit.specify.md', '---\ndescription: Create a spec\n---\nBody');
 
-		// The SDK's supportedCommands() reports the loaded command, so it is kept.
 		assert.deepStrictEqual(insertTexts(await slashCompletions('/speckit', sdkWith('speckit.specify'))), ['/speckit.specify']);
 	});
 
 	test('a command the live SDK did not load is dropped post-materialize', async () => {
 		await seed('/workspace/.claude/commands/speckit.specify.md', '---\ndescription: Create a spec\n---\nBody');
 
-		// SDK snapshot reports no commands → the disk command is filtered out.
 		assert.deepStrictEqual(insertTexts(await slashCompletions('/speckit', sdkWith())), []);
 	});
 
@@ -111,7 +92,6 @@ suite('Claude .claude/commands → slash completion (end-to-end)', () => {
 		await seed('/workspace/.claude/skills/deploy/SKILL.md', '---\nname: deploy\ndescription: The skill\n---\nbody');
 		await seed('/workspace/.claude/commands/deploy.md', '---\nname: deploy\ndescription: The command\n---\nbody');
 
-		// The scan folds commands into skills (skill wins), so `/deploy` appears once.
 		assert.deepStrictEqual(insertTexts(await slashCompletions('/deploy', sdkWith('deploy'))), ['/deploy']);
 	});
 });

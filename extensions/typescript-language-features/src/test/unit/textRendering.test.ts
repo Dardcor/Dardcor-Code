@@ -28,7 +28,6 @@ suite('typescript.previewer', () => {
 	test('Should parse url jsdoc @link', () => {
 		assert.strictEqual(
 			documentationToMarkdown(
-				// 'x {@link http://www.example.com/foo} y {@link https://api.jquery.com/bind/#bind-eventType-eventData-handler} z',
 				[{ 'text': 'x ', 'kind': 'text' }, { 'text': '{@link ', 'kind': 'link' }, { 'text': 'http://www.example.com/foo', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' y ', 'kind': 'text' }, { 'text': '{@link ', 'kind': 'link' }, { 'text': 'https://api.jquery.com/bind/#bind-eventType-eventData-handler', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' z', 'kind': 'text' }],
 				[],
 				noopToResource, undefined
@@ -39,7 +38,6 @@ suite('typescript.previewer', () => {
 	test('Should parse url jsdoc @link with text', () => {
 		assert.strictEqual(
 			documentationToMarkdown(
-				// 'x {@link http://www.example.com/foo abc xyz} y {@link http://www.example.com/bar|b a z} z',
 				[{ 'text': 'x ', 'kind': 'text' }, { 'text': '{@link ', 'kind': 'link' }, { 'text': 'http://www.example.com/foo abc xyz', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' y ', 'kind': 'text' }, { 'text': '{@link ', 'kind': 'link' }, { 'text': 'http://www.example.com/bar b a z', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' z', 'kind': 'text' }],
 				[],
 				noopToResource, undefined
@@ -50,7 +48,6 @@ suite('typescript.previewer', () => {
 	test('Should treat @linkcode jsdocs links as monospace', () => {
 		assert.strictEqual(
 			documentationToMarkdown(
-				// 'x {@linkcode http://www.example.com/foo} y {@linkplain http://www.example.com/bar} z',
 				[{ 'text': 'x ', 'kind': 'text' }, { 'text': '{@linkcode ', 'kind': 'link' }, { 'text': 'http://www.example.com/foo', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' y ', 'kind': 'text' }, { 'text': '{@linkplain ', 'kind': 'link' }, { 'text': 'http://www.example.com/bar', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' z', 'kind': 'text' }],
 				[],
 				noopToResource, undefined
@@ -63,7 +60,6 @@ suite('typescript.previewer', () => {
 			tagsToMarkdown([
 				{
 					name: 'param',
-					// a x {@link http://www.example.com/foo abc xyz} y {@link http://www.example.com/bar|b a z} z
 					text: [{ 'text': 'a', 'kind': 'parameterName' }, { 'text': ' ', 'kind': 'space' }, { 'text': 'x ', 'kind': 'text' }, { 'text': '{@link ', 'kind': 'link' }, { 'text': 'http://www.example.com/foo abc xyz', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' y ', 'kind': 'text' }, { 'text': '{@link ', 'kind': 'link' }, { 'text': 'http://www.example.com/bar b a z', 'kind': 'linkText' }, { 'text': '}', 'kind': 'link' }, { 'text': ' z', 'kind': 'text' }],
 				}
 			], noopToResource),

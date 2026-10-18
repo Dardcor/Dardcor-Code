@@ -26,6 +26,6 @@ export class McpDevModeDebuggingNode extends McpDevModeDebugging {
 	}
 
 	protected override getDebugPort() {
-		return this._nativeHostService.findFreePort(5000, 10 /* try 10 ports */, 5000 /* try up to 5 seconds */, 2048 /* skip 2048 ports between attempts */);
+		return this._nativeHostService.findFreePort(5000, 10 , 5000 , 2048 );
 	}
 }

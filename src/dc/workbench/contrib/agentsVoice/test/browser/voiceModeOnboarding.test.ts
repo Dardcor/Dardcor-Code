@@ -100,8 +100,6 @@ suite('Voice Mode onboarding', () => {
 		service.showIfNeeded();
 		const shown = host.container.classList.contains('has-voice-mode-onboarding');
 
-		// Nothing is chosen until the user chooses: the card asks a question
-		// rather than arriving with an answer already filled in.
 		const selectedOnOpen = host.container.querySelectorAll('.voice-mode-onboarding-voice.selected').length;
 		const voices = [...host.container.querySelectorAll<HTMLElement>('.voice-mode-onboarding-voice-label')].map(element => element.textContent);
 		const voicesLabel = host.container.querySelector<HTMLElement>('.voice-mode-onboarding-voices-label')?.textContent;
@@ -111,7 +109,6 @@ suite('Voice Mode onboarding', () => {
 		host.container.querySelector<HTMLElement>('.voice-mode-onboarding-voice')!.click();
 		const selectedAfterPick = host.container.querySelectorAll('.voice-mode-onboarding-voice.selected').length;
 
-		// Dismissal is never gated, and having been seen it must not come back.
 		host.container.querySelector<HTMLElement>('.voice-mode-onboarding-close')!.click();
 		const shownAfterClose = host.container.classList.contains('has-voice-mode-onboarding');
 		service.showIfNeeded();
@@ -200,8 +197,6 @@ suite('Voice Mode onboarding', () => {
 	test('previews the native voice per language and keeps the chooser only for English', () => {
 		const instantiationService = createTestInstantiationService(disposables);
 
-		// A language Voice Mode speaks natively shows its one voice with no
-		// chooser; English and languages without a native voice keep the four.
 		const cases = [
 			{ language: 'de-DE', options: 1, chooser: false, sample: 'de_marc_neutral.mp3' },
 			{ language: 'es-MX', options: 1, chooser: false, sample: 'es-ES_maria_neutral.mp3' },
@@ -334,8 +329,6 @@ suite('Voice Mode onboarding', () => {
 		const host = createHost(disposables);
 		disposables.add(register(service, host));
 
-		// Voice Mode reports connecting and then connected, so the trigger fires
-		// more than once for a single session start.
 		service.showIfNeeded();
 		service.showIfNeeded();
 
@@ -350,8 +343,6 @@ suite('Voice Mode onboarding', () => {
 	test('keeps its one showing when there is no chat to dock to', () => {
 		const service = createService(disposables);
 
-		// Nothing registered yet: the introduction cannot be shown, and must not
-		// burn its single appearance doing nothing.
 		service.showIfNeeded();
 
 		const host = createHost(disposables);
@@ -394,10 +385,6 @@ suite('Voice Mode onboarding', () => {
 	});
 
 	test('the one appearance is only spent once the card is really up', () => {
-		// The guarantee is ordering. Anything the card needs at construction can
-		// throw, and if the key were written first the user would silently lose
-		// their only showing - so by the time it is written the card must already
-		// be built and attached.
 		let cardWhenStored: { visible: boolean; cards: number } | undefined;
 		const instantiationService = workbenchInstantiationService(undefined, disposables);
 		instantiationService.stub(IVoiceSessionController, new class extends mock<IVoiceSessionController>() {
@@ -440,7 +427,6 @@ suite('Voice Mode onboarding', () => {
 		const dismissedFromInside = dom.isAncestorOfActiveElement(host.container);
 		close.click();
 
-		// Dismissing from inside the card must not drop the caret on the body.
 		assert.deepStrictEqual(
 			{ dismissedFromInside, focused: host.focused },
 			{ dismissedFromInside: true, focused: 1 });
@@ -458,7 +444,6 @@ suite('Voice Mode onboarding', () => {
 		elsewhere.focus();
 		host.container.querySelector<HTMLElement>('.voice-mode-onboarding-close')!.click();
 
-		// The user already moved on; yanking the caret back would be rude.
 		assert.strictEqual(host.focused, 0);
 	});
 
@@ -469,8 +454,6 @@ suite('Voice Mode onboarding', () => {
 		disposables.add(register(service, first));
 		disposables.add(register(service, second));
 
-		// The renderer running these tests does not reliably hand out real focus,
-		// so raise the same event the focus tracker listens for.
 		second.root.focus();
 		second.root.dispatchEvent(new FocusEvent('focus'));
 		service.showIfNeeded();

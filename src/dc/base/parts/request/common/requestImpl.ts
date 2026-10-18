@@ -62,7 +62,6 @@ function getRequestHeaders(options: IRequestOptions) {
 				case 'user-agent':
 				case 'accept-encoding':
 				case 'content-length':
-					// unsafe headers
 					continue outer;
 			}
 			const header = options.headers[k];

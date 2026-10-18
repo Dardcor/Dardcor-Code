@@ -13,12 +13,6 @@ export const IRemoteSocketFactoryService = createDecorator<IRemoteSocketFactoryS
 export interface IRemoteSocketFactoryService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Register a socket factory for the given message passing type
-	 * @param type passing type to register for
-	 * @param factory function that returns the socket factory, or undefined if
-	 * it can't handle the data.
-	 */
 	register<T extends RemoteConnectionType>(type: T, factory: ISocketFactory<T>): IDisposable;
 
 	connect(connectTo: RemoteConnection, path: string, query: string, debugLabel: string): Promise<ISocket>;

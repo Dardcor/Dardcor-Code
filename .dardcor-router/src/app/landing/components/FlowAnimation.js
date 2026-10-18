@@ -28,12 +28,6 @@ const PROVIDERS = [
     color: "bg-blue-500",
     textColor: "text-white",
   },
-  {
-    id: "github",
-    name: "GitHub Copilot",
-    color: "bg-gray-700",
-    textColor: "text-white",
-  },
 ];
 
 export default function FlowAnimation() {

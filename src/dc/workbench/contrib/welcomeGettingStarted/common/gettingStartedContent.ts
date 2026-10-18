@@ -66,7 +66,6 @@ export async function moduleToContent(resource: URI): Promise<string> {
 gettingStartedContentRegistry.registerProvider('vs/workbench/contrib/welcomeGettingStarted/common/media/theme_picker', themePickerContent);
 gettingStartedContentRegistry.registerProvider('vs/workbench/contrib/welcomeGettingStarted/common/media/theme_picker_small', themePickerSmallContent);
 gettingStartedContentRegistry.registerProvider('vs/workbench/contrib/welcomeGettingStarted/common/media/notebookProfile', notebookProfileContent);
-// Register empty media for accessibility walkthrough
 gettingStartedContentRegistry.registerProvider('vs/workbench/contrib/welcomeGettingStarted/common/media/empty', () => '');
 
 const setupIcon = registerIcon('getting-started-setup', Codicon.zap, localize('getting-started-setup-icon', "Icon used for the setup category of welcome page"));
@@ -263,7 +262,7 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 			type: 'steps',
 			steps: [
 				createCopilotSetupStep('CopilotSetupAnonymous', CopilotAnonymousButton, 'chatAnonymous && !chatSetupCompleted', true),
-				createCopilotSetupStep('CopilotSetupSignedOut', CopilotSignedOutButton, 'chatEntitlementSignedOut && !chatAnonymous && !github.copilot.hasByokModels', false),
+				createCopilotSetupStep('CopilotSetupSignedOut', CopilotSignedOutButton, 'chatEntitlementSignedOut && !chatAnonymous && !github.dardcor.hasByokModels', false),
 				createCopilotSetupStep('CopilotSetupComplete', CopilotCompleteButton, 'chatSetupCompleted && !chatSetupDisabled && (chatAnonymous || chatPlanPro || chatPlanProPlus || chatPlanMax || chatPlanBusiness || chatPlanEnterprise || chatPlanFree)', false),
 				createCopilotSetupStep('CopilotSetupSignedIn', CopilotSignedInButton, '!chatEntitlementSignedOut && (!chatSetupCompleted || chatSetupDisabled || chatPlanCanSignUp)', false),
 				{
@@ -279,7 +278,7 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 				{
 					id: 'videoTutorial',
 					title: localize('gettingStarted.videoTutorial.title', "Watch video tutorials"),
-					description: localize('gettingStarted.videoTutorial.description.interpolated', "Watch the first in a series of short & practical video tutorials for Dardcor Code's key features.\n{0}", Button(localize('watch', "Watch Tutorial"), 'https://aka.ms/vscode-getting-started-video')),
+					description: localize('gettingStarted.videoTutorial.description.interpolated', "Watch the first in a series of short & practical video tutorials for Dardcor Code's key features.\n{0}", Button(localize('watch', "Watch Tutorial"), 'https://www.dardcor-code.web.id/docs/getstarted/tutorials')),
 					media: { type: 'svg', altText: 'Dardcor Code Settings', path: 'learn.svg' },
 				}
 			]
@@ -555,7 +554,7 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 				{
 					id: 'installGit',
 					title: localize('gettingStarted.installGit.title', "Install Git"),
-					description: localize({ key: 'gettingStarted.installGit.description.interpolated', comment: ['The placeholders are command link items should not be translated'] }, "Install Git to track changes in your projects.\n{0}\n{1}Reload window{2} after installation to complete Git setup.", Button(localize('installGit', "Install Git"), 'https://aka.ms/vscode-install-git'), '[', '](command:workbench.action.reloadWindow)'),
+					description: localize({ key: 'gettingStarted.installGit.description.interpolated', comment: ['The placeholders are command link items should not be translated'] }, "Install Git to track changes in your projects.\n{0}\n{1}Reload window{2} after installation to complete Git setup.", Button(localize('installGit', "Install Git"), 'https://www.dardcor-code.web.id/docs/getting-started/git'), '[', '](command:workbench.action.reloadWindow)'),
 					when: 'git.missing',
 					media: {
 						type: 'svg', altText: 'Install Git.', path: 'git.svg',
@@ -585,7 +584,7 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 				{
 					id: 'workspaceTrust',
 					title: localize('gettingStarted.workspaceTrust.title', "Safely browse and edit code"),
-					description: localize('gettingStarted.workspaceTrust.description.interpolated', "{0} lets you decide whether your project folders should **allow or restrict** automatic code execution __(required for extensions, debugging, etc)__.\nOpening a file/folder will prompt to grant trust. You can always {1} later.", Button(localize('workspaceTrust', "Workspace Trust"), 'https://code.visualstudio.com/docs/editor/workspace-trust'), Button(localize('enableTrust', "enable trust"), 'command:toSide:workbench.trust.manage')),
+					description: localize('gettingStarted.workspaceTrust.description.interpolated', "{0} lets you decide whether your project folders should **allow or restrict** automatic code execution __(required for extensions, debugging, etc)__.\nOpening a file/folder will prompt to grant trust. You can always {1} later.", Button(localize('workspaceTrust', "Workspace Trust"), 'https://www.dardcor-code.web.id/docs/editor/workspace-trust'), Button(localize('enableTrust', "enable trust"), 'command:toSide:workbench.trust.manage')),
 					when: 'workspacePlatform != \'webworker\' && !isWorkspaceTrusted && workspaceFolderCount == 0',
 					media: {
 						type: 'svg', altText: 'Workspace Trust editor in Restricted mode and a primary button for switching to Trusted mode.', path: 'workspaceTrust.svg'

@@ -69,17 +69,12 @@ import { IBrowserZoomService } from './browserZoomService.js';
 import type { IntegratedBrowserOpenSource } from '../../../../platform/browserView/common/browserViewTelemetry.js';
 
 export const enum BrowserViewSharingState {
-	/** Tools are available and the page is shared with the agent. */
 	Shared = 'shared',
-	/** Tools are available but the page is not shared. */
 	Available = 'available',
-	/** The current page cannot be shared because its URL is blocked by network policy. */
 	BlockedByNetworkPolicy = 'blockedByNetworkPolicy',
-	/** Browser tools are disabled — sharing is not possible. */
 	Unavailable = 'unavailable',
 }
 
-/** Whether a browser URL belongs to the same destination host as the target URL. */
 export function browserViewUrlMatches(candidateUrl: string | undefined, targetUrl: string, includeBlank = false): boolean {
 	const target = URL.parse(targetUrl);
 	if (!target || (target.protocol !== 'file:' && !target.host)) {
@@ -98,10 +93,6 @@ export function browserViewUrlMatches(candidateUrl: string | undefined, targetUr
 		));
 }
 
-/**
- * The browser views owned by any of `ownerIds`, most recently opened first —
- * the order the chat pills list them in.
- */
 export function getAgentBrowserViewsNewestFirst(
 	browserViewService: Pick<IBrowserViewWorkbenchService, 'getKnownBrowserViews'>,
 	ownerIds: ReadonlySet<string>,
@@ -116,7 +107,6 @@ export function getAgentBrowserViewsNewestFirst(
 	return views.reverse();
 }
 
-/** Extracts the host from a URL string for zoom tracking purposes. */
 function parseZoomHost(url: string): string | undefined {
 	const parsed = URL.parse(url);
 	if (!parsed?.host || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
@@ -145,20 +135,9 @@ type IntegratedBrowserNavigationEvent = {
 	isLocalhost: boolean;
 };
 
-/**
- * To be used in telemetry. This is the  source for an address-bar-initiated navigation:
- * whether the user typed a URL or ran a web search. Defaults to `'urlInput'` when omitted.
- */
 export type BrowserNavigationSource = 'urlInput' | 'searchInput';
 
-/**
- * Options for a navigation initiated via {@link IBrowserViewModel.loadURL}
- * (and {@link BrowserEditorInput.navigate}).
- */
 export interface INavigateOptions {
-	/**
-	 * Source of the navigation, for telemetry purposes. Defaults to `'urlInput'` when omitted.
-	 */
 	readonly source?: BrowserNavigationSource;
 }
 
@@ -189,9 +168,6 @@ type IntegratedBrowserAddElementToChatStartClassification = {
 	comment: 'The user initiated an Add Element to Chat action in Integrated Browser.';
 };
 
-/**
- * View state stored in editor options when opening a browser view.
- */
 export interface IBrowserEditorViewState {
 	readonly url?: string;
 	readonly title?: string;
@@ -200,48 +176,19 @@ export interface IBrowserEditorViewState {
 
 export const IBrowserViewWorkbenchService = createDecorator<IBrowserViewWorkbenchService>('browserViewWorkbenchService');
 
-/** The editor that renders a page in the Integrated Browser. */
 export const BrowserViewEditorId = 'workbench.editor.browser';
 
-/**
- * A filter that contextually restricts the browser views returned by
- * {@link IBrowserViewWorkbenchService.getContextualBrowserViews}.
- */
 export interface IBrowserViewContextualFilter {
-	/**
-	 * Returns `true` if the given browser view should be part of the
-	 * contextual set.
-	 */
 	include(input: BrowserEditorInput, context: IBrowserViewFilterContext): boolean;
 
-	/**
-	 * Optional event that fires when the result of {@link include} may have
-	 * changed for one or more views (e.g. the active session changed).
-	 */
 	readonly onDidChange?: Event<void>;
 }
 
 export interface IBrowserViewFilterContext {
-	/**
-	 * The session *resource* URI string (`session.resource.toString()`) of the
-	 * relevant session, if any. This is the same value stored in
-	 * an agent {@link IBrowserViewOwner} — not the composite
-	 * `ISession.sessionId` (`providerId:resource`).
-	 */
 	activeSessionId?: string;
 }
 
-/**
- * A handler that decides whether an editor should be opened for a newly
- * created browser view. Registered via
- * {@link IBrowserViewWorkbenchService.registerOpenHandler}.
- */
 export interface IBrowserViewOpenHandler {
-	/**
-	 * Called before an editor is opened for a newly created browser view.
-	 * Return `false` to prevent the editor from being opened. A view is opened
-	 * only when every registered handler allows it.
-	 */
 	shouldOpenEditor(input: BrowserEditorInput, owner: IBrowserViewOwner, editorOptions: IBrowserViewEditorOpenOptions): boolean;
 }
 
@@ -254,89 +201,31 @@ export interface IBrowserViewWorkbenchCreateOptions {
 	readonly openSource?: IntegratedBrowserOpenSource;
 }
 
-/**
- * Workbench-level service for browser views that provides model-based access to browser views.
- * This service manages browser view models that proxy to the main process browser view service.
- */
 export interface IBrowserViewWorkbenchService {
 	readonly _serviceBrand: undefined;
 
-	/** Returns true if the remote proxy is enabled; i.e. we are in a remote workspace and the setting is enabled. */
 	willUseRemoteProxy(): boolean;
 
-	/**
-	 * Set the tunnel-proxy credentials resolved by the window's local node
-	 * extension host (which hosts the HTTPS tunnel proxy), or `undefined` to
-	 * clear them. Folded into the window configuration sent to the main
-	 * process so this window's remote browser views (re)apply the proxy.
-	 */
 	setRemoteProxyInfo(info: ITunnelProxyInfo | undefined): void;
 
-	/**
-	 * Fires when the set of known browser views changes, or a model is created for an existing input.
-	 */
 	readonly onDidChangeBrowserViews: Event<void>;
 
-	/**
-	 * Whether sharing browser pages with the agent is currently available
-	 * (chat enabled, agent mode enabled, browser tools setting enabled, etc.).
-	 */
 	readonly isSharingAvailable: boolean;
 
-	/**
-	 * Fires when {@link isSharingAvailable} changes.
-	 */
 	readonly onDidChangeSharingAvailable: Event<boolean>;
 
-	/**
-	 * Get all known browser views, keyed by id and iterated in the order they
-	 * were opened. A view is registered when its open is requested, so this
-	 * order is independent of how quickly each page then loads.
-	 */
 	getKnownBrowserViews(): Map<string, BrowserEditorInput>;
 
-	/**
-	 * Register a contextual filter that restricts which browser views are
-	 * returned by {@link getContextualBrowserViews}. A view is part of the
-	 * contextual set only when every registered filter includes it.
-	 */
 	registerContextualFilter(filter: IBrowserViewContextualFilter): IDisposable;
 
-	/**
-	 * Get the browser views that pass all registered contextual filters. When
-	 * no filters are registered this is equivalent to {@link getKnownBrowserViews}.
-	 *
-	 * @param context The filter context to use (or inferred if not provided)
-	 */
 	getContextualBrowserViews(context?: IBrowserViewFilterContext): Map<string, BrowserEditorInput>;
 
-	/**
-	 * Resolve the preferred editor group for opening an integrated browser
-	 * editor. Honors the `workbench.browser.newTabPlacement` setting, routing new
-	 * tabs into a dedicated (locked) side group or auxiliary window when
-	 * configured. When the workbench forces editors into a modal part
-	 * (`workbench.editor.useModal: 'all'`), browser opens that target the active
-	 * group (or leave it unspecified) are
-	 * redirected to the main editor area so the browser docks instead of opening
-	 * as a modal overlay. Explicit placements (side group, auxiliary window, a
-	 * specific group) are left untouched.
-	 */
 	getPreferredGroup(preferredGroup?: PreferredGroup): Promise<PreferredGroup | undefined>;
 
-	/**
-	 * Register a handler that decides whether an editor should be opened for a
-	 * newly created browser view. The editor is opened only when every
-	 * registered handler allows it.
-	 */
 	registerOpenHandler(handler: IBrowserViewOpenHandler): IDisposable;
 
-	/** Creates and resolves a browser view, optionally requesting editor presentation. */
 	createBrowserView(options: IBrowserViewWorkbenchCreateOptions, editorOpenOptions?: IBrowserViewEditorOpenOptions): Promise<BrowserEditorInput>;
 
-	/**
-	 * Get an existing browser view for the given ID, or create a new one if it doesn't exist.
-	 * The underlying browser view is not created until the editor is opened or the model is resolved.
-	 */
 	getOrCreateLazy(data: IBrowserEditorInputData): BrowserEditorInput;
 
 	/**
@@ -344,47 +233,26 @@ export interface IBrowserViewWorkbenchService {
 	 */
 	clearGlobalStorage(): Promise<void>;
 
-	/**
-	 * Clear all storage data for the current workspace browser session
-	 */
 	clearWorkspaceStorage(): Promise<void>;
 }
 
 export const IBrowserViewCDPService = createDecorator<IBrowserViewCDPService>('browserViewCDPService');
 
-/**
- * Workbench-level service for managing CDP (Chrome DevTools Protocol) sessions
- * against browser views. Handles group lifecycle and window ID resolution.
- */
 export interface IBrowserViewCDPService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Create a new CDP group for a browser view.
-	 * The window ID is resolved from the editor group containing the browser.
-	 * @param browserId The browser view identifier.
-	 * @returns The ID of the newly created group.
-	 */
 	createSessionGroup(browserId: string): Promise<string>;
 
-	/** Destroy a CDP group. */
 	destroySessionGroup(groupId: string): Promise<void>;
 
-	/** Send a CDP message to a group. */
 	sendCDPMessage(groupId: string, message: CDPRequest): Promise<void>;
 
-	/** Fires when a CDP message is received. */
 	onCDPMessage(groupId: string): Event<CDPResponse | CDPEvent>;
 
-	/** Fires when a CDP group is destroyed. */
 	onDidDestroy(groupId: string): Event<void>;
 }
 
 
-/**
- * A browser view model that represents a single browser view instance in the workbench.
- * This model proxies calls to the main process browser view service using its unique ID.
- */
 export interface IBrowserViewModel extends IDisposable {
 	readonly id: string;
 	readonly host: IBrowserViewHost;
@@ -530,7 +398,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		super();
 		this._owner = owner;
 
-		// Initialize state
 		this._url = initialState.url;
 		this._title = initialState.title;
 		this._loading = initialState.loading;
@@ -568,20 +435,16 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 			)(() => this._reloadHistoryFavicons(faviconsKey)));
 		}
 
-		// Permissions are synced via browser-view state + a dynamic event rather
-		// than storage, so they work for ephemeral sessions (which never persist).
 		this.permissions.hydrate(initialState.permissions);
 		this._register(this.browserViewService.onDynamicDidChangePermissions(this.id)(
 			snapshot => this.permissions.hydrate(snapshot)));
 
-		// Sync initial zoom
 		const effectiveZoomIndex = this.zoomService.getEffectiveZoomIndex(this._zoomHost, this._isInMemory);
 		if (effectiveZoomIndex !== this._browserZoomIndex) {
 			void this.setBrowserZoomIndex(effectiveZoomIndex).catch(e => {
 				this.logService.warn(`[BrowserViewModel] Failed to set initial zoom:`, e);
 			});
 		}
-		// Set up state synchronization
 
 		this._register(this.zoomService.onDidChangeZoom(({ host, isInMemoryChange }: any) => {
 			if (isInMemoryChange && !this._isInMemory) {
@@ -595,7 +458,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		}));
 
 		this._register(this.onDidNavigate(e => {
-			// Clear favicon on navigation to a different host
 			if (URL.parse(e.url)?.host !== URL.parse(this._url)?.host) {
 				this._favicon = undefined;
 			}
@@ -608,8 +470,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 			this._certificateError = e.certificateError;
 			this._updateSharingState();
 
-			// Always forceApply because Chromium resets zoom on cross-origin navigation,
-			// and an origin change may not correspond to a host change (e.g. http→https).
 			void this.setBrowserZoomIndex(
 				this.zoomService.getEffectiveZoomIndex(this._zoomHost, this._isInMemory),
 				true
@@ -773,7 +633,7 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 	}
 
 	async setVisible(visible: boolean): Promise<void> {
-		this._visible = visible; // Set optimistically so model is in sync immediately
+		this._visible = visible;
 		return this.browserViewService.setVisible(this.id, visible);
 	}
 
@@ -781,11 +641,9 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		this.logNavigationTelemetry(options?.source ?? 'urlInput', url);
 		this._onWillNavigate.fire(url);
 
-		// Prepend http:// for bare localhost authorities (e.g. "localhost:3000").
 		if (/^localhost(:|\/|$)/i.test(url)) {
 			url = 'http://' + url;
 		} else if (!URL.parse(url)?.protocol) {
-			// No scheme — default to http://; sites typically upgrade to https://.
 			url = 'http://' + url;
 		}
 
@@ -813,7 +671,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 
 	async captureScreenshot(options?: IBrowserViewCaptureScreenshotOptions): Promise<VSBuffer> {
 		const result = await this.browserViewService.captureScreenshot(this.id, options);
-		// Store full-page screenshots for display in UI as placeholders
 		if (!options?.screenRect && !options?.pageRect && !options?.fullPage) {
 			this._screenshot = result;
 		}
@@ -853,9 +710,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 	}
 
 	async deleteHistory(entryIds?: readonly number[]): Promise<void> {
-		// Mirror locally so the workbench updates immediately; the eventual
-		// storage change event from the main-process flush will re-hydrate to
-		// the same content.
 		if (entryIds === undefined) {
 			this.history.clear();
 		} else {
@@ -867,7 +721,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 	}
 
 	async setPermissions(origin: string, grants: readonly IPermissionCategoryState[]): Promise<void> {
-		// Mirror locally so the workbench reflects the decision immediately
 		this.permissions.setMany(origin, grants);
 		return this.browserViewService.setPermissions(this.id, origin, grants);
 	}
@@ -876,11 +729,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		return this.browserViewService.selectDevice(this.id, requestId, deviceId);
 	}
 
-	/**
-	 * @param forceApply When true, the IPC call is made even if the local cached zoom index
-	 * already matches the requested value. Pass true after cross-document navigation because
-	 * Chromium resets the zoom to its per-origin default, making the cache stale.
-	 */
 	private async setBrowserZoomIndex(zoomIndex: number, forceApply = false): Promise<void> {
 		const clamped = Math.max(0, Math.min(zoomIndex, browserZoomFactors.length - 1));
 		if (!forceApply && clamped === this._browserZoomIndex) {
@@ -956,8 +804,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 	}
 
 	async setDevice(device: IBrowserDeviceProfile | undefined): Promise<void> {
-		// Update model state optimistically so dependent UI reacts immediately;
-		// the echo from the main process is filtered by deep comparison.
 		if (!structuralEquals(this._device, device)) {
 			this._device = device;
 			this._onDidChangeDevice.fire(device);
@@ -1013,7 +859,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		const storedChoice = this.storageService.getBoolean(BrowserViewModel.SHARE_DONT_ASK_KEY, StorageScope.PROFILE);
 
 		if (!storedChoice) {
-			// First time (or no stored preference) -- ask.
 			const result = await this.dialogService.confirm({
 				type: 'question',
 				title: localize('browserView.shareWithAgent.title', 'Share with Agent?'),
@@ -1027,7 +872,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 				checkbox: { label: localize('browserView.shareWithAgent.dontAskAgain', "Don't ask again"), checked: false },
 			});
 
-			// Only persist "don't ask again" if user accepted sharing, so the button doesn't just do nothing.
 			if (result.confirmed && result.checkboxChecked) {
 				this.storageService.store(BrowserViewModel.SHARE_DONT_ASK_KEY, result.confirmed, StorageScope.PROFILE, StorageTarget.USER);
 			}
@@ -1075,9 +919,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 		this.history.favicons.hydrate(parseHistorySnapshot<ISerializedBrowserFaviconsSnapshot>(raw));
 	}
 
-	/**
-	 * Log navigation telemetry event
-	 */
 	private logNavigationTelemetry(navigationType: IntegratedBrowserNavigationEvent['navigationType'], url: string): void {
 		let localhost: boolean;
 		try {
@@ -1098,7 +939,6 @@ export class BrowserViewModel extends Disposable implements IBrowserViewModel {
 	override dispose(): void {
 		this._onWillDispose.fire();
 
-		// Clean up the browser view when the model is disposed
 		void this.browserViewService.destroyBrowserView(this.id);
 
 		super.dispose();

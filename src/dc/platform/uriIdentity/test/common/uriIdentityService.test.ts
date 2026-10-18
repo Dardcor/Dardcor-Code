@@ -75,7 +75,7 @@ suite('URI Identity', function () {
 		assertCanonical(a1, a);
 
 		assertCanonical(b, b);
-		assertCanonical(b1, b1); // case sensitive
+		assertCanonical(b1, b1);
 	});
 
 	test('asCanonicalUri (normalization)', function () {
@@ -99,7 +99,7 @@ suite('URI Identity', function () {
 		const b = URI.parse('foo://bar/bazz#frag');
 		assertCanonical(b, b);
 		assertCanonical(URI.parse('foo://bar/bazz'), b.with({ fragment: '' }));
-		assertCanonical(URI.parse('foo://bar/BAZZ#DDD'), b.with({ fragment: 'DDD' })); // lower-case path, but fragment is kept
+		assertCanonical(URI.parse('foo://bar/BAZZ#DDD'), b.with({ fragment: 'DDD' }));
 	});
 
 	test('[perf] clears cache when overflown with respect to access time', () => {
@@ -114,15 +114,11 @@ suite('URI Identity', function () {
 			_service.asCanonicalUri(getUri(i));
 		}
 
-		// Assert that the first URI is still the same object.
 		assert.strictEqual(_service.asCanonicalUri(getUri(FIRST)), firstCached);
 
-		// Clear the cache.
 		_service.asCanonicalUri(getUri(CACHE_SIZE - 1));
 
-		// First URI should still be the same object.
 		assert.strictEqual(_service.asCanonicalUri(getUri(FIRST)), firstCached);
-		// But the second URI should be a new object, since it was evicted.
 		assert.notStrictEqual(_service.asCanonicalUri(getUri(SECOND)), secondCached);
 	});
 
@@ -138,10 +134,8 @@ suite('URI Identity', function () {
 		const LAST = SIZE - 2;
 		const lastCached = _service.asCanonicalUri(getUri(LAST));
 
-		// Clear the cache.
 		_service.asCanonicalUri(getUri(SIZE - 1));
 
-		// Batch 2
 		const BATCH2_FIRST = SIZE;
 		const batch2FirstCached = _service.asCanonicalUri(getUri(BATCH2_FIRST));
 		const BATCH2_SECOND = SIZE + 1;
@@ -154,15 +148,11 @@ suite('URI Identity', function () {
 		const BATCH2_LAST = SIZE + Math.floor(SIZE / 2);
 		const batch2LastCached = _service.asCanonicalUri(getUri(BATCH2_LAST));
 
-		// Clean up the cache.
 		_service.asCanonicalUri(getUri(SIZE + Math.ceil(SIZE / 2) + 1));
 
-		// Both URIs from the first batch should be evicted.
 		assert.notStrictEqual(_service.asCanonicalUri(getUri(FIRST)), firstCached);
 		assert.notStrictEqual(_service.asCanonicalUri(getUri(LAST)), lastCached);
 
-		// But the URIs from the second batch should still be the same objects.
-		// Except for the first one, which is removed as a median value.
 		assert.notStrictEqual(_service.asCanonicalUri(getUri(BATCH2_FIRST)), batch2FirstCached);
 		assert.deepStrictEqual(_service.asCanonicalUri(getUri(BATCH2_SECOND)), batch2SecondCached);
 		assert.deepStrictEqual(_service.asCanonicalUri(getUri(BATCH2_THIRD)), batch2ThirdCached);

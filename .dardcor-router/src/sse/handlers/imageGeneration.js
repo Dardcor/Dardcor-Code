@@ -14,13 +14,8 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { handleComboChat } from "open-sse/services/combo.js";
 import * as log from "../utils/logger.js";
 
-// Providers that don't require credentials (noAuth)
 const NO_AUTH_PROVIDERS = new Set(["sdwebui", "comfyui"]);
 
-/**
- * Handle image generation request
- * @param {Request} request
- */
 export async function handleImageGeneration(request) {
   let body;
   try {
@@ -46,7 +41,6 @@ export async function handleImageGeneration(request) {
   if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
   if (!body.prompt) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: prompt");
 
-  // Combo expansion: model may be a combo name → run fallback/round-robin across models
   const comboModels = await getComboModels(modelStr);
   if (comboModels) {
     const comboStrategies = settings.comboStrategies || {};
@@ -73,7 +67,6 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
 
   const { provider, model } = modelInfo;
 
-  // noAuth providers — no credential needed
   if (NO_AUTH_PROVIDERS.has(provider)) {
     const result = await handleImageGenerationCore({
       body,
@@ -85,7 +78,6 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
     return errorResponse(result.status || HTTP_STATUS.BAD_GATEWAY, result.error || "Image generation failed");
   }
 
-  // Credentialed providers — fallback loop
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;

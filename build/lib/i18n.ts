@@ -20,9 +20,9 @@ function log(message: any, ...rest: unknown[]): void {
 }
 
 export interface Language {
-	id: string; // language id, e.g. zh-tw, de
-	translationId?: string; // language id used in translation tools, e.g. zh-hant, de (optional, if not set, the id is used)
-	folderName?: string; // language specific folder name, e.g. cht, deu  (optional, if not set, the id is used)
+	id: string;
+	translationId?: string;
+	folderName?: string;
 }
 
 export const defaultLanguages: Language[] = [
@@ -37,7 +37,6 @@ export const defaultLanguages: Language[] = [
 	{ id: 'it', folderName: 'ita' }
 ];
 
-// languages requested by the community
 export const extraLanguages: Language[] = [
 	{ id: 'pt-br', folderName: 'ptb' },
 	{ id: 'tr', folderName: 'trk' },
@@ -72,7 +71,7 @@ interface BundledFormat {
 	bundles: Record<string, string[]>;
 }
 
-type NLSKeysFormat = [string /* module ID */, string[] /* keys */];
+type NLSKeysFormat = [string , string[] ];
 
 function isNLSKeysFormat(value: unknown): value is NLSKeysFormat {
 	if (value === undefined) {
@@ -122,8 +121,6 @@ class TextModel {
 	private _lines: string[];
 
 	constructor(contents: string) {
-		// Strip a leading UTF-8 BOM (U+FEFF) so callers can match on the
-		// first character of the first line without having to special-case it.
 		if (contents.charCodeAt(0) === 0xFEFF) {
 			contents = contents.slice(1);
 		}
@@ -264,12 +261,11 @@ export class XLF {
 						transUnits.forEach((unit: any) => {
 							const key = unit.$.id;
 							if (!unit.target) {
-								return; // No translation available
+								return;
 							}
 
 							let val = unit.target[0];
 							if (typeof val !== 'string') {
-								// We allow empty source values so support them for translations as well.
 								val = val._ ? val._ : '';
 							}
 							if (!key) {
@@ -295,22 +291,11 @@ function sortLanguages(languages: Language[]): Language[] {
 }
 
 function stripComments(content: string): string {
-	// Copied from stripComments.js
-	//
-	// First group matches a double quoted string
-	// Second group matches a single quoted string
-	// Third group matches a multi line comment
-	// Forth group matches a single line comment
-	// Fifth group matches a trailing comma
 	const regexp = /("[^"\\]*(?:\\.[^"\\]*)*")|('[^'\\]*(?:\\.[^'\\]*)*')|(\/\*[^\/\*]*(?:(?:\*|\/)[^\/\*]*)*?\*\/)|(\/{2,}.*?(?:(?:\r?\n)|$))|(,\s*[}\]])/g;
 	const result = content.replace(regexp, (match, _m1: string, _m2: string, m3: string, m4: string, m5: string) => {
-		// Only one of m1, m2, m3, m4, m5 matches
 		if (m3) {
-			// A block comment. Replace with nothing
 			return '';
 		} else if (m4) {
-			// Since m4 is a single line comment is is at least of length 2 (e.g. //)
-			// If it ends in \r?\n then keep it.
 			const length = m4.length;
 			if (m4[length - 1] === '\n') {
 				return m4[length - 2] === '\r' ? '\r\n' : '\n';
@@ -318,10 +303,8 @@ function stripComments(content: string): string {
 				return '';
 			}
 		} else if (m5) {
-			// Remove the trailing comma
 			return match.substring(1);
 		} else {
-			// We match a string
 			return match;
 		}
 	});
@@ -353,7 +336,7 @@ function processCoreBundleFormat(base: string, fileHeader: string, languages: La
 		for (const [moduleId, nlsKeys] of json) {
 			const moduleTranslations = allMessages?.contents[moduleId];
 			for (const nlsKey of nlsKeys) {
-				nlsResult.push(moduleTranslations?.[nlsKey]); // pushing `undefined` is fine, as we keep english strings as fallback for monaco editor in the build
+				nlsResult.push(moduleTranslations?.[nlsKey]);
 				nlsIndex++;
 			}
 		}
@@ -471,17 +454,13 @@ function createL10nBundleForExtension(extensionFolderName: string, prefixWithBui
 	const prefix = prefixWithBuildFolder ? '.build/' : '';
 	return gulp
 		.src([
-			// For source code of extensions
 			`${prefix}extensions/${extensionFolderName}/{src,client,server}/**/*.{ts,tsx}`,
-			// // For any dependencies pulled in (think vscode-css-languageservice or @vscode/emmet-helper)
 			`${prefix}extensions/${extensionFolderName}/**/node_modules/{@vscode,vscode-*}/**/*.{js,jsx}`,
-			// // For any dependencies pulled in that bundle @vscode/l10n. They needed to export the bundle
 			`${prefix}extensions/${extensionFolderName}/**/bundle.l10n.json`,
 		])
 		.pipe(eventStream.map(function (data, callback) {
 			const file = data as File;
 			if (!file.isBuffer()) {
-				// Not a buffer so we drop it
 				callback();
 				return;
 			}
@@ -498,11 +477,9 @@ function createL10nBundleForExtension(extensionFolderName: string, prefixWithBui
 					.catch((err) => {
 						callback(new Error(`File ${file.relative} threw an error when parsing: ${err}`));
 					});
-				// signal pause?
 				return false;
 			}
 
-			// for bundle.l10n.jsons
 			let bundleJson;
 			try {
 				bundleJson = JSON.parse(file.contents.toString('utf8'));
@@ -511,7 +488,6 @@ function createL10nBundleForExtension(extensionFolderName: string, prefixWithBui
 				return;
 			}
 
-			// some validation of the bundle.l10n.json format
 			for (const key in bundleJson) {
 				if (
 					typeof bundleJson[key] !== 'string' &&
@@ -551,7 +527,6 @@ export function createXlfFilesForExtensions(): eventStream.ThroughStream {
 		if (extensionFolderName === 'node_modules') {
 			return;
 		}
-		// Get extension id and use that as the id
 		const manifest = fs.readFileSync(path.join(extensionFolder.path, 'package.json'), 'utf-8');
 		const manifestJson = JSON.parse(manifest);
 		const extensionId = manifestJson.publisher + '.' + manifestJson.name;
@@ -646,7 +621,6 @@ export function createXlfFilesForIsl(): eventStream.ThroughStream {
 			const firstChar = line.charAt(0);
 			switch (firstChar) {
 				case ';':
-					// Comment line;
 					return;
 				case '[':
 					inMessageSection = '[Messages]' === line || '[CustomMessages]' === line;
@@ -671,7 +645,6 @@ export function createXlfFilesForIsl(): eventStream.ThroughStream {
 		const originalPath = file.path.substring(file.cwd.length + 1, file.path.split('.')[0].length).replace(/\\/g, '/');
 		xlf.addFile(originalPath, keys, messages);
 
-		// Emit only upon all ISL files combined into single XLF instance
 		const newFilePath = path.join(projectName, resourceFile);
 		const xlfFile = new File({ path: newFilePath, contents: Buffer.from(xlf.toString(), 'utf-8') });
 		this.queue(xlfFile);
@@ -731,12 +704,10 @@ export function prepareI18nPackFiles(resultingTranslationPaths: TranslationPath[
 	const errors: unknown[] = [];
 	return eventStream.through(function (this: eventStream.ThroughStream, xlf: File) {
 		let project = path.basename(path.dirname(path.dirname(xlf.relative)));
-		// strip `-new` since vscode-extensions-loc uses the `-new` suffix to indicate that it's from the new loc pipeline
 		const resource = path.basename(path.basename(xlf.relative, '.xlf'), '-new');
 		if (EXTERNAL_EXTENSIONS.find(e => e === resource)) {
 			project = extensionsProject;
 		}
-		// vscode-setup has its own import path via prepareIslFiles
 		if (project === setupProject) {
 			return;
 		}
@@ -751,12 +722,10 @@ export function prepareI18nPackFiles(resultingTranslationPaths: TranslationPath[
 					const firstSlash = path.indexOf('/');
 
 					if (project === extensionsProject) {
-						// resource will be the extension id
 						let extPack = extensionsPacks[resource];
 						if (!extPack) {
 							extPack = extensionsPacks[resource] = { version: i18nPackVersion, contents: {} };
 						}
-						// remove 'extensions/extensionId/' segment
 						const secondSlash = path.indexOf('/', firstSlash + 1);
 						extPack.contents[path.substring(secondSlash + 1)] = getRecordFromL10nJsonFormat(file.messages);
 					} else {

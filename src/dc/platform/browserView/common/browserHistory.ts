@@ -7,73 +7,40 @@ import { Emitter, Event } from '../../../base/common/event.js';
 import { StringSHA1 } from '../../../base/common/hash.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 
-/**
- * On-disk shape of a single history entry.
- * BACKWARDS COMPATIBILE. When evolving this interface, ensure older versions can still be handled gracefully.
- */
 export interface ISerializedBrowserHistoryEntry {
 	readonly id: number;
 	readonly url: string;
-	/** Epoch ms when the entry was most recently visited. */
 	readonly time: number;
 	readonly title: string;
-	/** Content hash key into the sibling favicons map. */
 	readonly icon?: string;
-	/**
-	 * Set when the navigation was initiated by the user (typing in the URL
-	 * bar, picking a suggestion, opening a new tab with a URL) rather than by
-	 * page script or link clicks. Always omitted when false to keep entries
-	 * small.
-	 */
 	readonly explicit?: true;
 }
 
-/**
- * In-memory representation of a history entry. Currently identical to the
- * on-disk shape; the split exists so future in-memory-only fields can be
- * added here without changing the wire format.
- */
 export interface IBrowserHistoryEntry extends ISerializedBrowserHistoryEntry { }
 
 export interface IBrowserHistoryUpdate {
-	/** URL may be updated e.g. during a redirect or in-page navigation. */
 	readonly url?: string;
 	readonly title?: string;
-	/** Favicon data URI; hashed and deduped against the sibling favicons store. Pass `null` to explicitly clear. */
 	readonly favicon?: string | null;
 }
 
-/**
- * Handle returned by {@link BrowserHistoryStore.add}. `update` and `delete`
- * are no-ops once the underlying entry has been evicted.
- */
 export interface IBrowserHistoryItemHandle {
 	readonly id: number;
 	update(patch: IBrowserHistoryUpdate): void;
 	delete(): void;
 }
 
-/** Returned by {@link BrowserHistoryStore.add} when the store is disabled (max entries = 0). */
 const NOOP_HANDLE: IBrowserHistoryItemHandle = Object.freeze({
 	id: -1,
 	update: () => { },
 	delete: () => { },
 });
 
-/**
- * On-disk shape of an entries snapshot. See {@link ISerializedBrowserHistoryEntry}
- * for the backwards-compatibility rules; the same constraints apply here.
- */
 export interface ISerializedBrowserHistoryEntriesSnapshot {
 	readonly items: readonly ISerializedBrowserHistoryEntry[];
 }
 
-/**
- * On-disk shape of a favicons snapshot. See {@link ISerializedBrowserHistoryEntry}
- * for the backwards-compatibility rules; the same constraints apply here.
- */
 export interface ISerializedBrowserFaviconsSnapshot {
-	/** Map from content hash to data URI. */
 	readonly map: Readonly<Record<string, string>>;
 }
 
@@ -129,11 +96,9 @@ export class BrowserHistoryEntriesStore extends Disposable {
 		const existing = this._items[idx];
 		const nextTitle = patch.title && patch.title.length > 0 ? patch.title : existing.title;
 		const nextUrl = patch.url && patch.url.length > 0 ? patch.url : existing.url;
-		// Distinguish "leave alone" (undefined) from explicit clear (null).
 		const nextFaviconHash = patch.faviconHash === undefined
 			? existing.icon
 			: (patch.faviconHash ?? undefined);
-		// Update the time if the URL has been updated.
 		const nextTime = patch.url ? Date.now() : existing.time;
 		if (nextUrl === existing.url && nextTitle === existing.title && nextFaviconHash === existing.icon && nextTime === existing.time) {
 			return false;
@@ -175,7 +140,6 @@ export class BrowserHistoryEntriesStore extends Disposable {
 					this._items.push(e);
 				}
 			}
-			// Restored ids must not collide with future adds.
 			for (const e of this._items) {
 				if (e.id >= this._nextId) {
 					this._nextId = e.id + 1;
@@ -187,7 +151,6 @@ export class BrowserHistoryEntriesStore extends Disposable {
 	}
 
 	private _indexOf(id: number): number {
-		// Walk newest-first; mutations target the just-added entry in the common case.
 		for (let i = this._items.length - 1; i >= 0; i--) {
 			if (this._items[i].id === id) {
 				return i;
@@ -205,11 +168,6 @@ export class BrowserHistoryEntriesStore extends Disposable {
 	}
 }
 
-/**
- * Lives separately from {@link BrowserHistoryEntriesStore} so the (large)
- * favicon map is only rewritten when an image is added or removed, not on
- * every navigation.
- */
 export class BrowserFaviconsStore extends Disposable {
 
 	private readonly _byHash = new Map<string, string>();
@@ -273,10 +231,6 @@ export class BrowserFaviconsStore extends Disposable {
 	}
 }
 
-/**
- * Per-session browser history. The two sub-stores are exposed directly so
- * persistence layers can flush them independently.
- */
 export class BrowserHistoryStore extends Disposable {
 
 	readonly entries: BrowserHistoryEntriesStore;
@@ -299,7 +253,6 @@ export class BrowserHistoryStore extends Disposable {
 
 	add(url: string, title: string, favicon?: string, userInitiated = false): IBrowserHistoryItemHandle {
 		if (this.entries.maxEntries === 0) {
-			// History disabled: skip favicon hashing and entry creation entirely.
 			return NOOP_HANDLE;
 		}
 		const faviconHash = favicon ? this.favicons.register(favicon) : undefined;
@@ -328,7 +281,6 @@ export class BrowserHistoryStore extends Disposable {
 					next.title = patch.title;
 				}
 				if (patch.favicon !== undefined) {
-					// null is the explicit-clear sentinel; a data URI registers and references it.
 					next.faviconHash = patch.favicon === null ? null : this.favicons.register(patch.favicon);
 				}
 				this.entries.update(id, next);

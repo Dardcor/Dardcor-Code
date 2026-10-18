@@ -80,8 +80,8 @@ impl ServiceManager for SystemdService {
 		proxy
 			.link_unit_files(
 				vec![self.service_path_string()],
-				/* 'runtime only'= */ false,
-				/* replace existing = */ true,
+				false,
+				true,
 			)
 			.await
 			.map_err(|e| wrap(e, "error registering service"))?;
@@ -92,13 +92,11 @@ impl ServiceManager for SystemdService {
 			warning!(self.log, "Error issuing reload(): {}", e);
 		}
 
-		// note: enablement is implicit in recent systemd version, but required for older systems
-		// https://github.com/microsoft/vscode/issues/167489#issuecomment-1331222826
 		proxy
 			.enable_unit_files(
 				vec![SystemdService::service_name_string()],
-				/* 'runtime only'= */ false,
-				/* replace existing = */ true,
+				false,
+				true,
 			)
 			.await
 			.map_err(|e| wrap(e, "error enabling unit files for service"))?;
@@ -142,7 +140,6 @@ impl ServiceManager for SystemdService {
 	}
 
 	async fn show_logs(&self) -> Result<(), AnyError> {
-		// show the systemctl status header...
 		Command::new("systemctl")
 			.args([
 				"--user",
@@ -155,7 +152,6 @@ impl ServiceManager for SystemdService {
 			.map(|s| s.code().unwrap_or(1))
 			.map_err(|e| wrap(e, "error running systemctl"))?;
 
-		// then follow log files
 		Command::new("journalctl")
 			.args(["--user", "-f", "-u", &SystemdService::service_name_string()])
 			.status()
@@ -178,7 +174,7 @@ impl ServiceManager for SystemdService {
 		proxy
 			.disable_unit_files(
 				vec![SystemdService::service_name_string()],
-				/* 'runtime only'= */ false,
+				false,
 			)
 			.await
 			.map_err(|e| wrap(e, "error unregistering service"))?;
@@ -218,12 +214,6 @@ fn write_systemd_service_file(
 	Ok(())
 }
 
-/// Minimal implementation of systemd types for the services we need. The full
-/// definition can be found on any systemd machine with the command:
-///
-/// gdbus introspect --system --dest org.freedesktop.systemd1 --object-path /org/freedesktop/systemd1
-///
-/// See docs here: https://www.freedesktop.org/software/systemd/man/org.freedesktop.systemd1.html
 #[dbus_proxy(
 	interface = "org.freedesktop.systemd1.Manager",
 	gen_blocking = false,

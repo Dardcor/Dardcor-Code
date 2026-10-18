@@ -8,10 +8,6 @@ import { OffBuffer } from './offBuffer.js';
 import { ParagraphBuffer } from './paragraphBuffer.js';
 import { WordBuffer } from './wordBuffer.js';
 
-/**
- * Registry of all available buffering strategies.
- * To add a new buffer, add an entry here.
- */
 export const BUFFER_MODES = {
 	off: (_domNode: HTMLElement): IIncrementalRenderingBuffer => new OffBuffer(),
 	word: (_domNode: HTMLElement): IIncrementalRenderingBuffer => new WordBuffer(),

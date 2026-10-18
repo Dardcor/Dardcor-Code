@@ -305,10 +305,6 @@ suite('CompressedObjectTree', function () {
 
 	suite('CompressedObjectTreeModel', function () {
 
-		/**
-		 * Calls that test function twice, once with an empty options and
-		 * once with `diffIdentityProvider`.
-		 */
 		function withSmartSplice(fn: (options: IObjectTreeModelSetChildrenOptions<number, any>) => void) {
 			fn({});
 			fn({ diffIdentityProvider: { getId: n => String(n) } });

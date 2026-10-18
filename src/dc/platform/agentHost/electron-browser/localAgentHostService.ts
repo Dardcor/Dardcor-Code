@@ -78,10 +78,6 @@ function notifyOnFatalAgentHostStartError(notificationService: INotificationServ
 	));
 }
 
-/**
- * Keeps management-channel calls on the same MessagePort generation as the
- * connected AHP transport.
- */
 export class LocalAgentHostManagementConnection extends Disposable {
 
 	private _generation = this._createGeneration();
@@ -136,11 +132,6 @@ export class LocalAgentHostManagementConnection extends Disposable {
 	}
 }
 
-/**
- * Renderer-side implementation of {@link IAgentHostService} for the local
- * agent host. State and request traffic use AHP over the Protocol channel;
- * management remains on the narrow Management IPC channel.
- */
 export class LocalAgentHostServiceClient extends Disposable implements IAgentHostService {
 	declare readonly _serviceBrand: undefined;
 
@@ -191,9 +182,6 @@ export class LocalAgentHostServiceClient extends Disposable implements IAgentHos
 			}))
 			: undefined;
 
-		// The main process tears the agent host down before restarting it; drop the
-		// current transport eagerly so the protocol client reconnects instead of
-		// treating the port going away as an unexpected failure.
 		const onWillRestart = () => {
 			if (!this._protocolClient?.reconnectFromClosed()) {
 				this._protocolClient?.notifyTransportClosed();
@@ -591,9 +579,6 @@ function hasChatExtensions(options: IAgentCreateChatRequestOptions): boolean {
 	return options.title !== undefined || options.model !== undefined;
 }
 
-/**
- * Registers local-only IPC reverse channels for one renderer connection.
- */
 export function registerAgentHostClientChannels(
 	client: IChannelServer,
 	instantiationService: IInstantiationService,

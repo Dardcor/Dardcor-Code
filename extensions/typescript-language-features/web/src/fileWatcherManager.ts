@@ -8,9 +8,6 @@ import { URI } from 'vscode-uri';
 import { Logger } from './logging';
 import { PathMapper, fromResource, looksLikeLibDtsPath, looksLikeNodeModules, mapUri } from './pathMapper';
 
-/**
- * Copied from `ts.FileWatcherEventKind` to avoid direct dependency.
- */
 enum FileWatcherEventKind {
 	Created = 0,
 	Changed = 1,
@@ -36,7 +33,7 @@ export class FileWatcherManager {
 	}
 
 	watchFile(path: string, callback: ts.FileWatcherCallback, pollingInterval?: number, options?: ts.WatchOptions): ts.FileWatcher {
-		if (looksLikeLibDtsPath(path)) { // We don't support watching lib files on web since they are readonly
+		if (looksLikeLibDtsPath(path)) {
 			return FileWatcherManager.noopWatcher;
 		}
 

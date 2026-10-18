@@ -99,7 +99,6 @@ interface IUserFriendlyViewDescriptor {
 
 	initialSize?: number;
 
-	// From 'remoteViewDescriptor' type
 	group?: string;
 	remoteName?: string | string[];
 	virtualWorkspace?: string;
@@ -306,7 +305,6 @@ class ViewsExtensionHandler implements IWorkbenchContribution {
 		const viewContainersRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 		let activityBarOrder = CUSTOM_VIEWS_START_ORDER + viewContainersRegistry.all.filter(v => !!v.extensionId && viewContainersRegistry.getViewContainerLocation(v) === ViewContainerLocation.Sidebar).length;
 		let panelOrder = 5 + viewContainersRegistry.all.filter(v => !!v.extensionId && viewContainersRegistry.getViewContainerLocation(v) === ViewContainerLocation.Panel).length + 1;
-		// offset by 100 because the chat view container used to have order 100 (now 1). Due to caching, we still need to account for the original order value
 		let auxiliaryBarOrder = 100 + viewContainersRegistry.all.filter(v => !!v.extensionId && viewContainersRegistry.getViewContainerLocation(v) === ViewContainerLocation.AuxiliaryBar).length + 1;
 		for (const { value, collector, description } of extensionPoints) {
 			Object.entries(value).forEach(([key, value]) => {
@@ -333,7 +331,6 @@ class ViewsExtensionHandler implements IWorkbenchContribution {
 		const removedExtensions: ExtensionIdentifierSet = extensionPoints.reduce((result, e) => { result.add(e.description.identifier); return result; }, new ExtensionIdentifierSet());
 		for (const viewContainer of viewContainersRegistry.all) {
 			if (viewContainer.extensionId && removedExtensions.has(viewContainer.extensionId)) {
-				// move all views in this container into default view container
 				const views = this.viewsRegistry.getViews(viewContainer);
 				if (views.length) {
 					this.viewsRegistry.moveViews(views, this.getDefaultViewContainer());
@@ -384,7 +381,6 @@ class ViewsExtensionHandler implements IWorkbenchContribution {
 			const title = descriptor.title || id;
 			const viewContainer = this.registerCustomViewContainer(id, title, icon, order++, extension.identifier, location);
 
-			// Move those views that belongs to this container
 			if (existingViewContainers.length) {
 				const viewsToMove: IViewDescriptor[] = [];
 				for (const existingViewContainer of existingViewContainers) {
@@ -470,7 +466,6 @@ class ViewsExtensionHandler implements IWorkbenchContribution {
 
 				for (let index = 0; index < value.length; index++) {
 					const item = value[index];
-					// validate
 					if (viewIds.has(item.id)) {
 						collector.error(localize('duplicateView1', "Cannot register multiple views with same id `{0}`", item.id));
 						continue;
@@ -530,7 +525,7 @@ class ViewsExtensionHandler implements IWorkbenchContribution {
 						originalContainerId: key,
 						group: item.group,
 						// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
-						remoteAuthority: item.remoteName || (<any>item).remoteAuthority, // TODO@roblou - delete after remote extensions are updated
+						remoteAuthority: item.remoteName || (<any>item).remoteAuthority,
 						virtualWorkspace: item.virtualWorkspace,
 						hideByDefault: initialVisibility === InitialVisibility.Hidden,
 						workspace: viewContainer?.id === REMOTE ? true : undefined,

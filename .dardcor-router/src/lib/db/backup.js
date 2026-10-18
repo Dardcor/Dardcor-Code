@@ -1,11 +1,3 @@
-// DB safety backups — taken ONLY before a schema change (see migrate.js).
-//
-// ⚠️ AGENT/DEV NOTES:
-// - Backups are a best-effort safety net before schema migrations. There is NO
-//   automated restore path; recovery is manual (copy a backup file back).
-// - Backups intentionally EXCLUDE the `requestDetails` table (observability log,
-//   auto-pruned, non-critical) so a multi-hundred-MB DB backs up as a few MB.
-// - Only the newest KEEP_BACKUPS are kept; older ones are pruned automatically.
 import fs from "node:fs";
 import path from "node:path";
 import { getBackupsDir, ensureDirs } from "./paths.js";
@@ -13,7 +5,6 @@ import { timestampSlug, getAppVersion } from "./version.js";
 
 const KEEP_BACKUPS = 3;
 
-// Tables excluded from safety backups (large, non-critical, reproducible).
 const BACKUP_EXCLUDE_TABLES = ["requestDetails"];
 
 export function makeBackupDir(label) {
@@ -33,8 +24,6 @@ export function backupFile(srcPath, destDir, destName = null) {
   return dest;
 }
 
-// Lightweight DB backup: serializes in-memory table collections into JSON,
-// excluding observability log, so the backup stays small regardless of DB size.
 export function backupDbLite(adapter, destDir, destName = "database.json") {
   const dest = path.join(destDir, destName);
   try {

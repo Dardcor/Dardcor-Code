@@ -103,10 +103,6 @@ export class TestTestCollection extends TestItemCollection<TestTestItem> {
 	}
 }
 
-/**
- * Gets a main thread test collection initialized with the given set of
- * roots/stubs.
- */
 export const getInitializedMainTestCollection = async (singleUse = testStubs.nested()) => {
 	const c = new MainThreadTestCollection({ asCanonicalUri: u => u }, async (t, l) => singleUse.expand(t, l));
 	await singleUse.expand(singleUse.root.id, Infinity);

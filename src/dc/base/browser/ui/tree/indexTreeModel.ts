@@ -12,7 +12,6 @@ import { LcsDiff } from '../../../common/diff/diff.js';
 import { Emitter, Event, EventBufferer } from '../../../common/event.js';
 import { Iterable } from '../../../common/iterator.js';
 
-// Exported for tests
 export interface IIndexTreeNode<T, TFilterData = void> extends ITreeNode<T, TFilterData> {
 	readonly parent: IIndexTreeNode<T, TFilterData> | undefined;
 	readonly children: IIndexTreeNode<T, TFilterData>[];
@@ -40,37 +39,19 @@ export function getVisibleState(visibility: boolean | TreeVisibility): TreeVisib
 }
 
 export interface IIndexTreeModelOptions<T, TFilterData> {
-	readonly collapseByDefault?: boolean; // defaults to false
-	readonly allowNonCollapsibleParents?: boolean; // defaults to false
+	readonly collapseByDefault?: boolean;
+	readonly allowNonCollapsibleParents?: boolean;
 	readonly filter?: ITreeFilter<T, TFilterData>;
 	readonly autoExpandSingleChildren?: boolean;
 }
 
 export interface IIndexTreeModelSpliceOptions<T, TFilterData> {
-	/**
-	 * If set, child updates will recurse the given number of levels even if
-	 * items in the splice operation are unchanged. `Infinity` is a valid value.
-	 */
 	readonly diffDepth?: number;
 
-	/**
-	 * Identity provider used to optimize splice() calls in the IndexTree. If
-	 * this is not present, optimized splicing is not enabled.
-	 *
-	 * Warning: if this is present, calls to `setChildren()` will not replace
-	 * or update nodes if their identity is the same, even if the elements are
-	 * different. For this, you should call `rerender()`.
-	 */
 	readonly diffIdentityProvider?: IIdentityProvider<T>;
 
-	/**
-	 * Callback for when a node is created.
-	 */
 	onDidCreateNode?: (node: ITreeNode<T, TFilterData>) => void;
 
-	/**
-	 * Callback for when a node is deleted.
-	 */
 	onDidDeleteNode?: (node: ITreeNode<T, TFilterData>) => void;
 }
 
@@ -184,7 +165,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 			},
 		).ComputeDiff(false);
 
-		// if we were given a 'best effort' diff, use default behavior
 		if (diff.quitEarly) {
 			parentNode.lastDiffIds = undefined;
 			return this.spliceSimple(location, deleteCount, toInsert, options);
@@ -223,7 +203,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 			);
 		}
 
-		// at this point, startO === startM === count since any remaining prefix should match
 		recurseSplice(lastStartO, lastStartM, lastStartO);
 	}
 
@@ -239,8 +218,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 
 		const lastIndex = location[location.length - 1];
 
-		// figure out what's the visible child start index right before the
-		// splice point
 		let visibleChildStartIndex = 0;
 
 		for (let i = lastIndex; i >= 0 && i < parentNode.children.length; i--) {
@@ -275,7 +252,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 			parentNode.lastDiffIds = parentNode.children.map(n => diffIdentityProvider.getId(n.element).toString());
 		}
 
-		// figure out what is the count of deleted visible children
 		let deletedVisibleChildrenCount = 0;
 
 		for (const child of deletedNodes) {
@@ -284,7 +260,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 			}
 		}
 
-		// and adjust for all visible children after the splice point
 		if (deletedVisibleChildrenCount !== 0) {
 			for (let i = lastIndex + nodesToInsert.length; i < parentNode.children.length; i++) {
 				const child = parentNode.children[i];
@@ -295,7 +270,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 			}
 		}
 
-		// update parent's visible children count
 		parentNode.visibleChildrenCount += insertedVisibleChildrenCount - deletedVisibleChildrenCount;
 
 		if (deletedNodes.length > 0 && onDidDeleteNode) {
@@ -320,7 +294,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 
 		while (node) {
 			if (node.visibility === TreeVisibility.Recurse) {
-				// delayed to avoid excessive refiltering, see #135941
 				this.refilterDelayer.trigger(() => this.refilter());
 				break;
 			}
@@ -669,7 +642,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 		}
 	}
 
-	// cheap
 	private hasTreeNode(location: number[], node: IIndexTreeNode<T, TFilterData> = this.root): boolean {
 		if (!location || location.length === 0) {
 			return true;
@@ -684,7 +656,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 		return this.hasTreeNode(rest, node.children[index]);
 	}
 
-	// cheap
 	private getTreeNode(location: number[], node: IIndexTreeNode<T, TFilterData> = this.root): IIndexTreeNode<T, TFilterData> {
 		if (!location || location.length === 0) {
 			return node;
@@ -699,7 +670,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 		return this.getTreeNode(rest, node.children[index]);
 	}
 
-	// expensive
 	private getTreeNodeWithListIndex(location: number[]): { node: IIndexTreeNode<T, TFilterData>; listIndex: number; revealed: boolean; visible: boolean } {
 		if (location.length === 0) {
 			return { node: this.root, listIndex: -1, revealed: true, visible: false };
@@ -724,7 +694,6 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 			throw new TreeError(this.user, 'Invalid tree location');
 		}
 
-		// TODO@joao perf!
 		for (let i = 0; i < index; i++) {
 			listIndex += node.children[i].renderNodeCount;
 		}
@@ -743,10 +712,9 @@ export class IndexTreeModel<T extends Exclude<unknown, undefined>, TFilterData =
 		return this.getTreeNode(location);
 	}
 
-	// TODO@joao perf!
 	getNodeLocation(node: ITreeNode<T, TFilterData>): number[] {
 		const location: number[] = [];
-		let indexTreeNode = node as IIndexTreeNode<T, TFilterData>; // typing woes
+		let indexTreeNode = node as IIndexTreeNode<T, TFilterData>;
 
 		while (indexTreeNode.parent) {
 			location.push(indexTreeNode.parent.children.indexOf(indexTreeNode));

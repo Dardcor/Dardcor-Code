@@ -3,10 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * This file is mostly a mirror of the editor's suggest but scoped to .monaco-workbench to avoid
- * layer breakers and shipping with the standalone monaco editor.
- */
 
 .workbench-suggest-widget {
 	position: fixed;
@@ -25,7 +21,6 @@
 	background-color: var(--vscode-editorSuggestWidget-background);
 }
 
-/* Suggest widget*/
 
 .workbench-suggest-widget {
 	width: 430px;
@@ -57,7 +52,6 @@
 	border-width: 2px;
 }
 
-/* Styles for status bar part */
 
 .monaco-workbench .workbench-suggest-widget.with-status-bar .suggest-status-bar {
 	display: flex;
@@ -98,13 +92,11 @@
 	display: none;
 }
 
-/* Styles for Message element for when widget is loading or is empty */
 
 .monaco-workbench .workbench-suggest-widget > .message {
 	padding-left: 22px;
 }
 
-/** Styles for each row in the list element **/
 
 .workbench-suggest-widget .monaco-list .monaco-list-row {
 	display: flex;
@@ -162,7 +154,6 @@
 	color: var(--vscode-editorSuggestWidget-focusHighlightForeground);
 }
 
-/** Styles for each row in the list **/
 
 .workbench-suggest-widget .monaco-list .monaco-list-row .monaco-icon-label.deprecated {
 	opacity: 0.66;
@@ -210,7 +201,6 @@
 	display: inline-block;
 }
 
-/** ReadMore Icon styles **/
 
 .workbench-suggest-widget .suggest-details > .monaco-scrollable-element > .body > .header > .codicon-close,
 .workbench-suggest-widget .suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .readMore::before {
@@ -231,7 +221,6 @@
 	opacity: 1;
 }
 
-/** signature, qualifier, type/details opacity **/
 
 .workbench-suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .details-label {
 	opacity: 0.7;
@@ -253,7 +242,6 @@
 	align-self: center;
 }
 
-/** Type Info and icon next to the label in the focused completion item **/
 
 .workbench-suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .details-label {
 	font-size: 85%;
@@ -267,7 +255,6 @@
 	display: inline;
 }
 
-/** Details: if using CompletionItem#details, show on focus **/
 
 .workbench-suggest-widget .monaco-list .monaco-list-row > .contents > .main > .right > .details-label {
 	display: none;
@@ -277,7 +264,6 @@
 	display: inline;
 }
 
-/** Details: if using CompletionItemLabel#details, always show **/
 
 .workbench-suggest-widget .monaco-list .monaco-list-row:not(.string-label) > .contents > .main > .right > .details-label,
 .workbench-suggest-widget.docs-side .monaco-list .monaco-list-row.focused:not(.string-label) > .contents > .main > .right > .details-label {
@@ -285,7 +271,6 @@
 }
 
 
-/** Ellipsis on hover **/
 
 .workbench-suggest-widget:not(.docs-side) .monaco-list .monaco-list-row.focused:hover > .contents > .main > .right.can-expand-details > .details-label {
 	width: calc(100% - 26px);

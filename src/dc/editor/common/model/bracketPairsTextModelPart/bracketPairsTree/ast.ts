@@ -21,40 +21,21 @@ export const enum AstNodeKind {
 
 export type AstNode = PairAstNode | ListAstNode | BracketAstNode | InvalidBracketAstNode | TextAstNode;
 
-/**
- * The base implementation for all AST nodes.
-*/
 abstract class BaseAstNode {
 	public abstract readonly kind: AstNodeKind;
 
 	public abstract readonly childrenLength: number;
 
-	/**
-	 * Might return null even if {@link idx} is smaller than {@link BaseAstNode.childrenLength}.
-	*/
 	public abstract getChild(idx: number): AstNode | null;
 
-	/**
-	 * Try to avoid using this property, as implementations might need to allocate the resulting array.
-	*/
 	public abstract readonly children: readonly AstNode[];
 
-	/**
-	 * Represents the set of all (potentially) missing opening bracket ids in this node.
-	 * E.g. in `{ ] ) }` that set is {`[`, `(` }.
-	*/
 	public abstract readonly missingOpeningBracketIds: SmallImmutableSet<OpeningBracketId>;
 
-	/**
-	 * In case of a list, determines the height of the (2,3) tree.
-	*/
 	public abstract readonly listHeight: number;
 
 	protected _length: Length;
 
-	/**
-	 * The length of the entire node, which should equal the sum of lengths of all children.
-	*/
 	public get length(): Length {
 		return this._length;
 	}
@@ -63,31 +44,17 @@ abstract class BaseAstNode {
 		this._length = length;
 	}
 
-	/**
-	 * @param openBracketIds The set of all opening brackets that have not yet been closed.
-	 */
 	public abstract canBeReused(
 		openBracketIds: SmallImmutableSet<OpeningBracketId>
 	): boolean;
 
-	/**
-	 * Flattens all lists in this AST. Only for debugging.
-	 */
 	public abstract flattenLists(): AstNode;
 
-	/**
-	 * Creates a deep clone.
-	 */
 	public abstract deepClone(): AstNode;
 
 	public abstract computeMinIndentation(offset: Length, textModel: ITextModel): number;
 }
 
-/**
- * Represents a bracket pair including its child (e.g. `{ ... }`).
- * Might be unclosed.
- * Immutable, if all children are immutable.
-*/
 export class PairAstNode extends BaseAstNode {
 	public static create(
 		openingBracket: BracketAstNode,
@@ -122,9 +89,6 @@ export class PairAstNode extends BaseAstNode {
 		throw new Error('Invalid child index');
 	}
 
-	/**
-	 * Avoid using this property, it allocates an array!
-	*/
 	public get children() {
 		const result: AstNode[] = [];
 		result.push(this.openingBracket);
@@ -149,12 +113,7 @@ export class PairAstNode extends BaseAstNode {
 
 	public canBeReused(openBracketIds: SmallImmutableSet<OpeningBracketId>) {
 		if (this.closingBracket === null) {
-			// Unclosed pair ast nodes only
-			// end at the end of the document
-			// or when a parent node is closed.
 
-			// This could be improved:
-			// Only return false if some next token is neither "undefined" nor a bracket that closes a parent.
 
 			return false;
 		}
@@ -190,9 +149,6 @@ export class PairAstNode extends BaseAstNode {
 }
 
 export abstract class ListAstNode extends BaseAstNode {
-	/**
-	 * This method uses more memory-efficient list nodes that can only store 2 or 3 children.
-	*/
 	public static create23(item1: AstNode, item2: AstNode, item3: AstNode | null, immutable: boolean = false): ListAstNode {
 		let length = item1.length;
 		let missingBracketIds = item1.missingOpeningBracketIds;
@@ -246,9 +202,6 @@ export abstract class ListAstNode extends BaseAstNode {
 
 	private cachedMinIndentation: number = -1;
 
-	/**
-	 * Use ListAstNode.create.
-	*/
 	constructor(
 		length: Length,
 		public readonly listHeight: number,
@@ -258,7 +211,6 @@ export abstract class ListAstNode extends BaseAstNode {
 	}
 
 	protected throwIfImmutable(): void {
-		// NOOP
 	}
 
 	protected abstract setChild(idx: number, child: AstNode): void;
@@ -297,7 +249,6 @@ export abstract class ListAstNode extends BaseAstNode {
 		}
 
 		if (this.childrenLength === 0) {
-			// Don't reuse empty lists.
 			return false;
 		}
 
@@ -305,7 +256,6 @@ export abstract class ListAstNode extends BaseAstNode {
 		while (lastChild.kind === AstNodeKind.List) {
 			const lastLength = lastChild.childrenLength;
 			if (lastLength === 0) {
-				// Empty lists should never be contained in other lists.
 				throw new BugIndicatingError();
 			}
 			lastChild = lastChild.getChild(lastLength - 1) as ListAstNode;
@@ -365,9 +315,6 @@ export abstract class ListAstNode extends BaseAstNode {
 		return minIndentation;
 	}
 
-	/**
-	 * Creates a shallow clone that is mutable, or itself if it is already mutable.
-	 */
 	public abstract toMutable(): ListAstNode;
 
 	public abstract appendChildOfSameHeight(node: AstNode): void;
@@ -483,9 +430,6 @@ class TwoThreeListAstNode extends ListAstNode {
 	}
 }
 
-/**
- * Immutable, if all children are immutable.
-*/
 class Immutable23ListAstNode extends TwoThreeListAstNode {
 	override toMutable(): ListAstNode {
 		return new TwoThreeListAstNode(this.length, this.listHeight, this.item1, this.item2, this.item3, this.missingOpeningBracketIds);
@@ -496,9 +440,6 @@ class Immutable23ListAstNode extends TwoThreeListAstNode {
 	}
 }
 
-/**
- * For debugging.
-*/
 class ArrayListAstNode extends ListAstNode {
 	get childrenLength(): number {
 		return this._children.length;
@@ -561,9 +502,6 @@ class ArrayListAstNode extends ListAstNode {
 	}
 }
 
-/**
- * Immutable, if all children are immutable.
-*/
 class ImmutableArrayListAstNode extends ArrayListAstNode {
 	override toMutable(): ListAstNode {
 		return new ArrayListAstNode(this.length, this.listHeight, [...this.children], this.missingOpeningBracketIds);
@@ -612,8 +550,6 @@ export class TextAstNode extends ImmutableLeafAstNode {
 
 	public computeMinIndentation(offset: Length, textModel: ITextModel): number {
 		const start = lengthToObj(offset);
-		// Text ast nodes don't have partial indentation (ensured by the tokenizer).
-		// Thus, if this text node does not start at column 0, the first line cannot have any indentation at all.
 		const startLineNumber = (start.columnCount === 0 ? start.lineCount : start.lineCount + 1) + 1;
 		const endLineNumber = lengthGetLineCount(lengthAdd(offset, this.length)) + 1;
 
@@ -655,10 +591,6 @@ export class BracketAstNode extends ImmutableLeafAstNode {
 	private constructor(
 		length: Length,
 		public readonly bracketInfo: BracketKind,
-		/**
-		 * In case of a opening bracket, this is the id of the opening bracket.
-		 * In case of a closing bracket, this contains the ids of all opening brackets it can close.
-		*/
 		public readonly bracketIds: SmallImmutableSet<OpeningBracketId>
 	) {
 		super(length);
@@ -673,9 +605,6 @@ export class BracketAstNode extends ImmutableLeafAstNode {
 	}
 
 	public canBeReused(_openedBracketIds: SmallImmutableSet<OpeningBracketId>) {
-		// These nodes could be reused,
-		// but not in a general way.
-		// Their parent may be reused.
 		return false;
 	}
 

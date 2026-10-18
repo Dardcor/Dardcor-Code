@@ -39,7 +39,7 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 	private static readonly MAX_DIMENSIONS = new Dimension(450, 400);
 
-	private static readonly MAX_NOTIFICATION_SOURCES = 10; // maximum number of notification sources to show in configure dropdown
+	private static readonly MAX_NOTIFICATION_SOURCES = 10;
 
 	private readonly _onDidChangeVisibility = this._register(new Emitter<void>());
 	readonly onDidChangeVisibility = this._onDidChangeVisibility.event;
@@ -129,7 +129,7 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 	private onDidChangeFilter(): void {
 		if (this.notificationService.getFilter() === NotificationsFilter.ERROR) {
-			this.hide(); // hide the notification center when we have a error filter enabled
+			this.hide();
 		}
 	}
 
@@ -141,48 +141,36 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 		if (this._isVisible) {
 			const notificationsList = assertReturnsDefined(this.notificationsList);
 
-			// Make visible
 			notificationsList.show();
 
-			// Focus first
 			notificationsList.focusFirst();
 
-			return; // already visible
+			return;
 		}
 
-		// Lazily create if showing for the first time
 		if (!this.notificationsCenterContainer) {
 			this.create();
 		}
 
-		// Title
 		this.updateTitle();
 
-		// Make visible
 		const [notificationsList, notificationsCenterContainer] = assertReturnsAllDefined(this.notificationsList, this.notificationsCenterContainer);
 		this._isVisible = true;
 		notificationsCenterContainer.classList.add('visible');
 		notificationsList.show();
 
-		// Layout
 		this.layout(this.workbenchDimensions);
 
-		// Show all notifications that are present now
 		notificationsList.updateNotificationsList(0, 0, this.model.notifications);
 
-		// Focus first
 		notificationsList.focusFirst();
 
-		// Theming
 		this.updateStyles();
 
-		// Mark as visible
 		this.model.notifications.forEach(notification => notification.updateVisibility(true));
 
-		// Context Key
 		this.notificationsCenterVisibleContextKey.set(true);
 
-		// Event
 		this._onDidChangeVisibility.fire();
 	}
 
@@ -200,21 +188,16 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 	private create(): void {
 
-		// Container
 		this.notificationsCenterContainer = $('.notifications-center');
 
-		// Apply position class
 		this.updatePositionClass();
 
-		// Header
 		this.notificationsCenterHeader = $('.notifications-center-header');
 		this.notificationsCenterContainer.appendChild(this.notificationsCenterHeader);
 
-		// Header Title
 		this.notificationsCenterTitle = $('span.notifications-center-header-title');
 		this.notificationsCenterHeader.appendChild(this.notificationsCenterTitle);
 
-		// Header Toolbar
 		const toolbarContainer = $('.notifications-center-header-toolbar');
 		this.notificationsCenterHeader.appendChild(toolbarContainer);
 
@@ -294,7 +277,6 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 		this.updateHideActionIcon();
 		notificationsToolBar.push(this.hideAction, { icon: true, label: false, keybinding: this.getKeybindingLabel(this.hideAction) });
 
-		// Notifications List
 		this.notificationsList = this._register(this.instantiationService.createInstance(NotificationsList, this.notificationsCenterContainer, {
 			widgetAriaLabel: localize('notificationsCenterWidgetAriaLabel', "Notifications Center")
 		}));
@@ -310,12 +292,11 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 	private onDidChangeNotification(e: INotificationChangeEvent): void {
 		if (!this._isVisible) {
-			return; // only if visible
+			return;
 		}
 
 		let focusEditor = false;
 
-		// Update notifications list based on event kind
 		const [notificationsList, notificationsCenterContainer] = assertReturnsAllDefined(this.notificationsList, this.notificationsCenterContainer);
 		switch (e.kind) {
 			case NotificationChangeType.ADD:
@@ -323,9 +304,6 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 				e.item.updateVisibility(true);
 				break;
 			case NotificationChangeType.CHANGE:
-				// Handle content changes
-				// - actions: re-draw to properly show them
-				// - message: update notification height unless collapsed
 				switch (e.detail) {
 					case NotificationViewItemContentChangeKind.ACTIONS:
 						notificationsList.updateNotificationsList(e.index, 1, [e.item]);
@@ -338,7 +316,6 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 				}
 				break;
 			case NotificationChangeType.EXPAND_COLLAPSE:
-				// Re-draw entire item when expansion changes to reveal or hide details
 				notificationsList.updateNotificationsList(e.index, 1, [e.item]);
 				break;
 			case NotificationChangeType.REMOVE:
@@ -348,14 +325,11 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 				break;
 		}
 
-		// Update title
 		this.updateTitle();
 
-		// Hide if no more notifications to show
 		if (this.model.notifications.length === 0) {
 			this.hide();
 
-			// Restore focus to editor group if we had focus
 			if (focusEditor) {
 				this.editorGroupService.activeGroup.focus();
 			}
@@ -364,26 +338,21 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 	hide(): void {
 		if (!this._isVisible || !this.notificationsCenterContainer || !this.notificationsList) {
-			return; // already hidden
+			return;
 		}
 
 		const focusEditor = isAncestorOfActiveElement(this.notificationsCenterContainer);
 
-		// Hide
 		this._isVisible = false;
 		this.notificationsCenterContainer.classList.remove('visible');
 		this.notificationsList.hide();
 
-		// Mark as hidden
 		this.model.notifications.forEach(notification => notification.updateVisibility(false));
 
-		// Context Key
 		this.notificationsCenterVisibleContextKey.set(false);
 
-		// Event
 		this._onDidChangeVisibility.fire();
 
-		// Restore focus to editor group if we had focus
 		if (focusEditor) {
 			this.editorGroupService.activeGroup.focus();
 		}
@@ -416,27 +385,23 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 			if (this.workbenchDimensions) {
 
-				// Make sure notifications are not exceding available width
 				availableWidth = this.workbenchDimensions.width;
-				availableWidth -= (2 * 8); // adjust for paddings left and right
+				availableWidth -= (2 * 8);
 
-				// Make sure notifications are not exceeding available height
-				availableHeight = this.workbenchDimensions.height - 35 /* header */;
+				availableHeight = this.workbenchDimensions.height - 35 ;
 				if (this.layoutService.isVisible(Parts.STATUSBAR_PART, mainWindow)) {
-					availableHeight -= 22; // adjust for status bar
+					availableHeight -= 22;
 				}
 
 				if (this.layoutService.isVisible(Parts.TITLEBAR_PART, mainWindow)) {
-					availableHeight -= 22; // adjust for title bar
+					availableHeight -= 22;
 				}
 
-				availableHeight -= (2 * 12); // adjust for paddings top and bottom
+				availableHeight -= (2 * 12);
 			}
 
-			// Update position offset
 			this.updateTopOffset();
 
-			// Apply to list
 			const notificationsList = assertReturnsDefined(this.notificationsList);
 			notificationsList.layout(Math.min(maxWidth, availableWidth), Math.min(maxHeight, availableHeight));
 		}
@@ -444,11 +409,9 @@ export class NotificationsCenter extends Themable implements INotificationsCente
 
 	clearAll(): void {
 
-		// Hide notifications center first
 		this.hide();
 
-		// Close all
-		for (const notification of [...this.model.notifications] /* copy array since we modify it from closing */) {
+		for (const notification of [...this.model.notifications] ) {
 			if (!notification.hasProgress) {
 				notification.close();
 			}

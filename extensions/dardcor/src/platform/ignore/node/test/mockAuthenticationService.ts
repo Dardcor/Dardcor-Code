@@ -8,10 +8,6 @@ import { Event } from '../../../../util/dardcor/base/common/event';
 import { IAuthenticationService } from '../../../authentication/common/authentication';
 import { CopilotToken } from '../../../authentication/common/dardcorToken';
 
-/**
- * A minimal mock implementation of IAuthenticationService for testing.
- * Returns undefined for all session methods by default.
- */
 export class MockAuthenticationService implements IAuthenticationService {
 	declare readonly _serviceBrand: undefined;
 

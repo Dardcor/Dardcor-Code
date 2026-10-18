@@ -74,7 +74,6 @@ export class NotebookDiffEditorInput extends DiffEditorInput {
 
 		this._cachedModel?.dispose();
 
-		// TODO@rebornix check how we restore the editor in text diff editor
 		if (!modifiedEditorModel) {
 			throw new Error(`Fail to resolve modified editor model for resource ${this.modified.resource} with notebookType ${this.viewType}`);
 		}

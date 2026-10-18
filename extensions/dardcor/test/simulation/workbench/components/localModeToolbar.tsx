@@ -29,9 +29,6 @@ import {
 } from './filterUtils';
 import { TestFilterer } from './testFilterer';
 
-/**
- * Interface for filter parameters used in filtering tests
- */
 interface FilterParams {
 	grep: string;
 	showBaselineJSONChangedOnly: boolean;
@@ -42,48 +39,35 @@ interface FilterParams {
 	selectedAnnotations: string[];
 }
 
-/**
- * Type for Fluent UI select option event
- */
 interface SelectOptionEvent {
 	value: string;
 }
 
-// Hook for asynchronously applying filters
 const useAsyncFilter = (
 	filterParams: FilterParams,
 	debounceMs: number,
 	createFilter: (params: FilterParams) => TestFilterer,
 	onFilterChange: (filter: TestFilterer | undefined) => void
 ) => {
-	// Track if component is mounted to prevent state updates after unmount
 	const isMounted = useRef(true);
-	// Store the latest filter parameters
 	const latestFilterParams = useRef(filterParams);
-	// Track if a filter operation is in progress
 	const isFilteringRef = useRef(false);
-	// Track if there's a pending filter operation
 	const hasPendingFilterRef = useRef(false);
-	// Add a state to indicate filtering is in progress (could be used for UI feedback)
 	const [isFiltering, setIsFiltering] = useState(false);
 
-	// Update the latest filter params when they change
 	useEffect(() => {
 		latestFilterParams.current = filterParams;
 	}, [filterParams]);
 
-	// Clean up when component unmounts
 	useEffect(() => {
 		return () => {
 			isMounted.current = false;
 		};
 	}, []);
 
-	// Function to perform the actual filter creation asynchronously
 	const applyFilter = useCallback(() => {
 		if (!isMounted.current) { return; }
 
-		// If already filtering, mark as pending and return
 		if (isFilteringRef.current) {
 			hasPendingFilterRef.current = true;
 			return;
@@ -92,25 +76,19 @@ const useAsyncFilter = (
 		isFilteringRef.current = true;
 		setIsFiltering(true);
 
-		// Use setTimeout to move filter creation off the main thread
 		setTimeout(() => {
-			// Create a local copy of the latest filter params to avoid race conditions
 			const params = latestFilterParams.current;
 
-			// Use requestAnimationFrame to schedule filter application for the next frame
 			requestAnimationFrame(() => {
 				try {
-					// Create the filter
 					const newFilter = createFilter(params);
 
-					// Schedule the filter change callback for the next frame to prevent UI blocking
 					requestAnimationFrame(() => {
 						if (isMounted.current) {
 							onFilterChange(newFilter);
 							isFilteringRef.current = false;
 							setIsFiltering(false);
 
-							// If there's a pending filter request, process it
 							if (hasPendingFilterRef.current) {
 								hasPendingFilterRef.current = false;
 								applyFilter();
@@ -123,7 +101,6 @@ const useAsyncFilter = (
 						isFilteringRef.current = false;
 						setIsFiltering(false);
 
-						// If there's a pending filter request, process it
 						if (hasPendingFilterRef.current) {
 							hasPendingFilterRef.current = false;
 							applyFilter();
@@ -131,10 +108,9 @@ const useAsyncFilter = (
 					}
 				}
 			});
-		}, 0); // Use 0ms timeout to defer to the next event loop tick
+		}, 0);
 	}, [createFilter, onFilterChange]);
 
-	// Set up a debounced effect to apply the filter
 	useEffect(() => {
 		const debounceTimer = setTimeout(applyFilter, debounceMs);
 		return () => clearTimeout(debounceTimer);
@@ -162,7 +138,6 @@ export const LocalModeToolbar = mobxlite.observer(
 		onFiltererChange,
 	}: Props) => {
 
-		// filtering
 		const [showBaselineJSONChangedOnly, setShowBaselineJSONChangedOnly] = useLocalStorageState('baselineJSONChangedOnly', undefined, false);
 		const [showFailedOnly, setShowFailedOnly] = useLocalStorageState('showFailedOnly', undefined, false);
 		const [showOnlyRanTests, setShowOnlyRanTests] = useLocalStorageState('showOnlyRanTests', undefined, false);
@@ -170,7 +145,6 @@ export const LocalModeToolbar = mobxlite.observer(
 		const [showOnlyTestsWithAnnotations, setShowOnlyTestsWithAnnotations] = useLocalStorageState('showOnlyTestsWithAnnotations', undefined, false);
 		const [selectedAnnotations, setSelectedAnnotations] = useLocalStorageState<string[]>('selectedAnnotations', undefined, []);
 
-		// Create filter parameters object that will be processed asynchronously
 		const filterParams = useMemo(() => ({
 			grep: runnerOptions.grep.value,
 			showBaselineJSONChangedOnly,
@@ -189,11 +163,9 @@ export const LocalModeToolbar = mobxlite.observer(
 			selectedAnnotations
 		]);
 
-		// Callback for creating a filter instance - memoized to prevent recreations
 		const createFilter = useCallback((params: FilterParams): TestFilterer => {
 			const predicates = [];
 
-			// Add active filter predicates
 			predicates.push(createGrepFilter(params.grep));
 
 			if (params.showBaselineJSONChangedOnly) {
@@ -219,15 +191,13 @@ export const LocalModeToolbar = mobxlite.observer(
 			return createFilterer(predicates);
 		}, []);
 
-		// Memoize the filter change callback
 		const handleFilterChange = useCallback((filter: TestFilterer | undefined) => {
 			onFiltererChange(filter);
 		}, [onFiltererChange]);
 
-		// Use the async filter hook with a longer debounce time (500ms)
 		const { isFiltering } = useAsyncFilter(
 			filterParams,
-			500, // Increased from 300ms to 500ms
+			500,
 			createFilter,
 			handleFilterChange
 		);
@@ -236,7 +206,6 @@ export const LocalModeToolbar = mobxlite.observer(
 
 		const [knownAnnotations, setKnownAnnotations] = React.useState<string[]>([]);
 
-		// Memoize event handlers to prevent recreations on each render
 		const updateKnownAnnotations = useCallback(() => {
 			const newAnnotations = new Set<string>(knownAnnotations);
 			for (const test of simulationTestsProvider.tests) {
@@ -267,7 +236,6 @@ export const LocalModeToolbar = mobxlite.observer(
 			});
 		}, [isSimulationRunning, runner, runnerOptions]);
 
-		// Memoize checkbox handlers
 		const handleBaselineJSONChangedOnlyChange = useCallback(() => {
 			setShowBaselineJSONChangedOnly(!showBaselineJSONChangedOnly);
 		}, [showBaselineJSONChangedOnly, setShowBaselineJSONChangedOnly]);

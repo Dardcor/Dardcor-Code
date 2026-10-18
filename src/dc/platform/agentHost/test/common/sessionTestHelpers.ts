@@ -389,11 +389,6 @@ export function encodeString(text: string): Uint8Array {
 	return new TextEncoder().encode(text);
 }
 
-/**
- * Returns a no-op {@link IAgentHostGitService} suitable for tests that
- * exercise the {@link AgentService} but don't care about git state.
- * Tests that DO care about git state should pass their own implementation.
- */
 export function createNoopGitService(): import('../../common/agentHostGitService.js').IAgentHostGitService {
 	return {
 		_serviceBrand: undefined,
@@ -438,11 +433,6 @@ export function createNoopGitService(): import('../../common/agentHostGitService
 	};
 }
 
-/**
- * Returns a no-op {@link IAgentHostChangesetService} for tests that need to
- * inject the changeset service but don't exercise changeset computation.
- * Individual methods can be reassigned by callers that want to spy on them.
- */
 export function createNoopChangesetService(): import('../../common/agentHostChangesetService.js').IAgentHostChangesetService {
 	return {
 		_serviceBrand: undefined,
@@ -489,13 +479,6 @@ function createReference<T>(object: T): IReference<T> {
 	};
 }
 
-/**
- * Recording {@link IAgentHostCheckpointService} double that captures
- * {@link captureBaselineCheckpoint} invocations (session + resolved working
- * directories) so tests can assert baseline capture on the fresh materialize
- * path — and its absence on resume / subsequent sends. All other methods are
- * no-ops, mirroring `NULL_CHECKPOINT_SERVICE`.
- */
 export class RecordingCheckpointService implements IAgentHostCheckpointService {
 	declare readonly _serviceBrand: undefined;
 	readonly baselineCalls: { readonly session: string; readonly workingDirectories: readonly string[] | undefined }[] = [];

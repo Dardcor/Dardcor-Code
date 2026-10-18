@@ -6,9 +6,6 @@
 import { localize } from '../../../../nls.js';
 import { Downloading } from '../../../../platform/update/common/update.js';
 
-/**
- * Returns the progress percentage based on the current and maximum progress values.
- */
 export function computeProgressPercent(current: number | undefined, max: number | undefined): number | undefined {
 	if (current === undefined || max === undefined || max <= 0) {
 		return undefined;
@@ -17,9 +14,6 @@ export function computeProgressPercent(current: number | undefined, max: number 
 	return Math.max(Math.min(Math.round((current / max) * 100), 100), 0);
 }
 
-/**
- * Computes an estimate of remaining download time in seconds.
- */
 export function computeDownloadTimeRemaining(state: Downloading): number | undefined {
 	const { downloadedBytes, totalBytes, startTime } = state;
 	if (downloadedBytes === undefined || totalBytes === undefined || startTime === undefined) {
@@ -45,9 +39,6 @@ export function computeDownloadTimeRemaining(state: Downloading): number | undef
 	return Math.ceil(remainingMs / 1000);
 }
 
-/**
- * Computes the current download speed in bytes per second.
- */
 export function computeDownloadSpeed(state: Downloading): number | undefined {
 	const { downloadedBytes, startTime } = state;
 	if (downloadedBytes === undefined || startTime === undefined) {
@@ -62,11 +53,6 @@ export function computeDownloadSpeed(state: Downloading): number | undefined {
 	return (downloadedBytes / elapsedMs) * 1000;
 }
 
-/**
- * Computes the version to use for fetching update info.
- * - If the minor version differs: returns `{major}.{minor}` (e.g., 1.108.2 -> 1.109.5 => 1.109)
- * - If the same minor: returns the target version as-is (e.g., 1.109.2 -> 1.109.5 => 1.109.5)
- */
 export function computeUpdateInfoVersion(currentVersion: string, targetVersion: string): string | undefined {
 	const current = tryParseVersion(currentVersion);
 	const target = tryParseVersion(targetVersion);
@@ -81,18 +67,11 @@ export function computeUpdateInfoVersion(currentVersion: string, targetVersion: 
 	return `${target.major}.${target.minor}.${target.patch}`;
 }
 
-/**
- * Computes the URL to fetch update info from.
- * Follows the release notes URL pattern but with `_update` suffix.
- */
 export function getUpdateInfoUrl(version: string): string {
 	const versionLabel = version.replace(/\./g, '_').replace(/_0$/, '');
 	return `https://code.visualstudio.com/raw/v${versionLabel}_update.md`;
 }
 
-/**
- * Formats the time remaining as a human-readable string.
- */
 export function formatTimeRemaining(seconds: number): string {
 	const hours = seconds / 3600;
 	if (hours >= 1) {
@@ -112,9 +91,6 @@ export function formatTimeRemaining(seconds: number): string {
 	return localize('update.timeRemainingSeconds', "{0}s", seconds);
 }
 
-/**
- * Formats a byte count as a human-readable string.
- */
 export function formatBytes(bytes: number): string {
 	if (bytes < 1024) {
 		return localize('update.bytes', "{0} B", bytes);
@@ -134,9 +110,6 @@ export function formatBytes(bytes: number): string {
 	return localize('update.gigabytes', "{0} GB", formatDecimal(gb));
 }
 
-/**
- * Tries to parse a date string and returns the timestamp or undefined if parsing fails.
- */
 export function tryParseDate(date: string | undefined): number | undefined {
 	if (date === undefined) {
 		return undefined;
@@ -150,9 +123,6 @@ export function tryParseDate(date: string | undefined): number | undefined {
 	}
 }
 
-/**
- * Formats a timestamp as a localized date string.
- */
 export function formatDate(timestamp: number): string {
 	return new Date(timestamp).toLocaleDateString(undefined, {
 		year: 'numeric',
@@ -161,9 +131,6 @@ export function formatDate(timestamp: number): string {
 	});
 }
 
-/**
- * Formats a number to 1 decimal place, omitting ".0" for whole numbers.
- */
 export function formatDecimal(value: number): string {
 	const rounded = Math.round(value * 10) / 10;
 	return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
@@ -175,9 +142,6 @@ export interface IVersion {
 	patch: number;
 }
 
-/**
- * Parses a version string in the format "major.minor.patch" and returns an object with the components.
- */
 export function tryParseVersion(version: string | undefined): IVersion | undefined {
 	if (version === undefined) {
 		return undefined;
@@ -199,9 +163,6 @@ export function tryParseVersion(version: string | undefined): IVersion | undefin
 	}
 }
 
-/**
- * Processes an error message and returns a user-friendly version of it, or undefined if the error should be ignored.
- */
 export function preprocessError(error?: string): string | undefined {
 	if (!error) {
 		return undefined;
@@ -217,9 +178,6 @@ export function preprocessError(error?: string): string | undefined {
 	);
 }
 
-/**
- * Determines whether there is a major or minor version change between two versions.
- */
 export function isMajorMinorVersionChange(previousVersion?: string, newVersion?: string): boolean {
 	const previous = tryParseVersion(previousVersion);
 	const current = tryParseVersion(newVersion);

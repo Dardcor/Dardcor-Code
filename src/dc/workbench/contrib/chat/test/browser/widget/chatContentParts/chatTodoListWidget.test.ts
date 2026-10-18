@@ -29,7 +29,6 @@ suite('ChatTodoListWidget Accessibility', () => {
 	];
 
 	setup(() => {
-		// Mock the todo list service
 		const mockTodoListService: IChatTodoListService = {
 			_serviceBrand: undefined,
 			onDidUpdateTodos: Event.None,
@@ -38,7 +37,6 @@ suite('ChatTodoListWidget Accessibility', () => {
 			migrateTodos: (oldSessionResource: URI, newSessionResource: URI) => { }
 		};
 
-		// Mock the configuration service
 		const mockConfigurationService = new TestConfigurationService();
 
 		const instantiationService = workbenchInstantiationService(undefined, store);
@@ -64,10 +62,8 @@ suite('ChatTodoListWidget Accessibility', () => {
 
 		const titleElement = widget.domNode.querySelector('#todo-list-title');
 		assert.ok(titleElement, 'Should have title element with ID todo-list-title');
-		// When collapsed, title shows progress and current task without "Todos" prefix
 		assert.ok(titleElement?.textContent, 'Title should have content');
 
-		// The todo list container itself acts as the list (no nested ul element)
 		const todoItems = todoListContainer?.querySelectorAll('li.todo-item');
 		assert.ok(todoItems && todoItems.length > 0, 'Should have todo items in the list container');
 	});
@@ -78,18 +74,15 @@ suite('ChatTodoListWidget Accessibility', () => {
 		const todoItems = widget.domNode.querySelectorAll('.todo-item');
 		assert.strictEqual(todoItems.length, 3, 'Should have 3 todo items');
 
-		// Check first item (not-started)
 		const firstItem = todoItems[0] as HTMLElement;
 		assert.strictEqual(firstItem.getAttribute('role'), 'listitem');
 		assert.ok(firstItem.getAttribute('aria-label')?.includes('First task'));
 		assert.ok(firstItem.getAttribute('aria-label')?.includes('not started'));
 
-		// Check second item (in-progress)
 		const secondItem = todoItems[1] as HTMLElement;
 		assert.ok(secondItem.getAttribute('aria-label')?.includes('Second task'));
 		assert.ok(secondItem.getAttribute('aria-label')?.includes('in progress'));
 
-		// Check third item (completed)
 		const thirdItem = todoItems[2] as HTMLElement;
 		assert.ok(thirdItem.getAttribute('aria-label')?.includes('Third task'));
 		assert.ok(thirdItem.getAttribute('aria-label')?.includes('completed'));
@@ -107,21 +100,17 @@ suite('ChatTodoListWidget Accessibility', () => {
 	test('expand button has proper accessibility attributes', () => {
 		widget.render(testSessionUri);
 
-		// The expandoButton is now a Monaco Button, so we need to check its element
 		const expandoContainer = widget.domNode.querySelector('.todo-list-expand');
 		assert.ok(expandoContainer, 'Should have expando container');
 
 		const expandoButton = expandoContainer?.querySelector('.monaco-button');
 		assert.ok(expandoButton, 'Should have Monaco button');
-		assert.strictEqual(expandoButton?.getAttribute('aria-expanded'), 'false'); // Should be collapsed due to in-progress task
+		assert.strictEqual(expandoButton?.getAttribute('aria-expanded'), 'false');
 		assert.strictEqual(expandoButton?.getAttribute('aria-controls'), 'todo-list-container');
 
-		// The title element should have progress information
 		const titleElement = expandoButton?.querySelector('.todo-list-title');
 		assert.ok(titleElement, 'Should have title element');
 		const titleText = titleElement?.textContent;
-		// When collapsed, title shows progress and current task: " (2/3) - Second task"
-		// Progress is 2/3 because: 1 completed + 1 in-progress (current) = task 2 of 3
 		assert.ok(titleText?.includes('(2/3)'), `Title should show progress format, but got: "${titleText}"`);
 		assert.ok(titleText?.includes('Second task'), `Title should show current task when collapsed, but got: "${titleText}"`);
 	});
@@ -132,19 +121,16 @@ suite('ChatTodoListWidget Accessibility', () => {
 		const todoItems = widget.domNode.querySelectorAll('.todo-item');
 		assert.strictEqual(todoItems.length, 3, 'Should have 3 todo items');
 
-		// Check first item (not-started) - aria-label should include title and status
 		const firstItem = todoItems[0] as HTMLElement;
 		const firstAriaLabel = firstItem.getAttribute('aria-label');
 		assert.ok(firstAriaLabel?.includes('First task'), 'First item aria-label should include title');
 		assert.ok(firstAriaLabel?.includes('not started'), 'First item aria-label should include status');
 
-		// Check second item (in-progress) - aria-label should include title and status
 		const secondItem = todoItems[1] as HTMLElement;
 		const secondAriaLabel = secondItem.getAttribute('aria-label');
 		assert.ok(secondAriaLabel?.includes('Second task'), 'Second item aria-label should include title');
 		assert.ok(secondAriaLabel?.includes('in progress'), 'Second item aria-label should include status');
 
-		// Check third item (completed) - aria-label should include title and status
 		const thirdItem = todoItems[2] as HTMLElement;
 		const thirdAriaLabel = thirdItem.getAttribute('aria-label');
 		assert.ok(thirdAriaLabel?.includes('Third task'), 'Third item aria-label should include title');
@@ -152,7 +138,6 @@ suite('ChatTodoListWidget Accessibility', () => {
 	});
 
 	test('widget displays properly when no todos exist', () => {
-		// Create a new mock service with empty todos
 		const emptyTodoListService: IChatTodoListService = {
 			_serviceBrand: undefined,
 			onDidUpdateTodos: Event.None,
@@ -171,7 +156,6 @@ suite('ChatTodoListWidget Accessibility', () => {
 
 		emptyWidget.render(testSessionUri);
 
-		// Widget should be hidden when no todos
 		assert.strictEqual(emptyWidget.domNode.style.display, 'none', 'Widget should be hidden when no todos');
 	});
 
@@ -189,14 +173,10 @@ suite('ChatTodoListWidget Accessibility', () => {
 		const titleElement = widget.domNode.querySelector('#todo-list-title');
 		assert.ok(titleElement, 'Should have title element with ID');
 
-		// Title should show progress format: " (2/3)" since one todo is completed and one is in-progress
-		// When collapsed, it also shows the current task: " (2/3) - Second task"
-		// Progress is 2/3 because: 1 completed + 1 in-progress (current) = task 2 of 3
 		const titleText = titleElement?.textContent;
 		assert.ok(titleText?.includes('(2/3)'), `Title should show progress format, but got: "${titleText}"`);
 		assert.ok(titleText?.includes('Second task'), `Title should show current task when collapsed, but got: "${titleText}"`);
 
-		// Verify aria-labelledby connection works
 		const todoListContainer = widget.domNode.querySelector('.todo-list-container');
 		assert.strictEqual(todoListContainer?.getAttribute('aria-labelledby'), 'todo-list-title');
 	});

@@ -153,13 +153,11 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 			this._proxy.$onDidChangeAuthenticationSessions(providerInfo.id, providerInfo.label, e.extensionIds);
 		}));
 
-		// Listen for dynamic authentication provider token changes
 		this._register(this.dynamicAuthProviderStorageService.onDidChangeTokens(e => {
 			this._proxy.$onDidChangeDynamicAuthProviderTokens(e.authProviderId, e.clientId, e.tokens);
 		}));
 
 		this._register(authenticationService.registerAuthenticationProviderHostDelegate({
-			// Prefer Node.js extension hosts when they're available. No CORS issues etc.
 			priority: extHostContext.extensionHostKind === ExtensionHostKind.LocalWebWorker ? 0 : 1,
 			create: async (authorizationServer, serverMetadata, resource, overrideClientId, overrideClientSecret) => {
 				const authProviderId = getDynamicAuthenticationProviderId(authorizationServer, resource);
@@ -171,8 +169,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 				let initialTokens: (IAuthorizationTokenResponse & { created_at: number })[] | undefined = undefined;
 				if (clientId) {
 					initialTokens = await this.dynamicAuthProviderStorageService.getSessionsForDynamicAuthProvider(authProviderId, clientId);
-					// If we don't already have a client id, check if the server supports the Client Id Metadata flow (see docs on the property)
-					// and add the "client id" if so.
 				} else if (serverMetadata.client_id_metadata_document_supported) {
 					clientId = this.productService.authClientIdMetadataUrl;
 				}
@@ -186,14 +182,9 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 				);
 			},
 			createXaa: async (issuer) => {
-				// XAA providers are keyed by issuer alone so they can be reused across many enterprise-managed servers.
 				const authProviderId = `xaa:${issuer.toString(true)}`;
 				const { metadata: serverMetadata } = await fetchAuthorizationServerMetadata(issuer.toString(true));
 
-				// Prefer the user-configured IdP client_id / client_secret over any cached registration.
-				// XAA requires a pre-provisioned (admin-approved) client_id at the IdP — there is no DCR
-				// fallback — so an explicit setting is the most reliable source. Typically delivered via
-				// enterprise policy; developers may hand-edit settings.json for local testing.
 				const configuredIdp = this.configurationService.getValue<IMcpEnterpriseManagedAuthIdpConfig | undefined>(mcpEnterpriseManagedAuthIdpSection) ?? {};
 				const configuredClientId = configuredIdp.clientId?.trim() || undefined;
 				const configuredClientSecret = configuredIdp.clientSecret?.trim() || undefined;
@@ -204,10 +195,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 				if (clientId) {
 					initialTokens = await this.dynamicAuthProviderStorageService.getSessionsForDynamicAuthProvider(authProviderId, clientId);
 				}
-				// Note: XAA does NOT use CIMD or DCR — the requesting app must be pre-registered with the
-				// IdP under an admin-approved cross-app-access trust relationship. The ext-host side
-				// (`$registerXaaAuthProvider`) prompts the user for client_id + client_secret when there
-				// is no cached registration and no configured value.
 				return await this._proxy.$registerXaaAuthProvider(
 					issuer,
 					serverMetadata,
@@ -221,7 +208,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 
 	async $registerAuthenticationProvider({ id, label, supportsMultipleAccounts, resourceServer, supportedAuthorizationServers, supportsChallenges }: IRegisterAuthenticationProviderDetails): Promise<void> {
 		if (!this.authenticationService.declaredProviders.find(p => p.id === id)) {
-			// If telemetry shows that this is not happening much, we can instead throw an error here.
 			this.logService.warn(`Authentication provider ${id} was not declared in the Extension Manifest.`);
 			type AuthProviderNotDeclaredClassification = {
 				owner: 'TylerLeonhardt';
@@ -258,7 +244,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 
 	async $unregisterAuthenticationProvider(id: string): Promise<void> {
 		this._registrations.deleteAndDispose(id);
-		// The ext host side already unregisters the provider, so we can suppress the event here.
 		this._suppressUnregisterEvent = true;
 		try {
 			this.authenticationService.unregisterAuthenticationProvider(id);
@@ -296,7 +281,7 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 				return true;
 			}
 		});
-		const result = await raceTimeout(deferredPromise.p, 5 * 60 * 1000); // 5 minutes
+		const result = await raceTimeout(deferredPromise.p, 5 * 60 * 1000);
 		if (!result) {
 			throw new Error('Timed out waiting for URI handler');
 		}
@@ -347,7 +332,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 			throw new Error(`Dynamic authentication provider ${providerId} not found. Has it been registered?`);
 		}
 
-		// Store client credentials together
 		await this.dynamicAuthProviderStorageService.storeClientRegistration(
 			providerId || existing.providerId,
 			authorizationServer ? URI.revive(authorizationServer).toString(true) : existing.authorizationServer,
@@ -360,7 +344,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 	private async loginPrompt(provider: IAuthenticationProvider, extensionName: string, recreatingSession: boolean, options?: AuthenticationInteractiveOptions): Promise<boolean> {
 		let message: string;
 
-		// Check if the provider has a custom confirmation message
 		const customMessage = provider.confirmation?.(extensionName, recreatingSession);
 		if (customMessage) {
 			message = customMessage;
@@ -429,7 +412,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		const sessions = await this.authenticationService.getSessions(providerId, scopeListOrRequest, { account: options.account, authorizationServer }, true);
 		const provider = this.authenticationService.getProvider(providerId);
 
-		// Error cases
 		if (options.forceNewSession && options.createIfNone) {
 			throw new Error('Invalid combination of options. Please remove one of the following: forceNewSession, createIfNone');
 		}
@@ -441,32 +423,23 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		}
 
 		if (options.clearSessionPreference) {
-			// Clearing the session preference is usually paired with createIfNone, so just remove the preference and
-			// defer to the rest of the logic in this function to choose the session.
 			this.authenticationExtensionsService.removeAccountPreference(extensionId, providerId);
 		}
 
 		const matchingAccountPreferenceSession =
-			// If an account was passed in, that takes precedence over the account preference
 			options.account
-				// We only support one session per account per set of scopes so grab the first one here
 				? sessions[0]
 				: this._getAccountPreference(extensionId, providerId, sessions);
 
-		// Check if the sessions we have are valid
 		if (!options.forceNewSession && sessions.length) {
-			// If we have an existing session preference, use that. If not, we'll return any valid session at the end of this function.
 			if (matchingAccountPreferenceSession && this.authenticationAccessService.isAccessAllowed(providerId, matchingAccountPreferenceSession.account.label, extensionId)) {
 				return matchingAccountPreferenceSession;
 			}
-			// If we only have one account for a single auth provider, lets just check if it's allowed and return it if it is.
 			if (!provider.supportsMultipleAccounts && this.authenticationAccessService.isAccessAllowed(providerId, sessions[0].account.label, extensionId)) {
 				return sessions[0];
 			}
 		}
 
-		// We may need to prompt because we don't have a valid session
-		// modal flows
 		if (options.createIfNone || options.forceNewSession) {
 			let uiOptions: AuthenticationInteractiveOptions | undefined;
 			if (typeof options.forceNewSession === 'object') {
@@ -475,8 +448,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 				uiOptions = options.createIfNone;
 			}
 
-			// We only want to show the "recreating session" prompt if we are using forceNewSession & there are sessions
-			// that we will be "forcing through".
 			const recreatingSession = !!(options.forceNewSession && sessions.length);
 			const isAllowed = await this.loginPrompt(provider, extensionName, recreatingSession, uiOptions);
 			if (!isAllowed) {
@@ -512,7 +483,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 			return session;
 		}
 
-		// For the silent flows, if we don't have a session that matches the account preference, we can return any valid session if there is only one to choose from.
 		if (!matchingAccountPreferenceSession) {
 			const validSessions = sessions.filter(session => this.authenticationAccessService.isAccessAllowed(providerId, session.account.label, extensionId));
 			if (validSessions.length === 1) {
@@ -520,10 +490,7 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 			}
 		}
 
-		// passive flows (silent or default)
 		if (!options.silent) {
-			// If there is a potential session, but the extension doesn't have access to it, use the "grant access" flow,
-			// otherwise request a new one.
 			sessions.length
 				? this.authenticationExtensionsService.requestSessionAccess(providerId, extensionId, extensionName, scopeListOrRequest, sessions)
 				: await this.authenticationExtensionsService.requestNewSession(providerId, scopeListOrRequest, extensionId, extensionName);
@@ -551,10 +518,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		return accounts;
 	}
 
-	// TODO@TylerLeonhardt this is a temporary addition to telemetry to understand what extensions are overriding the client id.
-	// We can use this telemetry to reach out to these extension authors and let them know that they many need configuration changes
-	// due to the adoption of the Microsoft broker.
-	// Remove this in a few iterations.
 	private _sentClientIdUsageEvents = new Set<string>();
 	private sendClientIdUsageTelemetry(extensionId: string, providerId: string, scopes: readonly string[]): void {
 		const containsVSCodeClientIdScope = scopes.some(scope => scope.startsWith('VSCODE_CLIENT_ID:'));
@@ -588,8 +551,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		this.telemetryService.publicLog2<{ extensionId: string; providerId: string }, AuthProviderUsageClassification>('authentication.providerUsage', { providerId, extensionId });
 	}
 
-	//#region Account Preferences
-	// TODO@TylerLeonhardt: Update this after a few iterations to no longer fallback to the session preference
 
 	private _getAccountPreference(extensionId: string, providerId: string, sessions: ReadonlyArray<AuthenticationSession>): AuthenticationSession | undefined {
 		if (sessions.length === 0) {
@@ -602,7 +563,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		}
 		return undefined;
 	}
-	//#endregion
 
 	async $showDeviceCodeModal(userCode: string, verificationUri: string): Promise<boolean> {
 		const { result } = await this.dialogService.prompt({
@@ -619,7 +579,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		});
 
 		if (result) {
-			// Open verification URI
 			try {
 				await this.clipboardService.writeText(userCode);
 				return await this.openerService.open(URI.parse(verificationUri));
@@ -633,7 +592,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 	async $promptForClientRegistration(authorizationServerUrl: string): Promise<{ clientId: string; clientSecret?: string } | undefined> {
 		const redirectUrls = 'http://127.0.0.1:33418\nhttps://vscode.dev/redirect';
 
-		// Show modal dialog first to explain the situation and get user consent
 		const result = await this.dialogService.prompt({
 			type: Severity.Info,
 			message: nls.localize('dcrNotSupported', "Dynamic Client Registration not supported"),
@@ -695,16 +653,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 	}
 
 	async $promptForResourceClientSecret(resourceClientId: string, resource: string): Promise<string | undefined> {
-		// Surface to the user that whatever they enter (including blank == none) will be remembered
-		// in OS secret storage, scoped to the MCP server URL + the resource client_id. This means:
-		//   - the codelens above `oauth.clientId` in mcp.json will flip to "Replace Client Secret"
-		//   - subsequent runs read the secret directly from storage and never re-prompt.
-		//
-		// Return contract:
-		//   - `undefined` — user pressed Escape (cancelled). Caller should NOT cache; re-prompt allowed.
-		//   - `''` (empty string) — user pressed Enter with blank input ("no secret"). Caller SHOULD
-		//     cache this as an explicit answer (public client / token_endpoint_auth_method=none).
-		//   - `'value'` — user supplied a secret.
 		const value = await this.quickInputService.input({
 			title: nls.localize('xaaResourceSecretTitle', "Resource Client Secret Required"),
 			prompt: nls.localize(
@@ -718,15 +666,12 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 			ignoreFocusLost: true,
 		});
 		if (value === undefined) {
-			// User cancelled (Escape). Don't persist anything.
 			return undefined;
 		}
 		const trimmed = value.trim();
 		const key = mcpOAuthClientSecretStorageKey(resource, resourceClientId);
 		try {
 			if (trimmed.length === 0) {
-				// Blank-on-confirm means "no client secret" (e.g. token_endpoint_auth_method=none).
-				// Clear any stale value so subsequent prompts can still capture a fresh secret if needed.
 				await this.secretStorageService.delete(key);
 			} else {
 				await this.secretStorageService.set(key, trimmed);
@@ -734,8 +679,6 @@ export class MainThreadAuthentication extends Disposable implements MainThreadAu
 		} catch (err) {
 			this.logService.warn(`[XAA] Failed to persist resource client secret for ${resource} / ${resourceClientId}: ${(err as Error).message}`);
 		}
-		// Distinct from cancel: return '' (not undefined) for blank-on-confirm so callers can
-		// proceed without a client secret instead of treating it as a cancel.
 		return trimmed;
 	}
 }

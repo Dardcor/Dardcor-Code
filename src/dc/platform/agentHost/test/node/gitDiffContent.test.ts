@@ -63,9 +63,6 @@ suite('gitDiffContent', () => {
 	});
 
 	test('surfaces an empty absolute path for legacy URIs that carry no path', () => {
-		// Older persisted git-blob URIs may lack a usable working-tree path; the
-		// resolver relies on `absolutePath` being empty to fall back to the
-		// session's primary directory.
 		const legacy = URI.from({
 			scheme: 'git-blob',
 			query: JSON.stringify({ sessionUri: 'copilot:/abc', sha: 'cafe1234', repoRelativePath: 'src/app.ts' }),

@@ -20,7 +20,6 @@ import { createPlatformServices, ITestingServicesAccessor } from '../../../test/
 import { CopilotToken, createTestExtendedTokenInfo, isErrorEnvelope, isStandardErrorEnvelope, isTokenEnvelope, validateTokenEnvelope } from '../../common/dardcorToken';
 import { BaseCopilotTokenManager, CopilotTokenManagerFromGitHubToken } from '../../node/dardcorTokenManager';
 
-// This is a fake version of CopilotTokenManagerFromGitHubToken.
 class RefreshFakeCopilotTokenManager extends BaseCopilotTokenManager {
 	calls = 0;
 	constructor(
@@ -119,7 +118,7 @@ describe('Copilot token unit tests', function () {
 	});
 
 	it('network request failed', async function () {
-		const fetcher = new StaticFetcherService('NETWORK_FAILURE'); // special sentinel simulates network failure
+		const fetcher = new StaticFetcherService('NETWORK_FAILURE');
 
 		const testingServiceCollection = createPlatformServices();
 		testingServiceCollection.define(IFetcherService, fetcher);
@@ -135,7 +134,7 @@ describe('Copilot token unit tests', function () {
 	});
 
 	it('JSON parse failed', async function () {
-		const fetcher = new StaticFetcherService(null); // null tokenInfo simulates parse failure (JSON.parse returns null)
+		const fetcher = new StaticFetcherService(null);
 
 		const testingServiceCollection = createPlatformServices();
 		testingServiceCollection.define(IFetcherService, fetcher);
@@ -258,9 +257,7 @@ describe('Token envelope validators', function () {
 			individual: true,
 			blackbird_clientside_indexing: false,
 			code_quote_enabled: false,
-			code_review_enabled: false,
 			codesearch: false,
-			dardcorignore_enabled: false,
 			public_suggestions: 'enabled',
 			telemetry: 'enabled',
 		};
@@ -268,7 +265,6 @@ describe('Token envelope validators', function () {
 	});
 
 	it('isTokenEnvelope returns true when limited_user_quotas and limited_user_reset_date are null', function () {
-		// Enterprise/paid users get null for these fields
 		const validToken = {
 			token: 'test-token',
 			expires_at: 1234567890,
@@ -277,9 +273,7 @@ describe('Token envelope validators', function () {
 			individual: true,
 			blackbird_clientside_indexing: false,
 			code_quote_enabled: false,
-			code_review_enabled: false,
 			codesearch: false,
-			dardcorignore_enabled: false,
 			public_suggestions: 'enabled',
 			telemetry: 'enabled',
 			limited_user_quotas: null,
@@ -342,9 +336,7 @@ describe('Token envelope validators', function () {
 				individual: true,
 				blackbird_clientside_indexing: false,
 				code_quote_enabled: false,
-				code_review_enabled: false,
 				codesearch: false,
-				dardcorignore_enabled: false,
 				public_suggestions: 'enabled',
 				telemetry: 'enabled',
 			};
@@ -361,8 +353,6 @@ describe('Token envelope validators', function () {
 		});
 
 		it('returns strict strategy for minimal token with only required fields', function () {
-			// The strict validator only requires token, expires_at, refresh_in
-			// Other fields are optional, so a minimal token passes strict validation
 			const minimalToken = {
 				token: 'test-token',
 				expires_at: 1234567890,
@@ -380,12 +370,11 @@ describe('Token envelope validators', function () {
 		});
 
 		it('returns fallback strategy when optional field has wrong type', function () {
-			// Server changes sku from string to number - strict fails, fallback succeeds
 			const tokenWithWrongOptionalType = {
 				token: 'test-token',
 				expires_at: 1234567890,
 				refresh_in: 300,
-				sku: 12345, // wrong type - should be string
+				sku: 12345,
 			};
 			const result = validateTokenEnvelope(tokenWithWrongOptionalType);
 			expect(result.valid).toBe(true);
@@ -393,7 +382,6 @@ describe('Token envelope validators', function () {
 			if (result.strategy === 'fallback') {
 				expect(result.strictError).toContain('sku');
 				expect(result.fallbackError).toBeUndefined();
-				// Envelope is returned with critical fields even when fallback is used
 				expect(result.envelope).toBeDefined();
 				expect(result.envelope.token).toBe('test-token');
 				expect(result.envelope.expires_at).toBe(1234567890);
@@ -406,14 +394,13 @@ describe('Token envelope validators', function () {
 				token: 'test-token',
 				expires_at: 1234567890,
 				refresh_in: 300,
-				public_suggestions: 'new_unknown_value', // not in enum
+				public_suggestions: 'new_unknown_value',
 			};
 			const result = validateTokenEnvelope(tokenWithNewEnumValue);
 			expect(result.valid).toBe(true);
 			expect(result.strategy).toBe('fallback');
 			if (result.strategy === 'fallback') {
 				expect(result.strictError).toContain('public_suggestions');
-				// Envelope is returned with critical fields
 				expect(result.envelope).toBeDefined();
 				expect(result.envelope.token).toBe('test-token');
 			}
@@ -473,7 +460,7 @@ describe('Token envelope validators', function () {
 
 		it('returns failed strategy when critical field has wrong type', function () {
 			const wrongTypeToken = {
-				token: 12345, // should be string
+				token: 12345,
 				expires_at: 1234567890,
 				refresh_in: 300,
 			};
@@ -544,7 +531,7 @@ describe('CopilotToken class', function () {
 
 		expect(exceededToken.isChatQuotaExceeded).toBe(true);
 		expect(notExceededToken.isChatQuotaExceeded).toBe(false);
-		expect(nonFreeToken.isChatQuotaExceeded).toBe(false); // Non-free users don't have quota limits
+		expect(nonFreeToken.isChatQuotaExceeded).toBe(false);
 	});
 
 	it('isCompletionsQuotaExceeded for free users with zero quota', function () {
@@ -594,13 +581,6 @@ describe('CopilotToken class', function () {
 		expect(disabledToken.codeQuoteEnabled).toBe(false);
 	});
 
-	it('isCopilotCodeReviewEnabled reflects token state', function () {
-		const enabledToken = new CopilotToken(createTestExtendedTokenInfo({ code_review_enabled: true }));
-		const disabledToken = new CopilotToken(createTestExtendedTokenInfo({ code_review_enabled: false }));
-		expect(enabledToken.isCopilotCodeReviewEnabled).toBe(true);
-		expect(disabledToken.isCopilotCodeReviewEnabled).toBe(false);
-	});
-
 	it('isExpandedClientSideIndexingEnabled reflects token state', function () {
 		const enabledToken = new CopilotToken(createTestExtendedTokenInfo({ blackbird_clientside_indexing: true }));
 		const disabledToken = new CopilotToken(createTestExtendedTokenInfo({ blackbird_clientside_indexing: false }));
@@ -645,10 +625,8 @@ class StaticFetcherService implements IFetcherService {
 		this.requests.set(url, options);
 		if (url.endsWith('dardcor_internal/v2/token')) {
 			if (this.tokenResponse === 'NETWORK_FAILURE') {
-				// Simulate network failure - fetch throws
 				throw new Error('Network request failed');
 			}
-			// null will parse successfully as JSON (returns null) but fails tokenInfo check
 			return createFakeResponse(200, this.tokenResponse);
 		} else if (url.endsWith('dardcor_internal/notification')) {
 			return createFakeResponse(200, '');

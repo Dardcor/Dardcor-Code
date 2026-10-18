@@ -107,14 +107,7 @@ namespace SupportedContextItemSchema {
 	}
 }
 
-/**
- *
- * Internal types and validation functions for context items
- */
 
-/**
- * Construct the final types, which may include required properties that the base types do not have.
- */
 
 export type TraitWithId = Trait & { id: string; type: 'Trait' };
 export type CodeSnippetWithId = CodeSnippet & { id: string; type: 'CodeSnippet' };
@@ -160,20 +153,10 @@ export function filterSupportedContextItems(
 	return [filteredItems, invalidItemsCounter];
 }
 
-/**
- *
- * Only allow alphanumeric characters and hyphens to remove symbols that could
- * be problematic when used as prompt components keys.
- */
 function validateContextItemId(id: string): boolean {
 	return id.length > 0 && id.replaceAll(/[^a-zA-Z0-9-]/g, '').length === id.length;
 }
 
-/**
- * Assigns a random ID if it wasn't assigned by the context provider.
- * Invalid or duplicate IDs are replaced with valid ones and logged to avoid dropping the context
- * and worsen the user experience.
- */
 export function addOrValidateContextItemsIDs(
 	accessor: ServicesAccessor,
 	contextItems: SupportedContextItemWithType[]

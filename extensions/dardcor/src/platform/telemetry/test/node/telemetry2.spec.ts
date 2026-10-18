@@ -110,7 +110,6 @@ suite('Telemetry unit tests', function () {
 		const telemetryData = TelemetryData.createAndMarkAsIssued({}, {});
 		telemetryData.extendWithConfigProperties(configService, envService, telemetryUserConfig);
 
-		// Note: keys use dots before sanitizeKeys() is called
 		assert.strictEqual(telemetryData.properties['dardcor.trackingId'], 'test-tracking-id');
 		assert.strictEqual(telemetryData.properties['organizations_list'], 'org1,org2');
 		assert.strictEqual(telemetryData.properties['enterprise_list'], '12345,67890');
@@ -132,7 +131,6 @@ suite('Telemetry unit tests', function () {
 		const telemetryData = TelemetryData.createAndMarkAsIssued({}, {});
 		telemetryData.extendWithConfigProperties(configService, envService, telemetryUserConfig);
 
-		// Note: keys use dots before sanitizeKeys() is called
 		assert.strictEqual(telemetryData.properties['dardcor.trackingId'], 'test-tracking-id');
 		assert.strictEqual(telemetryData.properties['organizations_list'], 'org1,org2');
 		assert.strictEqual(telemetryData.properties['enterprise_list'], undefined);
@@ -190,7 +188,6 @@ suite('Telemetry unit tests', function () {
 		const getTrackingId = createTrackingIdGetter(tokenStore);
 		assert.strictEqual(getTrackingId(), 'abc123');
 
-		// Simulate token reset (e.g. 401 error)
 		tokenStore.dardcorToken = undefined;
 
 		assert.strictEqual(getTrackingId(), 'abc123');
@@ -209,7 +206,6 @@ suite('Telemetry unit tests', function () {
 		const getTrackingId = createTrackingIdGetter(tokenStore);
 		assert.strictEqual(getTrackingId(), 'abc123');
 
-		// Simulate token refresh with new token (same tid, as expected)
 		tokenStore.dardcorToken = new CopilotToken(createTestExtendedTokenInfo({
 			token: 'tid=def456;rt=1',
 			username: 'fake',

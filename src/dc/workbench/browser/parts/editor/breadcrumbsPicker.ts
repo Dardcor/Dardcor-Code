@@ -79,7 +79,7 @@ export abstract class BreadcrumbsPicker<TInput, TElement> {
 		this._previewDispoables.dispose();
 		this._onWillPickElement.dispose();
 		this._domNode.remove();
-		setTimeout(() => this._tree.dispose(), 0); // tree cannot be disposed while being opened...
+		setTimeout(() => this._tree.dispose(), 0);
 	}
 
 	async show(input: FileElement | OutlineElement2, maxHeight: number, width: number, arrowSize: number, arrowOffset: number): Promise<void> {
@@ -151,7 +151,6 @@ export abstract class BreadcrumbsPicker<TInput, TElement> {
 
 }
 
-//#region - Files
 
 class FileVirtualDelegate implements IListVirtualDelegate<IFileStat | IWorkspaceFolder> {
 	getHeight(_element: IFileStat | IWorkspaceFolder) {
@@ -282,8 +281,6 @@ class FileFilter implements ITreeFilter<IWorkspaceFolder | IFileStat> {
 				if (!excludesConfig) {
 					return;
 				}
-				// adjust patterns to be absolute in case they aren't
-				// free floating (**/)
 				const adjustedConfig: glob.IExpression = {};
 				for (const pattern in excludesConfig) {
 					if (typeof excludesConfig[pattern] !== 'boolean') {
@@ -311,12 +308,10 @@ class FileFilter implements ITreeFilter<IWorkspaceFolder | IFileStat> {
 
 	filter(element: IWorkspaceFolder | IFileStat, _parentVisibility: TreeVisibility): boolean {
 		if (isWorkspaceFolder(element)) {
-			// not a file
 			return true;
 		}
 		const folder = this._workspaceService.getWorkspaceFolder(element.resource);
 		if (!folder || !this._cachedExpressions.has(folder.uri.toString())) {
-			// no folder or no filer
 			return true;
 		}
 
@@ -332,7 +327,6 @@ export class FileSorter implements ITreeSorter<IFileStat | IWorkspaceFolder> {
 			return a.index - b.index;
 		}
 		if ((a as IFileStat).isDirectory === (b as IFileStat).isDirectory) {
-			// same type -> compare on names
 			return compareFileNames(a.name, b.name);
 		} else if ((a as IFileStat).isDirectory) {
 			return -1;
@@ -358,7 +352,6 @@ export class BreadcrumbsFilePicker extends BreadcrumbsPicker<IWorkspace | URI, I
 
 	protected _createTree(container: HTMLElement) {
 
-		// tree icon theme specials
 		this._treeContainer.classList.add('file-icon-themable-tree');
 		this._treeContainer.classList.add('show-file-icons');
 		const onFileIconThemeChange = (fileIconTheme: IFileIconTheme) => {
@@ -368,7 +361,7 @@ export class BreadcrumbsFilePicker extends BreadcrumbsPicker<IWorkspace | URI, I
 		this._disposables.add(this._themeService.onDidFileIconThemeChange(onFileIconThemeChange));
 		onFileIconThemeChange(this._themeService.getFileIconTheme());
 
-		const labels = this._instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER /* TODO@Jo visibility propagation */);
+		const labels = this._instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER );
 		this._disposables.add(labels);
 
 		return this._instantiationService.createInstance(
@@ -433,9 +426,7 @@ export class BreadcrumbsFilePicker extends BreadcrumbsPicker<IWorkspace | URI, I
 		return false;
 	}
 }
-//#endregion
 
-//#region - Outline
 
 class OutlineTreeSorter<E> implements ITreeSorter<E> {
 
@@ -514,4 +505,3 @@ export class BreadcrumbsOutlinePicker extends BreadcrumbsPicker<IOutline<unknown
 	}
 }
 
-//#endregion

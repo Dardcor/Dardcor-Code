@@ -229,7 +229,6 @@ export class RemoteTerminalChannel extends Disposable implements IServerChannel<
 		const customVariableResolver = new CustomVariableResolver(baseEnv, workspaceFolders, activeFileResource, args.resolvedVariables, this._extensionManagementService);
 		const variableResolver = terminalEnvironment.createVariableResolver(activeWorkspaceFolder, baseEnv, customVariableResolver);
 
-		// Get the initial cwd
 		const initialCwd = await terminalEnvironment.getCwd(shellLaunchConfig, os.homedir(), variableResolver, activeWorkspaceFolder?.uri, args.configuration['terminal.integrated.cwd'], this._logService);
 		shellLaunchConfig.cwd = initialCwd;
 
@@ -244,7 +243,6 @@ export class RemoteTerminalChannel extends Disposable implements IServerChannel<
 			baseEnv
 		);
 
-		// Apply extension environment variable collections to the environment
 		if (shouldUseEnvironmentVariableCollection(shellLaunchConfig)) {
 			const entries: [string, IEnvironmentVariableCollection][] = [];
 			for (const [k, v, d] of args.envVariableCollections) {
@@ -256,10 +254,8 @@ export class RemoteTerminalChannel extends Disposable implements IServerChannel<
 			await mergedCollection.applyToProcessEnvironment(env, { workspaceFolder }, variableResolver);
 		}
 
-		// Fork the process and listen for messages
 		this._logService.debug(`Terminal process launching on remote agent`, { shellLaunchConfig, initialCwd, cols: args.cols, rows: args.rows, env });
 
-		// Setup the CLI server to support forwarding commands run from the CLI
 		const ipcHandlePath = createRandomIPCHandle();
 		env.VSCODE_IPC_HOOK_CLI = ipcHandlePath;
 
@@ -284,7 +280,6 @@ export class RemoteTerminalChannel extends Disposable implements IServerChannel<
 
 		const serializedCommandArgs = cloneAndChange(commandArgs, (obj) => {
 			if (obj && obj.$mid === 1) {
-				// this is UriComponents
 				return uriTransformer.transformOutgoing(obj);
 			}
 			if (obj && obj instanceof URI) {
@@ -310,7 +305,6 @@ export class RemoteTerminalChannel extends Disposable implements IServerChannel<
 		this._pendingCommands.delete(reqId);
 		const payload = cloneAndChange(serializedPayload, (obj) => {
 			if (obj && obj.$mid === 1) {
-				// this is UriComponents
 				return data.uriTransformer.transformIncoming(obj);
 			}
 			return undefined;

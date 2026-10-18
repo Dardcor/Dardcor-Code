@@ -31,14 +31,12 @@ export function parse(entry: IRemoteConsoleLog): { args: any[]; stack?: string }
 	const args: any[] = [];
 	let stack: string | undefined;
 
-	// Parse Entry
 	try {
 		const parsedArguments: any[] = JSON.parse(entry.arguments);
 
-		// Check for special stack entry as last entry
 		const stackArgument = parsedArguments[parsedArguments.length - 1] as IStackArgument;
 		if (stackArgument && stackArgument.__$stack) {
-			parsedArguments.pop(); // stack is handled specially
+			parsedArguments.pop();
 			stack = stackArgument.__$stack;
 		}
 
@@ -57,22 +55,10 @@ export function getFirstFrame(arg0: IRemoteConsoleLog | string | undefined): ISt
 		return getFirstFrame(parse(arg0!).stack);
 	}
 
-	// Parse a source information out of the stack if we have one. Format can be:
-	// at vscode.commands.registerCommand (/Users/someone/Desktop/test-ts/out/src/extension.js:18:17)
-	// or
-	// at /Users/someone/Desktop/test-ts/out/src/extension.js:18:17
-	// or
-	// at c:\Users\someone\Desktop\end-js\extension.js:19:17
-	// or
-	// at e.$executeContributedCommand(c:\Users\someone\Desktop\end-js\extension.js:19:17)
 	const stack = arg0;
 	if (stack) {
 		const topFrame = findFirstFrame(stack);
 
-		// at [^\/]* => line starts with "at" followed by any character except '/' (to not capture unix paths too late)
-		// (?:(?:[a-zA-Z]+:)|(?:[\/])|(?:\\\\) => windows drive letter OR unix root OR unc root
-		// (?:.+) => simple pattern for the path, only works because of the line/col pattern after
-		// :(?:\d+):(?:\d+) => :line:column data
 		const matches = /at [^\/]*((?:(?:[a-zA-Z]+:)|(?:[\/])|(?:\\\\))(?:.+)):(\d+):(\d+)/.exec(topFrame || '');
 		if (matches && matches.length === 4) {
 			return {
@@ -111,7 +97,6 @@ export function log(entry: IRemoteConsoleLog, label: string): void {
 
 	let consoleArgs: string[] = [];
 
-	// First arg is a string
 	if (typeof args[0] === 'string') {
 		if (topFrame && isOneStringArg) {
 			consoleArgs = [`%c[${label}] %c${args[0]} %c${topFrame}`, color('blue'), color(''), color('grey')];
@@ -120,17 +105,14 @@ export function log(entry: IRemoteConsoleLog, label: string): void {
 		}
 	}
 
-	// First arg is something else, just apply all
 	else {
 		consoleArgs = [`%c[${label}]%`, color('blue'), ...args];
 	}
 
-	// Stack: add to args unless already added
 	if (topFrame && !isOneStringArg) {
 		consoleArgs.push(topFrame);
 	}
 
-	// Log it
 	// eslint-disable-next-line local/code-no-any-casts
 	if (typeof (console as any)[entry.severity] !== 'function') {
 		throw new Error('Unknown console method');

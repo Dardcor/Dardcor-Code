@@ -32,7 +32,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 	weight: KeybindingWeight.WorkbenchContrib,
 	handler: async (accessor) => {
 		const historyService = accessor.get(IHistoryService);
-		// Open external terminal in local workspaces
 		const terminalService = accessor.get(IExternalTerminalService);
 		const configurationService = accessor.get(IConfigurationService);
 		const remoteAuthorityResolverService = accessor.get(IRemoteAuthorityResolverService);
@@ -41,7 +40,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 		const labelService = accessor.get(ILabelService);
 		const config = configurationService.getValue<IExternalTerminalSettings>('terminal.external');
 
-		// When there are multiple workspace folders, let the user pick one
 		const folders = workspaceContextService.getWorkspace().folders;
 		let root: URI | undefined;
 		if (folders.length > 1) {
@@ -60,13 +58,11 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			root = historyService.getLastActiveWorkspaceRoot();
 		}
 
-		// It's a local workspace, open the root
 		if (root?.scheme === Schemas.file) {
 			terminalService.openTerminal(config, root.fsPath);
 			return;
 		}
 
-		// If it's a remote workspace, open the canonical URI if it is a local folder
 		try {
 			if (root?.scheme === Schemas.vscodeRemote) {
 				const canonicalUri = await remoteAuthorityResolverService.getCanonicalURI(root);
@@ -77,8 +73,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			}
 		} catch { }
 
-		// Open the current file's folder if it's local or its canonical URI is local
-		// Opens current file's folder, if no folder is open in editor
 		const activeFile = historyService.getLastActiveFile(Schemas.file);
 		if (activeFile?.scheme === Schemas.file) {
 			terminalService.openTerminal(config, paths.dirname(activeFile.fsPath));
@@ -94,7 +88,6 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 			}
 		} catch { }
 
-		// Fallback to opening without a cwd which will end up using the local home path
 		terminalService.openTerminal(config, undefined);
 	}
 });
@@ -167,6 +160,5 @@ export class ExternalTerminalContribution implements IWorkbenchContribution {
 	}
 }
 
-// Register workbench contributions
 const workbenchRegistry = Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench);
 workbenchRegistry.registerWorkbenchContribution(ExternalTerminalContribution, LifecyclePhase.Restored);

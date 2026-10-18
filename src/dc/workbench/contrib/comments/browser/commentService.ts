@@ -174,14 +174,14 @@ export class CommentService extends Disposable implements ICommentService {
 	private _workspaceHasCommenting: IContextKey<boolean>;
 	private _commentingEnabled: IContextKey<boolean>;
 
-	private _continueOnComments = new Map<string, PendingCommentThread[]>(); // uniqueOwner -> PendingCommentThread[]
+	private _continueOnComments = new Map<string, PendingCommentThread[]>();
 	private _continueOnCommentProviders = new Set<IContinueOnCommentProvider>();
 
 	private readonly _commentsModel: CommentsModel = this._register(new CommentsModel());
 	public readonly commentsModel: ICommentsModel = this._commentsModel;
 
-	private _commentingRangeResources = new Set<string>(); // URIs
-	private _commentingRangeResourceHintSchemes = new Set<string>(); // schemes
+	private _commentingRangeResources = new Set<string>();
+	private _commentingRangeResourceHintSchemes = new Set<string>();
 
 	constructor(
 		@IInstantiationService protected readonly instantiationService: IInstantiationService,
@@ -237,11 +237,9 @@ export class CommentService extends Disposable implements ICommentService {
 		}));
 
 		this._register(this.modelService.onModelAdded(model => {
-			// Excluded schemes
 			if ((model.uri.scheme === Schemas.vscodeSourceControl)) {
 				return;
 			}
-			// Allows comment providers to cause their commenting ranges to be prefetched by opening text documents in the background.
 			if (!this._commentingRangeResources.has(model.uri.toString())) {
 				this.getDocumentComments(model.uri);
 			}
@@ -298,18 +296,10 @@ export class CommentService extends Disposable implements ICommentService {
 		}
 	}
 
-	/**
-	 * The current comment thread is the thread that has focus or is being hovered.
-	 * @param commentThread
-	 */
 	setCurrentCommentThread(commentThread: CommentThread | undefined) {
 		this._onDidChangeCurrentCommentThread.fire(commentThread);
 	}
 
-	/**
-	 * The active comment thread is the thread that is currently being edited.
-	 * @param commentThread
-	 */
 	setActiveEditingCommentThread(commentThread: CommentThread | null) {
 		this._onDidChangeActiveEditingCommentThread.fire(commentThread);
 	}
@@ -468,8 +458,6 @@ export class CommentService extends Disposable implements ICommentService {
 		for (const control of this._commentControls.values()) {
 			commentControlResult.push(control.getDocumentComments(resource, CancellationToken.None)
 				.then(documentComments => {
-					// Check that there aren't any continue on comments in the provided comments
-					// This can happen because continue on comments are stored separately from local un-submitted comments.
 					for (const documentCommentThread of documentComments.threads) {
 						if (documentCommentThread.comments?.length === 0 && documentCommentThread.range) {
 							this.removeContinueOnComment({ range: documentCommentThread.range, uri: resource, uniqueOwner: documentComments.uniqueOwner });

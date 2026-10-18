@@ -14,12 +14,6 @@ import { ModelPickerConfiguration } from '../../../../../browser/widget/input/mo
 import { IModelConfigurationAccess } from '../../../../../browser/widget/input/modelPicker/modelPickerModelConfig.js';
 import { ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier } from '../../../../../common/languageModels.js';
 
-/**
- * Builds a model whose schema advertises a Thinking Effort and a Context Size
- * group. A producer that cannot resolve a default leaves it `undefined` (see
- * the agent host's `thinkingLevel` schema), so each group's default is
- * omittable to cover that case.
- */
 function createModel(options?: { readonly omitEffortDefault?: boolean; readonly omitContextDefault?: boolean }): ILanguageModelChatMetadataAndIdentifier {
 	return {
 		identifier: 'copilot/test-model',
@@ -27,7 +21,7 @@ function createModel(options?: { readonly omitEffortDefault?: boolean; readonly 
 			extension: new ExtensionIdentifier('test.extension'),
 			id: 'test-model',
 			name: 'Test Model',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			version: '1.0',
 			family: 'test',
 			maxInputTokens: 128000,
@@ -56,10 +50,6 @@ function createModel(options?: { readonly omitEffortDefault?: boolean; readonly 
 	};
 }
 
-/**
- * Builds a model shaped like Copilot's Auto entry: a single navigation group
- * that names itself "Optimize for" instead of reusing the thinking-effort wording.
- */
 function createTierModel(): ILanguageModelChatMetadataAndIdentifier {
 	return {
 		identifier: 'copilot/auto',
@@ -67,7 +57,7 @@ function createTierModel(): ILanguageModelChatMetadataAndIdentifier {
 			extension: new ExtensionIdentifier('test.extension'),
 			id: 'auto',
 			name: 'Auto',
-			vendor: 'copilot',
+			vendor: 'dardcor',
 			version: '1.0',
 			family: 'auto',
 			maxInputTokens: 128000,
@@ -90,11 +80,6 @@ function createTierModel(): ILanguageModelChatMetadataAndIdentifier {
 	};
 }
 
-/**
- * Renders the configuration button and opens the dropdown for `model`, then
- * returns a snapshot of everything the user can see: the button label, its
- * accessible name, the list options and the option rows.
- */
 function render(model: ILanguageModelChatMetadataAndIdentifier, configuration: Record<string, unknown> = {}) {
 	const access: IModelConfigurationAccess = {
 		getModelConfiguration: () => configuration,
@@ -172,9 +157,6 @@ suite('ModelPickerConfiguration', () => {
 		});
 	});
 
-	// A producer that cannot resolve a default leaves it `undefined`, which used
-	// to be stringified straight into the label as "undefined 272K". The group is
-	// dropped from the label instead, while its options stay selectable.
 	test('omits an unresolved group from the label rather than rendering "undefined"', () => {
 		assert.deepStrictEqual(render(createModel({ omitEffortDefault: true })), {
 			label: '32K',
@@ -194,8 +176,6 @@ suite('ModelPickerConfiguration', () => {
 		});
 	});
 
-	// With nothing to summarize the button falls back to a generic label so the
-	// configuration stays reachable — it must not read "undefined undefined".
 	test('falls back to a generic label when no group resolves a value', () => {
 		const rendered = render(createModel({ omitEffortDefault: true, omitContextDefault: true }));
 		assert.deepStrictEqual({ label: rendered.label, ariaLabel: rendered.ariaLabel }, {
@@ -204,8 +184,6 @@ suite('ModelPickerConfiguration', () => {
 		});
 	});
 
-	// The navigation group is generic: Copilot's Auto model uses it for the
-	// routing tier rather than thinking effort, and names it through `title`.
 	test('names the navigation group after the schema title when one is given', () => {
 		assert.deepStrictEqual(render(createTierModel(), { tier: 'max' }), {
 			label: 'Intelligence',

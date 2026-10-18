@@ -44,7 +44,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 	};
 	private _workGlyphConfig: { chars: string | undefined; tokenMetadata: number; decorationStyleSetId: number } = { chars: undefined, tokenMetadata: 0, decorationStyleSetId: 0 };
 
-	// TODO: Support workbench.fontAliasing correctly
 	private _antiAliasing: 'subpixel' | 'greyscale' = isMacintosh ? 'greyscale' : 'subpixel';
 
 	constructor(
@@ -67,10 +66,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 		this._textMetrics = this._ctx.measureText('A');
 	}
 
-	/**
-	 * Rasterizes a glyph. Note that the returned object is reused across different glyphs and
-	 * therefore is only safe for synchronous access.
-	 */
 	public rasterizeGlyph(
 		chars: string,
 		tokenMetadata: number,
@@ -86,9 +81,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 				fontBoundingBoxDescent: 0,
 			};
 		}
-		// Check if the last glyph matches the config, reuse if so. This helps avoid unnecessary
-		// work when the rasterizer is called multiple times like when the glyph doesn't fit into a
-		// page.
 		if (this._workGlyphConfig.chars === chars && this._workGlyphConfig.tokenMetadata === tokenMetadata && this._workGlyphConfig.decorationStyleSetId === decorationStyleSetId) {
 			return this._workGlyph;
 		}
@@ -113,8 +105,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 
 		this._ctx.save();
 
-		// The sub-pixel x offset is the fractional part of the x pixel coordinate of the cell, this
-		// is used to improve the spacing between rendered characters.
 		const subPixelXOffset = (tokenMetadata & 0b1111) / 10;
 
 		const bgId = TokenMetadata.getBackground(tokenMetadata);
@@ -122,7 +112,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 
 		const decorationStyleSet = this._decorationStyleCache.getStyleSet(decorationStyleSetId);
 
-		// When SPAA is used, the background color must be present to get the right glyph
 		if (this._antiAliasing === 'subpixel') {
 			this._ctx.fillStyle = bg;
 			this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
@@ -145,54 +134,37 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 		fontSb.appendString(`${devicePixelFontSize}px ${this.fontFamily}`);
 		this._ctx.font = fontSb.build();
 
-		// TODO: Support FontStyle.Underline text decorations, these need to be drawn manually to
-		//       the canvas. See xterm.js for "dodging" the text for underlines.
 
 		const originX = devicePixelFontSize;
 		const originY = devicePixelFontSize;
 
-		// Apply text color
 		if (decorationStyleSet?.color !== undefined) {
 			this._ctx.fillStyle = `#${decorationStyleSet.color.toString(16).padStart(8, '0')}`;
 		} else {
 			this._ctx.fillStyle = colorMap[TokenMetadata.getForeground(tokenMetadata)];
 		}
 
-		// Apply opacity
 		if (decorationStyleSet?.opacity !== undefined) {
 			this._ctx.globalAlpha = decorationStyleSet.opacity;
 		}
 
-		// The glyph baseline is top, meaning it's drawn at the top-left of the
-		// cell. Add `TextMetrics.alphabeticBaseline` to the drawn position to
-		// get the alphabetic baseline.
 		this._ctx.textBaseline = 'top';
 
-		// Draw the text
 		this._ctx.fillText(chars, originX + subPixelXOffset, originY);
 
-		// Draw strikethrough
 		if (decorationStyleSet?.strikethrough) {
-			// TODO: This position could be refined further by checking
-			//       TextMetrics of lowercase letters.
-			// Position strikethrough at approximately the vertical center of
-			// lowercase letters.
 			const strikethroughY = Math.round(originY - this._textMetrics.alphabeticBaseline * 0.65);
 			const lineWidth = decorationStyleSet?.strikethroughThickness !== undefined
 				? Math.round(decorationStyleSet.strikethroughThickness * this.devicePixelRatio)
 				: Math.max(1, Math.floor(devicePixelFontSize / 10));
-			// Apply strikethrough color if specified
 			if (decorationStyleSet?.strikethroughColor !== undefined) {
 				this._ctx.fillStyle = `#${decorationStyleSet.strikethroughColor.toString(16).padStart(8, '0')}`;
 			}
-			// Intentionally do not apply the sub pixel x offset to
-			// strikethrough to ensure successive glyphs form a contiguous line.
 			this._ctx.fillRect(originX, strikethroughY - Math.floor(lineWidth / 2), Math.ceil(this._textMetrics.width), lineWidth);
 		}
 
 		this._ctx.restore();
 
-		// Extract the image data and clear the background color
 		const imageData = this._ctx.getImageData(0, 0, this._canvas.width, this._canvas.height);
 		if (this._antiAliasing === 'subpixel') {
 			const bgR = parseInt(bg.substring(1, 3), 16);
@@ -202,57 +174,16 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 			this._ctx.putImageData(imageData, 0, 0);
 		}
 
-		// Find the bounding box
 		this._findGlyphBoundingBox(imageData, this._workGlyph.boundingBox);
 
-		// const offset = {
-		// 	x: textMetrics.actualBoundingBoxLeft,
-		// 	y: textMetrics.actualBoundingBoxAscent
-		// };
-		// const size = {
-		// 	w: textMetrics.actualBoundingBoxRight + textMetrics.actualBoundingBoxLeft,
-		// 	y: textMetrics.actualBoundingBoxDescent + textMetrics.actualBoundingBoxAscent,
-		// 	wInt: Math.ceil(textMetrics.actualBoundingBoxRight + textMetrics.actualBoundingBoxLeft),
-		// 	yInt: Math.ceil(textMetrics.actualBoundingBoxDescent + textMetrics.actualBoundingBoxAscent),
-		// };
-		// console.log(`${chars}_${fg}`, textMetrics, boundingBox, originX, originY, { width: boundingBox.right - boundingBox.left, height: boundingBox.bottom - boundingBox.top });
 		this._workGlyph.source = this._canvas;
 		this._workGlyph.originOffset.x = this._workGlyph.boundingBox.left - originX;
 		this._workGlyph.originOffset.y = this._workGlyph.boundingBox.top - originY;
 		this._workGlyph.fontBoundingBoxAscent = this._textMetrics.fontBoundingBoxAscent;
 		this._workGlyph.fontBoundingBoxDescent = this._textMetrics.fontBoundingBoxDescent;
 
-		// const result2: IRasterizedGlyph = {
-		// 	source: this._canvas,
-		// 	boundingBox: {
-		// 		left: Math.floor(originX - textMetrics.actualBoundingBoxLeft),
-		// 		right: Math.ceil(originX + textMetrics.actualBoundingBoxRight),
-		// 		top: Math.floor(originY - textMetrics.actualBoundingBoxAscent),
-		// 		bottom: Math.ceil(originY + textMetrics.actualBoundingBoxDescent),
-		// 	},
-		// 	originOffset: {
-		// 		x: Math.floor(boundingBox.left - originX),
-		// 		y: Math.floor(boundingBox.top - originY)
-		// 	}
-		// };
 
-		// TODO: Verify result 1 and 2 are the same
 
-		// if (result2.boundingBox.left > result.boundingBox.left) {
-		// 	debugger;
-		// }
-		// if (result2.boundingBox.top > result.boundingBox.top) {
-		// 	debugger;
-		// }
-		// if (result2.boundingBox.right < result.boundingBox.right) {
-		// 	debugger;
-		// }
-		// if (result2.boundingBox.bottom < result.boundingBox.bottom) {
-		// 	debugger;
-		// }
-		// if (JSON.stringify(result2.originOffset) !== JSON.stringify(result.originOffset)) {
-		// 	debugger;
-		// }
 
 
 
@@ -261,7 +192,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 
 	private _clearColor(imageData: ImageData, r: number, g: number, b: number) {
 		for (let offset = 0; offset < imageData.data.length; offset += 4) {
-			// Check exact match
 			if (imageData.data[offset] === r &&
 				imageData.data[offset + 1] === g &&
 				imageData.data[offset + 2] === b) {
@@ -270,7 +200,6 @@ export class GlyphRasterizer extends Disposable implements IGlyphRasterizer {
 		}
 	}
 
-	// TODO: Does this even need to happen when measure text is used?
 	private _findGlyphBoundingBox(imageData: ImageData, outBoundingBox: IBoundingBox) {
 		const height = this._canvas.height;
 		const width = this._canvas.width;

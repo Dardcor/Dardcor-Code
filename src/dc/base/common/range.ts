@@ -15,10 +15,6 @@ export interface IRangedGroup {
 
 export namespace Range {
 
-	/**
-	 * Returns the intersection between two ranges as a range itself.
-	 * Returns `{ start: 0, end: 0 }` if the intersection is empty.
-	 */
 	export function intersect(one: IRange, other: IRange): IRange {
 		if (one.start >= other.end || other.start >= one.end) {
 			return { start: 0, end: 0 };

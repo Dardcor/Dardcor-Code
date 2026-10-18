@@ -21,7 +21,6 @@ let externalWasmDiffComputerPromise: Promise<IExternalDiffComputer> | undefined;
 function loadExternalModule(): Promise<ExternalDiffModule> {
 	if (!externalModulePromise) {
 		const url = resolveAmdNodeModulePath('@vscode/diff', 'dist/index.js');
-		// Use a runtime-computed URL to keep bundlers from rewriting the import.
 		externalModulePromise = import(/* webpackIgnore: true */ /* @vite-ignore */ `${url}`) as Promise<ExternalDiffModule>;
 	}
 	return externalModulePromise;
@@ -55,11 +54,7 @@ class ExternalLinesDiffComputer implements ILinesDiffComputer {
 		const modifiedText = new StringText(modifiedLines.join('\n'));
 
 		const result = this._computer.computeDiff(originalText.value, modifiedText.value, {
-			// TODO: this currently throws
 			ignoreTrimWhitespace: true,
-			// ignoreTrimWhitespace: options.ignoreTrimWhitespace,
-			// TODO: support this. Currently throws with "Time is not implemented in this environment."
-			// maxComputationTimeMs: options.maxComputationTimeMs,
 			computeMoves: options.computeMoves,
 			extendToSubwords: options.extendToSubwords,
 		});

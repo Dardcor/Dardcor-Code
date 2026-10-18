@@ -6,12 +6,12 @@
 
 ### Task Running
 
-This extension supports running npm scripts defined in the `package.json` as [tasks](https://code.visualstudio.com/docs/editor/tasks). Scripts with the name 'build', 'compile', or 'watch'
+This extension supports running npm scripts defined in the `package.json` as [tasks](https://www.dardcor-code.web.id/docs/editor/tasks). Scripts with the name 'build', 'compile', or 'watch'
 are treated as build tasks.
 
 To run scripts as tasks, use the **Tasks** menu.
 
-For more information about auto detection of Tasks, see the [documentation](https://code.visualstudio.com/Docs/editor/tasks#_task-autodetection).
+For more information about auto detection of Tasks, see the [documentation](https://www.dardcor-code.web.id/docs/editor/tasks#_task-autodetection).
 
 ### Script Explorer
 

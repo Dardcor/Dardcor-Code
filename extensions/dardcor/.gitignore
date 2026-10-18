@@ -1,6 +1,6 @@
 .DS_Store
-.vscode-test/
-.vscode-test-web/
+.dardcor-test/
+.dardcor-test-web/
 node_modules/
 dist/
 dist-sourcemaps/
@@ -35,30 +35,16 @@ test/simulation/cache/_base.sqlite
 
 test/aml/out
 
-# Ignore files in huksy (else we always end up with files when creating worktrees)
+# Ignore files in husky
 .husky/_/
 
-# claude
-.claude/settings.local.json
-
-# VS Code extension debug profile (@playwright/cli automation)
-.vscode-ext-debug/
-
-# playwright
-.playwright-mcp/
+# Debug profile
+.dardcor-ext-debug/
 
 # Chat customizations
-.claude/
-.agents/agents/*.local.md
 .github/agents/*.local.md
-.agents/agents/*.local.agent.md
 .github/agents/*.local.agent.md
-.agents/hooks/*.local.json
 .github/hooks/*.local.json
-.agents/instructions/*.local.instructions.md
 .github/instructions/*.local.instructions.md
-.agents/prompts/*.local.prompt.md
 .github/prompts/*.local.prompt.md
-.agents/skills/.local/
 .github/skills/.local/
-*.vsix

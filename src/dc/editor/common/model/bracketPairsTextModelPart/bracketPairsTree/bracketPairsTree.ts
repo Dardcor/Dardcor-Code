@@ -27,15 +27,6 @@ import { ClosingBracketKind, OpeningBracketKind } from '../../../languages/suppo
 export class BracketPairsTree extends Disposable {
 	private readonly didChangeEmitter;
 
-	/*
-		There are two trees:
-		* The initial tree that has no token information and is used for performant initial bracket colorization.
-		* The tree that used token information to detect bracket pairs.
-
-		To prevent flickering, we only switch from the initial tree to tree with token information
-		when tokenization completes.
-		Since the text can be edited while background tokenization is in progress, we need to update both trees.
-	*/
 	private initialAstWithoutTokens: AstNode | undefined;
 	private astWithTokens: AstNode | undefined;
 
@@ -68,23 +59,18 @@ export class BracketPairsTree extends Disposable {
 			this.initialAstWithoutTokens = parseDocument(tokenizer, [], undefined, true);
 			this.astWithTokens = this.initialAstWithoutTokens;
 		} else if (textModel.tokenization.backgroundTokenizationState === BackgroundTokenizationState.Completed) {
-			// Skip the initial ast, as there is no flickering.
-			// Directly create the tree with token information.
 			this.initialAstWithoutTokens = undefined;
 			this.astWithTokens = this.parseDocumentFromTextBuffer([], undefined, false);
 		} else {
-			// We missed some token changes already, so we cannot use the fast tokenizer + delta increments
 			this.initialAstWithoutTokens = this.parseDocumentFromTextBuffer([], undefined, true);
 			this.astWithTokens = this.initialAstWithoutTokens;
 		}
 	}
 
-	//#region TextModel events
 
 	public handleDidChangeBackgroundTokenizationState(): void {
 		if (this.textModel.tokenization.backgroundTokenizationState === BackgroundTokenizationState.Completed) {
 			const wasUndefined = this.initialAstWithoutTokens === undefined;
-			// Clear the initial tree as we can use the tree with token information now.
 			this.initialAstWithoutTokens = undefined;
 			if (!wasUndefined) {
 				this.didChangeEmitter.fire();
@@ -114,7 +100,6 @@ export class BracketPairsTree extends Disposable {
 	}
 
 	private handleEdits(edits: TextEditInfo[], tokenChange: boolean): void {
-		// Lazily queue the edits and only apply them when the tree is accessed.
 		const result = combineTextEditInfos(this.queuedTextEdits, edits);
 
 		this.queuedTextEdits = result;
@@ -123,7 +108,6 @@ export class BracketPairsTree extends Disposable {
 		}
 	}
 
-	//#endregion
 
 	private flushQueue() {
 		if (this.queuedTextEdits.length > 0) {
@@ -138,11 +122,7 @@ export class BracketPairsTree extends Disposable {
 		}
 	}
 
-	/**
-	 * @pure (only if isPure = true)
-	*/
 	private parseDocumentFromTextBuffer(edits: TextEditInfo[], previousAst: AstNode | undefined, immutable: boolean): AstNode {
-		// Is much faster if `isPure = false`.
 		const isPure = false;
 		const previousAstClone = isPure ? previousAst?.deepClone() : previousAst;
 		const tokenizer = new TextBufferTokenizer(this.textModel, this.brackets);
@@ -278,7 +258,6 @@ function collectBrackets(
 					) {
 						const childEndsAfterEnd = lengthGreaterThanEqual(nodeOffsetEnd, endOffset);
 						if (childEndsAfterEnd) {
-							// No child after this child in the requested window, don't recurse
 							node = child;
 							continue whileLoop;
 						}
@@ -321,8 +300,6 @@ function collectBrackets(
 					) {
 						const childEndsAfterEnd = lengthGreaterThanEqual(nodeOffsetEnd, endOffset);
 						if (childEndsAfterEnd && child.kind !== AstNodeKind.Bracket) {
-							// No child after this child in the requested window, don't recurse
-							// Don't do this for brackets because of unclosed/unopened brackets
 							node = child;
 							if (colorize) {
 								level++;

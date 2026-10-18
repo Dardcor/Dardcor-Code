@@ -24,22 +24,10 @@ export class IgnoreFile {
 		this.isPathIgnored = this.parseIgnoreFile(contents, this.location, this.parent);
 	}
 
-	/**
-	 * Updates the contents of the ignore file. Preserving the location and parent
-	 * @param contents The new contents of the gitignore file
-	 */
 	updateContents(contents: string) {
 		this.isPathIgnored = this.parseIgnoreFile(contents, this.location, this.parent);
 	}
 
-	/**
-	 * Returns true if a path in a traversable directory has not been ignored.
-	 *
-	 * Note: For performance reasons this does not check if the parent directories have been ignored,
-	 * so it should always be used in tandem with `shouldTraverseDir` when walking a directory.
-	 *
-	 * In cases where a path must be tested in isolation, `isArbitraryPathIncluded` should be used.
-	 */
 	isPathIncludedInTraversal(path: string, isDir: boolean): boolean {
 		if (path[0] !== '/' || path[path.length - 1] === '/') {
 			throw Error('Unexpected path format, expected to begin with slash and end without. got:' + path);
@@ -50,10 +38,6 @@ export class IgnoreFile {
 		return !ignored;
 	}
 
-	/**
-	 * Returns true if an arbitrary path has not been ignored.
-	 * This is an expensive operation and should only be used outside of traversals.
-	 */
 	isArbitraryPathIgnored(path: string, isDir: boolean): boolean {
 		if (path[0] !== '/' || path[path.length - 1] === '/') {
 			throw Error('Unexpected path format, expected to begin with slash and end without. got:' + path);
@@ -96,21 +80,17 @@ export class IgnoreFile {
 			.map(line => line.trim())
 			.filter(line => line && line[0] !== '#');
 
-		// Pull out all the lines that end with `/`, those only apply to directories
 		const fileLines = contentLines.filter(line => !line.endsWith('/'));
 
 		const fileIgnoreLines = fileLines.filter(line => !line.includes('!'));
 		const isFileIgnored = this.gitignoreLinesToExpression(fileIgnoreLines, dirPath, true);
 
-		// TODO: Slight hack... this naive approach may reintroduce too many files in cases of weirdly complex .gitignores
 		const fileIncludeLines = fileLines.filter(line => line.includes('!')).map(line => line.replace(/!/g, ''));
 		const isFileIncluded = this.gitignoreLinesToExpression(fileIncludeLines, dirPath, false);
 
-		// When checking if a dir is ignored we can use all lines
 		const dirIgnoreLines = contentLines.filter(line => !line.includes('!'));
 		const isDirIgnored = this.gitignoreLinesToExpression(dirIgnoreLines, dirPath, true);
 
-		// Same hack.
 		const dirIncludeLines = contentLines.filter(line => line.includes('!')).map(line => line.replace(/!/g, ''));
 		const isDirIncluded = this.gitignoreLinesToExpression(dirIncludeLines, dirPath, false);
 
@@ -123,10 +103,6 @@ export class IgnoreFile {
 			const fileIncluded = isFileIncluded(path);
 			if (isFileIgnored(path) && !fileIncluded) { return true; }
 
-			// If this file explicitly un-ignores a path via a negation pattern
-			// (e.g., `!.myconfig/`), do not delegate to the parent. In git, a
-			// negation in a child .gitignore overrides a positive pattern in a
-			// parent or global .gitignore.
 			if (dirIncluded || fileIncluded) { return false; }
 
 			if (parent) { return parent.isPathIgnored(path, isDir); }

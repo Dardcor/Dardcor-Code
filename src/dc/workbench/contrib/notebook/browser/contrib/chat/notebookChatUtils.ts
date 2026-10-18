@@ -27,29 +27,24 @@ export const NOTEBOOK_CELL_OUTPUT_MIME_TYPE_LIST_FOR_CHAT_CONST = [
 
 export function createNotebookOutputVariableEntry(outputViewModel: ICellOutputViewModel, mimeType: string, notebookEditor: INotebookEditor): INotebookOutputVariableEntry | undefined {
 
-	// get the cell index
 	const cellFromViewModelHandle = outputViewModel.cellViewModel.handle;
 	const notebookModel = notebookEditor.textModel;
 	const cell = notebookEditor.getCellByHandle(cellFromViewModelHandle);
 	if (!cell || cell.outputsViewModels.length === 0 || !notebookModel) {
 		return;
 	}
-	// uri of the cell
 	const notebookUri = notebookModel.uri;
 	const cellUri = cell.uri;
 	const cellIndex = notebookModel.cells.indexOf(cell.model);
 
-	// get the output index
 	const outputId = outputViewModel?.model.outputId;
 	let outputIndex: number = 0;
 	if (outputId !== undefined) {
-		// find the output index
 		outputIndex = cell.outputsViewModels.findIndex(output => {
 			return output.model.outputId === outputId;
 		});
 	}
 
-	// construct the URI using the cell uri and output index
 	const outputCellUri = CellUri.generateCellOutputUriWithIndex(notebookUri, cellUri, outputIndex);
 	const fileName = normalizeDriveLetter(basenameOrAuthority(notebookUri));
 

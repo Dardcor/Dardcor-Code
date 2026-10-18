@@ -23,17 +23,11 @@ const HIDE_TIMEOUT = 500;
 const SCROLL_WHEEL_SENSITIVITY = 50;
 const SCROLL_WHEEL_SMOOTH_SCROLL_ENABLED = true;
 
-/** The default size (px) used when a scrollbar element does not pass an explicit size. */
 export const DEFAULT_SCROLLBAR_SIZE = 10;
 let globalDefaultScrollbarSize = DEFAULT_SCROLLBAR_SIZE;
 const _onDidChangeDefaultScrollbarSizeEmitter = new Emitter<number>();
 export const onDidChangeDefaultScrollbarSize: Event<number> = _onDidChangeDefaultScrollbarSizeEmitter.event;
 
-/**
- * Update the default scrollbar size used by all scrollable elements that were
- * created without an explicit horizontal/vertical scrollbar size option.
- * Elements with explicit sizes (e.g. the editor, menus) are unaffected.
- */
 export function setGlobalDefaultScrollbarSize(size: number): void {
 	if (size !== globalDefaultScrollbarSize) {
 		globalDefaultScrollbarSize = size;
@@ -78,11 +72,9 @@ export class MouseWheelClassifier {
 
 	public isPhysicalMouseWheel(): boolean {
 		if (this._front === -1 && this._rear === -1) {
-			// no elements
 			return false;
 		}
 
-		// 0.5 * last + 0.25 * 2nd last + 0.125 * 3rd last + ...
 		let remainingInfluence = 1;
 		let score = 0;
 		let iteration = 1;
@@ -108,8 +100,6 @@ export class MouseWheelClassifier {
 		if (isChrome) {
 			const targetWindow = dom.getWindow(e.browserEvent);
 			const pageZoomFactor = getZoomFactor(targetWindow);
-			// On Chrome, the incoming delta events are multiplied with the OS zoom factor.
-			// The OS zoom factor can be reverse engineered by using the device pixel ratio and the configured zoom factor into account.
 			this.accept(Date.now(), e.deltaX * pageZoomFactor, e.deltaY * pageZoomFactor);
 		} else {
 			this.accept(Date.now(), e.deltaX, e.deltaY);
@@ -129,7 +119,6 @@ export class MouseWheelClassifier {
 
 			this._rear = (this._rear + 1) % this._capacity;
 			if (this._rear === this._front) {
-				// Drop oldest
 				this._front = (this._front + 1) % this._capacity;
 			}
 			this._memory[this._rear] = item;
@@ -138,27 +127,18 @@ export class MouseWheelClassifier {
 		item.score = this._computeScore(item, previousItem);
 	}
 
-	/**
-	 * A score between 0 and 1 for `item`.
-	 *  - a score towards 0 indicates that the source appears to be a physical mouse wheel
-	 *  - a score towards 1 indicates that the source appears to be a touchpad or magic mouse, etc.
-	 */
 	private _computeScore(item: MouseWheelClassifierItem, previousItem: MouseWheelClassifierItem | null): number {
 
 		if (Math.abs(item.deltaX) > 0 && Math.abs(item.deltaY) > 0) {
-			// both axes exercised => definitely not a physical mouse wheel
 			return 1;
 		}
 
 		let score: number = 0.5;
 
 		if (!this._isAlmostInt(item.deltaX) || !this._isAlmostInt(item.deltaY)) {
-			// non-integer deltas => indicator that this is not a physical mouse wheel
 			score += 0.25;
 		}
 
-		// Non-accelerating scroll => indicator that this is a physical mouse wheel
-		// These can be identified by seeing whether they are the module of one another.
 		if (previousItem) {
 			const absDeltaX = Math.abs(item.deltaX);
 			const absDeltaY = Math.abs(item.deltaY);
@@ -166,7 +146,6 @@ export class MouseWheelClassifier {
 			const absPreviousDeltaX = Math.abs(previousItem.deltaX);
 			const absPreviousDeltaY = Math.abs(previousItem.deltaY);
 
-			// Min 1 to avoid division by zero, module 1 will still be 0.
 			const minDeltaX = Math.max(Math.min(absDeltaX, absPreviousDeltaX), 1);
 			const minDeltaY = Math.max(Math.min(absDeltaY, absPreviousDeltaY), 1);
 
@@ -183,7 +162,7 @@ export class MouseWheelClassifier {
 	}
 
 	private _isAlmostInt(value: number): boolean {
-		const epsilon = Number.EPSILON * 100; // Use a small tolerance factor for floating-point errors
+		const epsilon = Number.EPSILON * 100;
 		const delta = Math.abs(Math.round(value) - value);
 		return (delta < 0.01 + epsilon);
 	}
@@ -290,8 +269,6 @@ export abstract class AbstractScrollableElement extends Widget {
 		this._revealOnScroll = true;
 
 		// Subscribe to global default size changes, but only for axes whose size
-		// was NOT explicitly provided. Elements with explicit sizes (editor,
-		// menus, peek, chat input, etc.) use a fixed size and must not be updated.
 		const hSizeExplicit = typeof options.horizontalScrollbarSize !== 'undefined';
 		const vSizeExplicit = typeof options.verticalScrollbarSize !== 'undefined';
 		if (!hSizeExplicit || !vSizeExplicit) {
@@ -313,9 +290,6 @@ export abstract class AbstractScrollableElement extends Widget {
 		super.dispose();
 	}
 
-	/**
-	 * Get the generated 'scrollable' dom node
-	 */
 	public getDomNode(): HTMLElement {
 		return this._domNode;
 	}
@@ -327,10 +301,6 @@ export abstract class AbstractScrollableElement extends Widget {
 		};
 	}
 
-	/**
-	 * Delegate a pointer down event to the vertical scrollbar.
-	 * This is to help with clicking somewhere else and having the scrollbar react.
-	 */
 	public delegateVerticalScrollbarPointerDown(browserEvent: PointerEvent): void {
 		this._verticalScrollbar.delegatePointerDown(browserEvent);
 	}
@@ -343,21 +313,14 @@ export abstract class AbstractScrollableElement extends Widget {
 		this._scrollable.setScrollDimensions(dimensions, false);
 	}
 
-	/**
-	 * Update the class name of the scrollable element.
-	 */
 	public updateClassName(newClassName: string): void {
 		this._options.className = newClassName;
-		// Defaults are different on Macs
 		if (platform.isMacintosh) {
 			this._options.className += ' mac';
 		}
 		this._domNode.className = 'monaco-scrollable-element ' + this._options.className;
 	}
 
-	/**
-	 * Update configuration options for the scrollbar.
-	 */
 	public updateOptions(newOptions: ScrollableElementChangeOptions): void {
 		if (typeof newOptions.handleMouseWheel !== 'undefined') {
 			this._options.handleMouseWheel = newOptions.handleMouseWheel;
@@ -434,20 +397,16 @@ export abstract class AbstractScrollableElement extends Widget {
 		}
 	}
 
-	// -------------------- mouse wheel scrolling --------------------
 
 	private _setListeningToMouseWheel(shouldListen: boolean): void {
 		const isListening = (this._mouseWheelToDispose.length > 0);
 
 		if (isListening === shouldListen) {
-			// No change
 			return;
 		}
 
-		// Stop listening (if necessary)
 		this._mouseWheelToDispose = dispose(this._mouseWheelToDispose);
 
-		// Start listening (if necessary)
 		if (shouldListen) {
 			const onMouseWheel = (browserEvent: IMouseWheelEvent) => {
 				this._onMouseWheel(new StandardWheelEvent(browserEvent));
@@ -467,8 +426,6 @@ export abstract class AbstractScrollableElement extends Widget {
 			classifier.acceptStandardWheelEvent(e);
 		}
 
-		// useful for creating unit tests:
-		// console.log(`${Date.now()}, ${e.deltaY}, ${e.deltaX}`);
 
 		let didScroll = false;
 
@@ -478,10 +435,6 @@ export abstract class AbstractScrollableElement extends Widget {
 
 			if (this._options.scrollPredominantAxis) {
 				if (this._options.scrollYToX && deltaX + deltaY === 0) {
-					// when configured to map Y to X and we both see
-					// no dominant axis and X and Y are competing with
-					// identical values into opposite directions, we
-					// ignore the delta as we cannot make a decision then
 					deltaX = deltaY = 0;
 				} else if (Math.abs(deltaY) >= Math.abs(deltaX)) {
 					deltaX = 0;
@@ -494,8 +447,6 @@ export abstract class AbstractScrollableElement extends Widget {
 				[deltaY, deltaX] = [deltaX, deltaY];
 			}
 
-			// Convert vertical scrolling to horizontal if shift is held, this
-			// is handled at a higher level on Mac
 			const shiftConvert = !platform.isMacintosh && e.browserEvent && e.browserEvent.shiftKey;
 			if ((this._options.scrollYToX || shiftConvert) && !deltaX) {
 				deltaX = deltaY;
@@ -503,7 +454,6 @@ export abstract class AbstractScrollableElement extends Widget {
 			}
 
 			if (e.browserEvent && e.browserEvent.altKey) {
-				// fastScrolling
 				deltaX = deltaX * this._options.fastScrollSensitivity;
 				deltaY = deltaY * this._options.fastScrollSensitivity;
 			}
@@ -513,23 +463,19 @@ export abstract class AbstractScrollableElement extends Widget {
 			let desiredScrollPosition: INewScrollPosition = {};
 			if (deltaY) {
 				const deltaScrollTop = SCROLL_WHEEL_SENSITIVITY * deltaY;
-				// Here we convert values such as -0.3 to -1 or 0.3 to 1, otherwise low speed scrolling will never scroll
 				const desiredScrollTop = futureScrollPosition.scrollTop - (deltaScrollTop < 0 ? Math.floor(deltaScrollTop) : Math.ceil(deltaScrollTop));
 				this._verticalScrollbar.writeScrollPosition(desiredScrollPosition, desiredScrollTop);
 			}
 			if (deltaX) {
 				const deltaScrollLeft = SCROLL_WHEEL_SENSITIVITY * deltaX;
-				// Here we convert values such as -0.3 to -1 or 0.3 to 1, otherwise low speed scrolling will never scroll
 				const desiredScrollLeft = futureScrollPosition.scrollLeft - (deltaScrollLeft < 0 ? Math.floor(deltaScrollLeft) : Math.ceil(deltaScrollLeft));
 				this._horizontalScrollbar.writeScrollPosition(desiredScrollPosition, desiredScrollLeft);
 			}
 
-			// Check that we are scrolling towards a location which is valid
 			desiredScrollPosition = this._scrollable.validateScrollPosition(desiredScrollPosition);
 
 			if (this._options.inertialScroll && (deltaX || deltaY) && !classifier.isPhysicalMouseWheel()) {
 				let startPeriodic = false;
-				// Only start periodic if it's not running
 				if (this._inertialSpeed.X === 0 && this._inertialSpeed.Y === 0) {
 					startPeriodic = true;
 				}
@@ -589,10 +535,6 @@ export abstract class AbstractScrollableElement extends Widget {
 		}
 	}
 
-	/**
-	 * Render / mutate the DOM now.
-	 * Should be used together with the ctor option `lazyRender`.
-	 */
 	public renderNow(): void {
 		if (!this._options.lazyRender) {
 			throw new Error('Please use `lazyRender` together with `renderNow`!');
@@ -625,7 +567,6 @@ export abstract class AbstractScrollableElement extends Widget {
 		}
 	}
 
-	// -------------------- fade in / fade out --------------------
 
 	private _onDragStart(): void {
 		this._isDragging = true;
@@ -718,7 +659,7 @@ export class DomScrollableElement extends AbstractScrollableElement {
 		options = options || {};
 		options.mouseWheelSmoothScroll = false;
 		const scrollable = new Scrollable({
-			forceIntegerValues: false, // See https://github.com/microsoft/vscode/issues/139877
+			forceIntegerValues: false,
 			smoothScrollDuration: 0,
 			scheduleAtNextAnimationFrame: (callback) => dom.scheduleAtNextAnimationFrame(dom.getWindow(element), callback)
 		});
@@ -745,7 +686,6 @@ export class DomScrollableElement extends AbstractScrollableElement {
 	}
 
 	public scanDomNode(): void {
-		// width, scrollLeft, scrollWidth, height, scrollTop, scrollHeight
 		this.setScrollDimensions({
 			width: this._element.clientWidth,
 			scrollWidth: this._element.scrollWidth,
@@ -794,7 +734,6 @@ function resolveOptions(opts: ScrollableElementCreationOptions): ScrollableEleme
 	result.horizontalSliderSize = (typeof opts.horizontalSliderSize !== 'undefined' ? opts.horizontalSliderSize : result.horizontalScrollbarSize);
 	result.verticalSliderSize = (typeof opts.verticalSliderSize !== 'undefined' ? opts.verticalSliderSize : result.verticalScrollbarSize);
 
-	// Defaults are different on Macs
 	if (platform.isMacintosh) {
 		result.className += ' mac';
 	}

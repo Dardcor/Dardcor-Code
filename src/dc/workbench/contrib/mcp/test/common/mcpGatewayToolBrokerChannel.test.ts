@@ -138,7 +138,6 @@ suite('McpGatewayToolBrokerChannel', () => {
 		mcpService.servers.set([server], undefined);
 		const tools = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 
-		// Server started during the grace period; tools are now available.
 		assert.strictEqual(server.startCalls, 1);
 		assert.deepStrictEqual(tools.map(t => t.name), ['echo']);
 		channel.dispose();
@@ -158,7 +157,6 @@ suite('McpGatewayToolBrokerChannel', () => {
 		mcpService.servers.set([server], undefined);
 		const tools = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 
-		// Outdated server gets the same grace period as Unknown — started and tools returned.
 		assert.strictEqual(server.startCalls, 1);
 		assert.deepStrictEqual(tools.map(t => t.name), ['echo']);
 		channel.dispose();
@@ -177,11 +175,9 @@ suite('McpGatewayToolBrokerChannel', () => {
 
 			mcpService.servers.set([server], undefined);
 
-			// First call: waits up to the grace period, server never starts → empty result.
 			const tools = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 			assert.deepStrictEqual(tools, []);
 
-			// Second call: grace-period promise already resolved; returns immediately without re-waiting.
 			const tools2 = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 			assert.deepStrictEqual(tools2, []);
 
@@ -202,19 +198,14 @@ suite('McpGatewayToolBrokerChannel', () => {
 
 			mcpService.servers.set([server], undefined);
 
-			// First call: grace period elapses, server never starts → empty.
 			const tools1 = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 			assert.deepStrictEqual(tools1, []);
 			assert.strictEqual(server.startCalls, 1);
 
-			// Simulate a cache reset: server goes back to Unknown.
 			server.cacheStateValue.set(McpServerCacheState.Unknown, undefined);
 
-			// Make the server succeed this time.
 			server.startBehavior = 'succeed';
 
-			// Second call: stale grace entry should be discarded, a new grace race starts,
-			// and the server successfully starts → tools returned.
 			const tools2 = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 			assert.deepStrictEqual(tools2.map(t => t.name), ['echo']);
 			assert.strictEqual(server.startCalls, 2);
@@ -237,13 +228,10 @@ suite('McpGatewayToolBrokerChannel', () => {
 
 			mcpService.servers.set([server], undefined);
 
-			// First call: server starts successfully during grace period.
 			const tools1 = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 			assert.deepStrictEqual(tools1.map(t => t.name), ['echo']);
 			assert.strictEqual(server.startCalls, 1);
 
-			// Second call: cacheState is now Live (server started), grace entry should NOT
-			// be invalidated, so no additional start call is made.
 			const tools2 = await channel.call<readonly MCP.Tool[]>(undefined, 'listToolsForServer', { serverId: 'serverA' });
 			assert.deepStrictEqual(tools2.map(t => t.name), ['echo']);
 			assert.strictEqual(server.startCalls, 1);
@@ -331,7 +319,6 @@ suite('McpGatewayToolBrokerChannel', () => {
 			received.push(e);
 		});
 
-		// Add a second server
 		const serverB = createServer('collectionB', 'serverB', []);
 		mcpService.servers.set([serverA, serverB], undefined);
 
@@ -341,7 +328,6 @@ suite('McpGatewayToolBrokerChannel', () => {
 			{ id: 'serverB', label: 'serverB' },
 		]);
 
-		// Remove the first server
 		mcpService.servers.set([serverB], undefined);
 
 		assert.strictEqual(received.length, 2);
@@ -420,7 +406,6 @@ function createNeverStartingServer(
 				cacheState.set(McpServerCacheState.Live, undefined);
 				return { state: McpConnectionState.Kind.Running };
 			}
-			// Never resolves — simulates a server that hangs on startup.
 			return new Promise<McpConnectionState>(() => { });
 		},
 		stop: async () => { },

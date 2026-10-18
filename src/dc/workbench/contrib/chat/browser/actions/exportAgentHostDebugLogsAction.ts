@@ -38,23 +38,12 @@ const SHARED_PROCESS_LOG_FILE_NAME = 'sharedprocess.log';
 const OUTPUT_LOG_FOLDER_PREFIX = 'output_';
 const MAX_INLINE_DEBUG_LOGS_BYTES = 30 * ByteSize.MB;
 
-/**
- * Description of the agent-host session whose logs should be exported. If
- * not provided, the action exports all agent-host-related logs for the
- * current window (no session-specific scoping or events file).
- */
 export interface IActiveAgentHostSessionForExport {
-	/** The chat session resource. */
 	readonly resource: URI;
-	/** Optional owning-session title used to namespace the default zip filename. */
 	readonly sessionTitle: string | undefined;
-	/** Optional active-chat title used to derive the default zip filename. */
 	readonly chatTitle: string | undefined;
-	/** True for local agent-host sessions (`agent-host-*` scheme). */
 	readonly isLocal: boolean;
-	/** Backend chat identifier selected within the session. */
 	readonly chatId: string;
-	/** Exact host-published backend chat resource, when already resolved by the provider. */
 	readonly backendChatResource: URI | undefined;
 }
 
@@ -67,12 +56,6 @@ export interface IAgentHostDebugLogsExport {
 	readonly hostArtifact: IAgentHostDebugLogsHostArtifact | undefined;
 }
 
-/**
- * A debug-log artifact produced by an agent host, paired with the means to read
- * its bytes. For a remote host the artifact lives on the remote disk, so
- * {@link readChunk} streams it over AHP in bounded slices instead of
- * materializing the whole archive in one protocol message.
- */
 export interface IAgentHostDebugLogsHostArtifact {
 	readonly artifact: IAgentHostDebugLogsArtifact;
 	readonly readChunk: (resource: URI, position: number) => Promise<IAgentHostDebugLogsChunk>;
@@ -131,11 +114,6 @@ export function resolveAgentHostDebugLogsChat(
 	return { backendChat, sessionTitle };
 }
 
-/**
- * Streams a host-owned artifact by repeatedly calling `readChunk`. The stream
- * fails if the host overruns or underruns the size it declared, so a
- * truncated or runaway transfer can never be silently zipped up.
- */
 export function createHostArtifactStream(
 	artifact: IAgentHostDebugLogsArtifact,
 	readChunk: (position: number) => Promise<IAgentHostDebugLogsChunk>,
@@ -171,17 +149,6 @@ export function createHostArtifactStream(
 	return stream;
 }
 
-/**
- * Shared implementation of "Export Agent Host Debug Logs". Collects the
- * Agent Host's own debug-log bundle (collected and packaged by the host), plus
- * the logs this side owns: the window/shared-process output channels, remote
- * forwarded logs, the AHP transport JSONL logs, and the client-local capture
- * sidecars.
- *
- * Both the workbench-side action (resolves the active session via
- * `IChatWidgetService`) and the sessions-app-side action (resolves it via
- * `ISessionsManagementService`) call into this helper.
- */
 export async function collectAgentHostDebugLogs(
 	accessor: ServicesAccessor,
 	activeSession: IActiveAgentHostSessionForExport | undefined,
@@ -262,7 +229,6 @@ export async function collectAgentHostDebugLogs(
 		}
 	};
 
-	// 1. Local VS Code process and forwarded Agent Host logs.
 	const processLogs = [
 		{ folder: 'Window', resource: environmentService.logFile },
 		{ folder: 'Shared', resource: joinPath(environmentService.logsHome, SHARED_PROCESS_LOG_FILE_NAME) },
@@ -286,8 +252,6 @@ export async function collectAgentHostDebugLogs(
 		logService.warn(`[ExportAgentHostDebugLogs] Failed to collect forwarded Agent Host logs: ${error instanceof Error ? error.message : String(error)}`);
 	}
 
-	// 2. AHP transport JSONL logs (one file per remote connection, written under <logsHome>/ahp/).
-	// These replace the per-connection `agenthost.<clientId>` IPC traffic output channel.
 	try {
 		const ahpDir = joinPath(environmentService.logsHome, 'ahp');
 		const stat = await fileService.resolve(ahpDir, { resolveMetadata: true });
@@ -305,16 +269,10 @@ export async function collectAgentHostDebugLogs(
 			}
 		}
 	} catch {
-		// AHP log directory may not exist if no remote connection has been opened or if logging is disabled.
 	}
 
 	const rawSessionId = getCopilotCliSessionRawId(activeSession?.resource);
 
-	// 3. Client-local capture sidecars for the session. These hold data the SDK
-	// never persists — per-model-call token/credit usage (`assistant.usage` is
-	// ephemeral) and the loaded customization set (`session.*_loaded` likewise) —
-	// so without them an export cannot explain a usage/cost discrepancy or say
-	// which skills/hooks/MCP servers were actually active.
 	if (rawSessionId) {
 		const sidecars: { path: string; resource: URI }[] = [
 			{ path: 'usage.jsonl', resource: buildAgentHostUsageUri(environmentService.userRoamingDataHome, rawSessionId) },
@@ -327,7 +285,6 @@ export async function collectAgentHostDebugLogs(
 					appendFile(file);
 				}
 			} catch {
-				// Absent when agent-host debug logging was off for this session.
 			}
 		}
 	}
@@ -359,7 +316,6 @@ function toDebugLogsTitleSlug(title: string | undefined): string {
 	return title?.replace(/[/\\:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) ?? '';
 }
 
-/** Binds a connection's chunked artifact read to one artifact. */
 function createChunkReader(connection: IAgentConnection): (resource: URI, position: number) => Promise<IAgentHostDebugLogsChunk> {
 	return (resource, position) => connection.readDebugLogsChunk(resource, position);
 }
@@ -456,11 +412,6 @@ export function notifyAgentHostDebugLogsExported(
 	});
 }
 
-/**
- * Workbench-side action. Uses the last-focused chat widget's view model to
- * find the active Copilot CLI chat session. Suitable for vscode where the
- * agents-window-specific `ISessionsManagementService` is not present.
- */
 export class ExportAgentHostDebugLogsAction extends Action2 {
 
 	static readonly ID = 'workbench.action.chat.exportAgentHostDebugLogs';
@@ -488,12 +439,6 @@ export class ExportAgentHostDebugLogsAction extends Action2 {
 	}
 }
 
-/**
- * Translates a chat session URI scheme into an agent-host session context,
- * or `undefined` if the scheme does not belong to a Copilot CLI agent-host
- * session (i.e. local AH or remote AH; the EH CLI extension's own
- * `copilotcli:` sessions are excluded).
- */
 export function toActiveAgentHostSession(resource: URI, chatTitle: string | undefined, sessionTitle?: string): IActiveAgentHostSessionForExport | undefined {
 	if (resource.scheme === COPILOT_CLI_LOCAL_AH_SCHEME) {
 		return { resource: resource.with({ fragment: null }), sessionTitle, chatTitle, isLocal: true, chatId: resource.fragment || DEFAULT_CHAT_ID, backendChatResource: undefined };

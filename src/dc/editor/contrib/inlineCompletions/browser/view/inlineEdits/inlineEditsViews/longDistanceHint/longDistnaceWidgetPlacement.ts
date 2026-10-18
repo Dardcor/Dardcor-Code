@@ -10,9 +10,6 @@ import { LineRange } from '../../../../../../../common/core/ranges/lineRange.js'
 import { OffsetRange } from '../../../../../../../common/core/ranges/offsetRange.js';
 import { getMaxTowerHeightInAvailableArea } from '../../utils/towersLayout.js';
 
-/**
- * Layout constants used for the long-distance hint widget.
- */
 export interface WidgetLayoutConstants {
 	readonly previewEditorMargin: number;
 	readonly widgetPadding: number;
@@ -20,25 +17,15 @@ export interface WidgetLayoutConstants {
 	readonly lowerBarHeight: number;
 	readonly minWidgetWidth: number;
 }
-/**
- * Represents a widget placement outline with horizontal and vertical ranges.
- */
 export interface WidgetOutline {
 	readonly horizontalWidgetRange: OffsetRange;
 	readonly verticalWidgetRange: OffsetRange;
 }
-/**
- * Represents a continuous range of lines with their sizes and positioning.
- * Used to compute available space for widget placement.
- */
 export interface ContinuousLineSizes {
 	readonly lineRange: LineRange;
 	readonly top: number;
 	readonly sizes: Size2D[];
 }
-/**
- * Context for computing widget placement within a continuous line range.
- */
 export class WidgetPlacementContext {
 	public readonly availableSpaceSizes: Size2D[];
 	public readonly availableSpaceHeightPrefixSums: number[];
@@ -59,9 +46,6 @@ export class WidgetPlacementContext {
 		this.availableSpaceSizesTransposed = this.availableSpaceSizes.map(s => s.transpose());
 	}
 
-	/**
-	 * Computes the vertical outline for a widget placed at the given line number.
-	 */
 	public getWidgetVerticalOutline(
 		lineNumber: number,
 		previewEditorHeight: number,
@@ -75,9 +59,6 @@ export class WidgetPlacementContext {
 		return verticalWidgetRange;
 	}
 
-	/**
-	 * Tries to find a valid widget outline within this line range context.
-	 */
 	public tryFindWidgetOutline(
 		targetLineNumber: number,
 		previewEditorHeight: number,
@@ -105,10 +86,6 @@ export class WidgetPlacementContext {
 		);
 	}
 }
-/**
- * Splits line size information into continuous ranges, breaking at positions where
- * the expected vertical position differs from the actual position (e.g., due to folded regions).
- */
 export function splitIntoContinuousLineRanges(
 	lineRange: LineRange,
 	sizes: Size2D[],
@@ -127,7 +104,6 @@ export function splitIntoContinuousLineRanges(
 		const actualTop = editorObs.editor.getTopForLineNumber(lineNumber);
 
 		if (i > 0 && actualTop !== expectedTop) {
-			// Discontinuity detected - push the current range and start a new one
 			result.push({
 				lineRange: LineRange.ofLength(currentRangeStart, lineNumber - currentRangeStart),
 				top: currentRangeTop,
@@ -140,14 +116,12 @@ export function splitIntoContinuousLineRanges(
 		currentSizes.push(sizes[i]);
 	}
 
-	// Push the final range
 	result.push({
 		lineRange: LineRange.ofLength(currentRangeStart, lineRange.endLineNumberExclusive - currentRangeStart),
 		top: currentRangeTop,
 		sizes: currentSizes,
 	});
 
-	// Don't observe each line individually for performance reasons
 	derived({ owner: 'splitIntoContinuousLineRanges' }, r => {
 		return editorObs.observeTopForLineNumber(lineRange.endLineNumberExclusive - 1).read(r);
 	}).read(reader);

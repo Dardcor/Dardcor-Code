@@ -16,28 +16,11 @@ import { Linkifier } from './linkifier';
 import { ModelFilePathLinkifier } from './modelFilePathLinkifier';
 import { StatCache } from './statCache';
 
-/**
- * A stateful linkifier.
- */
 export interface ILinkifier {
-	/**
-	 * The total number of links that have been added.
-	 *
-	 * This may not be up to date if there are any ongoing `append` or `flush` calls.
-	 */
 	readonly totalAddedLinkCount: number;
 
-	/**
-	 * Add new text to the linkifier.
-	 *
-	 * @returns The new text that has been linkified. This may include parts of text that was previously passed to `.append`.
-	 * It also may be empty if we are still accumulating text for linkification.
-	 */
 	append(newText: string, token: CancellationToken): Promise<LinkifiedText>;
 
-	/**
-	 * Complete the current linkification. If there is any pending text, it will be linkified and returned.
-	 */
 	flush(token: CancellationToken): Promise<LinkifiedText | undefined>;
 }
 
@@ -68,9 +51,6 @@ export interface ILinkifyService {
 	 */
 	registerGlobalLinkifier(linkifier: IContributedLinkifierFactory): IDisposable;
 
-	/**
-	 * Create a new {@link ILinkifier stateful linkifier}.
-	 */
 	createLinkifier(
 		context: LinkifierContext,
 		additionalLinkifiers?: readonly IContributedLinkifierFactory[],
@@ -103,8 +83,6 @@ export class LinkifyService implements ILinkifyService {
 		context: LinkifierContext,
 		additionalLinkifiers?: readonly IContributedLinkifierFactory[],
 	): ILinkifier {
-		// Model and file path linkifiers share a stat cache per linkifier instance
-		// so that filesystem lookups are not duplicated across them.
 		const statCache = new StatCache(this.fileSystem);
 		const builtInLinkifiers: IContributedLinkifier[] = [
 			new ModelFilePathLinkifier(this.workspaceService, statCache),

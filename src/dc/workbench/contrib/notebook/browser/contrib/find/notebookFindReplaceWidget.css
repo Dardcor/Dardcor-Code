@@ -30,7 +30,6 @@
 }
 
 .monaco-workbench .simple-fr-find-part {
-	/* visibility: hidden;		Use visibility to maintain flex layout while hidden otherwise interferes with transition */
 	z-index: 10;
 	position: relative;
 	top: 0px;
@@ -42,7 +41,6 @@
 }
 
 .monaco-workbench .simple-fr-replace-part {
-	/* visibility: hidden;		Use visibility to maintain flex layout while hidden otherwise interferes with transition */
 	z-index: 10;
 	position: relative;
 	top: 0px;

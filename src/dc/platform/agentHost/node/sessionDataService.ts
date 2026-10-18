@@ -15,11 +15,6 @@ import { SessionDatabase } from './sessionDatabase.js';
 
 class SessionDatabaseCollection extends ReferenceCollection<ISessionDatabase> {
 
-	/**
-	 * The set of currently-open databases. Mirrors what's held by the
-	 * underlying ref-counted map, but exposed so {@link SessionDataService.whenIdle}
-	 * can iterate without reaching into private state.
-	 */
 	readonly liveDatabases = new Set<ISessionDatabase>();
 
 	constructor(
@@ -43,10 +38,6 @@ class SessionDatabaseCollection extends ReferenceCollection<ISessionDatabase> {
 	}
 }
 
-/**
- * Implementation of {@link ISessionDataService} that stores per-session data
- * under `{userDataPath}/agentSessionData/{sessionId}/`.
- */
 export class SessionDataService implements ISessionDataService {
 	declare readonly _serviceBrand: undefined;
 
@@ -62,7 +53,7 @@ export class SessionDataService implements ISessionDataService {
 		userDataPath: URI,
 		@IFileService private readonly _fileService: IFileService,
 		@ILogService private readonly _logService: ILogService,
-		getDbPath?: (key: string) => string, // for testing
+		getDbPath?: (key: string) => string,
 	) {
 		this._basePath = URI.joinPath(userDataPath, 'agentSessionData');
 		this._databases = new SessionDatabaseCollection(
@@ -84,15 +75,6 @@ export class SessionDataService implements ISessionDataService {
 		return this._dataKey(session).replace(/[^a-zA-Z0-9_.-]/g, '-');
 	}
 
-	/**
-	 * Derives the per-URI storage key. Chat channel URIs
-	 * (`ahp-chat://<chatId>/<base64(session)>`) carry the chat id in the
-	 * authority while encoding the SAME owning-session URI in the path, so
-	 * keying only by the path (via {@link AgentSession.id}) would collapse
-	 * every peer chat of a session onto one data directory and database.
-	 * Prefixing with the authority gives each chat its own storage while
-	 * leaving plain session URIs (no authority) unchanged.
-	 */
 	private _dataKey(uri: URI): string {
 		const id = AgentSession.id(uri);
 		return uri.authority ? `${uri.authority}-${id}` : id;
@@ -118,10 +100,6 @@ export class SessionDataService implements ISessionDataService {
 
 	async deleteSessionData(session: URI, workingDirectories?: readonly string[]): Promise<void> {
 		const dir = this.getSessionDataDir(session);
-		// Fire the will-delete event first so subscribers (notably the
-		// checkpoint service) can perform async cleanup that needs the
-		// database to still be readable. `waitUntil` collects each
-		// subscriber's promise; we await them all before touching disk.
 		const pending: Promise<unknown>[] = [];
 		try {
 			this._onWillDeleteSessionData.fire({
@@ -193,10 +171,6 @@ export class SessionDataService implements ISessionDataService {
 	}
 
 	async whenIdle(): Promise<void> {
-		// Each `SessionDatabase.whenIdle()` already loops internally until
-		// that DB is quiescent, so the outer loop only needs to handle the
-		// case where a new DB was opened (and writes queued against it)
-		// while we were awaiting an earlier pass.
 		while (true) {
 			const dbs = [...this._databases.liveDatabases];
 			if (dbs.length === 0) {

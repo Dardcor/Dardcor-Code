@@ -14,7 +14,6 @@ import { IColorTheme } from './themeService.js';
 import * as nls from '../../../nls.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 
-//  ------ API types
 
 export type ColorIdentifier = string;
 
@@ -26,12 +25,6 @@ export interface ColorContribution {
 	readonly deprecationMessage: string | undefined;
 }
 
-/**
- * Returns the css variable name for the given color identifier. Dots (`.`) are replaced with hyphens (`-`) and
- * everything is prefixed with `--vscode-`.
- *
- * @sample `editorSuggestWidget.background` is `--vscode-editorSuggestWidget-background`.
- */
 export function asCssVariableName(colorIdent: ColorIdentifier): string {
 	return `--vscode-${colorIdent.replace(/\./g, '-')}`;
 }
@@ -76,12 +69,8 @@ export function isColorDefaults(value: unknown): value is ColorDefaults {
 	return value !== null && typeof value === 'object' && 'light' in value && 'dark' in value;
 }
 
-/**
- * A Color Value is either a color literal, a reference to an other color or a derived color
- */
 export type ColorValue = Color | string | ColorIdentifier | ColorTransform;
 
-// color registry
 export const Extensions = {
 	ColorContribution: 'base.contributions.colors'
 };
@@ -92,48 +81,20 @@ export interface IColorRegistry {
 
 	readonly onDidChangeSchema: Event<void>;
 
-	/**
-	 * Register a color to the registry.
-	 * @param id The color id as used in theme description files
-	 * @param defaults The default values
-	 * @param needsTransparency Whether the color requires transparency
-	 * @description the description
-	 */
 	registerColor(id: string, defaults: ColorDefaults, description: string, needsTransparency?: boolean): ColorIdentifier;
 
-	/**
-	 * Register a color to the registry.
-	 */
 	deregisterColor(id: string): void;
 
-	/**
-	 * Get all color contributions
-	 */
 	getColors(): ColorContribution[];
 
-	/**
-	 * Gets the default color of the given id
-	 */
 	resolveDefaultColor(id: ColorIdentifier, theme: IColorTheme): Color | undefined;
 
-	/**
-	 * JSON schema for an object to assign color values to one of the color contributions.
-	 */
 	getColorSchema(): IJSONSchema;
 
-	/**
-	 * JSON schema to for a reference to a color contribution.
-	 */
 	getColorReferenceSchema(): IJSONSchema;
 
-	/**
-	 * Update the default color of a color identifier.
-	 */
 	updateDefaultColor(id: string, defaults: ColorDefaults | ColorValue | null): void;
 
-	/**
-	 * Notify when the color theme or settings change.
-	 */
 	notifyThemeUpdate(theme: IColorTheme): void;
 
 }
@@ -257,7 +218,6 @@ export function getColorRegistry(): IColorRegistry {
 	return colorRegistry;
 }
 
-// ----- color functions
 
 export function executeTransform(transform: ColorTransform, theme: IColorTheme): Color | undefined {
 	switch (transform.op) {
@@ -344,11 +304,7 @@ export function lessProminent(colorValue: ColorValue, backgroundColorValue: Colo
 	return { op: ColorTransformType.LessProminent, value: colorValue, background: backgroundColorValue, factor, transparency };
 }
 
-// ----- implementation
 
-/**
- * @param colorValue Resolve a color value in the context of a theme
- */
 export function resolveColorValue(colorValue: ColorValue | null, theme: IColorTheme): Color | undefined {
 	if (colorValue === null) {
 		return undefined;
@@ -378,4 +334,3 @@ colorRegistry.onDidChangeSchema(() => {
 	}
 });
 
-// setTimeout(_ => console.log(colorRegistry.toString()), 5000);

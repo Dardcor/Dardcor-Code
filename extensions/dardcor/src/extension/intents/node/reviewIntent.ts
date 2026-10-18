@@ -66,7 +66,9 @@ class ReviewIntentInvocation extends RendererIntentInvocation implements IIntent
 				const document = await this.workspaceService.openTextDocumentAndSnapshot(change.uri);
 				return {
 					document,
-					relativeDocumentPath: path.relative(change.repository.rootUri.fsPath, change.uri.fsPath),
+					relativeDocumentPath: change.repository
+						? path.relative(change.repository.rootUri.fsPath, change.uri.fsPath)
+						: path.basename(change.uri.fsPath),
 					change,
 				};
 			}));
@@ -169,9 +171,9 @@ class ReviewReplyInterpreter implements ReplyInterpreter {
 
 	async processResponse(context: IResponseProcessorContext, inputStream: AsyncIterable<IResponsePart>, outputStream: vscode.ChatResponseStream, token: CancellationToken): Promise<void> {
 		const request: ReviewRequest = {
-			source: 'vscodeCopilotChat',
+			source: 'dardcorRouter',
 			promptCount: 1,
-			messageId: generateUuid(), // TODO: Use from request?
+			messageId: generateUuid(),
 			inputType: 'selection',
 			inputRanges: [
 				{
@@ -213,7 +215,7 @@ class ReviewReplyInterpreter implements ReplyInterpreter {
 				relativeDocumentPath: path.basename(this.documentContext.document.uri.fsPath),
 				selection: this.documentContext.selection
 			}
-		], this.text, false); // parse all
+		], this.text, false);
 		if (comments.length > this.comments.length) {
 			this.reviewService.addReviewComments(comments.slice(this.comments.length));
 			this.comments = comments;

@@ -106,19 +106,10 @@ export type ExecConfig = {
 };
 
 export enum ClientCapability {
-	/**
-	 * Basic syntax server. All clients should support this.
-	 */
 	Syntax,
 
-	/**
-	 * Advanced syntax server that can provide single file IntelliSense.
-	 */
 	EnhancedSyntax,
 
-	/**
-	 * Complete, multi-file semantic server
-	 */
 	Semantic,
 }
 
@@ -136,28 +127,14 @@ export class ClientCapabilities {
 
 export interface ITypeScriptServiceClient {
 
-	/**
-	 * Convert a (VS Code) resource to a path that TypeScript server understands.
-	 */
 	toTsFilePath(resource: vscode.Uri): string | undefined;
 
-	/**
-	 * Convert a path to a resource.
-	 */
 	toResource(filepath: string): vscode.Uri;
 
-	/**
-	 * Tries to ensure that a vscode document is open on the TS server.
-	 *
-	 * @return The normalized path or `undefined` if the document is not open on the server.
-	 */
 	toOpenTsFilePath(document: vscode.TextDocument | vscode.Uri, options?: {
 		suppressAlertOnFailure?: boolean;
 	}): string | undefined;
 
-	/**
-	 * Checks if `resource` has a given capability.
-	 */
 	hasCapabilityForResource(resource: vscode.Uri, capability: ClientCapability): boolean;
 
 	getWorkspaceRootForResource(resource: vscode.Uri): vscode.Uri | undefined;
@@ -200,8 +177,5 @@ export interface ITypeScriptServiceClient {
 		token: vscode.CancellationToken
 	): Promise<ServerResponse.Response<Proto.Response>>;
 
-	/**
-	 * Cancel on going geterr requests and re-queue them after `f` has been evaluated.
-	 */
 	interruptGetErr<R>(f: () => R): R;
 }

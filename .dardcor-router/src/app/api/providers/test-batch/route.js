@@ -10,17 +10,14 @@ import {
 import { testSingleConnection } from "../[id]/test/testUtils.js";
 
 function getAuthGroup(providerId, connection = null) {
-  // Prioritize authType from connection if available
   if (connection?.authType) {
     if (connection.authType === "oauth") {
-      // Check if it's a free provider
       if (FREE_PROVIDERS[providerId]) return "free";
       return "oauth";
     }
     return connection.authType;
   }
   
-  // Fallback to constants
   if (FREE_PROVIDERS[providerId]) return "free";
   if (OAUTH_PROVIDERS[providerId]) return "oauth";
   if (APIKEY_PROVIDERS[providerId]) return "apikey";
@@ -39,7 +36,6 @@ function isCompatibleProvider(providerId) {
   );
 }
 
-// POST /api/providers/test-batch - Test multiple connections by group
 export async function POST(request) {
   try {
     const body = await request.json();

@@ -13,14 +13,8 @@ import {
 	type ISSHTrustedHostKey,
 } from '../common/sshHostKeyTrust.js';
 
-/** Storage key for the JSON map of trusted SSH host keys. */
 export const SSH_HOST_KEY_TRUST_STORAGE_KEY = 'sshRemoteAgentHost.trustedHostKeys';
 
-/**
- * Parse one persisted host key entry, returning `undefined` when any field is
- * missing or the wrong shape. Trust data must never be reconstructed from
- * partial input — a half-read entry could otherwise match a key it shouldn't.
- */
 function parseTrustedHostKey(value: unknown): ISSHTrustedHostKey | undefined {
 	if (typeof value !== 'object' || value === null) {
 		return undefined;
@@ -39,11 +33,6 @@ function parseTrustedHostKey(value: unknown): ISSHTrustedHostKey | undefined {
 	};
 }
 
-/**
- * Parse the persisted trust map. A malformed entry is dropped rather than
- * discarding the whole map, so one bad record never forces the user to
- * re-accept every host they have ever trusted.
- */
 export function parseTrustedHostKeys(raw: string | undefined): Map<string, ISSHTrustedHostKey[]> {
 	const hosts = new Map<string, ISSHTrustedHostKey[]>();
 	if (!raw) {
@@ -78,11 +67,6 @@ export function parseTrustedHostKeys(raw: string | undefined): Map<string, ISSHT
 	return hosts;
 }
 
-/**
- * Split a `hostname:port` store key back into its parts. Returns `undefined`
- * for anything that doesn't round-trip, so a corrupt key is skipped rather
- * than surfacing a host with a bogus port in the "forget" picker.
- */
 function parseStoreKey(storeKey: string): { host: string; port: number } | undefined {
 	const separator = storeKey.lastIndexOf(':');
 	if (separator <= 0) {
@@ -96,12 +80,6 @@ function parseStoreKey(storeKey: string): { host: string; port: number } | undef
 	return { host, port };
 }
 
-/**
- * Storage-backed {@link ISSHHostKeyTrustService}. Persists at application
- * scope with {@link StorageTarget.MACHINE} because host key trust is a
- * property of this machine's view of the network and must not sync to other
- * devices, where the same alias could resolve somewhere else entirely.
- */
 export class SSHHostKeyTrustService extends Disposable implements ISSHHostKeyTrustService {
 
 	declare readonly _serviceBrand: undefined;
@@ -123,8 +101,6 @@ export class SSHHostKeyTrustService extends Disposable implements ISSHHostKeyTru
 		const storeKey = computeHostKeyStoreKey(host, port);
 		const hosts = this._read();
 		const existing = hosts.get(storeKey) ?? [];
-		// One trusted key per algorithm: a rotated key supersedes the old one
-		// rather than leaving the superseded key permanently trusted.
 		const keys = existing.filter(k => k.keyType !== key.keyType);
 		keys.push(key);
 		hosts.set(storeKey, keys);

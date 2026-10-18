@@ -100,7 +100,6 @@ class CallsModel implements SymbolItemNavigation<CallItem>, SymbolItemEditorHigh
 		return call.children;
 	}
 
-	// -- navigation
 
 	location(item: CallItem) {
 		return new vscode.Location(item.item.uri, item.item.range);
@@ -130,13 +129,11 @@ class CallsModel implements SymbolItemNavigation<CallItem>, SymbolItemEditorHigh
 		}
 	}
 
-	// --- dnd
 
 	getDragUri(item: CallItem): vscode.Uri | undefined {
 		return asResourceUrl(item.item.uri, item.item.range);
 	}
 
-	// --- highlights
 
 	getEditorHighlights(item: CallItem, uri: vscode.Uri): vscode.Range[] | undefined {
 		if (!item.locations) {
@@ -189,7 +186,6 @@ class CallItemDataProvider implements vscode.TreeDataProvider<CallItem> {
 			openArgs = [element.item.uri, { selection: element.item.selectionRange.with({ end: element.item.selectionRange.start }) }];
 
 		} else {
-			// incoming call -> reveal first call instead of caller
 			let firstLoctionStart: vscode.Position | undefined;
 			if (element.locations) {
 				for (const loc of element.locations) {

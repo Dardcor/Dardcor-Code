@@ -1,21 +1,14 @@
-/**
- * Strip built-in/duplicate tools when equivalent MCP tools are present.
- * Goal: reduce tool definitions token bloat for Claude clients.
- */
 
 const DEDUP_RULES = [
   {
-    // Exa MCP present → drop built-in web tools (Exa is preferred).
     triggers: ["mcp__exa__web_search_exa", "mcp__exa__web_fetch_exa"],
     strip: ["WebSearch", "WebFetch", "mcp__workspace__web_fetch"],
   },
   {
-    // Tavily MCP present → drop built-in web tools.
     triggers: ["mcp__tavily__tavily_search", "mcp__tavily__tavily_extract"],
     strip: ["WebSearch", "WebFetch", "mcp__workspace__web_fetch"],
   },
   {
-    // Browser MCP present → drop Cowork's duplicate Claude_in_Chrome connector.
     triggers: [/^mcp__browsermcp__/],
     strip: [/^mcp__Claude_in_Chrome__/],
   },

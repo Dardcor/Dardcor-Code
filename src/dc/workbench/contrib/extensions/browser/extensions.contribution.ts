@@ -87,12 +87,10 @@ import { ExtensionsWorkbenchService } from './extensionsWorkbenchService.js';
 import './media/extensionManagement.css';
 import { UnsupportedExtensionsMigrationContrib } from './unsupportedExtensionsMigrationContribution.js';
 
-// Singletons
-registerSingleton(IExtensionsWorkbenchService, ExtensionsWorkbenchService, InstantiationType.Eager /* Auto updates extensions */);
+registerSingleton(IExtensionsWorkbenchService, ExtensionsWorkbenchService, InstantiationType.Eager );
 registerSingleton(IExtensionRecommendationNotificationService, ExtensionRecommendationNotificationService, InstantiationType.Delayed);
-registerSingleton(IExtensionRecommendationsService, ExtensionRecommendationsService, InstantiationType.Eager /* Prompts recommendations in the background */);
+registerSingleton(IExtensionRecommendationsService, ExtensionRecommendationsService, InstantiationType.Eager );
 
-// Quick Access
 Registry.as<IQuickAccessRegistry>(Extensions.Quickaccess).registerQuickAccessProvider({
 	ctor: ManageExtensionsQuickAccessProvider,
 	prefix: ManageExtensionsQuickAccessProvider.PREFIX,
@@ -100,7 +98,6 @@ Registry.as<IQuickAccessRegistry>(Extensions.Quickaccess).registerQuickAccessPro
 	helpEntries: [{ description: localize('manageExtensionsHelp', "Manage Extensions") }]
 });
 
-// Editor
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
 		ExtensionEditor,
@@ -302,7 +299,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 			'extensions.allowOpenInModalEditor': {
 				type: 'boolean',
 				description: localize('extensions.allowOpenInModalEditor', "Controls whether extensions and MCP servers open in a modal editor overlay."),
-				default: false, // TODO@bpasero figure out the default for stable and retire this setting
+				default: false,
 				tags: ['experimental'],
 				experiment: {
 					mode: 'auto'
@@ -358,7 +355,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 const jsonRegistry = <jsonContributionRegistry.IJSONContributionRegistry>Registry.as(jsonContributionRegistry.Extensions.JSONContribution);
 jsonRegistry.registerSchema(ExtensionsConfigurationSchemaId, ExtensionsConfigurationSchema);
 
-// Register Commands
 CommandsRegistry.registerCommand('_extensions.manage', (accessor: ServicesAccessor, extensionId: string, tab?: ExtensionEditorTab, preserveFocus?: boolean, feature?: string) => {
 	const extensionService = accessor.get(IExtensionsWorkbenchService);
 	const extension = extensionService.local.find(e => areSameExtensions(e.identifier, { id: extensionId }));
@@ -451,7 +447,7 @@ CommandsRegistry.registerCommand({
 						throw new Error(localize('notFound', "Extension '{0}' not found.", arg));
 					}
 					await extensionManagementService.installFromGallery(gallery, {
-						isMachineScoped: options?.donotSync ? true : undefined, /* do not allow syncing extensions automatically while installing through the command */
+						isMachineScoped: options?.donotSync ? true : undefined,
 						installPreReleaseVersion: options?.installPreReleaseVersion,
 						installGivenVersion: !!version,
 						context: { [EXTENSION_INSTALL_SOURCE_CONTEXT]: ExtensionInstallSource.COMMAND },
@@ -463,7 +459,7 @@ CommandsRegistry.registerCommand({
 						context: { [EXTENSION_INSTALL_SOURCE_CONTEXT]: ExtensionInstallSource.COMMAND },
 						justification: options?.justification,
 						enable: options?.enable,
-						isMachineScoped: options?.donotSync ? true : undefined, /* do not allow syncing extensions automatically while installing through the command */
+						isMachineScoped: options?.donotSync ? true : undefined,
 					}, ProgressLocation.Notification);
 				}
 			} else {
@@ -547,7 +543,6 @@ overrideActionForActiveExtensionEditorWebview(CopyAction, webview => webview.cop
 overrideActionForActiveExtensionEditorWebview(CutAction, webview => webview.cut());
 overrideActionForActiveExtensionEditorWebview(PasteAction, webview => webview.paste());
 
-// Contexts
 export const CONTEXT_HAS_LOCAL_SERVER = new RawContextKey<boolean>('hasLocalServer', false);
 export const CONTEXT_HAS_REMOTE_SERVER = new RawContextKey<boolean>('hasRemoteServer', false);
 export const CONTEXT_HAS_WEB_SERVER = new RawContextKey<boolean>('hasWebServer', false);
@@ -643,7 +638,6 @@ class ExtensionsContributions extends Disposable implements IWorkbenchContributi
 		}
 	}
 
-	// Global actions
 	private registerGlobalActions(): void {
 		this._register(MenuRegistry.appendMenuItem(MenuId.MenubarPreferencesMenu, {
 			command: {
@@ -1351,7 +1345,6 @@ class ExtensionsContributions extends Disposable implements IWorkbenchContributi
 		});
 	}
 
-	// Extension Context Menu
 	private registerContextMenuActions(): void {
 
 		this.registerExtensionAction({
@@ -2109,19 +2102,6 @@ registerAction2(class ExtensionsGallerySignInAction extends Action2 {
 Registry.as<IConfigurationMigrationRegistry>(ConfigurationMigrationExtensions.ConfigurationMigration)
 	.registerConfigurationMigrations([{
 		key: AutoUpdateConfigurationKey,
-		/**
-		 * Migrates the `extensions.autoUpdate` setting to its new `'on' | 'off'` values.
-		 *
-		 * The setting previously supported several values that are now retired:
-		 * - `true` (All Extensions) and `'onlyEnabledExtensions'` (Only Enabled Extensions)
-		 *   are folded into the new `'on'` value, along with the insiders-only `'delayed'` value.
-		 * - `false` (None) and the internal `'onlySelectedExtensions'` value map to `'off'`.
-		 *   In `'off'` mode, extensions explicitly opted in per-extension are still auto-updated,
-		 *   which preserves the `'onlySelectedExtensions'` behavior.
-		 *
-		 * Returning `[]` is a no-op, used when the value is already in the new format
-		 * (`'on'`/`'off'`) or unset.
-		 */
 		migrateFn: (value, accessor) => {
 			if (value === undefined || value === 'on' || value === 'off') {
 				return [];

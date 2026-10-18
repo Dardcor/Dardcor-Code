@@ -49,23 +49,11 @@ export async function toolTSX(insta: IInstantiationService, options: vscode.Lang
 }
 
 export interface InputGlobResult {
-	/** The resolved glob patterns to pass to the search API. */
 	readonly patterns: vscode.GlobPattern[];
-	/** The workspace folder name if the pattern was scoped to a specific folder, for display. */
 	readonly folderName: string | undefined;
-	/** The glob pattern within the folder (e.g. `src/**`), for display. Only set when folderName is set. */
 	readonly folderRelativePattern: string | undefined;
 }
 
-/**
- * Converts a user input glob or file path into VS Code glob patterns.
- * Handles:
- * - Absolute paths within a workspace folder
- * - Patterns prefixed with a workspace folder name (e.g. `folderName/src/**`)
- * - Patterns prefixed with `** /folderName/...` in multi-root workspaces
- * - When a working directory is set (agents window), unscoped patterns
- *   are scoped to it so searches target the session's folder.
- */
 export function inputGlobToPattern(query: string, workingDir: WorkingDirectory, modelFamily: string | undefined): InputGlobResult {
 	let pattern: vscode.GlobPattern = query;
 	let folderName: string | undefined;
@@ -82,12 +70,9 @@ export function inputGlobToPattern(query: string, workingDir: WorkingDirectory, 
 				folderRelativePattern = relative;
 			}
 		} catch (e) {
-			// ignore
 		}
 	}
 
-	// In multi-root workspaces (and only when no explicit workingDirectory), detect patterns
-	// like "folderName/src/**" or "**/folderName/src/**" and rewrite to a RelativePattern.
 	if (typeof pattern === 'string' && !workingDir.hasExplicitWorkingDirectory && workingDir.getFolders().length > 1) {
 		let raw = pattern;
 		if (raw.startsWith('**/')) {
@@ -111,18 +96,12 @@ export function inputGlobToPattern(query: string, workingDir: WorkingDirectory, 
 		}
 	}
 
-	// When a working directory is set (agents window) and the pattern is still
-	// unscoped (a plain string, not a RelativePattern), scope it to the session's
-	// working directory so searches target the correct folder.
 	if (typeof pattern === 'string' && workingDir.hasExplicitWorkingDirectory) {
 		pattern = new RelativePattern(workingDir.uri!, pattern);
 	}
 
 	const patterns = [pattern];
 
-	// For gpt-4.1, it struggles to append /** to the pattern itself, so here we work around it by
-	// adding a second pattern with /** appended.
-	// Other models are smart enough to append the /** suffix so they don't need this workaround.
 	if (modelFamily === 'gpt-4.1') {
 		if (typeof pattern === 'string' && !pattern.endsWith('/**')) {
 			patterns.push(pattern + '/**');
@@ -134,10 +113,6 @@ export function inputGlobToPattern(query: string, workingDir: WorkingDirectory, 
 	return { patterns, folderName, folderRelativePattern };
 }
 
-/**
- * Checks whether the raw input pattern contains an absolute workspace folder path.
- * Used for telemetry to detect patterns we may not be handling yet.
- */
 export function patternContainsWorkspaceFolderPath(pattern: string | undefined, workspaceService: IWorkspaceService): boolean {
 	if (!pattern) {
 		return false;
@@ -227,7 +202,6 @@ async function isExternalInstructionsFile(normalizedUri: URI, customInstructions
 			if (instructionIndexFile.instructions.has(normalizedUri) || instructionIndexFile.skills.has(normalizedUri)) {
 				return true;
 			}
-			// Check if the URI is under any skill folder (e.g., nested files like primitives/agents.md)
 			for (const skillFolderUri of instructionIndexFile.skillFolders) {
 				if (extUriBiasedIgnorePathCase.isEqualOrParent(normalizedUri, skillFolderUri)) {
 					return true;
@@ -242,7 +216,6 @@ async function isExternalInstructionsFile(normalizedUri: URI, customInstructions
 		if (customInstructionsService.getExtensionSkillInfo(normalizedUri)) {
 			return true;
 		}
-		// Note: this fallback check does not handle scenario where model passes file:// for userData schemes.
 		if (await customInstructionsService.isExternalInstructionsFile(normalizedUri)) {
 			return true;
 		}
@@ -276,7 +249,7 @@ export async function assertFileNotContentExcluded(accessor: ServicesAccessor, u
 	const ignoreService = accessor.get(IIgnoreService);
 	const promptPathRepresentationService = accessor.get(IPromptPathRepresentationService);
 
-	if (await ignoreService.isCopilotIgnored(uri)) {
+	if (await ignoreService.isIgnored(uri)) {
 		throw new Error(`File ${promptPathRepresentationService.getFilePath(uri)} is configured to be ignored by Copilot`);
 	}
 }
@@ -319,8 +292,6 @@ export async function isFileExternalAndNeedsConfirmation(accessor: ServicesAcces
 		return false;
 	}
 
-	// If the file doesn't exist, throw immediately rather than showing a confusing "external file"
-	// confirmation — the tool should fail with a clear "file not found" error instead.
 	const fileExists = await fileSystemService.stat(normalizedUri).then(() => true).catch(() => false);
 	if (!fileExists) {
 		throw new Error(`File ${normalizedUri.fsPath} does not exist`);

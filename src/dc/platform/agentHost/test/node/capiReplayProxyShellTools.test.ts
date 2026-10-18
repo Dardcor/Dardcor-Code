@@ -7,16 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { expandShellToolName, normalizeShellToolNameForCapture } from './e2e/harness/shellToolNames.js';
 
-/**
- * The Copilot CLI names its shell tools after the shell it runs, so a capture
- * recorded on one platform would otherwise instruct the agent to call a tool
- * that does not exist on the other. Captures store a platform-neutral
- * placeholder and expand it on replay.
- *
- * Both directions are asserted for both platforms here because the replay side
- * of this round-trip is otherwise only exercised on the platform the developer
- * happens to be using.
- */
 suite('capiReplayProxy shell tool names', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -51,8 +41,6 @@ suite('capiReplayProxy shell tool names', () => {
 	});
 
 	test('names that do not vary by platform are left alone', () => {
-		// Claude's `Bash` and Codex's `shell` are fixed strings their SDKs use
-		// everywhere; rewriting them would hide a genuine provider change.
 		const untouched = ['Bash', 'shell', 'Read', 'view', 'create', 'str_replace_editor'];
 		assert.deepStrictEqual({
 			normalized: untouched.map(normalizeShellToolNameForCapture),

@@ -157,7 +157,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		this._splitView = new SplitView(container, { orientation: Orientation.HORIZONTAL });
 
-		// editor stuff
 		const editorContainer = document.createElement('div');
 		editorContainer.classList.add('editor');
 		container.appendChild(editorContainer);
@@ -185,7 +184,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 			this.editor
 		);
 
-		// tree stuff
 		const treeContainer = document.createElement('div');
 		treeContainer.classList.add('tree');
 		container.appendChild(treeContainer);
@@ -208,7 +206,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 			options
 		);
 
-		// split stuff
 		this._splitView.addView({
 			onDidChange: Event.None,
 			element: editorContainer,
@@ -239,7 +236,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 			}
 		}));
 
-		// update editor
 		this._disposables.add(this._tree.onDidChangeFocus(this._updatePreview, this));
 
 		this._disposables.add(this._editor.onMouseDown(e => {
@@ -275,7 +271,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		this._disposables.add(this._tree.onDidChangeSelection(e => {
 			const [element] = e.elements;
-			// don't close on click
 			if (element && isKeyboardEvent(e.browserEvent)) {
 				this.dispose();
 				this._editorService.openEditor({
@@ -294,7 +289,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		this._previewDisposable.clear();
 
-		// update: editor and editor highlights
 		const options: IModelDecorationOptions = {
 			description: 'call-hierarchy-decoration',
 			stickiness: TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
@@ -307,18 +301,15 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 		let previewUri: URI;
 		if (this._direction === CallHierarchyDirection.CallsFrom) {
-			// outgoing calls: show caller and highlight focused calls
 			previewUri = element.parent ? element.parent.item.uri : element.model.root.uri;
 
 		} else {
-			// incoming calls: show caller and highlight focused calls
 			previewUri = element.item.uri;
 		}
 
 		const value = await this._textModelService.createModelReference(previewUri);
 		this._editor.setModel(value.object.textEditorModel);
 
-		// set decorations for caller ranges (if in the same file)
 		const decorations: IModelDeltaDecoration[] = [];
 		let fullRange: IRange | undefined;
 		let locations = element.locations;
@@ -338,7 +329,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 		}
 		this._previewDisposable.add(value);
 
-		// update: title
 		const title = this._direction === CallHierarchyDirection.CallsFrom
 			? localize('callFrom', "Calls from '{0}'", element.model.root.name)
 			: localize('callsTo', "Callers of '{0}'", element.model.root.name);
@@ -371,7 +361,6 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 		await this._tree.expand(root.element);
 
 		if (root.children.length === 0) {
-			//
 			this.showMessage(this._direction === CallHierarchyDirection.CallsFrom
 				? localize('empt.callsFrom', "No calls from '{0}'", model.root.name)
 				: localize('empt.callsTo', "No callers of '{0}'", model.root.name));

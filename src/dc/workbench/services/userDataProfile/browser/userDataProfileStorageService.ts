@@ -31,14 +31,10 @@ export class UserDataProfileStorageService extends AbstractUserDataProfileStorag
 	}
 
 	private onDidChangeStorageTargetInCurrentProfile(): void {
-		// Not broadcasting changes to other windows/tabs as it is not required in web.
-		// Revisit if needed in future.
 		this._onDidChange.fire({ targetChanges: [this.userDataProfileService.currentProfile], valueChanges: [] });
 	}
 
 	private onDidChangeStorageValueInCurrentProfile(e: IProfileStorageValueChangeEvent): void {
-		// Not broadcasting changes to other windows/tabs as it is not required in web
-		// Revisit if needed in future.
 		this._onDidChange.fire({ targetChanges: [], valueChanges: [{ profile: this.userDataProfileService.currentProfile, changes: [e] }] });
 	}
 

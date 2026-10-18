@@ -34,9 +34,6 @@ export class WorkingCopyDerivedDocument {
 		return this._workingCopyOriginalDocument.transformer;
 	}
 
-	/**
-	 * All the edits reported through the progress reporter (combined into a single OffsetEdits object).
-	 */
 	public get allReportedEdits(): StringEdit {
 		return this._workingCopyOriginalDocument.appliedEdits;
 	}
@@ -65,25 +62,6 @@ export class WorkingCopyDerivedDocument {
 		}
 
 
-		//           e_sum
-		//   d0 ---------------> s0
-		//   |                   |
-		//   |                   |
-		//   | e_ai_r            | e_ai
-		//   |                   |
-		//   |                   |
-		//   v       e_sum_r     v
-		///  d1 ---------------> s1
-		//
-		// d0 - document
-		// s0 - summarized document
-		// e_sum - summarization edits
-		// e_ai - AI edits
-		//
-		// The incoming AI edits `e_ai` are based on the derived summarized document `s0`.
-		// But we need to apply them on the original document `d0`.
-		// We can compute `e_ai_r` by rebasing `e_ai` against `inverse(e_sum)`
-		// We can then compute `e_sum_r` by rebasing `e_sum` against `e_ai_r`.
 		const d0 = this._workingCopyOriginalDocument;
 		const s0 = this._derivedDocument;
 		const e_sum = s0.edits;
@@ -100,7 +78,6 @@ export class WorkingCopyDerivedDocument {
 	}
 
 	public rebaseEdits(edits: readonly TextEdit[]): TextEdit[] {
-		// See comment from above explaining the rebasing
 		const d0 = this._workingCopyOriginalDocument;
 		const s0 = this._derivedDocument;
 		const e_sum = s0.edits;
@@ -114,11 +91,6 @@ export class WorkingCopyDerivedDocument {
 	}
 }
 
-/**
- * Keeps track of the current document with edits applied immediately.
- * This simulates the EOL sequence behavior of VS Code, namely it keeps the EOL sequence
- * of the original document and it does not allow for mixed EOL sequences.
- */
 export class WorkingCopyOriginalDocument {
 
 	public get text(): string {
@@ -143,14 +115,9 @@ export class WorkingCopyOriginalDocument {
 	constructor(
 		private _text: string,
 	) {
-		// VS Code doesn't allow mixed EOL sequences, so the presence of one \r\n
-		// indicates that the document uses \r\n as EOL sequence.
 		this._eol = _text.includes('\r\n') ? '\r\n' : '\n';
 	}
 
-	/**
-	 * Checks if the edit would produce no changes when applied to the current document.
-	 */
 	isNoop(offsetEdits: StringEdit): boolean {
 		return offsetEdits.isNeutralOn(this._text);
 	}

@@ -7,9 +7,6 @@ import { localize } from '../../../../nls.js';
 import { registerColor, editorInfoForeground, editorWarningForeground, editorErrorForeground } from '../../../../platform/theme/common/colorRegistry.js';
 import { chartsGreen, chartsPurple } from '../../../../platform/theme/common/colors/chartsColors.js';
 
-/*
- * Markdown alert colors for GitHub-style alert syntax.
- */
 
 export const markdownAlertNoteColor = registerColor('markdownAlert.note.foreground',
 	editorInfoForeground,

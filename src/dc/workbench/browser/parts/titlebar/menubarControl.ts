@@ -104,25 +104,18 @@ export abstract class MenubarControl extends Disposable {
 	protected abstract doUpdateMenubar(firstTime: boolean): void;
 
 	protected registerListeners(): void {
-		// Listen for window focus changes
 		this._register(this.hostService.onDidChangeFocus(e => this.onDidChangeWindowFocus(e)));
 
-		// Update when config changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => this.onConfigurationUpdated(e)));
 
-		// Listen to update service
 		this._register(this.updateService.onStateChange(() => this.onUpdateStateChange()));
 
-		// Listen for changes in recently opened menu
 		this._register(this.workspacesService.onDidChangeRecentlyOpened(() => { this.onDidChangeRecentlyOpened(); }));
 
-		// Listen to keybindings change
 		this._register(this.keybindingService.onDidUpdateKeybindings(() => this.updateMenubar()));
 
-		// Update recent menu items on formatter registration
 		this._register(this.labelService.onDidChangeFormatters(() => { this.onDidChangeRecentlyOpened(); }));
 
-		// Listen for changes on the main menu
 		this._register(this.mainMenu.onDidChange(() => { this.setupMainMenu(); this.doUpdateMenubar(true); }));
 	}
 
@@ -191,7 +184,6 @@ export abstract class MenubarControl extends Disposable {
 	}
 
 	protected onDidChangeWindowFocus(hasFocus: boolean): void {
-		// When we regain focus, update the recent menu items
 		if (hasFocus) {
 			this.onDidChangeRecentlyOpened();
 		}
@@ -206,8 +198,6 @@ export abstract class MenubarControl extends Disposable {
 			this.notifyUserOfCustomMenubarAccessibility();
 		}
 
-		// Since we try not update when hidden, we should
-		// try to update the recently opened list on visibility changes
 		if (event.affectsConfiguration(MenuSettings.MenuBarVisibility)) {
 			this.onDidChangeRecentlyOpened();
 		}
@@ -219,7 +209,6 @@ export abstract class MenubarControl extends Disposable {
 
 	protected onDidChangeRecentlyOpened(): void {
 
-		// Do not update recently opened when the menubar is hidden #108712
 		if (!this.menubarHidden) {
 			this.workspacesService.getRecentlyOpened().then(recentlyOpened => {
 				this.recentlyOpened = recentlyOpened;
@@ -259,7 +248,7 @@ export abstract class MenubarControl extends Disposable {
 
 				return this.hostService.openWindow([openable], {
 					forceNewWindow: !!openInNewWindow,
-					remoteAuthority: remoteAuthority || null // local window if remoteAuthority is not set or can not be deducted from the openable
+					remoteAuthority: remoteAuthority || null
 				});
 			}
 		});
@@ -293,7 +282,6 @@ export abstract class MenubarControl extends Disposable {
 	}
 }
 
-// This is a bit complex due to the issue https://github.com/microsoft/vscode/issues/205836
 let focusMenuBarEmitter: Emitter<void> | undefined = undefined;
 function enableFocusMenuBarAction(): Emitter<void> {
 	if (!focusMenuBarEmitter) {
@@ -477,7 +465,6 @@ export class CustomMenubarControl extends MenubarControl {
 			return undefined;
 		}
 
-		// Menu bar lives in activity bar and should flow based on its location
 		const currentSidebarLocation = this.configurationService.getValue<string>('workbench.sideBar.location');
 		const horizontalDirection = currentSidebarLocation === 'right' ? HorizontalDirection.Left : HorizontalDirection.Right;
 
@@ -500,13 +487,11 @@ export class CustomMenubarControl extends MenubarControl {
 	private readonly reinstallDisposables = this._register(new DisposableStore());
 	private readonly updateActionsDisposables = this._register(new DisposableStore());
 	private setupCustomMenubar(firstTime: boolean): void {
-		// If there is no container, we cannot setup the menubar
 		if (!this.container) {
 			return;
 		}
 
 		if (firstTime) {
-			// Reset and create new menubar
 			if (this.menubar) {
 				this.reinstallDisposables.clear();
 			}
@@ -521,7 +506,6 @@ export class CustomMenubarControl extends MenubarControl {
 			this.reinstallDisposables.add(this.menubar.onFocusStateChange(focused => {
 				this._onFocusStateChange.fire(focused);
 
-				// When the menubar loses focus, update it to clear any pending updates
 				if (!focused) {
 					if (this.pendingFirstTimeUpdate) {
 						this.setupCustomMenubar(true);
@@ -536,7 +520,6 @@ export class CustomMenubarControl extends MenubarControl {
 
 			this.reinstallDisposables.add(this.menubar.onVisibilityChange(e => this.onDidVisibilityChange(e)));
 
-			// Before we focus the menubar, stop updates to it so that focus-related context keys will work
 			this.reinstallDisposables.add(addDisposableListener(this.container, EventType.FOCUS_IN, () => {
 				this.focusInsideMenubar = true;
 			}));
@@ -545,7 +528,6 @@ export class CustomMenubarControl extends MenubarControl {
 				this.focusInsideMenubar = false;
 			}));
 
-			// Fire visibility change for the first install if menu is shown
 			if (this.menubar.isVisible) {
 				this.onDidVisibilityChange(true);
 			}
@@ -553,7 +535,6 @@ export class CustomMenubarControl extends MenubarControl {
 			this.menubar?.update(this.getMenuBarOptions());
 		}
 
-		// Update the menu actions
 		const updateActions = (menuActions: readonly IAction[], target: IAction[], topLevelTitle: string, store: DisposableStore) => {
 			target.splice(0);
 
@@ -563,7 +544,6 @@ export class CustomMenubarControl extends MenubarControl {
 				if (menuItem instanceof Separator) {
 					target.push(menuItem);
 				} else if (menuItem instanceof SubmenuItemAction || menuItem instanceof MenuItemAction) {
-					// use mnemonicTitle whenever possible
 					let title = typeof menuItem.item.title === 'string'
 						? menuItem.item.title
 						: menuItem.item.title.mnemonicTitle ?? menuItem.item.title.value;
@@ -589,7 +569,6 @@ export class CustomMenubarControl extends MenubarControl {
 
 			}
 
-			// Append web navigation menu items to the file menu when not compact
 			if (topLevelTitle === 'File' && this.currentCompactMenuMode === undefined) {
 				const webActions = this.getWebNavigationActions();
 				if (webActions.length) {
@@ -611,7 +590,6 @@ export class CustomMenubarControl extends MenubarControl {
 					}
 				}));
 
-				// For the file menu, we need to update if the web nav menu updates as well
 				if (menu === this.menus.File) {
 					const webMenuChangedDisposable = this.reinstallDisposables.add(new DisposableStore());
 					this.reinstallDisposables.add(this.webNavigationMenu.onDidChange(() => {
@@ -643,7 +621,7 @@ export class CustomMenubarControl extends MenubarControl {
 
 	private getWebNavigationActions(): IAction[] {
 		if (!isWeb) {
-			return []; // only for web
+			return [];
 		}
 
 		const webNavigationActions = [];
@@ -683,7 +661,7 @@ export class CustomMenubarControl extends MenubarControl {
 			compactMode: this.currentCompactMenuMode,
 			getCompactMenuActions: () => {
 				if (!isWeb) {
-					return []; // only for web
+					return [];
 				}
 
 				return this.getWebNavigationActions();
@@ -741,7 +719,6 @@ export class CustomMenubarControl extends MenubarControl {
 			}
 		}));
 
-		// Mnemonics require fullscreen in web
 		if (isWeb) {
 			this._register(onDidChangeFullscreen(windowId => {
 				if (windowId === mainWindow.vscodeWindowId) {
@@ -772,7 +749,6 @@ export class CustomMenubarControl extends MenubarControl {
 	create(parent: HTMLElement): HTMLElement {
 		this.container = parent;
 
-		// Build the menubar
 		if (this.container) {
 			this.doUpdateMenubar(true);
 		}

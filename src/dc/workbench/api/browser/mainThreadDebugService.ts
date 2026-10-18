@@ -50,7 +50,6 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 				this._proxy.$acceptDebugSessionNameChanged(this.getSessionDto(session), name);
 			}));
 		}));
-		// Need to start listening early to new session events because a custom event can come while a session is initialising
 		this._toDispose.add(debugService.onWillNewSession(session => {
 			let store = sessionListeners.get(session);
 			if (!store) {
@@ -63,16 +62,13 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 			this._proxy.$acceptDebugSessionTerminated(this.getSessionDto(session));
 			this._extHostKnownSessions.delete(session.getId());
 
-			// keep the session listeners around since we still will get events after they restart
 			if (!restart) {
 				sessionListeners.deleteAndDispose(session);
 			}
 
-			// any restarted session will create a new DA, so always throw the old one away.
 			for (const [handle, value] of this._debugAdapters) {
 				if (value.session === session) {
 					this._debugAdapters.delete(handle);
-					// break;
 				}
 			}
 		}));
@@ -148,9 +144,7 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 	}
 
 	private sendBreakpointsAndListen(): void {
-		// set up a handler to send more
 		this._toDispose.add(this.debugService.getModel().onDidChangeBreakpoints(e => {
-			// Ignore session only breakpoint events since they should only reflect in the UI
 			if (e && !e.sessionOnly) {
 				const delta: IBreakpointsDeltaDto = {};
 				if (e.added) {
@@ -169,7 +163,6 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 			}
 		}));
 
-		// send all breakpoints
 		const bps = this.debugService.getModel().getBreakpoints();
 		const fbps = this.debugService.getModel().getFunctionBreakpoints();
 		const dbps = this.debugService.getModel().getDataBreakpoints();
@@ -184,7 +177,6 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 		this._toDispose.dispose();
 	}
 
-	// interface IDebugAdapterProvider
 
 	createDebugAdapter(session: IDebugSession): IDebugAdapter {
 		const handle = this._debugAdaptersHandleCounter++;
@@ -201,7 +193,6 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 		return this._proxy.$runInTerminal(args, sessionId);
 	}
 
-	// RPC methods (MainThreadDebugServiceShape)
 
 	public $registerDebugTypes(debugTypes: string[]) {
 		this._toDispose.add(this.debugService.getAdapterManager().registerDebugAdapterFactory(debugTypes, this));
@@ -215,7 +206,7 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 					id: l.id,
 					enabled: l.enabled,
 					lineNumber: l.line + 1,
-					column: l.character > 0 ? l.character + 1 : undefined, // a column value of 0 results in an omitted column attribute; see #46784
+					column: l.character > 0 ? l.character + 1 : undefined,
 					condition: l.condition,
 					hitCondition: l.hitCondition,
 					logMessage: l.logMessage,
@@ -375,14 +366,13 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 			if (session) {
 				return this.debugService.stopSession(session, isSessionAttach(session));
 			}
-		} else {	// stop all
+		} else {
 			return this.debugService.stopSession(undefined);
 		}
 		return Promise.reject(new ErrorNoTelemetry('debug session not found'));
 	}
 
 	public $appendDebugConsole(value: string): void {
-		// Use warning as severity to get the orange color for messages coming from the debug extension
 		const session = this.debugService.getViewModel().focusedSession;
 		session?.appendToRepl({ output: value, sev: severity.Warning });
 	}
@@ -392,12 +382,10 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 	}
 
 	public $acceptDAError(handle: number, name: string, message: string, stack: string) {
-		// don't use getDebugAdapter since an error can be expected on a post-close
 		this._debugAdapters.get(handle)?.fireError(handle, new Error(`${name}: ${message}\n${stack}`));
 	}
 
 	public $acceptDAExit(handle: number, code: number, signal: string) {
-		// don't use getDebugAdapter since an error can be expected on a post-close
 		this._debugAdapters.get(handle)?.fireExit(handle, code, signal);
 	}
 
@@ -409,10 +397,8 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 		return adapter;
 	}
 
-	// dto helpers
 
 	public $sessionCached(sessionID: string) {
-		// remember that the EH has cached the session and we do not have to send it again
 		this._extHostKnownSessions.add(sessionID);
 	}
 
@@ -426,7 +412,6 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 			if (this._extHostKnownSessions.has(sessionID)) {
 				return sessionID;
 			} else {
-				// this._sessions.add(sessionID); 	// #69534: see $sessionCached above
 				return {
 					id: sessionID,
 					type: session.configuration.type,
@@ -487,9 +472,6 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 	}
 }
 
-/**
- * DebugAdapter that communicates via extension protocol with another debug adapter.
- */
 class ExtensionHostDebugAdapter extends AbstractDebugAdapter {
 
 	constructor(private readonly _ds: MainThreadDebugService, private _handle: number, private _proxy: ExtHostDebugServiceShape, readonly session: IDebugSession) {

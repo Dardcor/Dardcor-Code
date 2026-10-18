@@ -30,14 +30,12 @@ const allowedJavaScriptFiles = fs.readFileSync(path.join(import.meta.dirname, '.
 	.filter(line => line && !line.startsWith('#'));
 
 export default defineConfig(
-	// Global ignores
 	{
 		ignores: [
 			...ignores,
 			'!**/.eslint-plugin-local/**/*'
 		],
 	},
-	// All files (JS and TS)
 	{
 		languageOptions: {
 			parser: tseslint.parser,
@@ -143,7 +141,6 @@ export default defineConfig(
 			]
 		},
 	},
-	// TS
 	{
 		files: [
 			'**/*.{ts,tsx,mts,cts}',
@@ -158,7 +155,6 @@ export default defineConfig(
 			'jsdoc': pluginJsdoc,
 		},
 		rules: {
-			// Disable built-in semi rules in favor of stylistic
 			'semi': 'off',
 			'@stylistic/ts/semi': 'warn',
 			'@stylistic/ts/member-delimiter-style': 'warn',
@@ -181,7 +177,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// Disallow common telemetry properties in event data
 	{
 		files: [
 			'src/**/*.ts',
@@ -193,7 +188,6 @@ export default defineConfig(
 			'local/code-no-telemetry-common-property': 'warn',
 		}
 	},
-	// Force all gulp imports under build/ to go through the gulp facade
 	{
 		files: [
 			'build/**/*.ts',
@@ -205,11 +199,10 @@ export default defineConfig(
 			'local/code-no-direct-gulp-import': 'warn',
 		}
 	},
-	// Disallow 'in' operator except in type predicates
 	{
 		files: [
 			'**/*.ts',
-			'.eslint-plugin-local/**/*.ts', // Explicitly include files under dot directories
+			'.eslint-plugin-local/**/*.ts',
 		],
 		ignores: [
 			'src/bootstrap-node.ts',
@@ -356,7 +349,6 @@ export default defineConfig(
 			'local/code-no-in-operator': 'warn',
 		}
 	},
-	// Guard the agent host protocol `_meta` bag: no untyped field access or casts.
 	{
 		files: [
 			'src/dc/platform/agentHost/**/*.ts',
@@ -365,12 +357,9 @@ export default defineConfig(
 			'src/dc/sessions/**/*.ts',
 		],
 		ignores: [
-			// Tests assert on the raw `_meta` wire shape on purpose (verifying
-			// producers); routing them through readers would weaken them.
 			'**/test/**',
 			'**/*.test.ts',
 			'**/*.integrationTest.ts',
-			// Codex's own generated app-server protocol (not AHP `_meta`).
 			'src/dc/platform/agentHost/node/codex/protocol/**',
 		],
 		plugins: {
@@ -380,29 +369,23 @@ export default defineConfig(
 			'local/code-no-untyped-meta-access': 'warn',
 		}
 	},
-	// Strict no explicit `any`
 	{
 		files: [
-			// Extensions
 			'extensions/git/src/**/*.ts',
 			'extensions/git-base/src/**/*.ts',
 			'extensions/github/src/**/*.ts',
-			// vscode
 			'src/**/*.ts',
 		],
 		ignores: [
-			// Extensions
 			'extensions/git/src/commands.ts',
 			'extensions/git/src/decorators.ts',
 			'extensions/git/src/git.ts',
 			'extensions/git/src/util.ts',
 			'extensions/git-base/src/decorators.ts',
 			'extensions/github/src/util.ts',
-			// vscode d.ts
 			'src/dc/amdX.ts',
 			'src/dc/monaco.d.ts',
 			'src/dccode-dts/**',
-			// Base
 			'src/dc/base/browser/dom.ts',
 			'src/dc/base/browser/mouseEvent.ts',
 			'src/dc/base/node/processes.ts',
@@ -468,7 +451,6 @@ export default defineConfig(
 			'src/dc/base/common/observableInternal/logging/debugger/devToolsLogger.ts',
 			'src/dc/base/common/observableInternal/logging/debugger/rpc.ts',
 			'src/dc/base/test/browser/ui/grid/util.ts',
-			// Platform
 			'src/dc/platform/commands/common/commands.ts',
 			'src/dc/platform/contextkey/browser/contextKeyService.ts',
 			'src/dc/platform/contextkey/common/contextkey.ts',
@@ -536,7 +518,6 @@ export default defineConfig(
 			'src/dc/platform/webview/common/webviewManagerService.ts',
 			'src/dc/platform/instantiation/test/common/instantiationServiceMock.ts',
 			'src/dc/platform/keybinding/test/common/mockKeybindingService.ts',
-			// Editor
 			'src/dc/editor/standalone/browser/standaloneEditor.ts',
 			'src/dc/editor/standalone/browser/standaloneLanguages.ts',
 			'src/dc/editor/standalone/browser/standaloneServices.ts',
@@ -572,7 +553,6 @@ export default defineConfig(
 			'src/dc/editor/contrib/inlineCompletions/browser/view/inlineEdits/components/gutterIndicatorView.ts',
 			'src/dc/editor/contrib/inlineCompletions/browser/view/inlineEdits/inlineEditsViews/debugVisualization.ts',
 			'src/dc/editor/contrib/inlineCompletions/browser/view/inlineEdits/utils/utils.ts',
-			// Workbench
 			'src/dc/workbench/api/browser/mainThreadChatSessions.ts',
 			'src/dc/workbench/api/common/extHost.api.impl.ts',
 			'src/dc/workbench/api/common/extHost.protocol.ts',
@@ -801,11 +781,9 @@ export default defineConfig(
 			'src/dc/workbench/test/browser/workbenchTestServices.ts',
 			'src/dc/workbench/test/common/workbenchTestServices.ts',
 			'src/dc/workbench/test/electron-browser/workbenchTestServices.ts',
-			// Server
 			'src/dc/server/node/remoteAgentEnvironmentImpl.ts',
 			'src/dc/server/node/remoteExtensionHostAgentServer.ts',
 			'src/dc/server/node/remoteExtensionsScanner.ts',
-			// Tests
 			'**/*.test.ts',
 			'**/*.integrationTest.ts'
 		],
@@ -824,7 +802,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// Tests
 	{
 		files: [
 			'**/*.test.ts'
@@ -854,7 +831,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// vscode tests specific rules
 	{
 		files: [
 			'src/dc/**/*.test.ts'
@@ -869,7 +845,6 @@ export default defineConfig(
 			'local/code-ensure-no-disposables-leak-in-test': [
 				'warn',
 				{
-					// Files should (only) be removed from the list they adopt the leak detector
 					'exclude': [
 						'src/dc/workbench/services/userActivity/test/browser/domActivityTracker.test.ts',
 					]
@@ -877,7 +852,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// git extension - ban non-type imports from git.d.ts (use git.constants for runtime values)
 	{
 		files: [
 			'extensions/git/src/**/*.ts',
@@ -907,9 +881,10 @@ export default defineConfig(
 			]
 		}
 	},
-	// vscode API
 	{
 		files: [
+			'**/dardcor.d.ts',
+			'**/dardcor.proposed.*.d.ts',
 			'**/vscode.d.ts',
 			'**/vscode.proposed.*.d.ts'
 		],
@@ -927,15 +902,15 @@ export default defineConfig(
 					'message': 'Use Array<...> for arrays of union types.'
 				},
 			],
-			'local/vscode-dts-create-func': 'warn',
-			'local/vscode-dts-literal-or-types': 'warn',
-			'local/vscode-dts-string-type-literals': 'warn',
-			'local/vscode-dts-interface-naming': 'warn',
-			'local/vscode-dts-cancellation': 'warn',
-			'local/vscode-dts-use-export': 'warn',
-			'local/vscode-dts-use-thenable': 'warn',
-			'local/vscode-dts-vscode-in-comments': 'warn',
-			'local/vscode-dts-provider-naming': [
+			'local/dardcor-dts-create-func': 'warn',
+			'local/dardcor-dts-literal-or-types': 'warn',
+			'local/dardcor-dts-string-type-literals': 'warn',
+			'local/dardcor-dts-interface-naming': 'warn',
+			'local/dardcor-dts-cancellation': 'warn',
+			'local/dardcor-dts-use-export': 'warn',
+			'local/dardcor-dts-use-thenable': 'warn',
+			'local/dardcor-dts-comments': 'warn',
+			'local/dardcor-dts-provider-naming': [
 				'warn',
 				{
 					'allowed': [
@@ -950,7 +925,7 @@ export default defineConfig(
 					]
 				}
 			],
-			'local/vscode-dts-event-naming': [
+			'local/dardcor-dts-event-naming': [
 				'warn',
 				{
 					'allowed': [
@@ -1001,7 +976,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// vscode.d.ts
 	{
 		files: [
 			'**/vscode.d.ts'
@@ -1046,7 +1020,6 @@ export default defineConfig(
 			'jsdoc/require-returns': 'warn'
 		}
 	},
-	// common/browser layer
 	{
 		files: [
 			'src/**/{common,browser}/**/*.ts'
@@ -1061,7 +1034,6 @@ export default defineConfig(
 			'local/code-amd-node-module': 'warn'
 		}
 	},
-	// node/electron layer
 	{
 		files: [
 			'src/*.ts',
@@ -1092,8 +1064,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// electron-main layer: prevent static imports of heavy node_modules
-	// that would be synchronously loaded on startup
 	{
 		files: [
 			'src/dc/code/electron-main/**/*.ts',
@@ -1110,16 +1080,13 @@ export default defineConfig(
 		rules: {
 			'local/code-no-static-node-module-import': [
 				'error',
-				// Files that run in separate processes, not on the electron-main startup path
 				'src/dc/platform/agentHost/node/**/*.ts',
 				'src/dc/platform/files/node/watcher/**/*.ts',
 				'src/dc/platform/terminal/node/**/*.ts',
-				// Files that use small, safe modules
 				'src/dc/platform/environment/node/argv.ts',
 			]
 		}
 	},
-	// browser/electron-browser layer
 	{
 		files: [
 			'src/**/{browser,electron-browser}/**/*.ts'
@@ -1469,7 +1436,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// electron-utility layer
 	{
 		files: [
 			'src/**/electron-utility/**/*.ts'
@@ -1520,17 +1486,10 @@ export default defineConfig(
 			'local/code-import-patterns': [
 				'warn',
 				{
-					// imports that are allowed in all files of layers:
-					// - browser
-					// - electron-browser
 					'when': 'hasBrowser',
 					'allow': []
 				},
 				{
-					// imports that are allowed in all files of layers:
-					// - node
-					// - electron-utility
-					// - electron-main
 					'when': 'hasNode',
 					'allow': [
 						'@github/copilot-sdk',
@@ -1566,7 +1525,6 @@ export default defineConfig(
 						'net',
 						'node-pty',
 						'os',
-						// 'path', NOT allowed: use src/dc/base/common/path.ts instead
 						'perf_hooks',
 						'readline',
 						'ssh2',
@@ -1600,16 +1558,12 @@ export default defineConfig(
 					]
 				},
 				{
-					// imports that are allowed in all files of layers:
-					// - electron-utility
-					// - electron-main
 					'when': 'hasElectron',
 					'allow': [
 						'electron'
 					]
 				},
 				{
-					// imports that are allowed in all /test/ files
 					'when': 'test',
 					'allow': [
 						'assert',
@@ -1617,34 +1571,6 @@ export default defineConfig(
 						'sinon-test'
 					]
 				},
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				// !!! Do not relax these rules !!!
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				//
-				// A path ending in /~ has a special meaning. It indicates a template position
-				// which will be substituted with one or more layers.
-				//
-				// When /~ is used in the target, the rule will be expanded to 14 distinct rules.
-				// e.g. 'src/dc/base/~' will be expanded to:
-				//  - src/dc/base/common
-				//  - src/dc/base/worker
-				//  - src/dc/base/browser
-				//  - src/dc/base/electron-browser
-				//  - src/dc/base/node
-				//  - src/dc/base/electron-main
-				//  - src/dc/base/test/common
-				//  - src/dc/base/test/worker
-				//  - src/dc/base/test/browser
-				//  - src/dc/base/test/electron-browser
-				//  - src/dc/base/test/node
-				//  - src/dc/base/test/electron-main
-				//
-				// When /~ is used in the restrictions, it will be replaced with the correct
-				// layers that can be used e.g. 'src/dc/base/electron-browser' will be able
-				// to import '{common,browser,electron-sanbox}', etc.
-				//
-				// It is possible to use /~ in the restrictions property even without using it in
-				// the target property by adding a layer property.
 				{
 					'target': 'src/dc/base/~',
 					'restrictions': [
@@ -1665,7 +1591,7 @@ export default defineConfig(
 						'dc/base/~',
 						'dc/base/parts/*/~',
 						'dc/platform/*/~',
-						'dc/editor/common/diff/**', // diffing logic used by the agent host
+						'dc/editor/common/diff/**',
 					]
 				},
 				{
@@ -1674,18 +1600,18 @@ export default defineConfig(
 						'dc/base/~',
 						'dc/base/parts/*/~',
 						'dc/platform/*/~',
-						'tas-client', // node module allowed even in /common/
-						'@microsoft/1ds-core-js', // node module allowed even in /common/
-						'@microsoft/1ds-post-js', // node module allowed even in /common/
-						'@xterm/headless', // node module allowed even in /common/
-						'@vscode/fs-copyfile', // used by agentHost for file copying after worktree creation
-						'@vscode/tree-sitter-wasm', // used by agentHost for command auto-approval
-						'@vscode/copilot-api', // used by agentHost for Copilot API requests
-						'@anthropic-ai/sdk', // used by agentHost for Anthropic API requests
-						'@anthropic-ai/claude-agent-sdk', // used by agentHost for Claude Agent SDK session enumeration / queries
-						'@modelcontextprotocol/sdk/**/*', // used by agentHost for Claude client-tool MCP result types (Phase 10)
+						'tas-client',
+						'@microsoft/1ds-core-js',
+						'@microsoft/1ds-post-js',
+						'@xterm/headless',
+						'@vscode/fs-copyfile',
+						'@vscode/tree-sitter-wasm',
+						'@vscode/copilot-api',
+						'@anthropic-ai/sdk',
+						'@anthropic-ai/claude-agent-sdk',
+						'@modelcontextprotocol/sdk/**/*',
 						'@github/copilot-sdk',
-						'zod' // used by agentHost for Claude client-tool MCP input schemas
+						'zod'
 					]
 				},
 				{
@@ -1694,11 +1620,11 @@ export default defineConfig(
 						'dc/base/~',
 						'dc/base/parts/*/~',
 						'dc/platform/*/~',
-						'tas-client', // node module allowed even in /common/
-						'@microsoft/1ds-core-js', // node module allowed even in /common/
-						'@microsoft/1ds-post-js', // node module allowed even in /common/
-						'@xterm/headless', // node module allowed even in /common/
-						'@vscode/tree-sitter-wasm' // used by agentHost for command auto-approval
+						'tas-client',
+						'@microsoft/1ds-core-js',
+						'@microsoft/1ds-post-js',
+						'@xterm/headless',
+						'@vscode/tree-sitter-wasm'
 					]
 				},
 				{
@@ -1708,8 +1634,8 @@ export default defineConfig(
 						'dc/base/parts/*/~',
 						'dc/platform/*/~',
 						'dc/editor/~',
-						'@vscode/tree-sitter-wasm', // node module allowed even in /common/
-						'@vscode/diff' // type import (loaded at runtime via resolveAmdNodeModulePath)
+						'@vscode/tree-sitter-wasm',
+						'@vscode/diff'
 					]
 				},
 				{
@@ -1731,7 +1657,7 @@ export default defineConfig(
 						'dc/editor/~',
 						'dc/editor/contrib/*/~',
 						'dc/editor/standalone/~',
-						'@vscode/tree-sitter-wasm' // type import
+						'@vscode/tree-sitter-wasm'
 					]
 				},
 				{
@@ -1781,7 +1707,7 @@ export default defineConfig(
 						{
 							'when': 'test',
 							'pattern': 'dc/workbench/contrib/*/~'
-						} // TODO@layers
+						}
 					]
 				},
 				{
@@ -1813,15 +1739,15 @@ export default defineConfig(
 						{
 							'when': 'test',
 							'pattern': 'dc/workbench/contrib/*/~'
-						}, // TODO@layers
-						'tas-client', // node module allowed even in /common/
-						'vscode-textmate', // node module allowed even in /common/
-						'@vscode/vscode-languagedetection', // node module allowed even in /common/
-						'@vscode/tree-sitter-wasm', // type import
+						},
+						'tas-client',
+						'vscode-textmate',
+						'@vscode/vscode-languagedetection',
+						'@vscode/tree-sitter-wasm',
 						{
 							'when': 'hasBrowser',
 							'pattern': '@xterm/xterm'
-						} // node module allowed even in /browser/
+						}
 					]
 				},
 				{
@@ -1838,20 +1764,20 @@ export default defineConfig(
 						'dc/sessions/~',
 						'dc/workbench/contrib/terminal/terminalContribChatExports*',
 						'dc/workbench/contrib/terminal/terminalContribExports*',
-						'vscode-notebook-renderer', // Type only import
-						'@vscode/tree-sitter-wasm', // type import
+						'vscode-notebook-renderer',
+						'@vscode/tree-sitter-wasm',
 						{
 							'when': 'hasBrowser',
 							'pattern': '@xterm/xterm'
-						}, // node module allowed even in /browser/
+						},
 						{
 							'when': 'hasBrowser',
 							'pattern': '@xterm/addon-*'
-						}, // node module allowed even in /browser/
+						},
 						{
 							'when': 'hasBrowser',
 							'pattern': 'vscode-textmate'
-						} // node module allowed even in /browser/
+						}
 					]
 				},
 				{
@@ -1865,24 +1791,22 @@ export default defineConfig(
 						'dc/workbench/~',
 						'dc/workbench/services/*/~',
 						'dc/workbench/contrib/*/~',
-						// Only allow terminalContrib to import from itself, this works because
-						// terminalContrib is one extra folder deep
 						'dc/workbench/contrib/terminalContrib/*/~',
-						'vscode-notebook-renderer', // Type only import
-						'@vscode/tree-sitter-wasm', // type import
+						'vscode-notebook-renderer',
+						'@vscode/tree-sitter-wasm',
 						{
 							'when': 'hasBrowser',
 							'pattern': '@xterm/xterm'
-						}, // node module allowed even in /browser/
+						},
 						{
 							'when': 'hasBrowser',
 							'pattern': '@xterm/addon-*'
-						}, // node module allowed even in /browser/
+						},
 						{
 							'when': 'hasBrowser',
 							'pattern': 'vscode-textmate'
-						}, // node module allowed even in /browser/
-						'@xterm/headless' // node module allowed even in /common/ and /browser/
+						},
+						'@xterm/headless'
 					]
 				},
 				{
@@ -1962,8 +1886,8 @@ export default defineConfig(
 						'dc/workbench/services/*/~',
 						'dc/workbench/contrib/*/~',
 						'dc/workbench/contrib/terminal/terminal.all.js',
-						'dc/sessions/common/theme.js', // side-effect import for color registry
-						'dc/sessions/common/sizes.js' // side-effect import for size registry
+						'dc/sessions/common/theme.js',
+						'dc/sessions/common/sizes.js'
 					]
 				},
 				{
@@ -2044,7 +1968,7 @@ export default defineConfig(
 						'dc/**/node/*',
 						'dc/nls.js',
 						'src/*.js',
-						'*' // node.js
+						'*'
 					]
 				},
 				{
@@ -2129,15 +2053,15 @@ export default defineConfig(
 						{
 							'when': 'test',
 							'pattern': 'dc/workbench/contrib/*/~'
-						}, // TODO@layers
-						'tas-client', // node module allowed even in /common/
-						'vscode-textmate', // node module allowed even in /common/
-						'@vscode/vscode-languagedetection', // node module allowed even in /common/
-						'@vscode/tree-sitter-wasm', // type import
+						},
+						'tas-client',
+						'vscode-textmate',
+						'@vscode/vscode-languagedetection',
+						'@vscode/tree-sitter-wasm',
 						{
 							'when': 'hasBrowser',
 							'pattern': '@xterm/xterm'
-						} // node module allowed even in /browser/
+						}
 					]
 				},
 			]
@@ -2164,14 +2088,14 @@ export default defineConfig(
 						'@vscode/*',
 						'@parcel/*',
 						'@playwright/*',
-						'*' // node modules
+						'*'
 					]
 				},
 				{
 					'target': 'test/sanity/**',
 					'restrictions': [
 						'test/sanity/**',
-						'*' // node modules
+						'*'
 					]
 				},
 				{
@@ -2182,7 +2106,7 @@ export default defineConfig(
 						'@parcel/*',
 						'playwright-core/**',
 						'@playwright/*',
-						'*' // node modules
+						'*'
 					]
 				},
 				{
@@ -2192,7 +2116,7 @@ export default defineConfig(
 						'@vscode/*',
 						'@parcel/*',
 						'@playwright/*',
-						'*' // node modules
+						'*'
 					]
 				},
 				{
@@ -2202,7 +2126,7 @@ export default defineConfig(
 						'@vscode/*',
 						'@parcel/*',
 						'@playwright/*',
-						'*' // node modules
+						'*'
 					]
 				},
 				{
@@ -2214,7 +2138,7 @@ export default defineConfig(
 						'@parcel/*',
 						'@playwright/*',
 						'@modelcontextprotocol/sdk/**/*',
-						'*' // node modules
+						'*'
 					]
 				},
 				{
@@ -2222,17 +2146,13 @@ export default defineConfig(
 					'restrictions': [
 						'test/componentFixtures/playwright/**',
 						'@playwright/*',
-						'*' // node modules
+						'*'
 					]
 				}
 			]
 		}
 	},
 	{
-		// `IAgentSessionsService` and the agent sessions model are provider-internal
-		// to Copilot. Only the Copilot chat sessions provider may consume them; the
-		// rest of the Agents window (sessions workbench) must stay provider-agnostic.
-		// See src/dc/sessions/SESSIONS.md.
 		files: [
 			'src/dc/sessions/**/*.ts'
 		],
@@ -2290,7 +2210,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// Terminal
 	{
 		files: [
 			'src/dc/workbench/contrib/terminal/**/*.ts',
@@ -2302,23 +2221,18 @@ export default defineConfig(
 		rules: {
 			'@typescript-eslint/naming-convention': [
 				'warn',
-				// variableLike
 				{ 'selector': 'variable', 'format': ['camelCase', 'UPPER_CASE', 'PascalCase'] },
 				{ 'selector': 'variable', 'filter': '^I.+Service$', 'format': ['PascalCase'], 'prefix': ['I'] },
-				// memberLike
 				{ 'selector': 'memberLike', 'modifiers': ['private'], 'format': ['camelCase'], 'leadingUnderscore': 'require' },
 				{ 'selector': 'memberLike', 'modifiers': ['protected'], 'format': ['camelCase'], 'leadingUnderscore': 'require' },
 				{ 'selector': 'enumMember', 'format': ['PascalCase'] },
-				// memberLike - Allow enum-like objects to use UPPER_CASE
 				{ 'selector': 'method', 'modifiers': ['public'], 'format': ['camelCase', 'UPPER_CASE'] },
-				// typeLike
 				{ 'selector': 'typeLike', 'format': ['PascalCase'] },
 				{ 'selector': 'interface', 'format': ['PascalCase'] }
 			],
 			'comma-dangle': ['warn', 'only-multiline']
 		}
 	},
-	// Ban dynamic require() and import() calls in extensions to ensure tree-shaking works
 	{
 		files: [
 			'extensions/**/*.{ts,tsx}',
@@ -2341,7 +2255,6 @@ export default defineConfig(
 			],
 		}
 	},
-	// markdown-language-features
 	{
 		files: [
 			'extensions/markdown-language-features/**/*.ts',
@@ -2362,7 +2275,6 @@ export default defineConfig(
 			],
 		}
 	},
-	// Additional extension strictness rules
 	{
 		files: [
 			'extensions/markdown-language-features/src/**/*.ts',
@@ -2378,23 +2290,18 @@ export default defineConfig(
 			parser: tseslint.parser,
 			parserOptions: {
 				project: [
-					// Markdown
 					'extensions/markdown-language-features/tsconfig.json',
 					'extensions/markdown-language-features/notebook/tsconfig.json',
 					'extensions/markdown-language-features/preview-src/tsconfig.json',
 
-					// Media preview
 					'extensions/media-preview/tsconfig.json',
 
-					// Media preview
 					'extensions/simple-browser/tsconfig.json',
 					'extensions/simple-browser/preview-src/tsconfig.json',
 
-					// Mermaid markdown features
 					'extensions/mermaid-markdown-features/tsconfig.json',
 					'extensions/mermaid-markdown-features/preview-src/chat/tsconfig.json',
 
-					// TypeScript
 					'extensions/typescript-language-features/tsconfig.json',
 					'extensions/typescript-language-features/web/tsconfig.json',
 				],
@@ -2409,7 +2316,6 @@ export default defineConfig(
 			'@typescript-eslint/consistent-generic-constructors': ['warn', 'constructor'],
 		}
 	},
-	// copilot extension - main sources
 	{
 		files: [
 			'extensions/copilot/src/**/*.{ts,tsx}',
@@ -2432,9 +2338,7 @@ export default defineConfig(
 			'local/code-no-deep-import-of-internal': 'off',
 			'no-restricted-imports': [
 				'warn',
-				// node: builtins
 				...builtinModules,
-				// node: dependencies
 				'@humanwhocodes/gitignore-to-minimatch',
 				'@vscode/extension-telemetry',
 				'applicationinsights',
@@ -2551,7 +2455,6 @@ export default defineConfig(
 			'copilot-local/no-nls-localize': ['warn'],
 		}
 	},
-	// copilot extension - allow node imports in node layer
 	{
 		files: [
 			'extensions/copilot/**/{vscode-node,node}/**/*.ts',
@@ -2561,7 +2464,6 @@ export default defineConfig(
 			'no-restricted-imports': 'off'
 		}
 	},
-	// copilot extension - override files (tests, build, etc.)
 	{
 		files: [
 			'extensions/copilot/test/**',
@@ -2575,7 +2477,6 @@ export default defineConfig(
 			'no-restricted-imports': 'off'
 		}
 	},
-	// copilot extension - TSX linebreak rule
 	{
 		files: [
 			'extensions/copilot/src/extension/**/*.tsx',
@@ -2587,7 +2488,6 @@ export default defineConfig(
 			'copilot-local/no-missing-linebreak': 'warn'
 		}
 	},
-	// copilot extension - test-only rule
 	{
 		files: [
 			'extensions/copilot/**/*.test.ts',
@@ -2600,7 +2500,6 @@ export default defineConfig(
 			'copilot-local/no-test-only': 'warn'
 		}
 	},
-	// copilot extension - no-explicit-any
 	{
 		files: [
 			'extensions/copilot/src/**/*.ts',
@@ -2800,7 +2699,6 @@ export default defineConfig(
 			]
 		}
 	},
-	// copilot extension - chatLibMain exception
 	{
 		files: [
 			'extensions/copilot/src/lib/node/chatLibMain.ts',
@@ -2809,7 +2707,6 @@ export default defineConfig(
 			'import/no-restricted-paths': 'off'
 		}
 	},
-	// Allow querySelector/querySelectorAll in test files - it's acceptable for test assertions
 	{
 		files: [
 			'src/**/test/**/*.ts',
@@ -2818,7 +2715,6 @@ export default defineConfig(
 		rules: {
 			'no-restricted-syntax': [
 				'warn',
-				// Keep the Intl helper restriction even in tests
 				{
 					'selector': `NewExpression[callee.object.name='Intl']`,
 					'message': 'Use safeIntl helper instead for safe and lazy use of potentially expensive Intl methods.'
@@ -2830,10 +2726,6 @@ export default defineConfig(
 			],
 		}
 	},
-	// Forbid new JavaScript files - use TypeScript instead.
-	// The allowlist of pre-existing JS/CJS/MJS files lives in
-	// `.eslint-allowed-javascript-files`, which is gated by CODEOWNERS.
-	// Do NOT add new entries; convert your file to TypeScript instead.
 	{
 		files: [
 			'**/*.js',

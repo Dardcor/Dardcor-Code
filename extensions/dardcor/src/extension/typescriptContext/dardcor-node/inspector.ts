@@ -228,7 +228,7 @@ class TreeRunnableResult {
 	public toTreeItem(): vscode.TreeItem {
 		let id = this.from.id;
 		if (id.startsWith('_')) {
-			id = id.substring(1); // Remove leading underscore for display purposes
+			id = id.substring(1);
 		}
 		const cacheInfo = this.from.cache !== undefined ? 1 : 0;
 		let label = `${id} - ${this.items.length} items - ${this.from.state}`;
@@ -522,7 +522,6 @@ export class InspectorDataProvider implements vscode.TreeDataProvider<InspectorI
 
 	private addContextRequest(item: TreeContextRequest): void {
 		if (this.items.length >= 32) {
-			// Limit the number of items to avoid performance issues.
 			this.items.pop();
 		}
 		this.items.unshift(item);

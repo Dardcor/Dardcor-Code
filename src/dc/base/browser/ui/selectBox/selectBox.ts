@@ -16,11 +16,9 @@ import { SelectBoxNative } from './selectBoxNative.js';
 
 
 
-// Public SelectBox interface - Calls routed to appropriate select implementation class
 
 export interface ISelectBoxDelegate extends IDisposable {
 
-	// Public SelectBox Interface
 	readonly onDidSelect: Event<ISelectData>;
 	setOptions(options: ISelectOptionItem[], selected?: number): void;
 	select(index: number): void;
@@ -30,7 +28,6 @@ export interface ISelectBoxDelegate extends IDisposable {
 	setFocusable(focus: boolean): void;
 	setEnabled(enabled: boolean): void;
 
-	// Delegated Widget interface
 	render(container: HTMLElement): void;
 }
 
@@ -40,13 +37,10 @@ export interface ISelectBoxOptions {
 	ariaDescription?: string;
 	minBottomMargin?: number;
 	optionsAsChildren?: boolean;
-	/** Hide disabled options from the custom-drawn dropdown. */
 	hideDisabledOptions?: boolean;
-	/** Show option descriptions in right-side hovers instead of the details pane. */
 	showOptionDescriptionHovers?: boolean;
 }
 
-// Utilize optionItem interface to capture all option parameters
 export interface ISelectOptionItem {
 	text: string;
 	detail?: string;
@@ -96,7 +90,6 @@ export class SelectBox extends Widget implements ISelectBoxDelegate {
 	constructor(options: ISelectOptionItem[], selected: number, contextViewProvider: IContextViewProvider, styles: ISelectBoxStyles, selectBoxOptions?: ISelectBoxOptions) {
 		super();
 
-		// Default to native SelectBox for OSX unless overridden
 		if (isMacintosh && !selectBoxOptions?.useCustomDrawn) {
 			this.selectBoxDelegate = new SelectBoxNative(options, selected, styles, selectBoxOptions);
 		} else {
@@ -106,7 +99,6 @@ export class SelectBox extends Widget implements ISelectBoxDelegate {
 		this._register(this.selectBoxDelegate);
 	}
 
-	// Public SelectBox Methods - routed through delegate interface
 
 	get onDidSelect(): Event<ISelectData> {
 		return this.selectBoxDelegate.onDidSelect;

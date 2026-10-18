@@ -82,6 +82,12 @@ export async function getModelInfo(modelStr) {
     return resolvedAlias;
   }
 
+  // OpenCode free models routing (zero-config, public access)
+  const mLower = parsed.model?.toLowerCase() || "";
+  if (mLower.endsWith("-free") || mLower === "big-pickle" || mLower.startsWith("space-bunny")) {
+    return { provider: "opencode", model: parsed.model };
+  }
+
   // Smart Routing: Check active provider connections in SQLite
   try {
     const conns = await getProviderConnections();

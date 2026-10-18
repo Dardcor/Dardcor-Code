@@ -192,7 +192,6 @@ suite('AICustomizationItemsModel', () => {
 			model.getItems(AICustomizationManagementSection.Agents);
 			await timeout(0);
 			assert.strictEqual(providerA_callCount, 1);
-			// Reading a different section does not trigger, as the items are cached
 			model.getItems(AICustomizationManagementSection.Skills);
 			await timeout(0);
 			assert.strictEqual(providerA_callCount, 1);
@@ -211,7 +210,6 @@ suite('AICustomizationItemsModel', () => {
 			const before = providerA_callCount;
 			providerA_didChange.fire();
 			await timeout(0);
-			// One refetch for the one observed section — not 5.
 			assert.strictEqual(providerA_callCount, before + 1);
 		});
 
@@ -314,12 +312,6 @@ suite('AICustomizationItemsModel', () => {
 		});
 
 		test('preserves builtin grouping when only groupKey is set (no storage/extensionId/pluginUri)', async () => {
-			// Repro of "Agents app built-in shown as User": the Agents app
-			// customization provider declares its built-in agents only via
-			// `groupKey: BUILTIN_STORAGE` — without `storage`, `extensionId`,
-			// `pluginUri`, or a workspace-anchored URI. The URI-sniffing
-			// fallback in the normalizer must preserve groupKey/isBuiltin so
-			// the list widget renders them under "Built-in" instead of "User".
 			providerA_items = [{
 				uri: URI.parse('agent-app://builtin/coder.agent.md'),
 				type: PromptsType.agent,
@@ -328,7 +320,7 @@ suite('AICustomizationItemsModel', () => {
 				enabled: true,
 				extensionId: undefined,
 				pluginUri: undefined,
-				source: AICustomizationSources.builtin, // Ignored, should be overridden by groupKey
+				source: AICustomizationSources.builtin,
 			}];
 
 			const model = disposables.add(instaService.createInstance(AICustomizationItemsModel));
@@ -484,9 +476,6 @@ suite('AICustomizationItemsModel', () => {
 		});
 
 		test('does not double-count local syncable items when itemProvider and syncProvider are both present', async () => {
-			// Regression: ProviderCustomizationItemSource.fetchItems used to unconditionally
-			// append fetchLocalSyncableItems even when an itemProvider was present, causing
-			// items reported by the provider to also show up via local enumeration.
 			const syncProvider_didChange = disposables.add(new Emitter<void>());
 			const syncProvider: ICustomizationSyncProvider = {
 				onDidChange: syncProvider_didChange.event,
@@ -524,9 +513,6 @@ suite('AICustomizationItemsModel', () => {
 		});
 
 		test('syncProvider.onDidChange does not refetch when itemProvider is present', async () => {
-			// The data path early-returns to provider items only when itemProvider exists,
-			// so subscribing to syncProvider/promptsService events would cause duplicate
-			// refreshes for providers that already forward those underlying events.
 			const syncProvider_didChange = disposables.add(new Emitter<void>());
 			const syncProvider: ICustomizationSyncProvider = {
 				onDidChange: syncProvider_didChange.event,
@@ -684,9 +670,6 @@ suite('AICustomizationItemsModel', () => {
 				uri: URI.parse(`agent-host://t/${type}/${name}`),
 				type,
 				name,
-				// Hooks pre-expanded items are kept under `plugin` storage; using
-				// plugin storage uniformly avoids the file-system expansion path
-				// in tests for non-hook types as well.
 				source: AICustomizationSources.plugin,
 				extensionId: undefined,
 				pluginUri: undefined,
@@ -776,10 +759,6 @@ suite('AICustomizationItemsModel', () => {
 		});
 
 		test('getPluginCount dedups against URI basename when local plugin label is empty', async () => {
-			// Mirrors PluginListWidget: when an installed plugin has no label
-			// (`label === ''`), the editor renders it under `basename(plugin.uri)`
-			// and dedups remote rows against that. The model must use the same
-			// fallback or the sidebar count drifts above the editor count.
 			providerItems = [harnessPluginRow('basename-match')];
 			const labelless: IAgentPlugin = {
 				...localPlugin('basename-match'),
@@ -796,11 +775,6 @@ suite('AICustomizationItemsModel', () => {
 		});
 	});
 
-	// Regression coverage for the agent-host harness path
-	// (`PureItemProviderItemSource`). The item-source caches the provider's
-	// items and applies each section's `promptType` filter at fetch time,
-	// so reading one section (e.g. Agents) must not poison the cached
-	// items for any other section (e.g. Instructions).
 	suite('agent host item source caches all types', () => {
 
 		let disposables: DisposableStore;
@@ -887,10 +861,6 @@ suite('AICustomizationItemsModel', () => {
 			];
 
 			const model = disposables.add(instaService.createInstance(AICustomizationItemsModel));
-			// Observe the Agents section first — this primes the underlying
-			// cache. Then observe Instructions on the same model; the bug
-			// caused this second observation to see an empty list because
-			// the cache had already been normalized for `PromptsType.agent`.
 			const agentItems = model.getItems(AICustomizationManagementSection.Agents);
 			await model.whenSectionLoaded(AICustomizationManagementSection.Agents);
 			const instructionItems = model.getItems(AICustomizationManagementSection.Instructions);

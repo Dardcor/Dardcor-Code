@@ -58,7 +58,6 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 	private isBuilt = false;
 
 	private readonly stopActionViewItemDisposables = this._register(new DisposableStore());
-	/** coordinate of the debug toolbar per aux window */
 	private readonly auxWindowCoordinates = new WeakMap<CodeWindow, { x: number; y: number | undefined }>();
 
 	private readonly trackPixelRatioListener = this._register(new MutableDisposable());
@@ -79,11 +78,8 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 
 		this.$el = dom.$('div.debug-toolbar');
 
-		// Note: changes to this setting require a restart, so no need to listen to it.
 		const controlsOnTitlebar = getTitleBarStyle(this.configurationService) === TitlebarStyle.CUSTOM;
 
-		// Do not allow the widget to overflow or underflow window controls.
-		// Use CSS calculations to avoid having to force layout with `.clientWidth`
 		const controlsOnLeft = controlsOnTitlebar && platform === Platform.Mac;
 		const controlsOnRight = controlsOnTitlebar && (platform === Platform.Windows || platform === Platform.Linux);
 		this.$el.style.transform = `translate(
@@ -158,19 +154,16 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 		}));
 		this._register(this.debugToolBarMenu.onDidChange(() => this.updateScheduler.schedule()));
 		this._register(this.actionBar.actionRunner.onDidRun((e: IRunEvent) => {
-			// check for error
 			if (e.error && !errors.isCancellationError(e.error)) {
 				this.notificationService.warn(e.error);
 			}
 
-			// log in telemetry
 			this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: e.action.id, from: 'debugActionsWidget' });
 		}));
 
 		this._register(dom.addDisposableGenericMouseUpListener(this.dragArea, (event: MouseEvent) => {
 			const mouseClickEvent = new StandardMouseEvent(dom.getWindow(this.dragArea), event);
 			if (mouseClickEvent.detail === 2) {
-				// double click on debug bar centers it again #8250
 				this.setCoordinates(0.5, this.yDefault);
 				this.storePosition();
 			}
@@ -186,7 +179,6 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 
 			const mouseMoveListener = dom.addDisposableGenericMouseMoveListener(activeWindow, (e: MouseEvent) => {
 				const mouseMoveEvent = new StandardMouseEvent(activeWindow, e);
-				// Prevent default to stop editor selecting text #8524
 				mouseMoveEvent.preventDefault();
 				this.setCoordinates(
 					originX + (mouseMoveEvent.posx - originEvent.posx) / activeWindow.innerWidth,
@@ -208,8 +200,6 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 		this._register(this.layoutService.onDidChangeActiveContainer(async () => {
 			this._yRange = undefined;
 
-			// note: we intentionally don't keep the activeContainer before the
-			// `await` clause to avoid any races due to quickly switching windows.
 			await this.layoutService.whenContainerStylesLoaded(dom.getWindow(this.layoutService.activeContainer));
 			if (this.isBuilt) {
 				this.doShowInActiveContainer();
@@ -218,23 +208,15 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 		}));
 	}
 
-	/**
-	 * Computes the x percent position at which the toolbar is currently displayed.
-	 */
 	private computeCurrentXPercent(): number {
 		const { left, width } = this.$el.getBoundingClientRect();
 		return (left + width / 2) / dom.getWindow(this.$el).innerWidth;
 	}
 
-	/**
-	 * Gets the x position set in the style of the toolbar. This may not be its
-	 * actual position on screen depending on toolbar locations.
-	 */
 	private getCurrentXPercent(): number {
 		return Number(this.$el.style.getPropertyValue('--x-position'));
 	}
 
-	/** Gets the y position set in the style of the toolbar */
 	private getCurrentYPosition(): number {
 		return parseInt(this.$el.style.getPropertyValue('--y-position'));
 	}
@@ -271,7 +253,6 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 		}
 	}
 
-	/** Gets the stored X position of the middle of the toolbar based on the current window width */
 	private getStoredXPosition() {
 		const currentWindow = dom.getWindow(this.layoutService.activeContainer);
 		const isMainWindow = currentWindow === mainWindow;
@@ -387,7 +368,6 @@ export function createDisconnectMenuItemAction(action: MenuItemAction, disposabl
 	return item;
 }
 
-// Debug toolbar
 
 const debugViewTitleItems = new DisposableStore();
 const registerDebugToolBarItem = (id: string, title: string | ICommandActionTitle, order: number, icon?: { light?: URI; dark?: URI } | ThemeIcon, when?: ContextKeyExpression, precondition?: ContextKeyExpression, alt?: ICommandAction) => {
@@ -404,7 +384,6 @@ const registerDebugToolBarItem = (id: string, title: string | ICommandActionTitl
 		alt
 	});
 
-	// Register actions in debug viewlet when toolbar is docked
 	debugViewTitleItems.add(MenuRegistry.appendMenuItem(MenuId.ViewContainerTitle, {
 		group: 'navigation',
 		when: ContextKeyExpr.and(when, ContextKeyExpr.equals('viewContainer', VIEWLET_ID), CONTEXT_DEBUG_STATE.notEqualsTo('inactive'), ContextKeyExpr.equals('config.debug.toolBarLocation', 'docked')),
@@ -419,7 +398,6 @@ const registerDebugToolBarItem = (id: string, title: string | ICommandActionTitl
 };
 
 markAsSingleton(MenuRegistry.onDidChangeMenu(e => {
-	// In case the debug toolbar is docked we need to make sure that the docked toolbar has the up to date commands registered #115945
 	if (e.has(MenuId.DebugToolBar)) {
 		debugViewTitleItems.clear();
 		const items = MenuRegistry.getMenuItems(MenuId.DebugToolBar);

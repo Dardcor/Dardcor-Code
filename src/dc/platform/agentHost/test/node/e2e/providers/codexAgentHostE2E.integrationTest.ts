@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Deterministic Agent Host end-to-end tests for the bundled Codex provider.
- */
 
 import assert from 'assert';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'fs';

@@ -15,7 +15,6 @@ import { NullTelemetryServiceShape } from '../../../platform/telemetry/common/te
 import { ServerAgentHostManager } from '../../node/serverAgentHostManager.js';
 import { IServerLifetimeService } from '../../node/serverLifetimeService.js';
 
-// ---- Mock helpers -----------------------------------------------------------
 
 class MockChannel implements IChannel {
 	private readonly _listeners = new Map<string, Emitter<unknown>>();
@@ -159,8 +158,6 @@ suite('ServerAgentHostManager', () => {
 		));
 	}
 
-	// `ServerAgentHostManager._start()` is async (awaits `starter.start()`).
-	// Wait a microtask so the channel listeners are wired up before tests fire events.
 	async function waitForStart(): Promise<void> {
 		await Promise.resolve();
 	}

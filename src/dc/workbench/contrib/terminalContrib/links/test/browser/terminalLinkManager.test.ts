@@ -173,10 +173,6 @@ suite('TerminalLinkManager', () => {
 			}
 		}));
 
-		/**
-		 * Triggers the hover callback, flushes the 0ms scheduler, then
-		 * fires the given xterm event and asserts the hover was disposed.
-		 */
 		async function assertHoverDismissedOnEvent(
 			overrideEvent: (setFireEvent: (fn: () => void) => void) => IDisposable,
 		): Promise<void> {
@@ -239,7 +235,6 @@ suite('TerminalLinkManager', () => {
 		test('replacing or invalidating a link hover disposes the previous hover and its invalidation listener', () => {
 			instantiationService.stub(IHoverService, upcastPartial<IHoverService>({}));
 
-			// Fake widget manager that records disposal of each attached hover and disposes the widget
 			const disposedAttached: boolean[] = [];
 			linkManager.setWidgetManager(upcastPartial<TerminalWidgetManager>({
 				attachWidget: widget => {
@@ -255,7 +250,6 @@ suite('TerminalLinkManager', () => {
 			const link2 = upcastPartial<TerminalLink>({ onInvalidated: onInvalidated2.event });
 			const targetOptions = upcastPartial<ILinkHoverTargetOptions>({});
 
-			// Showing a second link hover should dispose the first, then invalidating the second disposes it
 			showHover(targetOptions, new MarkdownString('hover'), undefined, () => { }, link1);
 			showHover(targetOptions, new MarkdownString('hover'), undefined, () => { }, link2);
 			onInvalidated2.fire();

@@ -25,7 +25,6 @@ const REGISTRY = {
   [FILTERS.SEARCH_LIST]: searchList
 };
 
-// Rust resolve_filter aliases (pipe_cmd.rs): grep|rg, find|fd
 const ALIASES = {
   rg: grep,
   fd: find

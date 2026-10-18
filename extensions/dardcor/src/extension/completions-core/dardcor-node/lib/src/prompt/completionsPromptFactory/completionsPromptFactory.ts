@@ -41,7 +41,6 @@ export interface ICompletionsPromptFactoryService extends IPromptFactory {
 	readonly _serviceBrand: undefined;
 }
 
-// This class needs to extend CompletionsPromptFactory since it's set on the context.
 class SequentialCompletionsPromptFactory implements IPromptFactory {
 	declare _serviceBrand: undefined;
 	private lastPromise?: Promise<PromptResponse>;
@@ -57,15 +56,12 @@ class SequentialCompletionsPromptFactory implements IPromptFactory {
 		opts: CompletionsPromptOptions,
 		cancellationToken?: CancellationToken
 	): Promise<PromptResponse> {
-		// Wait for previous request to complete
 		await this.lastPromise;
 
-		// Check if request was cancelled while waiting
 		if (cancellationToken?.isCancellationRequested) {
 			return _promptCancelled;
 		}
 
-		// Return prompt from delegate catching any errors
 		try {
 			return await this.delegate.prompt(opts, cancellationToken);
 		} catch {
@@ -74,7 +70,6 @@ class SequentialCompletionsPromptFactory implements IPromptFactory {
 	}
 }
 
-// 0.01% of prompt construction time is 1s+. Setting this to 1200ms should be safe.
 export const DEFAULT_PROMPT_TIMEOUT = 1200;
 class TimeoutHandlingCompletionsPromptFactory implements IPromptFactory {
 	constructor(private readonly delegate: IPromptFactory) { }
@@ -90,7 +85,6 @@ class TimeoutHandlingCompletionsPromptFactory implements IPromptFactory {
 			this.delegate.prompt(opts, timeoutToken),
 			new Promise<PromptResponse>(resolve => {
 				setTimeout(() => {
-					// Cancel the token when timeout occurs
 					timeoutTokenSource.cancel();
 					resolve(_promptTimeout);
 				}, DEFAULT_PROMPT_TIMEOUT);

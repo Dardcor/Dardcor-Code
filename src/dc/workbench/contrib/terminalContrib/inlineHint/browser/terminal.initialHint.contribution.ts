@@ -95,15 +95,12 @@ export class TerminalInitialHintContribution extends Disposable implements ITerm
 	}
 
 	xtermOpen(xterm: IXtermTerminal & { raw: RawXtermTerminal }): void {
-		// Don't show if the terminal was launched by an extension or a feature like debug
 		if (hasKey(this._ctx.instance, { shellLaunchConfig: true }) && (this._ctx.instance.shellLaunchConfig.isExtensionOwnedTerminal || this._ctx.instance.shellLaunchConfig.isFeatureTerminal || this._ctx.instance.shellLaunchConfig.hideFromUser)) {
 			return;
 		}
-		// Don't show if disabled
 		if (!this._configurationService.getValue(TerminalInitialHintSettingId.Enabled)) {
 			return;
 		}
-		// Don't show if keybindings are sent to shell, the hint's keybindings won't work
 		if (this._terminalConfigurationService.config.sendKeybindingsToShell) {
 			return;
 		}
@@ -163,8 +160,6 @@ export class TerminalInitialHintContribution extends Disposable implements ITerm
 			}));
 		}
 
-		// Listen to cursor move and recreate the hint (only if no input has been received)
-		// Fixes #286080 an issue where the hint would not reposition correctly when the terminal's prompt changed
 		this._cursorMoveListener.value = this._xterm.raw.onCursorMove(() => {
 			if (!inputModel?.value) {
 				this._disposeHint();
@@ -231,10 +226,6 @@ class TerminalInitialHintWidget extends Disposable {
 		}));
 	}
 
-	/**
-	 * Creates wrapped hint elements with click listeners for responsive hint layouts.
-	 * Returns a before link and an after prose span containing a link.
-	 */
 	private _createWrappedHintElements(text: string, keybindingLabel: string, clickHandler: () => void): { before: HTMLAnchorElement; after: HTMLSpanElement } {
 		const [beforeText, afterText] = text.split(keybindingLabel);
 		const before = $('a', undefined, beforeText) as HTMLAnchorElement;
@@ -269,10 +260,7 @@ class TerminalInitialHintWidget extends Disposable {
 
 		const aiFeaturesHidden = this._chatEntitlementService.sentiment.hidden;
 
-		// Copilot CLI hint removed — Dardcor Code does not show VS Code's
-		// "Type copilot to use Copilot CLI" branding in the terminal.
 
-		// Suggest hint - only shown when AI features are hidden (otherwise the Copilot CLI hint takes precedence)
 		const suggestEnabled = aiFeaturesHidden && this._configurationService.getValue<boolean>(TerminalSuggestSettingId.Enabled);
 		const suggestKeybinding = suggestEnabled ? this._keybindingService.lookupKeybinding(TerminalSuggestCommandId.TriggerSuggest) : undefined;
 		const suggestKeybindingLabel = suggestKeybinding?.getLabel();
@@ -295,18 +283,15 @@ class TerminalInitialHintWidget extends Disposable {
 			this._toDispose.add(dom.addDisposableListener(suggestLabel.element, dom.EventType.CLICK, handleSuggestClick));
 
 			hintElement.appendChild(suggestAfter);
-			// Layout-only separator; visibility and spacing are controlled via CSS (including responsive breakpoints).
 			hintElement.appendChild($('span.terminal-initial-hint-separator'));
 
 			ariaLabelParts.push(suggestActionPart);
 		}
 
-		// Don't show the hint if there's nothing to hint about
 		if (ariaLabelParts.length === 0) {
 			return undefined;
 		}
 
-		// Dismiss hint - normal mode version
 		const typeToDismiss = localize({
 			key: 'hintTextDismiss',
 			comment: [
@@ -320,7 +305,6 @@ class TerminalInitialHintWidget extends Disposable {
 		hintElement.appendChild(proseBefore);
 		hintElement.appendChild(typeToDismissRendered);
 
-		// Dismiss hint - compact mode version
 		const typeToDismissCompact = localize({
 			key: 'hintTextDismissCompact',
 			comment: [

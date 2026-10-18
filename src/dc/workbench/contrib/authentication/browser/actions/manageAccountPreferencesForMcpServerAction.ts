@@ -64,14 +64,13 @@ class ManageAccountPreferenceForMcpServerActionImpl {
 		}
 
 		if (!providerId) {
-			// Use the query service's MCP server-centric approach to find providers that have been used
 			const mcpServerQuery = this._authenticationQueryService.mcpServer(mcpServerId);
 			const providersWithAccess = await mcpServerQuery.getProvidersWithAccess();
 			if (!providersWithAccess.length) {
 				await this._dialogService.info(localize('noAccountUsage', "This MCP server has not used any accounts yet."));
 				return;
 			}
-			providerId = providersWithAccess[0]; // Default to the first provider
+			providerId = providersWithAccess[0];
 			if (providersWithAccess.length > 1) {
 				const result = await this._quickInputService.pick(
 					providersWithAccess.map(providerId => ({
@@ -84,25 +83,21 @@ class ManageAccountPreferenceForMcpServerActionImpl {
 					}
 				);
 				if (!result) {
-					return; // User cancelled
+					return;
 				}
 				providerId = result.id;
 			}
 		}
 
-		// Only fetch accounts for the chosen provider
 		const accounts = await this._authenticationService.getAccounts(providerId);
 		const currentAccountNamePreference = this._authenticationQueryService.provider(providerId).mcpServer(mcpServerId).getPreferredAccount();
 		const items: Array<QuickPickInput<AccountPreferenceQuickPickItem>> = this._getItems(accounts, providerId, currentAccountNamePreference);
 
-		// If the provider supports multiple accounts, add an option to use a new account
 		const provider = this._authenticationService.getProvider(providerId);
 		if (provider.supportsMultipleAccounts) {
-			// Get the last used scopes for the last used account. This will be used to pre-fill the scopes when adding a new account.
-			// If there's no scopes, then don't add this option.
 			const lastUsedScopes = accounts
 				.flatMap(account => this._authenticationQueryService.provider(providerId).account(account.label).mcpServer(mcpServerId).getUsage())
-				.sort((a, b) => b.lastUsed - a.lastUsed)[0]?.scopes; // Sort by timestamp and take the most recent
+				.sort((a, b) => b.lastUsed - a.lastUsed)[0]?.scopes;
 			if (lastUsedScopes) {
 				items.push({ type: 'separator' });
 				items.push({
@@ -116,7 +111,6 @@ class ManageAccountPreferenceForMcpServerActionImpl {
 		const disposables = new DisposableStore();
 		const picker = this._createQuickPick(disposables, mcpServerId, mcpServer.definition.label, provider.label);
 		if (items.length === 0) {
-			// We would only get here if we went through the Command Palette
 			disposables.add(this._handleNoAccounts(picker));
 			return;
 		}
@@ -181,7 +175,6 @@ class ManageAccountPreferenceForMcpServerActionImpl {
 			const mcpQuery = this._authenticationQueryService.provider(providerId).mcpServer(mcpServerId);
 			const currentAccountName = mcpQuery.getPreferredAccount();
 			if (currentAccountName === account.label) {
-				// This account is already the preferred account
 				continue;
 			}
 			mcpQuery.setPreferredAccount(account);

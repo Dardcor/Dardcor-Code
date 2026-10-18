@@ -12,7 +12,6 @@ const BROADCAST = 'user.u1.env.e1.client.c1.broadcast';
 const TO_CLIENT = 'user.u1.env.e1.client.c1.to-client';
 const TO_HOST = 'user.u1.env.e1.client.c1.to-host';
 
-/** A fake WebSocket the test drives directly. */
 class FakeWebSocket implements IWebSocketLike {
 	onopen: (() => void) | null = null;
 	onmessage: ((event: { data: unknown }) => void) | null = null;
@@ -29,7 +28,6 @@ class FakeWebSocket implements IWebSocketLike {
 		this.closed = true;
 	}
 
-	/** Deliver an inbound JSON frame. */
 	emit(frame: unknown): void {
 		this.onmessage?.({ data: JSON.stringify(frame) });
 	}
@@ -40,7 +38,6 @@ class FakeWebSocket implements IWebSocketLike {
 		this.onerror?.(undefined);
 	}
 
-	/** Frames sent to the wire of the given WPS command `type`. */
 	sentOfType(type: string): Array<Record<string, unknown>> {
 		return this.sent.filter((f): f is Record<string, unknown> => typeof f === 'object' && f !== null && (f as Record<string, unknown>)['type'] === type);
 	}
@@ -59,7 +56,6 @@ suite('WebPubSubRelayTransport', () => {
 		}));
 	}
 
-	/** Drive the handshake to completion: connected → joinGroup acks. */
 	async function connectHandshake(transport: WebPubSubRelayTransport, fake: FakeWebSocket): Promise<void> {
 		const connected = transport.connect();
 		fake.emit({ type: 'system', event: 'connected' });

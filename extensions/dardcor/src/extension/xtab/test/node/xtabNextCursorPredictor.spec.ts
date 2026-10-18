@@ -55,16 +55,14 @@ function createTestPromptPieces(): PromptPieces {
 	const docText = new StringText(currentDocLines.join('\n'));
 	const documentId = DocumentId.create('file:///test/file.ts');
 
-	// Create a CurrentDocument with content and cursor position
 	const currentDocument = new CurrentDocument(
 		docText,
-		new Position(2, 1) // cursor at line 2
+		new Position(2, 1)
 	);
 
-	// Create a StatelessNextEditDocument for activeDoc
 	const activeDoc = new StatelessNextEditDocument(
 		documentId,
-		undefined, // workspaceRoot
+		undefined,
 		LanguageId.create('typescript'),
 		currentDocLines,
 		LineEdit.empty,
@@ -82,15 +80,15 @@ function createTestPromptPieces(): PromptPieces {
 
 	return new PromptPieces(
 		currentDocument,
-		new OffsetRange(1, 3), // editWindowLinesRange
-		new OffsetRange(0, 5), // areaAroundEditWindowLinesRange
-		activeDoc, // activeDoc
-		[], // xtabHistory
-		currentDocLines, // taggedCurrentDocLines as string[]
-		'<area_around_code_to_edit>\nline 2\nline 3\n</area_around_code_to_edit>', // areaAroundCodeToEdit
-		undefined, // langCtx - can be undefined
+		new OffsetRange(1, 3),
+		new OffsetRange(0, 5),
+		activeDoc,
+		[],
+		currentDocLines,
+		'<area_around_code_to_edit>\nline 2\nline 3\n</area_around_code_to_edit>',
+		undefined,
 		AggressivenessLevel.Medium,
-		new LintErrors(documentId, currentDocument, new TestLanguageDiagnosticsService()), // lintErrors
+		new LintErrors(documentId, currentDocument, new TestLanguageDiagnosticsService()),
 		computeTokens,
 		opts
 	);
@@ -105,14 +103,12 @@ describe('XtabNextCursorPredictor', () => {
 	beforeEach(() => {
 		const testingServiceCollection = createExtensionUnitTestingServices(disposables);
 
-		// Register our configurable mock
 		mockChatMLFetcher = new MockChatMLFetcher();
 		testingServiceCollection.set(IChatMLFetcher, mockChatMLFetcher);
 
 		accessor = disposables.add(testingServiceCollection.createTestingAccessor());
 		instaService = accessor.get(IInstantiationService);
 
-		// Enable the next cursor prediction feature
 		const configService = accessor.get(IConfigurationService);
 		configService.setConfig(ConfigKey.InlineEditsNextCursorPredictionEnabled, true);
 		configService.setConfig(ConfigKey.TeamInternal.InlineEditsNextCursorPredictionModelName, 'test-model');
@@ -128,10 +124,8 @@ describe('XtabNextCursorPredictor', () => {
 			const tracer = createTestLogger();
 			const promptPieces = createTestPromptPieces();
 
-			// First verify predictor is enabled
 			expect(predictor.determineEnablement()).toBe(NextCursorLinePrediction.OnlyWithEdit);
 
-			// Set up mock to return NotFound
 			mockChatMLFetcher.setNextResponse({
 				type: ChatFetchResponseType.NotFound,
 				reason: 'Model not found',
@@ -139,7 +133,6 @@ describe('XtabNextCursorPredictor', () => {
 				serverRequestId: 'test-server-request-id'
 			});
 
-			// Make a prediction request - should fail with NotFound
 			const result = await predictor.predictNextCursorPosition(promptPieces, createTestTracingContext(tracer), CancellationToken.None);
 
 			expect(result.isError()).toBe(true);
@@ -147,7 +140,6 @@ describe('XtabNextCursorPredictor', () => {
 				expect(result.err.message).toContain('fetchError:notFound');
 			}
 
-			// After NotFound, predictor should be disabled
 			expect(predictor.determineEnablement()).toBeUndefined();
 		});
 
@@ -156,7 +148,6 @@ describe('XtabNextCursorPredictor', () => {
 			const tracer = createTestLogger();
 			const promptPieces = createTestPromptPieces();
 
-			// Set up mock to return NotFound
 			mockChatMLFetcher.setNextResponse({
 				type: ChatFetchResponseType.NotFound,
 				reason: 'Model not found',
@@ -164,13 +155,10 @@ describe('XtabNextCursorPredictor', () => {
 				serverRequestId: 'test-server-request-id'
 			});
 
-			// First call - triggers disabling
 			await predictor.predictNextCursorPosition(promptPieces, createTestTracingContext(tracer), CancellationToken.None);
 
-			// Verify disabled
 			expect(predictor.determineEnablement()).toBeUndefined();
 
-			// Even if we change the mock to return success, it should stay disabled
 			mockChatMLFetcher.setNextResponse({
 				type: ChatFetchResponseType.Success,
 				requestId: 'test-request-id',
@@ -180,7 +168,6 @@ describe('XtabNextCursorPredictor', () => {
 				resolvedModel: 'test-model'
 			});
 
-			// determineEnablement should still return undefined (disabled)
 			expect(predictor.determineEnablement()).toBeUndefined();
 		});
 
@@ -189,10 +176,8 @@ describe('XtabNextCursorPredictor', () => {
 			const tracer = createTestLogger();
 			const promptPieces = createTestPromptPieces();
 
-			// Verify predictor is enabled initially
 			expect(predictor.determineEnablement()).toBe(NextCursorLinePrediction.OnlyWithEdit);
 
-			// Set up mock to return a different error type (e.g., NetworkError)
 			mockChatMLFetcher.setNextResponse({
 				type: ChatFetchResponseType.NetworkError,
 				reason: 'Network unavailable',
@@ -200,7 +185,6 @@ describe('XtabNextCursorPredictor', () => {
 				serverRequestId: 'test-server-request-id'
 			});
 
-			// Make a prediction request - should fail but not disable
 			const result = await predictor.predictNextCursorPosition(promptPieces, createTestTracingContext(tracer), CancellationToken.None);
 
 			expect(result.isError()).toBe(true);
@@ -208,7 +192,6 @@ describe('XtabNextCursorPredictor', () => {
 				expect(result.err.message).toContain('fetchError:networkError');
 			}
 
-			// Predictor should still be enabled after non-404 error
 			expect(predictor.determineEnablement()).toBe(NextCursorLinePrediction.OnlyWithEdit);
 		});
 
@@ -217,7 +200,6 @@ describe('XtabNextCursorPredictor', () => {
 			const tracer = createTestLogger();
 			const promptPieces = createTestPromptPieces();
 
-			// Set up mock to return success with line number
 			mockChatMLFetcher.setNextResponse({
 				type: ChatFetchResponseType.Success,
 				requestId: 'test-request-id',
@@ -234,7 +216,6 @@ describe('XtabNextCursorPredictor', () => {
 				expect(result.val).toEqual({ kind: 'sameFile', lineNumber: 0 });
 			}
 
-			// Predictor should still be enabled
 			expect(predictor.determineEnablement()).toBe(NextCursorLinePrediction.OnlyWithEdit);
 		});
 

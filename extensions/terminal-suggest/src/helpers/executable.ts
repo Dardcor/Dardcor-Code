@@ -17,31 +17,29 @@ export function isExecutable(filePath: string, windowsExecutableExtensions?: Set
 export async function isExecutableUnix(filePath: string): Promise<boolean> {
 	try {
 		const stats = await fs.stat(filePath);
-		// On macOS/Linux, check if the executable bit is set
 		return (stats.mode & 0o100) !== 0;
 	} catch (error) {
-		// If the file does not exist or cannot be accessed, it's not executable
 		return false;
 	}
 }
 
 export const windowsDefaultExecutableExtensions: string[] = [
-	'.exe',   // Executable file
-	'.bat',   // Batch file
-	'.cmd',   // Command script
-	'.com',   // Command file
+	'.exe',
+	'.bat',
+	'.cmd',
+	'.com',
 
-	'.msi',   // Windows Installer package
+	'.msi',
 
-	'.ps1',   // PowerShell script
+	'.ps1',
 
-	'.vbs',   // VBScript file
-	'.js',    // JScript file
-	'.jar',   // Java Archive (requires Java runtime)
-	'.py',    // Python script (requires Python interpreter)
-	'.rb',    // Ruby script (requires Ruby interpreter)
-	'.pl',    // Perl script (requires Perl interpreter)
-	'.sh',    // Shell script (via WSL or third-party tools)
+	'.vbs',
+	'.js',
+	'.jar',
+	'.py',
+	'.rb',
+	'.pl',
+	'.sh',
 ];
 
 const defaultWindowsExecutableExtensionsSet = new Set<string>();

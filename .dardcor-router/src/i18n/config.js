@@ -59,7 +59,7 @@ export const LOCALE_NAMES = {
   tr: "Türkçe",
   uk: "Українська",
   tl: "Tagalog",
-  id: "Indonesia",
+  id: "Bahasa Indonesia",
   th: "ไทย",
   km: "ខ្មែរ",
   hi: "हिन्दी",
@@ -77,111 +77,15 @@ export const LOCALE_NAMES = {
 };
 
 export function normalizeLocale(locale) {
-  if (locale === "zh" || locale === "zh-CN") {
-    return "zh-CN";
-  }
-  if (locale === "en") {
-    return "en";
-  }
-  if (locale === "vi") {
-    return "vi";
-  }
-  if (locale === "zh-TW") {
-    return "zh-TW";
-  }
-  if (locale === "ja") {
-    return "ja";
-  }
-  if (locale === "pt-BR") {
-    return "pt-BR";
-  }
-  if (locale === "pt-PT") {
-    return "pt-PT";
-  }
-  if (locale === "ko") {
-    return "ko";
-  }
-  if (locale === "es") {
-    return "es";
-  }
-  if (locale === "de") {
-    return "de";
-  }
-  if (locale === "fr") {
-    return "fr";
-  }
-  if (locale === "he") {
-    return "he";
-  }
-  if (locale === "ar") {
-    return "ar";
-  }
-  if (locale === "ru") {
-    return "ru";
-  }
-  if (locale === "pl") {
-    return "pl";
-  }
-  if (locale === "cs") {
-    return "cs";
-  }
-  if (locale === "nl") {
-    return "nl";
-  }
-  if (locale === "tr") {
-    return "tr";
-  }
-  if (locale === "uk") {
-    return "uk";
-  }
-  if (locale === "tl") {
-    return "tl";
-  }
-  if (locale === "id") {
-    return "id";
-  }
-  if (locale === "th") {
-    return "th";
-  }
-  if (locale === "km") {
-    return "km";
-  }
-  if (locale === "hi") {
-    return "hi";
-  }
-  if (locale === "bn") {
-    return "bn";
-  }
-  if (locale === "ur") {
-    return "ur";
-  }
-  if (locale === "ro") {
-    return "ro";
-  }
-  if (locale === "sv") {
-    return "sv";
-  }
-  if (locale === "it") {
-    return "it";
-  }
-  if (locale === "el") {
-    return "el";
-  }
-  if (locale === "hu") {
-    return "hu";
-  }
-  if (locale === "fi") {
-    return "fi";
-  }
-  if (locale === "da") {
-    return "da";
-  }
-  if (locale === "no") {
-    return "no";
-  }
-  if (locale === "fa") {
-    return "fa";
-  }
+  if (!locale || typeof locale !== "string") return DEFAULT_LOCALE;
+  const clean = locale.trim();
+  if (LOCALES.includes(clean)) return clean;
+  if (clean.startsWith("zh-HK") || clean.startsWith("zh-TW") || clean.startsWith("zh-Hant")) return "zh-TW";
+  if (clean.startsWith("zh")) return "zh-CN";
+  if (clean.startsWith("pt-PT")) return "pt-PT";
+  if (clean.startsWith("pt")) return "pt-BR";
+  const base = clean.split(/[-_]/)[0].toLowerCase();
+  if (LOCALES.includes(base)) return base;
   return DEFAULT_LOCALE;
 }
 

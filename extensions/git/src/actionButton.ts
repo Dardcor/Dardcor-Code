@@ -104,11 +104,9 @@ export class ActionButton {
 		let actionButton: SourceControlActionButton | undefined;
 
 		if (this.state.repositoryHasChangesToCommit) {
-			// Commit Changes (enabled)
 			actionButton = this.getCommitActionButton();
 		}
 
-		// Commit Changes (enabled) -> Publish Branch -> Sync Changes -> Commit Changes (disabled)
 		actionButton = actionButton ?? this.getPublishBranchActionButton() ?? this.getSyncChangesActionButton() ?? this.getCommitActionButton();
 
 		this.logger.trace(`[ActionButton][getButton] ${JSON.stringify({
@@ -124,7 +122,6 @@ export class ActionButton {
 		const config = workspace.getConfiguration('git', Uri.file(this.repository.root));
 		const showActionButton = config.get<{ commit: boolean }>('showActionButton', { commit: true });
 
-		// The button is disabled
 		if (!showActionButton.commit) { return undefined; }
 
 		const primaryCommand = this.getCommitActionButtonPrimaryCommand();
@@ -141,7 +138,6 @@ export class ActionButton {
 	}
 
 	private getCommitActionButtonPrimaryCommand(): Command {
-		// Rebase Continue
 		if (this.state.isRebaseInProgress) {
 			return {
 				command: 'git.commit',
@@ -151,7 +147,6 @@ export class ActionButton {
 			};
 		}
 
-		// Merge Continue
 		if (this.state.isMergeInProgress) {
 			return {
 				command: 'git.commit',
@@ -161,7 +156,6 @@ export class ActionButton {
 			};
 		}
 
-		// Not a branch (tag, detached)
 		if (this.state.HEAD?.type === RefType.Tag || !this.state.HEAD?.name) {
 			return {
 				command: 'git.commit',
@@ -171,27 +165,22 @@ export class ActionButton {
 			};
 		}
 
-		// Commit
 		return this.postCommitCommandCenter.getPrimaryCommand();
 	}
 
 	private getCommitActionButtonSecondaryCommands(): Command[][] {
-		// Rebase Continue
 		if (this.state.isRebaseInProgress) {
 			return [];
 		}
 
-		// Merge Continue
 		if (this.state.isMergeInProgress) {
 			return [];
 		}
 
-		// Not a branch (tag, detached)
 		if (this.state.HEAD?.type === RefType.Tag || !this.state.HEAD?.name) {
 			return [];
 		}
 
-		// Commit
 		const commandGroups: Command[][] = [];
 		for (const commands of this.postCommitCommandCenter.getSecondaryCommands()) {
 			commandGroups.push(commands.map(c => {
@@ -206,10 +195,8 @@ export class ActionButton {
 		const config = workspace.getConfiguration('git', Uri.file(this.repository.root));
 		const showActionButton = config.get<{ publish: boolean }>('showActionButton', { publish: true });
 
-		// Not a branch (tag, detached), branch does have an upstream, commit/merge/rebase is in progress, or the button is disabled
 		if (this.state.HEAD?.type === RefType.Tag || !this.state.HEAD?.name || this.state.HEAD?.upstream || this.state.isCommitInProgress || this.state.isMergeInProgress || this.state.isRebaseInProgress || !showActionButton.publish) { return undefined; }
 
-		// Button icon
 		const icon = this.state.isSyncInProgress ? '$(sync~spin)' : '$(cloud-upload)';
 
 		return {
@@ -234,7 +221,6 @@ export class ActionButton {
 		const showActionButton = config.get<{ sync: boolean }>('showActionButton', { sync: true });
 		const branchIsAheadOrBehind = (this.state.HEAD?.behind ?? 0) > 0 || (this.state.HEAD?.ahead ?? 0) > 0;
 
-		// Branch does not have an upstream, branch is not ahead/behind the remote branch, commit/merge/rebase is in progress, or the button is disabled
 		if (!this.state.HEAD?.upstream || !branchIsAheadOrBehind || this.state.isCommitInProgress || this.state.isMergeInProgress || this.state.isRebaseInProgress || !showActionButton.sync) { return undefined; }
 
 		const ahead = this.state.HEAD.ahead ? ` ${this.state.HEAD.ahead}$(arrow-up)` : '';
@@ -300,15 +286,12 @@ export class ActionButton {
 		const resources = [...this.repository.indexGroup.resourceStates];
 
 		if (
-			// Smart commit enabled (all)
 			(enableSmartCommit && smartCommitChanges === 'all') ||
-			// Smart commit disabled, smart suggestion enabled
 			(!enableSmartCommit && suggestSmartCommit)
 		) {
 			resources.push(...this.repository.workingTreeGroup.resourceStates);
 		}
 
-		// Smart commit enabled (tracked only)
 		if (enableSmartCommit && smartCommitChanges === 'tracked') {
 			resources.push(...this.repository.workingTreeGroup.resourceStates.filter(r => r.type !== Status.UNTRACKED));
 		}

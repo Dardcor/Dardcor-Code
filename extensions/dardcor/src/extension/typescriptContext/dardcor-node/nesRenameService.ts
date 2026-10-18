@@ -87,16 +87,6 @@ class TelemetrySender {
 	}
 
 	public sendPrepareNesRenameTelemetry(requestId: string, timeTaken: number, canRename: protocol.RenameKind, timedOut: boolean): void {
-		/* __GDPR__
-			"typescript-context-plugin.nesRename.prepare.ok" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for dardcor inline completion context in success case",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-				"canRename": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether NES rename can be performed" },
-				"timedOut": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the request timed out" },
-				"timeTaken": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Time taken to prepare NES rename in ms", "isMeasurement": true  }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.nesRename.prepare.ok',
 			{
@@ -112,16 +102,6 @@ class TelemetrySender {
 	}
 
 	public sendPrepareNesRenameFailureTelemetry(requestId: string, data: { error: protocol.ErrorCode; message: string; stack?: string }): void {
-		/* __GDPR__
-			"typescript-context-plugin.nesRename.prepare.failed" : {
-				"owner": "dirkb",
-				"comment": "Telemetry for dardcor inline completion context in failure case",
-				"requestId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The request correlation id" },
-				"code": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The failure code" },
-				"message": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure message" },
-				"stack": { "classification": "CallstackOrException", "purpose": "PerformanceAndHealth", "comment": "The failure stack" }
-			}
-		*/
 		this.telemetryService.sendMSFTTelemetryEvent(
 			'typescript-context-plugin.nesRename.prepare.failed',
 			{
@@ -266,16 +246,13 @@ export class NesRenameContribution implements vscode.Disposable {
 		let activated = false;
 
 		try {
-			// Check that the TypeScript extension is installed and runs in the same extension host.
 			const typeScriptExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
 			if (typeScriptExtension === undefined) {
 				return false;
 			}
 
-			// Make sure the TypeScript extension is activated.
 			await typeScriptExtension.activate();
 
-			// Send a ping request to see if the TS server plugin got installed correctly.
 			const response: protocol.PingResponse | undefined = await vscode.commands.executeCommand('typescript.tsserverRequest', '_.dardcor.ping', NesRenameContribution.ExecConfig, CancellationToken.None);
 			if (response !== undefined) {
 				if (response.body?.kind === 'ok') {

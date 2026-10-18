@@ -21,7 +21,6 @@ export interface IWindowsMxcFilesystemPolicy {
 	readonly readwritePaths: string[];
 }
 
-/** Sandbox policy passed to the Windows MXC helper process. */
 export interface IWindowsMxcSandboxPolicy {
 	version: string;
 	filesystem?: {
@@ -45,7 +44,6 @@ export interface IWindowsMxcSandboxPolicy {
 	timeoutMs?: number;
 }
 
-/** MXC payload returned by the Windows sandbox helper. */
 export interface IWindowsMxcConfig {
 	version: string;
 	containerId?: string;

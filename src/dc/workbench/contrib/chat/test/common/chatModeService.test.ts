@@ -71,8 +71,6 @@ suite('ChatModeService', () => {
 		instantiationService.stub(ICustomizationHarnessService, customizationHarnessService);
 
 		chatModeService = testDisposables.add(instantiationService.createInstance(ChatModeService));
-		// Eagerly create the ChatModes for the local session type and await
-		// its initial async refresh so tests can rely on a settled state.
 		await chatModeService.getLocalModes();
 	});
 
@@ -86,7 +84,6 @@ suite('ChatModeService', () => {
 		assert.strictEqual(modes.builtin.length, 3);
 		assert.strictEqual(modes.custom.length, 0);
 
-		// Check that Ask mode is always present
 		const askMode = modes.builtin.find(mode => mode.id === ChatModeKind.Ask);
 		assert.ok(askMode);
 		assert.strictEqual(askMode.label.get(), 'Ask');
@@ -95,17 +92,14 @@ suite('ChatModeService', () => {
 	});
 
 	test('should adjust builtin modes based on tools agent availability', async () => {
-		// Agent mode should always be present regardless of tools agent availability
 		chatAgentService.setHasToolsAgent(true);
 		let agents = await chatModeService.getLocalModes();
 		assert.ok(agents.builtin.find(agent => agent.id === ChatModeKind.Agent));
 
-		// Without tools agent - Agent mode should not be present
 		chatAgentService.setHasToolsAgent(false);
 		agents = await chatModeService.getLocalModes();
 		assert.strictEqual(agents.builtin.find(agent => agent.id === ChatModeKind.Agent), undefined);
 
-		// Ask and Edit modes should always be present
 		assert.ok(agents.builtin.find(agent => agent.id === ChatModeKind.Ask));
 		assert.ok(agents.builtin.find(agent => agent.id === ChatModeKind.Edit));
 	});
@@ -231,7 +225,6 @@ suite('ChatModeService', () => {
 		const initialCustomMode = initialModes.custom[0];
 		assert.strictEqual(initialCustomMode.description.get(), 'Initial description');
 
-		// Update the mode data
 		const updatedMode: ICustomAgent = {
 			...initialMode,
 			description: 'Updated description',
@@ -246,10 +239,8 @@ suite('ChatModeService', () => {
 		const updatedModes = await chatModeService.getLocalModes();
 		const updatedCustomMode = updatedModes.custom[0];
 
-		// The instance should be the same (reused)
 		assert.strictEqual(initialCustomMode, updatedCustomMode);
 
-		// But the observable properties should be updated
 		assert.strictEqual(updatedCustomMode.description.get(), 'Updated description');
 		assert.deepStrictEqual(updatedCustomMode.customTools?.get(), ['tool1', 'tool2']);
 		assert.deepStrictEqual(updatedCustomMode.modeInstructions?.get(), { content: 'Updated body', toolReferences: [] });
@@ -322,14 +313,12 @@ suite('ChatModeService', () => {
 			enabled: true
 		};
 
-		// Add both modes
 		promptsService.setCustomModes([mode1, mode2]);
 		await waitForRefresh();
 
 		let modes = await chatModeService.getLocalModes();
 		assert.strictEqual(modes.custom.length, 2);
 
-		// Remove one mode
 		promptsService.setCustomModes([mode1]);
 		await waitForRefresh();
 
@@ -378,14 +367,12 @@ suite('ChatModeService', () => {
 			enabled: true
 		};
 
-		// Add modes in non-alphabetical order: Z, A, M
 		promptsService.setCustomModes([zMode, aMode, mMode]);
 		await waitForRefresh();
 
 		const modes = await chatModeService.getLocalModes();
 		assert.strictEqual(modes.custom.length, 3);
 
-		// Verify modes are sorted alphabetically by label
 		assert.strictEqual(modes.custom[0].label.get(), 'Apple Agent');
 		assert.strictEqual(modes.custom[1].label.get(), 'Mango Agent');
 		assert.strictEqual(modes.custom[2].label.get(), 'Zebra Agent');

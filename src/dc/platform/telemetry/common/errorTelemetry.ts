@@ -59,11 +59,6 @@ export namespace ErrorEvent {
 	}
 }
 
-/**
- * Extracts a callstack and message from an error object for telemetry.
- * Handles the `Array.isArray(err.stack)` workaround from workerServer.ts
- * and falls back to {@link safeStringify} when no message is available.
- */
 export function packErrorForTelemetry(err: any): { callstack: string | undefined; msg: string } {
 	if (!err || typeof err !== 'object') {
 		return { callstack: undefined, msg: safeStringify(err) };
@@ -87,11 +82,9 @@ export default abstract class BaseErrorTelemetry {
 		this._telemetryService = telemetryService;
 		this._flushDelay = flushDelay;
 
-		// (1) check for unexpected but handled errors
 		const unbind = errorHandler.addListener((err) => this._onErrorEvent(err));
 		this._disposables.add(toDisposable(unbind));
 
-		// (2) install implementation-specific error listeners
 		this.installErrorListeners();
 	}
 
@@ -102,7 +95,6 @@ export default abstract class BaseErrorTelemetry {
 	}
 
 	protected installErrorListeners(): void {
-		// to override
 	}
 
 	private _onErrorEvent(err: any): void {
@@ -111,32 +103,22 @@ export default abstract class BaseErrorTelemetry {
 			return;
 		}
 
-		// unwrap nested errors from loader
 		if (err.detail && err.detail.stack) {
 			err = err.detail;
 		}
 
-		// If it's the no telemetry error it doesn't get logged
-		// TOOD @lramos15 hacking in FileOperation error because it's too messy to adopt ErrorNoTelemetry. A better solution should be found
-		//
-		// Explicitly filter out PendingMigrationError for https://github.com/microsoft/vscode/issues/250648#issuecomment-3394040431
-		// We don't inherit from ErrorNoTelemetry to preserve the name used in reporting for exthostdeprecatedapiusage event.
-		// TODO(deepak1556): remove when PendingMigrationError is no longer needed.
 		if (ErrorNoTelemetry.isErrorNoTelemetry(err) || err instanceof FileOperationError || PendingMigrationError.is(err) || (typeof err?.message === 'string' && err.message.includes('Unable to read file'))) {
 			return;
 		}
 
-		// work around behavior in workerServer.ts that breaks up Error.stack
 		const { callstack, msg } = packErrorForTelemetry(err);
 
-		// errors without a stack are not useful telemetry
 		if (!callstack) {
 			return;
 		}
 
 		const errorEvent: ErrorEvent = { msg, callstack };
 
-		// enrich with listener leak diagnostic fields
 		if (ListenerLeakError.is(err)) {
 			(errorEvent as UnhandledErrorEvent).kind = err.kind;
 			(errorEvent as UnhandledErrorEvent).listenerCount = err.listenerCount;

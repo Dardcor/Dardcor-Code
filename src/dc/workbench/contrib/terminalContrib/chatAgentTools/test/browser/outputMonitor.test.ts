@@ -58,7 +58,6 @@ suite('OutputMonitor', () => {
 
 	test('startMonitoring returns immediately when polling succeeds', async () => {
 		return runWithFakedTimers({}, async () => {
-			// Simulate output change after first poll
 			let callCount = 0;
 			execution.getOutput = () => {
 				callCount++;
@@ -94,7 +93,6 @@ suite('OutputMonitor', () => {
 
 	test('startMonitoring works when isActive is undefined', async () => {
 		return runWithFakedTimers({}, async () => {
-			// Simulate output change after first poll
 			let callCount = 0;
 			execution.getOutput = () => {
 				callCount++;
@@ -121,7 +119,6 @@ suite('OutputMonitor', () => {
 
 	test('monitor can be disposed twice without error', async () => {
 		return runWithFakedTimers({}, async () => {
-			// Simulate output change after first poll
 			let callCount = 0;
 			execution.getOutput = () => {
 				callCount++;
@@ -137,7 +134,6 @@ suite('OutputMonitor', () => {
 	});
 	test('timeout prompt unanswered → continues polling and completes when idle', async () => {
 		return runWithFakedTimers({}, async () => {
-			// Poller: first pass times out, second pass goes idle
 			let pass = 0;
 			const timeoutThenIdle = async (): Promise<IPollingResult> => {
 				pass++;
@@ -233,14 +229,6 @@ suite('OutputMonitor', () => {
 		});
 	});
 
-	// Regression for #315476 (Family 1 — broad-fallback log lines): before the
-	// fix, `_handleIdleState`'s call to `detectsInputRequiredPattern` matched any
-	// line ending in ': ' or '? ' and fired `onDidDetectInputNeeded`. The strict
-	// path no longer carries those fallbacks, so log-shaped output ending in
-	// ': ' / '? ' must not raise the wrapper. The broad fallbacks still live in
-	// `detectsLikelyInputRequiredPattern` and are gated to `_waitForIdle`'s
-	// `recentlyIdle && isActive === true` branch, which does NOT fire the
-	// onDidDetectInputNeeded event.
 	test('onDidDetectInputNeeded does NOT fire for log lines ending in colon-space (regression for #315476 Family 1)', async () => {
 		return runWithFakedTimers({}, async () => {
 			execution.getOutput = () => 'Last Command: ';
@@ -267,12 +255,8 @@ suite('OutputMonitor', () => {
 		});
 	});
 
-	// Regression for #315476 (Family 2 — oh-my-zsh / bash __git_ps1 prompts):
-	// the `\s*`→`\s+` tightener in detectsHighConfidenceInputPattern's
-	// parenthesized-default rule means `git:(main) ` no longer matches.
 	test('onDidDetectInputNeeded does NOT fire for oh-my-zsh git-aware shell prompts (regression for #315476 Family 2)', async () => {
 		return runWithFakedTimers({}, async () => {
-			// allow-any-unicode-next-line
 			execution.getOutput = () => '➜  myrepo git:(main) ';
 			monitor = store.add(instantiationService.createInstance(OutputMonitor, execution, undefined, createTestContext('1'), cts.token, 'test command'));
 
@@ -284,14 +268,6 @@ suite('OutputMonitor', () => {
 		});
 	});
 
-	// Positive counterpart to the Family 1 regression tests above: the broad
-	// fallback patterns `: ` / `? ` are still legitimate input prompts when the
-	// execution is actively running (e.g. an interactive script genuinely paused
-	// at a prompt). With `execution.isActive() === true`, `_handleIdleState`
-	// must re-evaluate the broad pattern and fire `onDidDetectInputNeeded`.
-	// Without this re-check, splitting the strict and broad patterns into two
-	// functions would have caused legitimate prompts to be silently swallowed
-	// in any path that relied on the broad fallback.
 	test('onDidDetectInputNeeded DOES fire for broad-pattern lines when execution is active (issue #315476 review feedback)', async () => {
 		return runWithFakedTimers({}, async () => {
 			execution.getOutput = () => 'Enter your name: ';
@@ -306,31 +282,6 @@ suite('OutputMonitor', () => {
 		});
 	});
 
-	// TOCTOU regression (review feedback on PR #315485): the user-input guard
-	// at the top of `_handleIdleState` is checked BEFORE `await
-	// this._execution.isActive()`. If the user types during that await, the
-	// guard's flag flips to true mid-await but execution still falls through
-	// past the original check. Without a post-await re-check, we would fire
-	// `onDidDetectInputNeeded` despite the user already having provided
-	// input — re-pausing the agent loop on already-consumed prompts.
-	//
-	// Test design notes (review feedback on PR #315485): the suite-level
-	// `dataEmitter` wires BOTH `onDidInputData` AND `onData` to the same
-	// emitter. Firing it from `isActive` would also pump `onData`, keep
-	// `_waitForIdle`'s `hasReceivedData=true`, reset its
-	// `consecutiveIdleEvents`, and prevent the loop from ever reaching Idle —
-	// `_handleIdleState` would never run and the test would pass for the wrong
-	// reason (timeout state). We therefore use a SEPARATE `inputEmitter`
-	// wired only to `onDidInputData`, so firing input during the
-	// `isActive()` await flips `_userInputtedSinceIdleDetected` without
-	// polluting the polling loop. `_setupIdleInputListener` is what
-	// subscribes to `onDidInputData`; that subscription happens when
-	// `_waitForIdle` returns Idle, before `_handleIdleState` runs. Earlier
-	// `isActive()` calls inside `_waitForIdle` fire into a not-yet-subscribed
-	// emitter (no-op for flag state), and `_setupIdleInputListener` resets
-	// the flag to false anyway — so the only fire that matters is the one
-	// inside `_handleIdleState`'s own `await isActive()`, which is exactly
-	// what we want this test to exercise.
 	test('onDidDetectInputNeeded does NOT fire if user types during the isActive() await (TOCTOU regression)', async () => {
 		return runWithFakedTimers({}, async () => {
 			const inputEmitter = store.add(new Emitter<string>());
@@ -339,25 +290,6 @@ suite('OutputMonitor', () => {
 				...execution.instance,
 				onDidInputData: inputEmitter.event,
 			};
-			// `isActive` is called by both `_waitForIdle` (per-poll) and
-			// `_handleIdleState` (once per visit, on the broad branch).
-			// We fire `inputEmitter` from each call. Earlier calls during
-			// `_waitForIdle` fire into a not-yet-subscribed listener; the
-			// fire that matters is the one inside `_handleIdleState`'s own
-			// `await isActive()`, AFTER `_setupIdleInputListener` subscribed
-			// during the Idle transition. With the TOCTOU guard, that fire
-			// flips `_userInputtedSinceIdleDetected` to true mid-await, and
-			// the post-await re-check returns `{ shouldContinuePolling: true }`
-			// without firing `onDidDetectInputNeeded`. Without the guard, the
-			// broad branch falls through and `_onDidDetectInputNeeded.fire()`
-			// runs → assertion fails.
-			//
-			// `_handleIdleState`'s `shouldContinuePolling: true` reroutes the
-			// state machine back to PollingForIdle, which would loop forever
-			// here (broad pattern + isActive=true keep producing Idle
-			// transitions). We cancel the token after enough cycles for the
-			// regression to manifest if the guard is missing — a couple of
-			// idle-handler visits is more than enough.
 			let isActiveCalls = 0;
 			execution.isActive = async () => {
 				isActiveCalls++;
@@ -374,11 +306,6 @@ suite('OutputMonitor', () => {
 
 			await Event.toPromise(monitor.onDidFinishCommand);
 			assert.strictEqual(inputNeededFired, false, 'must re-check user-input guard after the isActive() await; firing here would re-pause the agent on input the user already provided');
-			// Sanity: we MUST have entered the broad-pattern branch's
-			// `await isActive()` for this test to mean anything. Without
-			// at least one call we'd be passing trivially via the
-			// pre-existing top-of-method guard or the high-confidence
-			// fast-path, neither of which exercises the new TOCTOU re-check.
 			assert.ok(isActiveCalls >= 1, `expected isActive() to be called from the broad-pattern branch (got ${isActiveCalls})`);
 		});
 	});
@@ -454,9 +381,6 @@ suite('OutputMonitor', () => {
 
 	test('extended timeout with isActive fires onDidDetectInputNeeded', async () => {
 		return runWithFakedTimers({}, async () => {
-			// Simulate a process that stays active with output that doesn't
-			// match any input-required pattern — the extended timeout should
-			// fire onDidDetectInputNeeded so the agent can assess the output.
 			execution.isActive = async () => true;
 			execution.getOutput = () => 'Some unrecognised prompt waiting for input';
 
@@ -532,7 +456,6 @@ suite('OutputMonitor', () => {
 			assert.strictEqual(detectsInputRequiredPattern('Continue? y/n '), true);
 			assert.strictEqual(detectsInputRequiredPattern('Overwrite: yes/no '), true);
 
-			// No match if there's a response already
 			assert.strictEqual(detectsInputRequiredPattern('Continue? (y/N) y'), false);
 			assert.strictEqual(detectsInputRequiredPattern('Continue? (y/n) n'), false);
 			assert.strictEqual(detectsInputRequiredPattern('Overwrite file? [Y/n] N'), false);
@@ -547,13 +470,11 @@ suite('OutputMonitor', () => {
 				detectsInputRequiredPattern('[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): '),
 				true
 			);
-			// also matches without default suffix
 			assert.strictEqual(
 				detectsInputRequiredPattern('[Y] Yes  [N] No '),
 				true
 			);
 
-			// No match if there's a response already
 			assert.strictEqual(
 				detectsInputRequiredPattern('[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): Y'),
 				false
@@ -564,8 +485,6 @@ suite('OutputMonitor', () => {
 			);
 		});
 		test('PowerShell regex does not cause catastrophic backtracking (ReDoS)', () => {
-			// Pathological input: many spaces not followed by a bracket.
-			// With the old overlapping regex this would hang; it must return promptly.
 			const start = performance.now();
 			const pathological = '[Y] Yes' + ' '.repeat(200) + 'x';
 			detectsInputRequiredPattern(pathological);
@@ -573,29 +492,15 @@ suite('OutputMonitor', () => {
 			assert.ok(elapsed < 500, `Regex took ${elapsed}ms on pathological input, expected < 500ms`);
 		});
 		test('Line ends with colon (strict path)', () => {
-			// `Password: ` is recognised by the strict `password\s*:?\s*$` rule.
 			assert.strictEqual(detectsInputRequiredPattern('Password: '), true);
 
-			// Generic colon-prefix prompts like `Enter your name: ` or
-			// `File to overwrite: ` are NOT recognised by the strict path because
-			// they are syntactically indistinguishable from log/status output like
-			// `Last Command: ` or `[INFO] Starting: ` (see issue #315476). They are
-			// still matched by `detectsLikelyInputRequiredPattern` from a call site
-			// that has independent evidence the command is consuming stdin
-			// (e.g. `isActive === true`); see the suite below.
 			assert.strictEqual(detectsInputRequiredPattern('Enter your name: '), false);
 			assert.strictEqual(detectsInputRequiredPattern('File to overwrite: '), false);
 
-			// Non-prompts: a trailing colon without a following space is typical of normal
-			// command output (headers, log lines ending with ':' before a newline) and must
-			// not be treated as an input prompt.
 			assert.strictEqual(detectsInputRequiredPattern('Running tests:'), false);
 			assert.strictEqual(detectsInputRequiredPattern('Results:\n'), false);
 			assert.strictEqual(detectsInputRequiredPattern('Summary:'), false);
 
-			// Regression cases for issue #315476: log/status output that the previous
-			// broad `/: +$/` fallback misclassified as a waiting prompt, pausing the
-			// agent loop on benign output.
 			assert.strictEqual(detectsInputRequiredPattern('Last Command: '), false);
 			assert.strictEqual(detectsInputRequiredPattern('[INFO] Starting: '), false);
 			assert.strictEqual(detectsInputRequiredPattern('find: /tmp/x: No such file: '), false);
@@ -611,74 +516,36 @@ suite('OutputMonitor', () => {
 		});
 
 		test('does NOT match git-aware shell prompts (regression for #315476)', () => {
-			// oh-my-zsh's robbyrussell theme renders a prompt of the form
-			// allow-any-unicode-next-line
-			// `➜  <repo> git:(<branch>) ` after every command. Without requiring
-			// at least one space between `:` and `(` in the parenthesized-default
-			// rule, every shell prompt return would be mistaken for an input prompt
-			// and pause the agent loop on every benign command.
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('➜  myrepo git:(main) '), false);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('➜  vscode git:(ba-work/output-monitor) '), false);
-			// bash with __git_ps1 in PROMPT_COMMAND uses a similar shape.
 			assert.strictEqual(detectsInputRequiredPattern('[user@host ~/myrepo (main)]$ '), false);
-			// And the looser variant:
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsLikelyInputRequiredPattern('➜  myrepo git:(main) '), false);
 		});
 
 		test('detects chevron prompts from prompts/enquirer/inquirer libraries', () => {
-			// vitest / npm-style "prompts" library uses U+203A SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Do you want to install jsdom? ›'), true);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Do you want to install jsdom? › '), true);
-			// inquirer / enquirer uses U+276F HEAVY RIGHT-POINTING ANGLE QUOTATION MARK
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Pick a color ❯ '), true);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Pick a color ❯'), true);
-			// Other chevron variants prefixed with '?'
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Project name ▸ '), true);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Choose ▶ '), true);
 
-			// No match if the user has already typed a response after the chevron
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Do you want to install jsdom? › yes'), false);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('? Pick a color ❯ red'), false);
 
-			// No match for chevrons in normal output without a leading '?'
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('  feature/foo ❯ main'), false);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('Project name ▸ '), false);
 
-			// No match when '?' appears mid-line (not as a prompt prefix)
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('What happened? ›'), false);
 
-			// Match when prompt is prefixed with ANSI escape codes (colored output)
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsInputRequiredPattern('\x1b[32m? Choose a framework \x1b[0m›'), true);
 		});
 
 		test('trailing questions (strict path does not match bare `?` prompts)', () => {
-			// Bare trailing-question prompts like `Continue? ` are NOT matched by the
-			// strict path. They are matched by the broad fallback in
-			// `detectsLikelyInputRequiredPattern` (see suite below), which is only
-			// safe to call when the caller has independent evidence the command is
-			// still running and consuming stdin.
 			assert.strictEqual(detectsInputRequiredPattern('Continue? '), false);
 			assert.strictEqual(detectsInputRequiredPattern('Proceed?   '), false);
 			assert.strictEqual(detectsInputRequiredPattern('Are you sure? '), false);
 
-			// Non-prompts: a trailing '?' without a following space is typical of
-			// normal command output (log lines, error messages) and must not be
-			// treated as an input prompt under either function.
 			assert.strictEqual(detectsInputRequiredPattern('Continue?'), false);
 			assert.strictEqual(detectsInputRequiredPattern('Are you sure?\n'), false);
 			assert.strictEqual(detectsInputRequiredPattern('What happened?'), false);
@@ -710,11 +577,6 @@ suite('OutputMonitor', () => {
 			assert.strictEqual(detectsNonInteractiveHelpPattern('press u to show server url'), true);
 		});
 		test('delegates to detectsHighConfidenceInputPattern (strict-set parity)', () => {
-			// Every input that detectsHighConfidenceInputPattern accepts MUST also be
-			// accepted by detectsInputRequiredPattern. This pins the contract that the
-			// strict path is a superset of the high-confidence path; if a future regex
-			// change in detectsHighConfidenceInputPattern breaks this, both call sites
-			// (`_handleIdleState`) regress simultaneously and we want to know.
 			const strictSet = [
 				'Continue? (y/N) ',
 				'Overwrite file? [Y/n] ',
@@ -731,10 +593,6 @@ suite('OutputMonitor', () => {
 	});
 
 	suite('detectsLikelyInputRequiredPattern', () => {
-		// This function is the strict set PLUS broad colon/question fallbacks. The
-		// fallbacks knowingly produce false positives on log-shaped output and are
-		// only safe to call from a site with independent evidence the command is
-		// still consuming stdin (e.g. `_waitForIdle` gated on `isActive === true`).
 		test('matches the same prompts the strict path matches', () => {
 			assert.strictEqual(detectsLikelyInputRequiredPattern('Continue? (y/N) '), true);
 			assert.strictEqual(detectsLikelyInputRequiredPattern('Password: '), true);
@@ -753,11 +611,6 @@ suite('OutputMonitor', () => {
 			assert.strictEqual(detectsLikelyInputRequiredPattern('Are you sure?\n'), false);
 		});
 		test('documents known false positives on log-shaped output (caller-side guard required)', () => {
-			// These match the broad fallback because they are syntactically
-			// indistinguishable from real prompts. Issue #315476 documents why the
-			// `_handleIdleState` call site no longer invokes this function on
-			// finished commands; the `_waitForIdle` site remains gated on
-			// `isActive === true`.
 			assert.strictEqual(detectsLikelyInputRequiredPattern('Last Command: '), true);
 			assert.strictEqual(detectsLikelyInputRequiredPattern('[INFO] Starting: '), true);
 		});
@@ -772,38 +625,21 @@ suite('OutputMonitor', () => {
 		});
 		test('matches password and press-any-key prompts', () => {
 			assert.strictEqual(detectsHighConfidenceInputPattern('Password: '), true);
-			// xterm's translateToString(trimRight=true) strips trailing whitespace from
-			// non-wrapped buffer lines, so a real `Password: ` prompt is captured as
-			// `Password:` with no trailing space (e.g. when running `sudo su`).
 			assert.strictEqual(detectsHighConfidenceInputPattern('Password:'), true);
-			// The colon is required: a bare line ending with the word "password" should
-			// not match (avoids false positives on log/help output that mentions the word).
 			assert.strictEqual(detectsHighConfidenceInputPattern('Enter your password'), false);
 			assert.strictEqual(detectsHighConfidenceInputPattern('Press any key to continue...'), true);
 		});
 		test('matches parenthesized defaults', () => {
-			// npm-init / yarn-init style prompts: real input prompt with a default value.
-			// The space between `:` and `(` is what distinguishes these from shell prompts.
 			assert.strictEqual(detectsHighConfidenceInputPattern('package name: (test) '), true);
 			assert.strictEqual(detectsHighConfidenceInputPattern('version: (1.0.0) '), true);
 			assert.strictEqual(detectsHighConfidenceInputPattern('description: (a thing) '), true);
-			// Extra whitespace between `:` and `(` still matches (multiple spaces, tab).
 			assert.strictEqual(detectsHighConfidenceInputPattern('license:  (MIT) '), true);
 			assert.strictEqual(detectsHighConfidenceInputPattern('author:\t(none) '), true);
-			// Multi-word default in the parens still matches.
 			assert.strictEqual(detectsHighConfidenceInputPattern('repository: (github.com/foo/bar) '), true);
 		});
 		test('does NOT match git-aware shell prompts (regression: oh-my-zsh, bash __git_ps1)', () => {
-			// allow-any-unicode-next-line
-			// oh-my-zsh's robbyrussell theme renders `➜  <repo> git:(<branch>) ` after
-			// every command. Without the `\s+` (rather than `\s*`) requirement between
-			// `:` and `(` in the parenthesized-default rule, every shell prompt return
-			// would be mistaken for an input-needed prompt. See microsoft/vscode#315476.
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsHighConfidenceInputPattern('➜  myrepo git:(main) '), false);
-			// allow-any-unicode-next-line
 			assert.strictEqual(detectsHighConfidenceInputPattern('➜  vscode git:(ba-work/output-monitor) '), false);
-			// bash with __git_ps1 in PROMPT_COMMAND uses a similar shape with no space.
 			assert.strictEqual(detectsHighConfidenceInputPattern('[user@host ~/myrepo (main)]$ '), false);
 		});
 		test('matches (END) pager', () => {
@@ -849,16 +685,13 @@ suite('OutputMonitor', () => {
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('Press any key to close the terminal.'), true);
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('Terminal will be reused by tasks, press any key to close it.'), true);
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('The terminal will be reused by tasks. Press any key to close. Please provide the required input to the terminal.'), true);
-			// Case insensitive
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('press any key to close the terminal.'), true);
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('PRESS ANY KEY TO CLOSE THE TERMINAL.'), true);
-			// With " * " prefix (VS Code adds this to task messages)
 			assert.strictEqual(detectsVSCodeTaskFinishMessage(' *  Terminal will be reused by tasks, press any key to close it.'), true);
 			assert.strictEqual(detectsVSCodeTaskFinishMessage(' *  Press any key to close the terminal.'), true);
 		});
 
 		test('does not match generic press any key messages', () => {
-			// Regular script messages should NOT be matched
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('Press any key to continue...'), false);
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('Press any key to exit'), false);
 			assert.strictEqual(detectsVSCodeTaskFinishMessage('Press any key'), false);
@@ -873,23 +706,14 @@ suite('OutputMonitor', () => {
 
 	suite('disposable leak regression', () => {
 		test('disposing before timeout(0) fires does not leak idle input listener', async () => {
-			// Regression: disposing immediately (before the deferred _startMonitoring fires)
-			// must not leak the FunctionDisposable created by onDidInputData.
-			// The CTS must be cancelled synchronously so that when timeout(0) fires and
-			// _setupIdleInputListener runs, isCancellationRequested is already true.
 			return runWithFakedTimers({}, async () => {
 				monitor = store.add(instantiationService.createInstance(OutputMonitor, execution, undefined, createTestContext('1'), cts.token, 'test command'));
-				// Dispose immediately, before the deferred _startMonitoring callback fires.
 				monitor.dispose();
 				await new Promise<void>(resolve => setTimeout(resolve, 0));
-				// ensureNoDisposablesAreLeakedInTestSuite will catch any leaked disposable.
 			});
 		});
 
 		test('disposing after monitoring completes does not leak idle input listener', async () => {
-			// Verifies the finally block in _startMonitoring clears _userInputListener before
-			// firing onDidFinishCommand. Any undisposed FunctionDisposable from onDidInputData
-			// would be caught by ensureNoDisposablesAreLeakedInTestSuite.
 			return runWithFakedTimers({}, async () => {
 				execution.isActive = async () => false;
 				monitor = store.add(instantiationService.createInstance(OutputMonitor, execution, undefined, createTestContext('1'), cts.token, 'test command'));
@@ -899,21 +723,10 @@ suite('OutputMonitor', () => {
 		});
 
 		test('disposing while monitoring is in-flight still resolves onDidFinishCommand', async () => {
-			// Regression: if dispose() races the async _startMonitoring loop, the loop's
-			// finally block fires onDidFinishCommand AFTER super.dispose() has already
-			// torn down the emitter. Consumers awaiting Event.toPromise(onDidFinishCommand)
-			// would never resolve and the agent would hang on the run_in_terminal call.
-			//
-			// Fix: dispose() must fire onDidFinishCommand synchronously, before the
-			// emitter is disposed. It must also surface a Cancelled pollingResult so
-			// consumers that read monitor.pollingResult after awaiting the event see a
-			// defined value rather than undefined.
 			return runWithFakedTimers({}, async () => {
 				monitor = store.add(instantiationService.createInstance(OutputMonitor, execution, undefined, createTestContext('1'), cts.token, 'test command'));
 				const finished = Event.toPromise(monitor.onDidFinishCommand);
-				// Dispose immediately, before the deferred _startMonitoring even starts.
 				monitor.dispose();
-				// Must resolve — would hang prior to the synchronous-fire-on-dispose fix.
 				await finished;
 				assert.ok(monitor.pollingResult, 'pollingResult should be defined after dispose-induced finish');
 				assert.strictEqual(monitor.pollingResult!.state, OutputMonitorState.Cancelled);
@@ -927,15 +740,12 @@ suite('OutputMonitor', () => {
 			assert.strictEqual(detectsGenericPressAnyKeyPattern('Press any key to exit'), true);
 			assert.strictEqual(detectsGenericPressAnyKeyPattern('Press any key'), true);
 			assert.strictEqual(detectsGenericPressAnyKeyPattern('press a key to continue'), true);
-			// Case insensitive
 			assert.strictEqual(detectsGenericPressAnyKeyPattern('PRESS ANY KEY TO CONTINUE'), true);
 		});
 
 		test('does not match VS Code task finish messages', () => {
-			// These should be handled by detectsVSCodeTaskFinishMessage, not this function
 			assert.strictEqual(detectsGenericPressAnyKeyPattern('Press any key to close the terminal.'), false);
 			assert.strictEqual(detectsGenericPressAnyKeyPattern('Terminal will be reused by tasks, press any key to close it.'), false);
-			// With " * " prefix
 			assert.strictEqual(detectsGenericPressAnyKeyPattern(' *  Terminal will be reused by tasks, press any key to close it.'), false);
 			assert.strictEqual(detectsGenericPressAnyKeyPattern(' *  Press any key to close the terminal.'), false);
 		});

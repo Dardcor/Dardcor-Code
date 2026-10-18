@@ -18,7 +18,6 @@ suite('Common Editor Config', () => {
 
 	test('Zoom Level', () => {
 
-		//Zoom levels are defined to go between -5, 20 inclusive
 		const zoom = EditorZoom;
 
 		zoom.setZoomLevel(0);

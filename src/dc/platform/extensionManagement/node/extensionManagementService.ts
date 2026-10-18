@@ -199,7 +199,6 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 			metadata.preRelease = true;
 			metadata.hasPreReleaseVersion = true;
 		}
-		// unset if false
 		if (metadata.isMachineScoped === false) {
 			metadata.isMachineScoped = undefined;
 		}
@@ -302,7 +301,6 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 				throw new CancellationError();
 			}
 
-			// validate manifest
 			const manifest = await getManifest(location.fsPath);
 			if (!new ExtensionKey(gallery.identifier, gallery.version).equals(new ExtensionKey({ id: getGalleryExtensionId(manifest.publisher, manifest.name) }, manifest.version))) {
 				throw new ExtensionManagementError(nls.localize('invalidManifest', "Cannot install '{0}' extension because of manifest mismatch with Marketplace", gallery.identifier.id), ExtensionManagementErrorCode.Invalid);
@@ -404,33 +402,27 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 
 		const added: ILocalExtension[] = [];
 		for (const resource of e.rawAdded) {
-			// Check if this is a known directory
 			if (this.knownDirectories.has(resource)) {
 				continue;
 			}
 
-			// Is not immediate child of extensions resource
 			if (!this.uriIdentityService.extUri.isEqual(this.uriIdentityService.extUri.dirname(resource), this.extensionsScannerService.userExtensionsLocation)) {
 				continue;
 			}
 
-			// .obsolete file changed
 			if (this.uriIdentityService.extUri.isEqual(resource, this.uriIdentityService.extUri.joinPath(this.extensionsScannerService.userExtensionsLocation, '.obsolete'))) {
 				continue;
 			}
 
-			// Ignore changes to files starting with `.`
 			if (this.uriIdentityService.extUri.basename(resource).startsWith('.')) {
 				continue;
 			}
 
-			// Ignore changes to the deleted folder
 			if (this.uriIdentityService.extUri.basename(resource).endsWith(DELETED_FOLDER_POSTFIX)) {
 				continue;
 			}
 
 			try {
-				// Check if this is a directory
 				if (!(await this.fileService.stat(resource)).isDirectory) {
 					continue;
 				}
@@ -441,8 +433,6 @@ export class ExtensionManagementService extends AbstractExtensionManagementServi
 				continue;
 			}
 
-			// Check if this is an extension added by another source
-			// Extension added by another source will not have installed timestamp
 			const extension = await this.extensionsScanner.scanUserExtensionAtLocation(resource);
 			if (extension && extension.installedTimestamp === undefined) {
 				this.knownDirectories.add(resource);
@@ -509,7 +499,6 @@ export class ExtensionsScanner extends Disposable {
 		await this.removeTemporarilyDeletedFolders();
 		await this.removeStaleAutoUpdateBuiltinExtensions();
 		await this.deleteExtensionsMarkedForRemoval();
-		//TODO: Remove this initiialization after coupe of releases
 		await this.initializeExtensionSize();
 	}
 
@@ -589,7 +578,6 @@ export class ExtensionsScanner extends Disposable {
 				throw new CancellationError();
 			}
 
-			// Extract
 			try {
 				this.logService.trace(`Started extracting the extension from ${zipPath} to ${extensionLocation.fsPath}`);
 				await extract(zipPath, tempLocation.fsPath, { sourcePath: 'extension', overwrite: true }, token);
@@ -602,7 +590,6 @@ export class ExtensionsScanner extends Disposable {
 			try {
 				metadata.size = await computeSize(tempLocation, this.fileService);
 			} catch (error) {
-				// Log & ignore
 				this.logService.warn(`Error while getting the size of the extracted extension : ${tempLocation.fsPath}`, getErrorMessage(error));
 			}
 
@@ -617,7 +604,6 @@ export class ExtensionsScanner extends Disposable {
 				throw new CancellationError();
 			}
 
-			// Rename
 			try {
 				this.logService.trace(`Started renaming the extension from ${tempLocation.fsPath} to ${extensionLocation.fsPath}`);
 				await this.rename(tempLocation.fsPath, extensionLocation.fsPath);
@@ -625,7 +611,7 @@ export class ExtensionsScanner extends Disposable {
 			} catch (error) {
 				if (error.code === 'ENOTEMPTY') {
 					this.logService.info(`Rename failed because extension was installed by another source. So ignoring renaming.`, extensionKey.id);
-					try { await this.fileService.del(tempLocation, { recursive: true }); } catch (e) { /* ignore */ }
+					try { await this.fileService.del(tempLocation, { recursive: true }); } catch (e) { }
 				} else {
 					this.logService.info(`Rename failed because of ${getErrorMessage(error)}. Deleted from extracted location`, tempLocation);
 					throw error;
@@ -635,7 +621,7 @@ export class ExtensionsScanner extends Disposable {
 			this._onExtract.fire(extensionLocation);
 
 		} catch (error) {
-			try { await this.fileService.del(tempLocation, { recursive: true }); } catch (e) { /* ignore */ }
+			try { await this.fileService.del(tempLocation, { recursive: true }); } catch (e) { }
 			throw error;
 		}
 
@@ -752,7 +738,7 @@ export class ExtensionsScanner extends Disposable {
 	async copyExtensions(fromProfileLocation: URI, toProfileLocation: URI, productVersion: IProductVersion): Promise<void> {
 		const fromExtensions = await this.scanExtensions(ExtensionType.User, fromProfileLocation, productVersion);
 		const extensions: [ILocalExtension, Metadata | undefined][] = await Promise.all(fromExtensions
-			.filter(e => !e.isApplicationScoped) /* remove application scoped extensions */
+			.filter(e => !e.isApplicationScoped)
 			.map(async e => ([e, await this.scanMetadata(e, fromProfileLocation)])));
 		await this.extensionsProfileScannerService.addExtensionsToProfile(extensions, toProfileLocation);
 	}
@@ -781,7 +767,7 @@ export class ExtensionsScanner extends Disposable {
 			if (raw) {
 				try {
 					removed = JSON.parse(raw);
-				} catch (e) { /* ignore */ }
+				} catch (e) { }
 			}
 
 			if (updateFn) {
@@ -805,7 +791,7 @@ export class ExtensionsScanner extends Disposable {
 
 	private async rename(extractPath: string, renamePath: string): Promise<void> {
 		try {
-			await pfs.Promises.rename(extractPath, renamePath, 2 * 60 * 1000 /* Retry for 2 minutes */);
+			await pfs.Promises.rename(extractPath, renamePath, 2 * 60 * 1000 );
 		} catch (error) {
 			throw toExtensionManagementError(error, ExtensionManagementErrorCode.Rename);
 		}
@@ -835,7 +821,7 @@ export class ExtensionsScanner extends Disposable {
 		let stat: IFileStat | undefined;
 		try {
 			stat = await this.fileService.resolve(extension.location);
-		} catch (error) {/* ignore */ }
+		} catch (error) { }
 
 		let readmeUrl: URI | undefined;
 		let changelogUrl: URI | undefined;
@@ -875,7 +861,6 @@ export class ExtensionsScanner extends Disposable {
 	private async initializeExtensionSize(): Promise<void> {
 		const extensions = await this.extensionsScannerService.scanAllUserExtensions();
 		await Promise.all(extensions.map(async extension => {
-			// set size if not set before
 			if (isDefined(extension.metadata?.installedTimestamp) && isUndefined(extension.metadata?.size)) {
 				const size = await computeSize(extension.location, this.fileService);
 				await this.extensionsScannerService.updateManifestMetadata(extension.location, { size });
@@ -927,7 +912,6 @@ export class ExtensionsScanner extends Disposable {
 		}
 
 		try {
-			// running post uninstall tasks for extensions that are not installed anymore
 			const byExtension = groupByExtension(extensions, e => e.identifier);
 			await Promises.settled(byExtension.map(async e => {
 				const latest = e.sort((a, b) => semver.rcompare(a.manifest.version, b.manifest.version))[0];
@@ -939,7 +923,7 @@ export class ExtensionsScanner extends Disposable {
 			this.logService.error(error);
 		}
 
-		const toRemove = extensions.filter(e => e.installedTimestamp /* Installed by System */ && removed[ExtensionKey.create(e).toString()]);
+		const toRemove = extensions.filter(e => e.installedTimestamp && removed[ExtensionKey.create(e).toString()]);
 		await Promise.allSettled(toRemove.map(e => this.deleteExtension(e, 'marked for removal')));
 	}
 
@@ -975,7 +959,7 @@ export class ExtensionsScanner extends Disposable {
 					}
 				}
 			}));
-		} catch (error) { /* ignore */ }
+		} catch (error) { }
 	}
 
 }
@@ -1039,7 +1023,6 @@ class InstallExtensionInProfileTask extends AbstractExtensionTask<ILocalExtensio
 
 		let local: ILocalExtension | undefined;
 
-		// VSIX
 		if (this.source instanceof URI) {
 			if (existingExtension) {
 				if (this.extensionKey.equals(new ExtensionKey(existingExtension.identifier, existingExtension.manifest.version))) {
@@ -1051,8 +1034,6 @@ class InstallExtensionInProfileTask extends AbstractExtensionTask<ILocalExtensio
 				}
 			}
 
-			// Remove the extension with same version if it is already uninstalled.
-			// Installing a VSIX extension shall replace the existing extension always.
 			const existingWithSameVersion = await this.unsetIfRemoved(this.extensionKey);
 			if (existingWithSameVersion) {
 				try {
@@ -1064,7 +1045,6 @@ class InstallExtensionInProfileTask extends AbstractExtensionTask<ILocalExtensio
 
 		}
 
-		// Gallery
 		else {
 			metadata.id = this.source.identifier.uuid;
 			metadata.publisherId = this.source.publisherId;
@@ -1082,7 +1062,6 @@ class InstallExtensionInProfileTask extends AbstractExtensionTask<ILocalExtensio
 				return this.extensionsScanner.updateMetadata(existingExtension, metadata, this.options.profileLocation);
 			}
 
-			// Unset if the extension is uninstalled and return the unset extension.
 			local = await this.unsetIfRemoved(this.extensionKey);
 		}
 
@@ -1127,7 +1106,6 @@ class InstallExtensionInProfileTask extends AbstractExtensionTask<ILocalExtensio
 	}
 
 	private async unsetIfRemoved(extensionKey: ExtensionKey): Promise<ILocalExtension | undefined> {
-		// If the same version of extension is marked as removed, remove it from there and return the local.
 		const [removed] = await this.extensionsScanner.unsetExtensionsForRemoval(extensionKey);
 		if (removed) {
 			this.logService.info('Removed the extension from removed list:', extensionKey.id);
@@ -1155,7 +1133,6 @@ class InstallExtensionInProfileTask extends AbstractExtensionTask<ILocalExtensio
 				await this.extensionsScanner.updateMetadata(extension, metadata, this.options.profileLocation);
 			}
 		} catch (error) {
-			/* Ignore Error */
 		}
 	}
 }

@@ -26,7 +26,6 @@ import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessi
 import { getActiveElement } from '../../../../base/browser/dom.js';
 import { FileMatchOrMatch, RenderableMatch, ISearchResult, isSearchTreeFolderMatch } from './searchTreeModel/searchTreeCommon.js';
 
-//#region Actions: Changing Search Input Options
 registerAction2(class ToggleQueryDetailsAction extends Action2 {
 	constructor() {
 		super({
@@ -153,8 +152,6 @@ registerAction2(class TogglePreserveCaseAction extends Action2 {
 	}
 });
 
-//#endregion
-//#region Actions: Opening Matches
 registerAction2(class OpenMatchAction extends Action2 {
 	constructor() {
 		super({
@@ -236,8 +233,6 @@ registerAction2(class AddCursorsAtSearchResultsAction extends Action2 {
 	}
 });
 
-//#endregion
-//#region Actions: Toggling Focus
 registerAction2(class FocusNextInputAction extends Action2 {
 	constructor() {
 		super({
@@ -258,7 +253,6 @@ registerAction2(class FocusNextInputAction extends Action2 {
 		const editorService = accessor.get(IEditorService);
 		const input = editorService.activeEditor;
 		if (input instanceof SearchEditorInput) {
-			// cast as we cannot import SearchEditor as a value b/c cyclic dependency.
 			(editorService.activeEditorPane as SearchEditor).focusNextInput();
 		}
 
@@ -287,7 +281,6 @@ registerAction2(class FocusPreviousInputAction extends Action2 {
 		const editorService = accessor.get(IEditorService);
 		const input = editorService.activeEditor;
 		if (input instanceof SearchEditorInput) {
-			// cast as we cannot import SearchEditor as a value b/c cyclic dependency.
 			(editorService.activeEditorPane as SearchEditor).focusPrevInput();
 		}
 
@@ -416,9 +409,7 @@ registerAction2(class ReplaceInFilesAction extends Action2 {
 	}
 });
 
-//#endregion
 
-//#region Helpers
 function toggleCaseSensitiveCommand(accessor: ServicesAccessor) {
 	const searchView = getSearchView(accessor.get(IViewsService));
 	searchView?.toggleCaseSensitive();
@@ -450,7 +441,6 @@ async function focusNextSearchResult(accessor: ServicesAccessor): Promise<any> {
 	const editorService = accessor.get(IEditorService);
 	const input = editorService.activeEditor;
 	if (input instanceof SearchEditorInput) {
-		// cast as we cannot import SearchEditor as a value b/c cyclic dependency.
 		return (editorService.activeEditorPane as SearchEditor).focusNextResult();
 	}
 
@@ -461,7 +451,6 @@ async function focusPreviousSearchResult(accessor: ServicesAccessor): Promise<an
 	const editorService = accessor.get(IEditorService);
 	const input = editorService.activeEditor;
 	if (input instanceof SearchEditorInput) {
-		// cast as we cannot import SearchEditor as a value b/c cyclic dependency.
 		return (editorService.activeEditorPane as SearchEditor).focusPreviousResult();
 	}
 
@@ -479,4 +468,3 @@ async function findOrReplaceInFiles(accessor: ServicesAccessor, expandSearchRepl
 		}
 	});
 }
-//#endregion

@@ -24,7 +24,7 @@ export function getDocumentContext(documentUri: string, workspaceFolders: Worksp
 
 	return {
 		resolveReference: (ref: string, base = documentUri) => {
-			if (ref[0] === '/') { // resolve absolute path against the current workspace folder
+			if (ref[0] === '/') {
 				const folderUri = getRootFolder();
 				if (folderUri) {
 					return folderUri + ref.substring(1);

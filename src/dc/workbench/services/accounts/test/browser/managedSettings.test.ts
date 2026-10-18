@@ -194,10 +194,6 @@ suite('adaptManagedSettings', () => {
 	});
 
 	test('resilience: a server-sent own `__proto__` key is carried like any scalar, never applied to the prototype', () => {
-		// JSON.parse (not an object literal) yields an OWN enumerable `__proto__` data property.
-		// The scalar remainder must keep `{ ...rest }` semantics: copy it as data (so it flattens
-		// to `__proto__.polluted`) rather than assigning through the inherited `__proto__` setter
-		// (which would swap the prototype and instead surface the inherited `polluted` key).
 		const response = JSON.parse('{"permissions":{"x":1},"__proto__":{"polluted":true}}') as IManagedSettingsResponse;
 		assert.deepStrictEqual(adaptManagedSettings(response), {
 			managedSettings: {
@@ -208,9 +204,6 @@ suite('adaptManagedSettings', () => {
 	});
 
 	test('resilience: a primitive own `__proto__` scalar is dropped, never pollutes the result', () => {
-		// The reviewer-flagged case. flattenManagedSettings only assigns at the bare `__proto__`
-		// key when the value is a PRIMITIVE, where the inherited `__proto__` setter is a no-op, so
-		// the value is simply dropped (no prototype mutation), matching the original `...rest`.
 		const response = JSON.parse('{"permissions":{"x":1},"__proto__":true}') as IManagedSettingsResponse;
 		assert.deepStrictEqual(adaptManagedSettings(response), {
 			managedSettings: {
@@ -258,7 +251,6 @@ suite('adaptManagedSettings', () => {
 	});
 
 	test('resilience: telemetry map keys that could pollute the prototype are dropped', () => {
-		// JSON.parse yields an OWN enumerable `__proto__` data property on the nested map.
 		const response = JSON.parse('{"telemetry":{"resourceAttributes":{"__proto__":"polluted","constructor":"x","service.namespace":"acme"}}}') as IManagedSettingsResponse;
 		assert.deepStrictEqual(adaptManagedSettings(response), {
 			managedSettings: {

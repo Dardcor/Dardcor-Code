@@ -9,15 +9,10 @@ const https = require('https');
 const path = require('path');
 
 async function generate() {
-	/**
-	 * @type {Map<string, string>}
-	 */
 	const shortcodeMap = new Map();
 
-	// Get emoji data from https://github.com/milesj/emojibase
-	// https://github.com/milesj/emojibase/
 
-	const files = ['github.raw.json'] //, 'emojibase.raw.json']; //, 'iamcal.raw.json', 'joypixels.raw.json'];
+	const files = ['github.raw.json']
 
 	for (const file of files) {
 		await download(
@@ -25,9 +20,6 @@ async function generate() {
 			file,
 		);
 
-		/**
-		 * @type {Record<string, string | string[]>}}
-		 */
 		// eslint-disable-next-line import/no-dynamic-require
 		const data = require(path.join(process.cwd(), file));
 		for (const [emojis, codes] of Object.entries(data)) {
@@ -37,7 +29,6 @@ async function generate() {
 				.join('');
 			for (const code of Array.isArray(codes) ? codes : [codes]) {
 				if (shortcodeMap.has(code)) {
-					// console.warn(`${file}: ${code}`);
 					continue;
 				}
 				shortcodeMap.set(code, emoji);
@@ -47,16 +38,11 @@ async function generate() {
 		fs.unlink(file, () => { });
 	}
 
-	// Get gitmoji data from https://github.com/carloscuesta/gitmoji
-	// https://github.com/carloscuesta/gitmoji/blob/master/src/data/gitmojis.json
 	await download(
 		'https://raw.githubusercontent.com/carloscuesta/gitmoji/master/src/data/gitmojis.json',
 		'gitmojis.json',
 	);
 
-	/**
-	 * @type {({ code: string; emoji: string })[]}
-	 */
 	// eslint-disable-next-line import/no-dynamic-require
 	const gitmojis = require(path.join(process.cwd(), 'gitmojis.json')).gitmojis;
 	for (const emoji of gitmojis) {
@@ -65,7 +51,6 @@ async function generate() {
 		}
 
 		if (shortcodeMap.has(emoji.code)) {
-			// console.warn(`GitHub: ${emoji.code}`);
 			continue;
 		}
 		shortcodeMap.set(emoji.code, emoji.emoji);
@@ -73,7 +58,6 @@ async function generate() {
 
 	fs.unlink('gitmojis.json', () => { });
 
-	// Sort the emojis for easier diff checking
 	const list = [...shortcodeMap.entries()];
 	list.sort();
 

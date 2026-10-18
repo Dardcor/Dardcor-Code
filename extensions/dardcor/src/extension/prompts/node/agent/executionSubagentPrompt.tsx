@@ -6,31 +6,22 @@
 import { PromptElement, PromptSizing, SystemMessage, UserMessage } from '@vscode/prompt-tsx';
 import { GenericBasePromptElementProps } from '../../../context/node/resolvers/genericPanelIntentInvocation';
 import { ToolName } from '../../../tools/common/toolNames';
-import { CopilotToolMode } from '../../../tools/common/toolsRegistry';
+import { AgentToolMode } from '../../../tools/common/toolsRegistry';
 import { SafetyRules } from '../base/safetyRules';
 import { TerminalStatePromptElement } from '../base/terminalState';
 import { ChatToolCalls } from '../panel/toolCalling';
 
 export interface ExecutionSubagentPromptProps extends GenericBasePromptElementProps {
 	readonly maxExecutionTurns: number;
-	/** True if a previous {@link ToolName.CoreRunInTerminal} call timed out or was
-	 * invoked in async/background mode; the model is told to stop calling tools
-	 * and emit its `<final_answer>`. */
 	readonly hasBackgroundCommand?: boolean;
 }
 
-/**
- * Prompt for the execution subagent that uses custom execution instructions
- * instead of the default agent system prompt.
- */
 export class ExecutionSubagentPrompt extends PromptElement<ExecutionSubagentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const { conversation, toolCallRounds, toolCallResults } = this.props.promptContext;
 
-		// Render the execution instruction from the conversation
 		const executionInstruction = conversation?.turns[0]?.request.message;
 
-		// Check if we're at the last turn (to align with training where we coax final answer)
 		const currentTurn = toolCallRounds?.length ?? 0;
 		const isLastTurn = currentTurn >= this.props.maxExecutionTurns - 1;
 
@@ -80,7 +71,7 @@ export class ExecutionSubagentPrompt extends PromptElement<ExecutionSubagentProm
 					promptContext={this.props.promptContext}
 					toolCallRounds={toolCallRounds}
 					toolCallResults={toolCallResults}
-					toolCallMode={CopilotToolMode.FullContext}
+					toolCallMode={AgentToolMode.FullContext}
 				/>
 				{isLastTurn && (
 					<UserMessage priority={900}>

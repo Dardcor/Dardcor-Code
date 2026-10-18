@@ -72,16 +72,13 @@ export class Rect {
 	withMargin(marginOrVerticalOrTop: number, rightOrHorizontal?: number, bottom?: number, left?: number): Rect {
 		let marginLeft, marginRight, marginTop, marginBottom;
 
-		// Single margin value
 		if (rightOrHorizontal === undefined && bottom === undefined && left === undefined) {
 			marginLeft = marginRight = marginTop = marginBottom = marginOrVerticalOrTop;
 		}
-		// Vertical and horizontal margins
 		else if (bottom === undefined && left === undefined) {
 			marginLeft = marginRight = rightOrHorizontal!;
 			marginTop = marginBottom = marginOrVerticalOrTop;
 		}
-		// Individual margins for all sides
 		else {
 			marginLeft = left!;
 			marginRight = rightOrHorizontal!;

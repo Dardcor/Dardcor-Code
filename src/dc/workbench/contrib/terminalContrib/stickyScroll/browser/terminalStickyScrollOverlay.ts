@@ -32,7 +32,6 @@ import { terminalStickyScrollBackground, terminalStickyScrollHoverBackground } f
 import { XtermAddonImporter } from '../../../terminal/browser/xterm/xtermAddonImporter.js';
 
 const enum OverlayState {
-	/** Initial state/disabled by the alt buffer. */
 	Off = 0,
 	On = 1
 }
@@ -85,12 +84,10 @@ export class TerminalStickyScrollOverlay extends Disposable {
 
 		this._contextMenu = this._register(menuService.createMenu(MenuId.TerminalStickyScrollContext, contextKeyService));
 
-		// Only show sticky scroll in the normal buffer
 		this._register(Event.runAndSubscribe(this._xterm.raw.buffer.onBufferChange, buffer => {
 			this._setState((buffer ?? this._xterm.raw.buffer.active).type === 'normal' ? OverlayState.On : OverlayState.Off);
 		}));
 
-		// React to configuration changes
 		this._register(Event.runAndSubscribe(configurationService.onDidChangeConfiguration, e => {
 			if (!e || e.affectsConfiguration(TerminalStickyScrollSettingId.MaxLineCount)) {
 				this._rawMaxLineCount = configurationService.getValue(TerminalStickyScrollSettingId.MaxLineCount);
@@ -100,10 +97,8 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			}
 		}));
 
-		// React to terminal location changes
 		this._register(this._instance.onDidChangeTarget(() => this._syncOptions()));
 
-		// Eagerly create the overlay
 		xtermCtor.then(ctor => {
 			if (this._store.isDisposed) {
 				return;
@@ -140,7 +135,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 				}
 				this._serializeAddon = this._register(new SerializeAddon());
 				this._xterm.raw.loadAddon(this._serializeAddon);
-				// Trigger a render as the serialize addon is required to render
 				this._refresh();
 			});
 		});
@@ -179,8 +173,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 				Event.any(
 					this._xterm.raw.onScroll,
 					this._xterm.raw.onLineFeed,
-					// Rarely an update may be required after just a cursor move, like when
-					// scrolling horizontally in a pager
 					this._xterm.raw.onCursorMove,
 				)(() => this._refresh()),
 				// eslint-disable-next-line no-restricted-syntax
@@ -230,17 +222,13 @@ export class TerminalStickyScrollOverlay extends Disposable {
 	private _refreshNow(): void {
 		const command = this._commandDetection.getCommandForLine(this._xterm.raw.buffer.active.viewportY);
 
-		// The command from viewportY + 1 is used because this one will not be obscured by sticky
-		// scroll.
 		this._currentStickyCommand = undefined;
 
-		// No command or ignored command
 		if (!command || this._isIgnoredCommand(command)) {
 			this._setVisible(false);
 			return;
 		}
 
-		// Partial command
 		if (!isFullTerminalCommand(command)) {
 			const partialCommand = this._commandDetection.currentCommand;
 			if (partialCommand?.commandStartMarker && partialCommand.commandExecutedMarker) {
@@ -251,11 +239,8 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			return;
 		}
 
-		// If the marker doesn't exist or it was trimmed from scrollback
 		const marker = command.marker;
 		if (!marker || marker.line === -1) {
-			// TODO: It would be nice if we kept the cached command around even if it was trimmed
-			// from scrollback
 			this._setVisible(false);
 			return;
 		}
@@ -269,38 +254,27 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			return;
 		}
 
-		// Hide sticky scroll if the prompt has been trimmed from the buffer
 		if (command.promptStartMarker?.line === -1) {
 			this._setVisible(false);
 			return;
 		}
 
-		// Determine sticky scroll line count
 		const buffer = xterm.buffer.active;
 		const promptRowCount = command.getPromptRowCount();
 		const commandRowCount = command.getCommandRowCount();
 		const stickyScrollLineStart = startMarker.line - (promptRowCount - 1);
 
-		// Calculate the row offset, this is the number of rows that will be clipped from the top
-		// of the sticky overlay because we do not want to show any content above the bounds of the
-		// original terminal. This is done because it seems like scrolling flickers more when a
-		// partial line can be drawn on the top.
 		const isPartialCommand = !isFullTerminalCommand(command);
 		const rowOffset = !isPartialCommand && command.endMarker ? Math.max(buffer.viewportY - command.endMarker.line + 1, 0) : 0;
 		const maxLineCount = Math.min(this._rawMaxLineCount, Math.floor(xterm.rows * Constants.StickyScrollPercentageCap));
 		const stickyScrollLineCount = Math.min(promptRowCount + commandRowCount - 1, maxLineCount) - rowOffset;
 		const isTruncated = stickyScrollLineCount < promptRowCount + commandRowCount - 1;
 
-		// Hide sticky scroll if it's currently on a line that contains it
 		if (buffer.viewportY <= stickyScrollLineStart) {
 			this._setVisible(false);
 			return;
 		}
 
-		// Hide sticky scroll for the partial command if it looks like there is a pager like `less`
-		// or `git log` active. This is done by checking if the bottom left cell contains the :
-		// character and the cursor is immediately to its right. This improves the behavior of a
-		// common case where the top of the text being viewport would otherwise be obscured.
 		if (isPartialCommand && buffer.viewportY === buffer.baseY && buffer.cursorY === xterm.rows - 1) {
 			const line = buffer.getLine(buffer.baseY + xterm.rows - 1);
 			if (
@@ -312,7 +286,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			}
 		}
 
-		// Get the line content of the command from the terminal
 		const content = this._serializeAddon.serialize({
 			range: {
 				start: stickyScrollLineStart + rowOffset,
@@ -320,45 +293,32 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			}
 		}) + (isTruncated ? '\x1b[0m …' : '');
 
-		// If a partial command's sticky scroll would show nothing, just hide it. This is another
-		// edge case when using a pager or interactive editor.
 		if (isPartialCommand && removeAnsiEscapeCodes(content).length === 0) {
 			this._setVisible(false);
 			return;
 		}
 
-		// Write content if it differs
 		if (
 			content && this._currentContent !== content ||
 			this._stickyScrollOverlay.cols !== xterm.cols ||
 			this._stickyScrollOverlay.rows !== stickyScrollLineCount
 		) {
 			this._stickyScrollOverlay.resize(this._stickyScrollOverlay.cols, stickyScrollLineCount);
-			// Clear attrs, reset cursor position, clear right
 			this._stickyScrollOverlay.write('\x1b[0m\x1b[H\x1b[2J');
 			this._stickyScrollOverlay.write(content);
 			this._currentContent = content;
-			// DEBUG: Log to show the command line we know
-			// this._stickyScrollOverlay.write(` [${command?.command}]`);
 		}
 
 		if (content) {
 			this._currentStickyCommand = command;
 			this._setVisible(true);
 
-			// Position the sticky scroll such that it never overlaps the prompt/output of the
-			// following command. This must happen after setVisible to ensure the element is
-			// initialized.
 			if (this._element) {
 				const termBox = xterm.element.getBoundingClientRect();
-				// Only try reposition if the element is visible, if not a refresh will occur when
-				// it becomes visible
 				if (termBox.height > 0) {
 					const rowHeight = termBox.height / xterm.rows;
 					const overlayHeight = stickyScrollLineCount * rowHeight;
 
-					// Adjust sticky scroll content if it would below the end of the command, obscuring the
-					// following command.
 					let endMarkerOffset = 0;
 					if (!isPartialCommand && command.endMarker && command.endMarker.line !== -1) {
 						const lastLine = Math.min(command.endMarker.line, buffer.baseY + buffer.cursorY);
@@ -378,11 +338,8 @@ export class TerminalStickyScrollOverlay extends Disposable {
 
 	private _ensureElement() {
 		if (
-			// The element is already created
 			this._element ||
-			// If the overlay is yet to be created, the terminal cannot be opened so defer to next call
 			!this._stickyScrollOverlay ||
-			// The xterm.js instance isn't opened yet
 			!this._xterm?.raw.element?.parentElement
 		) {
 			return;
@@ -395,7 +352,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 		this._xterm.raw.element.parentElement.append(this._element);
 		this._register(toDisposable(() => this._element?.remove()));
 
-		// Fill tooltip
 		let hoverTitle = localize('stickyScrollHoverTitle', 'Navigate to Command');
 		const scrollToPreviousCommandKeybinding = this._keybindingService.lookupKeybinding(TerminalCommandId.ScrollToPreviousCommand);
 		if (scrollToPreviousCommandKeybinding) {
@@ -423,7 +379,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 
 		this._stickyScrollOverlay.open(this._element);
 
-		// Prevent tab key from being handled by the xterm overlay to allow natural tab navigation
 		this._stickyScrollOverlay.attachCustomKeyEventHandler((event: KeyboardEvent) => {
 			if (event.key === 'Tab') {
 				return false;
@@ -439,7 +394,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			this._stickyScrollOverlay.loadAddon(this._ligaturesAddon);
 		});
 
-		// Scroll to the command on click
 		this._register(addStandardDisposableListener(hoverOverlay, 'click', () => {
 			if (this._xterm && this._currentStickyCommand) {
 				this._xterm.markTracker.revealCommand(this._currentStickyCommand);
@@ -447,11 +401,8 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			}
 		}));
 
-		// Forward mouse events to the terminal
 		this._register(addStandardDisposableListener(hoverOverlay, 'wheel', e => this._xterm?.raw.element?.dispatchEvent(new WheelEvent(e.type, e))));
 
-		// Context menu - stop propagation on mousedown because rightClickBehavior listens on
-		// mousedown, not contextmenu
 		this._register(addDisposableListener(hoverOverlay, 'mousedown', e => {
 			e.stopImmediatePropagation();
 			e.preventDefault();
@@ -462,9 +413,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			openContextMenu(getWindow(hoverOverlay), e, this._instance, this._contextMenu, this._contextMenuService);
 		}));
 
-		// Instead of juggling decorations for hover styles, swap out the theme to indicate the
-		// hover state. This comes with the benefit over other methods of working well with special
-		// decorative characters like powerline symbols.
 		this._register(addStandardDisposableListener(hoverOverlay, 'mouseover', () => overlay.options.theme = this._getTheme(true)));
 		this._register(addStandardDisposableListener(hoverOverlay, 'mouseleave', () => overlay.options.theme = this._getTheme(false)));
 	}
@@ -507,7 +455,6 @@ export class TerminalStickyScrollOverlay extends Disposable {
 			if (this._store.isDisposed) {
 				return;
 			}
-			// Dispose of existing addon before creating a new one to avoid leaking WebGL contexts
 			this._webglAddon.value = new WebglAddon({
 				customGlyphs: this._terminalConfigurationService.config.customGlyphs
 			});

@@ -165,10 +165,10 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
           {/* Purpose & How it works */}
           <div className="px-2 py-2 rounded-lg bg-surface/50 border border-border/50 flex flex-col gap-2">
             <p className="text-[11px] text-text-muted leading-relaxed">
-              <span className="font-medium text-text-main">Purpose:</span> Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Router
+              <span className="font-medium text-text-main">Purpose:</span> Use Antigravity IDE with any provider/model from Dardcor Router
             </p>
             <p className="text-[11px] text-text-muted leading-relaxed">
-              <span className="font-medium text-text-main">How it works:</span> Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Router → response to Antigravity/Copilot
+              <span className="font-medium text-text-main">How it works:</span> Antigravity IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Router → response to Antigravity
             </p>
           </div>
 

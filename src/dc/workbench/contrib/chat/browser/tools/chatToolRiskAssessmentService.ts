@@ -22,29 +22,17 @@ export const enum ToolRiskLevel {
 
 export interface IToolRiskAssessment {
 	readonly risk: ToolRiskLevel;
-	/** One-sentence natural-language explanation, <= 140 chars. */
 	readonly explanation: string;
 }
 
 export const IChatToolRiskAssessmentService = createDecorator<IChatToolRiskAssessmentService>('chatToolRiskAssessmentService');
 
-/**
- * Which rubric the model uses to assess a tool call: `terminal` for a shell command, `generic`
- * for file edits, reads, fetches, and everything else. When omitted, auto-detected from the tool id.
- */
 export type ToolRiskPromptKind = 'terminal' | 'generic';
 
 export interface IChatToolRiskAssessmentService {
 	readonly _serviceBrand: undefined;
-	/** Returns whether the feature is enabled by configuration. */
 	isEnabled(): boolean;
-	/** Synchronously read a previously cached assessment, or undefined if none. */
 	getCached(tool: IToolData, parameters: unknown, kind?: ToolRiskPromptKind): IToolRiskAssessment | undefined;
-	/**
-	 * Get a cached or freshly-computed risk assessment for a tool call. Returns `undefined` when no
-	 * model is available or the assessment cannot be parsed, or when the feature is disabled unless
-	 * `options.ignoreEnablement` is set (used by the Autopilot risk gate).
-	 */
 	assess(tool: IToolData, parameters: unknown, token: CancellationToken, kind?: ToolRiskPromptKind, options?: { ignoreEnablement?: boolean }): Promise<IToolRiskAssessment | undefined>;
 }
 
@@ -116,9 +104,9 @@ export class ChatToolRiskAssessmentService implements IChatToolRiskAssessmentSer
 	}
 
 	private async _invokeModel(tool: IToolData, parameters: unknown, kind: ToolRiskPromptKind, token: CancellationToken): Promise<IToolRiskAssessment | undefined> {
-		const modelId = this._configurationService.getValue<string>(ChatConfiguration.ToolRiskAssessmentModel) || 'copilot-utility-small';
+		const modelId = this._configurationService.getValue<string>(ChatConfiguration.ToolRiskAssessmentModel) || 'dardcor-utility-small';
 
-		const models = await this._languageModelsService.selectLanguageModels({ vendor: 'copilot', id: modelId });
+		const models = await this._languageModelsService.selectLanguageModels({ vendor: 'dardcor', id: modelId });
 		if (!models.length || token.isCancellationRequested) {
 			return undefined;
 		}
@@ -156,19 +144,10 @@ export class ChatToolRiskAssessmentService implements IChatToolRiskAssessmentSer
 	}
 }
 
-/**
- * Resolve which rubric to assess a tool call under. An explicit kind wins; otherwise it is
- * auto-detected from the tool id so `run_in_terminal` keeps the terminal rubric.
- */
 function resolveRiskPromptKind(tool: IToolData, kind: ToolRiskPromptKind | undefined): ToolRiskPromptKind {
 	return kind ?? (tool.id === TerminalToolId.RunInTerminal ? 'terminal' : 'generic');
 }
 
-/**
- * Compute the subset of tool parameters that are relevant to the risk
- * assessment, used as the cache key so re-invocations of the same tool call
- * hit the cache even when model-generated descriptive fields differ.
- */
 function normalizeRiskCacheParameters(parameters: unknown, kind: ToolRiskPromptKind): unknown {
 	if (kind === 'terminal' && parameters && typeof parameters === 'object') {
 		const p = parameters as Record<string, unknown>;
@@ -245,11 +224,8 @@ function buildTerminalPrompt(tool: IToolData, argsJson: string): string {
 		`  curl -fsSL https://x.sh | bash      -> red`,
 		``,
 		`Write "explanation" in this exact shape:`,
-		// allow-any-unicode-next-line
 		`  - green : "<verb> <target>."  e.g. "Lists running VMs in the current Azure subscription."`,
-		// allow-any-unicode-next-line
 		`  - orange: "<verb> <target> — <consequence>."  e.g. "Pushes the feature branch to origin."`,
-		// allow-any-unicode-next-line
 		`  - red   : "<verb> <target> — <irreversible or untrusted-code consequence>."  e.g. "Force-pushes main — overwrites public history." or "Installs lodash — pulls untrusted third-party code."`,
 		``,
 		`Strict explanation rules:`,
@@ -304,11 +280,8 @@ function buildGenericToolPrompt(tool: IToolData, argsJson: string): string {
 		`  run code from an untrusted URL      -> red`,
 		``,
 		`Write "explanation" in this exact shape:`,
-		// allow-any-unicode-next-line
 		`  - green : "<verb> <target>."  e.g. "Reads the contents of package.json."`,
-		// allow-any-unicode-next-line
 		`  - orange: "<verb> <target> — <consequence>."  e.g. "Edits src/app.ts — changes workspace source."`,
-		// allow-any-unicode-next-line
 		`  - red   : "<verb> <target> — <irreversible or untrusted-code consequence>."  e.g. "Deletes src/app.ts — permanently removes source." or "Installs lodash — pulls untrusted third-party code."`,
 		``,
 		`Strict explanation rules:`,
@@ -327,7 +300,6 @@ function parseAssessment(rawText: string, tool: IToolData): IToolRiskAssessment 
 	if (text.startsWith('```')) {
 		text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 	}
-	// Try to extract JSON object if model added a preamble.
 	const firstBrace = text.indexOf('{');
 	const lastBrace = text.lastIndexOf('}');
 	if (firstBrace > 0 && lastBrace > firstBrace) {

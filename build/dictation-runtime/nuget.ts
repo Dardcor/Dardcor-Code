@@ -3,24 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Fetches the Foundry Local native core libraries (Foundry Local Core +
- * onnxruntime + onnxruntime-genai) from NuGet for an EXPLICIT RID, so a single
- * build agent can assemble a tarball for any target regardless of its own
- * `process.platform`/`process.arch`.
- *
- * This is a deliberate re-implementation of the download/extract loop in
- * `foundry-local-sdk`'s `script/install-utils.cjs`, whose `runInstall` derives
- * the RID from the RUNNING host (`os.platform()`/`os.arch()`) at module load and
- * exposes no override. VS Code's ARM64 desktop builds run on x64 pools, so the
- * host-locked installer can never produce the `linux-arm64`/`win32-arm64`
- * tarballs; extracting `runtimes/<rid>/native/*` from the same `.nupkg` files
- * for an explicit RID is host-independent and fixes that.
- *
- * Only the "standard" artifact set is supported (the three packages selected by
- * `package.ts`); the SDK installer's WinML override / `includeFiles` /
- * `removeFiles` paths are intentionally not ported.
- */
 
 import { createRequire } from 'module';
 import * as fs from 'fs';
@@ -31,29 +13,17 @@ import { SDK_PACKAGE_NAME } from './common.ts';
 
 const SCRIPT = 'nuget.ts';
 
-/**
- * `adm-zip`, resolved through `foundry-local-sdk`'s own dependency tree (it is a
- * dependency of the SDK), so we don't add a new build dependency just to unzip
- * `.nupkg` archives.
- */
 function loadAdmZip(): any {
 	const sdkRequire = createRequire(import.meta.url);
 	const fromSdk = createRequire(sdkRequire.resolve(`${SDK_PACKAGE_NAME}/package.json`));
 	return fromSdk('adm-zip');
 }
 
-/**
- * NuGet feeds tried in order, matching `foundry-local-sdk`'s installer: the
- * stable nuget.org feed first, then the public ORT-Nightly Azure DevOps feed
- * (where pre-release Foundry Local Core / ORT / ORT-GenAI builds live before
- * they reach nuget.org).
- */
 const FEEDS: readonly string[] = [
 	'https://api.nuget.org/v3/index.json',
 	'https://pkgs.dev.azure.com/aiinfra/PublicPackages/_packaging/ORT-Nightly/nuget/v3/index.json',
 ];
 
-/** The NuGet Runtime IDentifier for each supported runtime target. */
 const RID_BY_TARGET: Readonly<Record<string, string>> = {
 	'win32-x64': 'win-x64',
 	'win32-arm64': 'win-arm64',
@@ -62,7 +32,6 @@ const RID_BY_TARGET: Readonly<Record<string, string>> = {
 	'darwin-arm64': 'osx-arm64',
 };
 
-/** The shared-library file extension for a target's OS. */
 function libExt(target: string): string {
 	return target.startsWith('win32-') ? '.dll' : target.startsWith('darwin-') ? '.dylib' : '.so';
 }
@@ -72,11 +41,6 @@ export interface INugetArtifact {
 	readonly version: string;
 }
 
-/**
- * Download each `artifact` `.nupkg` for `target`'s RID and extract its native
- * shared libraries into `binDir`. Throws if a package can't be fetched from any
- * feed; callers verify the resulting library set separately.
- */
 export async function fetchCoreLibraries(target: string, artifacts: readonly INugetArtifact[], binDir: string): Promise<void> {
 	const rid = RID_BY_TARGET[target];
 	if (!rid) {
@@ -143,10 +107,6 @@ async function installPackage(
 	throw new Error(`[${SCRIPT}] Failed to download ${artifact.name} ${artifact.version} from any feed (${feeds}): ${lastError instanceof Error ? lastError.message : lastError}`);
 }
 
-/**
- * The native shared-library entries in `zip` for `rid`: files ending in `ext`
- * that live under `runtimes/<rid>/native/` or directly under `runtimes/<rid>/`.
- */
 function nativeEntriesForRid(zip: any, rid: string, ext: string): any[] {
 	const nativePrefix = `runtimes/${rid}/native/`.toLowerCase();
 	const runtimePrefix = `runtimes/${rid}/`.toLowerCase();
@@ -166,7 +126,6 @@ function nativeEntriesForRid(zip: any, rid: string, ext: string): any[] {
 	});
 }
 
-/** Resolve a NuGet feed's `PackageBaseAddress/3.0.0` service endpoint. */
 async function getBaseAddress(feedUrl: string, cache: Map<string, unknown>): Promise<string> {
 	if (!cache.has(feedUrl)) {
 		cache.set(feedUrl, JSON.parse(await downloadToString(feedUrl)));
@@ -179,7 +138,6 @@ async function getBaseAddress(feedUrl: string, cache: Map<string, unknown>): Pro
 	return res['@id']!.endsWith('/') ? res['@id']! : `${res['@id']}/`;
 }
 
-/** GET `url` following redirects, resolving with the response body as a string. */
 function downloadToString(url: string): Promise<string> {
 	return followRedirects(url, res => new Promise<string>((resolve, reject) => {
 		let data = '';
@@ -189,7 +147,6 @@ function downloadToString(url: string): Promise<string> {
 	}));
 }
 
-/** GET `url` following redirects, streaming the response body into `dest`. */
 function downloadToFile(url: string, dest: string): Promise<void> {
 	return followRedirects(url, res => new Promise<void>((resolve, reject) => {
 		const file = fs.createWriteStream(dest);
@@ -200,7 +157,6 @@ function downloadToFile(url: string, dest: string): Promise<void> {
 	}));
 }
 
-/** Issue a GET, following up to 5 redirects, then hand the 200 response to `onOk`. */
 function followRedirects<T>(url: string, onOk: (res: import('http').IncomingMessage) => Promise<T>): Promise<T> {
 	return new Promise<T>((resolve, reject) => {
 		const request = (currentUrl: string, redirectsLeft: number): void => {

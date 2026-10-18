@@ -193,7 +193,7 @@ export class NotebookFindInputFilterButton extends Disposable {
 	}
 
 	width() {
-		return 2 /*margin left*/ + 2 /*border*/ + 2 /*padding*/ + 16 /* icon width */;
+		return 2 + 2 + 2 + 16 ;
 	}
 
 	enable(): void {
@@ -385,7 +385,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 
 		const hoverLifecycleOptions: IHoverLifecycleOptions = { groupId: 'simple-find-widget' };
 
-		// Toggle replace button
 		this._toggleReplaceBtn = this._register(new SimpleButton({
 			label: NLS_TOGGLE_REPLACE_MODE_BTN_LABEL,
 			className: 'codicon toggle left',
@@ -414,7 +413,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 			null,
 			this._contextViewService,
 			{
-				// width:FIND_INPUT_AREA_WIDTH,
 				label: NLS_FIND_INPUT_LABEL,
 				placeholder: NLS_FIND_INPUT_PLACEHOLDER,
 				validation: (value: string): InputBoxMessage | null => {
@@ -438,7 +436,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 			}
 		));
 
-		// Find History with update delayer
 		this._updateFindHistoryDelayer = new Delayer<void>(500);
 
 		this.oninput(this._findInput.domNode, (e) => {
@@ -506,11 +503,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 		this._register(this.inSelectionToggle.onChange(() => {
 			const checked = this.inSelectionToggle.checked;
 			if (checked) {
-				// selection logic:
-				// 1. if there are multiple cells, do that.
-				// 2. if there is only one cell, do the following:
-				// 		- if there is a multi-line range highlighted, textual in selection
-				// 		- if there is no range, cell in selection for that cell
 
 				const cellSelection: ICellRange[] = this._notebookEditor.getSelections();
 				const textSelection: Range[] = this._notebookEditor.getSelectionViewModels()[0].getSelections();
@@ -562,7 +554,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 		this._innerFindDomNode.appendChild(this.inSelectionToggle.domNode);
 		this._innerFindDomNode.appendChild(closeBtn.domNode);
 
-		// _domNode wraps _innerDomNode, ensuring that
 		this._domNode.appendChild(this._innerFindDomNode);
 
 		this.onkeyup(this._innerFindDomNode, e => {
@@ -585,7 +576,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 			event.stopPropagation();
 		}));
 
-		// Replace
 		this._innerReplaceDomNode = document.createElement('div');
 		this._innerReplaceDomNode.classList.add('simple-fr-replace-part');
 
@@ -602,7 +592,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 		this._register(this._replaceInputFocusTracker.onDidFocus(this.onReplaceInputFocusTrackerFocus.bind(this)));
 		this._register(this._replaceInputFocusTracker.onDidBlur(this.onReplaceInputFocusTrackerBlur.bind(this)));
 
-		// Replace History with update delayer
 		this._updateReplaceHistoryDelayer = new Delayer<void>(500);
 
 		this.oninput(this._replaceInput.domNode, (e) => {
@@ -626,7 +615,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 			}
 		}, hoverService));
 
-		// Replace all button
 		this._replaceAllBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_ALL_BTN_LABEL,
 			icon: findReplaceAllIcon,
@@ -666,8 +654,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 		}));
 
 		this._register(this._resizeSash.onDidReset(() => {
-			// users double click on the sash
-			// try to emulate what happens with editor findWidget
 			const currentWidth = this._getDomWidth();
 			let width = NOTEBOOK_FIND_WIDGET_INITIAL_WIDTH;
 
@@ -892,7 +878,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 
 			this._domNode.classList.remove('visible-transition');
 			this._domNode.setAttribute('aria-hidden', 'true');
-			// Need to delay toggling visibility until after Transition, then visibility hidden - removes from tabIndex list
 			setTimeout(() => {
 				this._isVisible = false;
 				this.updateButtons(this.foundMatch);
@@ -936,7 +921,6 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 	}
 }
 
-// theming
 registerThemingParticipant((theme, collector) => {
 	collector.addRule(`
 	.notebook-editor {

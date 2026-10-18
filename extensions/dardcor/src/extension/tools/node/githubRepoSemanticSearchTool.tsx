@@ -25,7 +25,7 @@ import { getUniqueReferences } from '../../prompt/common/conversation';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { WorkspaceChunkList } from '../../prompts/node/panel/workspace/workspaceContext';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface GithubRepoToolParams {
 	readonly repo: string;
@@ -38,7 +38,7 @@ interface PrepareError {
 	readonly details?: string;
 }
 
-export class GithubRepoSemanticSearchTool implements ICopilotTool<GithubRepoToolParams> {
+export class GithubRepoSemanticSearchTool implements IAgentTool<GithubRepoToolParams> {
 	public static readonly toolName = ToolName.GithubSemanticRepoSearch;
 
 	constructor(
@@ -62,7 +62,6 @@ export class GithubRepoSemanticSearchTool implements ICopilotTool<GithubRepoTool
 
 		const searchResults = await this._githubCodeSearch.semanticSearch({ silent: true }, embeddingType, { kind: 'repo', githubRepoId, localRepoRoot: undefined, indexedCommit: undefined }, options.input.query, 64, {}, new TelemetryCorrelationId('github-repo-tool'), token);
 
-		// Map the chunks to URIs using the remote URL and ref from the search response
 		const repoBaseUrl = searchResults.remoteUrl ?? `https://github.com/${toGithubNwo(githubRepoId)}`;
 		const ref = searchResults.refName ?? 'main';
 		const chunks = searchResults.chunks.map((entry): FileChunkAndScore => ({
@@ -104,14 +103,6 @@ export class GithubRepoSemanticSearchTool implements ICopilotTool<GithubRepoTool
 			};
 		}
 
-		/* __GDPR__
-			"githubRepoTool.prepare.error" : {
-				"owner": "mjbvz",
-				"comment": "Tracks errors for the GitHub repo tool prepare step",
-				"errorId": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "General reason why the search failed" },
-				"errorDetails": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "More detailed info about the failure" }
-			}
-		*/
 		this._telemetryService.sendMSFTTelemetryEvent('githubRepoTool.prepare.error', {
 			errorId: prepareResult.err.id,
 			errorDetails: prepareResult.err.details,
@@ -130,7 +121,6 @@ export class GithubRepoSemanticSearchTool implements ICopilotTool<GithubRepoTool
 
 		let githubRepoId = GithubRepoId.parse(options.input.repo);
 		if (!githubRepoId) {
-			// We may have been passed a full URL
 			try {
 				const uri = URI.parse(options.input.repo);
 				if (uri.scheme === 'https' && uri.authority === 'github.com') {
@@ -140,7 +130,6 @@ export class GithubRepoSemanticSearchTool implements ICopilotTool<GithubRepoTool
 					}
 				}
 			} catch {
-				// Noop
 			}
 		}
 

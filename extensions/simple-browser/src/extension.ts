@@ -18,31 +18,21 @@ const integratedBrowserCommand = 'workbench.action.browser.open';
 
 const enabledHosts = new Set<string>([
 	'localhost',
-	// localhost IPv4
 	'127.0.0.1',
-	// localhost IPv6
 	'[0:0:0:0:0:0:0:1]',
 	'[::1]',
-	// all interfaces IPv4
 	'0.0.0.0',
-	// all interfaces IPv6
 	'[0:0:0:0:0:0:0:0]',
 	'[::]'
 ]);
 
 const openerId = 'simpleBrowser.open';
 
-/**
- * Checks if the integrated browser should be used instead of the simple browser
- */
 async function shouldUseIntegratedBrowser(): Promise<boolean> {
 	const commands = await vscode.commands.getCommands(true);
 	return commands.includes(integratedBrowserCommand);
 }
 
-/**
- * Opens a URL in the integrated browser
- */
 async function openInIntegratedBrowser(url?: string): Promise<void> {
 	await vscode.commands.executeCommand(integratedBrowserCommand, url);
 }
@@ -88,7 +78,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.window.registerExternalUriOpener(openerId, {
 		canOpenExternalUri(uri: vscode.Uri) {
-			// We have to replace the IPv6 hosts with IPv4 because URL can't handle IPv6.
 			const originalUri = new URL(uri.toString(true));
 			if (enabledHosts.has(originalUri.hostname)) {
 				return isWeb()

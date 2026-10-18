@@ -157,9 +157,6 @@ class CommentingRangeDecorator {
 	public updateSelection(cursorLine: number, range: Range = new Range(0, 0, 0, 0)) {
 		this._lastSelection = range.isEmpty() ? undefined : range;
 		this._lastSelectionCursor = range.isEmpty() ? undefined : cursorLine;
-		// Some scenarios:
-		// Selection is made. Emphasis should show on the drag/selection end location.
-		// Selection is made, then user clicks elsewhere. We should still show the decoration.
 		if (this._editor && this._infos) {
 			this._doUpdate(this._editor, this._infos, cursorLine, range);
 		}
@@ -183,7 +180,6 @@ class CommentingRangeDecorator {
 			return;
 		}
 
-		// If there's still a selection, use that.
 		emphasisLine = this._lastSelectionCursor ?? emphasisLine;
 
 		const commentingRangeDecorations: CommentingRangeDecoration[] = [];
@@ -192,12 +188,8 @@ class CommentingRangeDecorator {
 				const rangeObject = new Range(range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn);
 				let intersectingSelectionRange = selectionRange ? rangeObject.intersectRanges(selectionRange) : undefined;
 				if ((selectionRange && (emphasisLine >= 0) && intersectingSelectionRange)
-					// If there's only one selection line, then just drop into the else if and show an emphasis line.
 					&& !((intersectingSelectionRange.startLineNumber === intersectingSelectionRange.endLineNumber)
 						&& (emphasisLine === intersectingSelectionRange.startLineNumber))) {
-					// The emphasisLine should be within the commenting range, even if the selection range stretches
-					// outside of the commenting range.
-					// Clip the emphasis and selection ranges to the commenting range
 					let intersectingEmphasisRange: Range;
 					if (emphasisLine <= intersectingSelectionRange.startLineNumber) {
 						intersectingEmphasisRange = intersectingSelectionRange.collapseToStart();
@@ -256,17 +248,14 @@ class CommentingRangeDecorator {
 	}
 
 	private areRangesIntersectingOrTouchingByLine(a: Range, b: Range) {
-		// Check if `a` is before `b`
 		if (a.endLineNumber < (b.startLineNumber - 1)) {
 			return false;
 		}
 
-		// Check if `b` is before `a`
 		if ((b.endLineNumber + 1) < a.startLineNumber) {
 			return false;
 		}
 
-		// These ranges must intersect
 		return true;
 	}
 
@@ -288,18 +277,13 @@ class CommentingRangeDecorator {
 			return [];
 		}
 
-		// keys is ownerId
 		const foundHoverActions = new Map<string, { range: Range; action: CommentRangeAction }>();
 		for (const decoration of this.commentingRangeDecorations) {
 			const range = decoration.getActiveRange();
 			if (range && this.areRangesIntersectingOrTouchingByLine(range, commentRange)) {
-				// We can have several commenting ranges that match from the same uniqueOwner because of how
-				// the line hover and selection decoration is done.
-				// The ranges must be merged so that we can see if the new commentRange fits within them.
 				const action = decoration.getCommentAction();
 				const alreadyFoundInfo = foundHoverActions.get(action.ownerId);
 				if (alreadyFoundInfo?.action.commentingRangesInfo === action.commentingRangesInfo) {
-					// Merge ranges.
 					const newRange = new Range(
 						range.startLineNumber < alreadyFoundInfo.range.startLineNumber ? range.startLineNumber : alreadyFoundInfo.range.startLineNumber,
 						range.startColumn < alreadyFoundInfo.range.startColumn ? range.startColumn : alreadyFoundInfo.range.startColumn,
@@ -370,10 +354,6 @@ class CommentingRangeDecorator {
 	}
 }
 
-/**
-* Navigate to the next or previous comment in the current thread.
-* @param type
-*/
 export function moveToNextCommentInThread(commentInfo: { thread: languages.CommentThread<IRange>; comment?: languages.Comment } | undefined, type: 'next' | 'previous') {
 	if (!commentInfo?.comment || !commentInfo?.thread?.comments) {
 		return;
@@ -411,8 +391,6 @@ export function revealCommentThread(commentService: ICommentService, editorServi
 	const focus = focusReply ? CommentWidgetFocus.Editor : (preserveFocus ? CommentWidgetFocus.None : CommentWidgetFocus.Widget);
 
 	const activeEditor = editorService.activeTextEditorControl;
-	// If the active editor is a diff editor where one of the sides has the comment,
-	// then we try to reveal the comment in the diff editor.
 	const currentActiveResources: IEditor[] = isDiffEditor(activeEditor) ? [activeEditor.getOriginalEditor(), activeEditor.getModifiedEditor()]
 		: (activeEditor ? [activeEditor] : []);
 	const threadToReveal = commentThread.threadId;
@@ -465,7 +443,7 @@ export class CommentController extends Disposable implements IEditorContribution
 	private _emptyThreadsToAddQueue: [Range | undefined, IEditorMouseEvent | undefined][] = [];
 	private _computeCommentingRangeScheduler!: Delayer<Array<ICommentInfo | null>> | null;
 	private _pendingNewCommentCache: { [key: string]: { [key: string]: languages.PendingComment } };
-	private _pendingEditsCache: { [key: string]: { [key: string]: { [key: number]: languages.PendingComment } } }; // uniqueOwner -> threadId -> uniqueIdInThread -> pending comment
+	private _pendingEditsCache: { [key: string]: { [key: string]: { [key: number]: languages.PendingComment } } };
 	private _inProcessContinueOnComments: Map<string, languages.PendingCommentThread[]> = new Map();
 	private _editorDisposables: IDisposable[] = [];
 	private _activeCursorHasCommentingRange: IContextKey<boolean>;
@@ -649,7 +627,6 @@ export class CommentController extends Disposable implements IEditorContribution
 		if (decorations) {
 			for (const decoration of decorations) {
 				if (decoration.options.description === CommentGlyphWidget.description) {
-					// We don't allow multiple comments on the same line.
 					hasCommentingRange = false;
 					break;
 				} else if (decoration.options.description === CommentingRangeDecorator.description) {
@@ -886,7 +863,7 @@ export class CommentController extends Disposable implements IEditorContribution
 		dispose(this._editorDisposables);
 		dispose(this._commentWidgets);
 
-		this.editor = null!; // Strict null override - nulling out in dispose
+		this.editor = null!;
 	}
 
 	private onWillChangeModel(e: IModelChangedEvent): void {
@@ -1024,7 +1001,6 @@ export class CommentController extends Disposable implements IEditorContribution
 		} else if (matchedZones.length) {
 			this.commentService.removeContinueOnComment({ uniqueOwner: thread.uniqueOwner, uri: editorURI, range: thread.range, isReply: false });
 			const existingPendingComment = matchedZones[0].getPendingComments().newComment;
-			// We need to try to reconcile the existing pending comment with the incoming pending comment
 			let pendingComment: languages.PendingComment;
 			if (!existingPendingComment || thread.comment.body.includes(existingPendingComment.body)) {
 				pendingComment = thread.comment;
@@ -1120,7 +1096,6 @@ export class CommentController extends Disposable implements IEditorContribution
 		const lineNumber = e.target.position!.lineNumber;
 		let range: Range | undefined;
 		let selection: Range | null | undefined;
-		// Check for drag along gutter decoration
 		if ((matchedLineNumber !== lineNumber)) {
 			if (matchedLineNumber > lineNumber) {
 				selection = new Range(matchedLineNumber, this.editor.getModel()!.getLineLength(matchedLineNumber) + 1, lineNumber, 1);
@@ -1131,7 +1106,6 @@ export class CommentController extends Disposable implements IEditorContribution
 			selection = this.editor.getSelection();
 		}
 
-		// Check for selection at line number.
 		if (selection && (selection.startLineNumber <= lineNumber) && (lineNumber <= selection.endLineNumber)) {
 			range = selection;
 			this.editor.setSelection(new Range(selection.endLineNumber, 1, selection.endLineNumber, 1));
@@ -1149,11 +1123,8 @@ export class CommentController extends Disposable implements IEditorContribution
 	}
 
 	public async addOrToggleCommentAtLine(commentRange: Range | undefined, e: IEditorMouseEvent | undefined): Promise<void> {
-		// If an add is already in progress, queue the next add and process it after the current one finishes to
-		// prevent empty comment threads from being added to the same line.
 		if (!this._addInProgress) {
 			this._addInProgress = true;
-			// The widget's position is undefined until the widget has been displayed, so rely on the glyph position instead
 			const existingCommentsAtLine = this.getCommentsAtLine(commentRange);
 			if (existingCommentsAtLine.length) {
 				const allExpanded = existingCommentsAtLine.every(widget => widget.expanded);
@@ -1299,7 +1270,7 @@ export class CommentController extends Disposable implements IEditorContribution
 
 		const options = editor.getOptions();
 		if (options.get(EditorOption.folding) && options.get(EditorOption.showFoldingControls) !== 'never') {
-			lineDecorationsWidth += 11; // 11 comes from https://github.com/microsoft/vscode/blob/94ee5f58619d59170983f453fe78f156c0cc73a3/src/vs/workbench/contrib/comments/browser/media/review.css#L485
+			lineDecorationsWidth += 11;
 		}
 		lineDecorationsWidth -= 24;
 		return { extraEditorClassName, lineDecorationsWidth };
@@ -1375,7 +1346,6 @@ export class CommentController extends Disposable implements IEditorContribution
 
 		this._commentInfos = commentInfos;
 		this.tryUpdateReservedSpace();
-		// create viewzones
 		this.removeCommentWidgetsAndStoreCache();
 
 		let hasCommentingRanges = false;

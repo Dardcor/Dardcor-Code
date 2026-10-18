@@ -63,9 +63,6 @@ suite('getNonWhitespacePrefix', () => {
 	});
 
 	test('many separators', () => {
-		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions?redirectlocale=en-US&redirectslug=JavaScript%2FGuide%2FRegular_Expressions#special-white-space
-		// \s matches a single white space character, including space, tab, form feed, line feed.
-		// Equivalent to [ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff].
 
 		assertGetNonWhitespacePrefix('something interesting', 22, 'interesting');
 		assertGetNonWhitespacePrefix('something\tinteresting', 22, 'interesting');

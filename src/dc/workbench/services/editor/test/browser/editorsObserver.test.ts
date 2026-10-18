@@ -181,8 +181,6 @@ suite('EditorsObserver', function () {
 		assert.strictEqual(observer.hasEditors(input1.resource), true);
 		assert.strictEqual(observer.hasEditor({ resource: input1.resource, typeId: input1.typeId, editorId: input1.editorId }), true);
 
-		// Opening an editor inactive should not change
-		// the most recent editor, but rather put it behind
 		const input2 = disposables.add(new TestFileEditorInput(URI.parse('foo://bar2'), TEST_SERIALIZABLE_EDITOR_INPUT_ID));
 
 		await rootGroup.openEditor(input2, { inactive: true });
@@ -517,7 +515,7 @@ suite('EditorsObserver', function () {
 
 		assert.strictEqual(rootGroup.count, 2);
 		assert.strictEqual(rootGroup.contains(input1), false);
-		assert.strictEqual(rootGroup.contains(input2), true); // dirty
+		assert.strictEqual(rootGroup.contains(input2), true);
 		assert.strictEqual(rootGroup.contains(input3), false);
 		assert.strictEqual(rootGroup.contains(input4), true);
 		assert.strictEqual(observer.hasEditor({ resource: input1.resource, typeId: input1.typeId, editorId: input1.editorId }), false);
@@ -530,7 +528,7 @@ suite('EditorsObserver', function () {
 
 		assert.strictEqual(rootGroup.count, 1);
 		assert.strictEqual(rootGroup.contains(input1), false);
-		assert.strictEqual(rootGroup.contains(input2), true); // dirty
+		assert.strictEqual(rootGroup.contains(input2), true);
 		assert.strictEqual(rootGroup.contains(input3), false);
 		assert.strictEqual(rootGroup.contains(input4), false);
 		assert.strictEqual(sideGroup.contains(input5), true);
@@ -561,7 +559,7 @@ suite('EditorsObserver', function () {
 		await rootGroup.openEditor(input3, { pinned: true });
 		await rootGroup.openEditor(input4, { pinned: true });
 
-		assert.strictEqual(rootGroup.count, 3); // 1 editor got closed due to our limit!
+		assert.strictEqual(rootGroup.count, 3);
 		assert.strictEqual(rootGroup.contains(input1), false);
 		assert.strictEqual(rootGroup.contains(input2), true);
 		assert.strictEqual(rootGroup.contains(input3), true);
@@ -690,8 +688,6 @@ suite('EditorsObserver', function () {
 		await rootGroup.openEditor(file1, { pinned: true });
 		await rootGroup.openEditor(file2, { pinned: true });
 
-		// Excluded editors are never evicted (no open/close loop), while a normal
-		// editor still honors the limit of 1 (only the most recent survives).
 		assert.deepStrictEqual({
 			count: rootGroup.count,
 			managed1: rootGroup.contains(managed1),

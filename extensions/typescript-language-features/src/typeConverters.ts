@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/**
- * Helpers for converting FROM vscode types TO ts types
- */
 
 import * as vscode from 'vscode';
 import type * as Proto from './tsServer/protocol/protocol';

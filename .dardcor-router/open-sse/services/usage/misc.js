@@ -1,6 +1,3 @@
-/**
- * Misc usage handlers (iFlow, Ollama, GLM, Vercel AI Gateway, Qoder)
- */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { U } from "./shared.js";
@@ -8,29 +5,16 @@ import { U } from "./shared.js";
 export { getGlmUsage } from "./glm.js";
 
 
-// Vercel AI Gateway credits endpoint
-// Returns { balance: "95.50", total_used: "4.50" } (USD as decimal strings).
 const VERCEL_AI_GATEWAY_CREDITS_URL = U("vercel-ai-gateway").url;
 
-/**
- * iFlow Usage
- */
 export async function getIflowUsage(accessToken) {
   try {
-    // iFlow may have usage endpoint
     return { message: "iFlow connected. Usage tracked per request." };
   } catch (error) {
     return { message: "Unable to fetch iFlow usage." };
   }
 }
 
-/**
- * Ollama Cloud Usage
- * GET https://ollama.com/api/usage — session (5h) + weekly (7d) `usage` is a 0..1
- *   ratio (1.0 = limit reached, e.g. weekly 100% used). No reset timestamp exposed.
- * POST https://ollama.com/api/me — plan label (fail-open).
- * Auth: Authorization: Bearer <apiKey>
- */
 export async function getOllamaUsage(apiKey, providerSpecificData, proxyOptions = null) {
   if (!apiKey) {
     return { message: "Ollama Cloud API key not available." };
@@ -59,7 +43,6 @@ export async function getOllamaUsage(apiKey, providerSpecificData, proxyOptions 
       return { message: "Ollama Cloud usage response was not JSON." };
     }
 
-    // Best-effort plan label from /api/me
     const me = await proxyAwareFetch("https://ollama.com/api/me", {
       method: "POST",
       headers: {
@@ -76,8 +59,6 @@ export async function getOllamaUsage(apiKey, providerSpecificData, proxyOptions 
 
     const limits = data?.limits && typeof data.limits === "object" ? data.limits : {};
 
-    // Ollama `usage` is a 0..1 ratio (1.0 = limit reached). Convert to a 0..100
-    // bar. Do NOT set absolute `remaining` — QuotaTable reads remainingPercentage.
     function ratioQuota(usageRatio, resetAt = null) {
       const ratio = Math.max(0, Math.min(1, Number(usageRatio) || 0));
       const usedPct = Math.round(ratio * 100);
@@ -111,19 +92,6 @@ export async function getOllamaUsage(apiKey, providerSpecificData, proxyOptions 
 
 
 
-/**
- * Vercel AI Gateway usage — credit balance for the API key
- *
- * Calls GET /v1/credits which returns:
- *   { "balance": "95.50", "total_used": "4.50" }   (USD as decimal strings)
- *
- * We surface this as a single "Balance ($)" quota row so the existing
- * QuotaTable / progress-bar UI can render it. used = total_used,
- * total = balance + total_used (the original credit allotment), so the
- * remaining percentage equals balance / total.
- *
- * Docs: https://vercel.com/docs/ai-gateway/usage
- */
 export async function getVercelAiGatewayUsage(apiKey, proxyOptions = null) {
   if (!apiKey) {
     return { message: "Vercel AI Gateway API key not available." };
@@ -150,12 +118,9 @@ export async function getVercelAiGatewayUsage(apiKey, proxyOptions = null) {
 
     const data = await response.json();
 
-    // Vercel returns numeric strings; coerce safely.
     const balance = Number(data?.balance) || 0;
     const totalUsed = Number(data?.total_used) || 0;
 
-    // Vercel gives $5/month free credit. The API doesn't return the
-    // monthly allocation so we use the known constant as the denominator.
     const MONTHLY_CREDIT = 5;
     const remainingPercentage = (balance / MONTHLY_CREDIT) * 100;
 
@@ -167,8 +132,6 @@ export async function getVercelAiGatewayUsage(apiKey, proxyOptions = null) {
       };
     }
 
-    // "Used (USD)": how much has been spent this month (no fixed cap → unlimited).
-    // "Remaining (USD)": balance remaining out of the $5 monthly allocation.
     return {
       plan: "Pay-as-you-go",
       quotas: {
@@ -216,14 +179,8 @@ export async function getQoderUsage(accessToken, proxyOptions = null) {
     if (!body) {
       return { message: "Qoder connected. Usage response was not JSON." };
     }
-    // Quota records live under `quotas`; scalar metadata
-    // (totalUsagePercentage, isQuotaExceeded, expiresAt) are surfaced as
-    // siblings so the dashboard parser doesn't try to render them as rows.
     const userQuota = body.userQuota || {};
     const orgQuota = body.orgResourcePackage || {};
-    // Qoder publishes a single absolute reset timestamp (`expiresAt` in ms);
-    // surface it on every quota record as ISO so the table can render
-    // "resets at" alongside used/total.
     const expiresAtMs = Number.isFinite(Number(body.expiresAt)) && Number(body.expiresAt) > 0
       ? Number(body.expiresAt)
       : null;

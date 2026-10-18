@@ -7,15 +7,12 @@ import { $, getActiveDocument, getActiveWindow } from '../../../../base/browser/
 import { Disposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import './media/decorationCssRuleExtractor.css';
 
-/**
- * Extracts CSS rules that would be applied to certain decoration classes.
- */
 export class DecorationCssRuleExtractor extends Disposable {
 	private _container: HTMLElement;
 	private _dummyElement: HTMLSpanElement;
 
-	private _ruleCache: Map</* className */string, CSSStyleRule[]> = new Map();
-	private _cssVariableCache: Map</* variableName */string, /* value */string> = new Map();
+	private _ruleCache: Map< string, CSSStyleRule[]> = new Map();
+	private _cssVariableCache: Map< string, string> = new Map();
 
 	constructor() {
 		super();
@@ -28,34 +25,27 @@ export class DecorationCssRuleExtractor extends Disposable {
 	}
 
 	getStyleRules(canvas: HTMLElement, decorationClassName: string): CSSStyleRule[] {
-		// Check cache
 		const existing = this._ruleCache.get(decorationClassName);
 		if (existing) {
 			return existing;
 		}
 
-		// Set up DOM
 		this._dummyElement.className = decorationClassName;
 		canvas.appendChild(this._container);
 
-		// Get rules
 		const rules = this._getStyleRules(decorationClassName);
 		this._ruleCache.set(decorationClassName, rules);
 
-		// Tear down DOM
 		canvas.removeChild(this._container);
 
 		return rules;
 	}
 
 	private _getStyleRules(className: string) {
-		// Iterate through all stylesheets and imported stylesheets to find matching rules
 		const rules: CSSStyleRule[] = [];
 		const doc = getActiveDocument();
 		const stylesheets = [...doc.styleSheets];
 
-		// className can be space-separated (e.g., 'ghost-text-decoration syntax-highlighted')
-		// We need to search for each individual class
 		const classNames = className.split(' ').filter(c => c.length > 0);
 
 		for (let i = 0; i < stylesheets.length; i++) {
@@ -73,13 +63,6 @@ export class DecorationCssRuleExtractor extends Disposable {
 					this._collectMatchingRules(rule.styleSheet.cssRules, classNames, result);
 				}
 			} else if (rule instanceof CSSStyleRule) {
-				// Note that originally `.matches(rule.selectorText)` was used but this would
-				// not pick up pseudo-classes which are important to determine support of the
-				// returned styles.
-				//
-				// Since a selector could contain a class name lookup that is simple a prefix of
-				// the class name we are looking for, we need to also check the character after
-				// it.
 				for (const className of classNames) {
 					const searchTerm = `.${className}`;
 					const index = rule.selectorText.indexOf(searchTerm);
@@ -87,11 +70,10 @@ export class DecorationCssRuleExtractor extends Disposable {
 						const endOfResult = index + searchTerm.length;
 						if (rule.selectorText.length === endOfResult || rule.selectorText.substring(endOfResult, endOfResult + 1).match(/[ :.]/)) {
 							result.push(rule);
-							break; // Don't add the same rule multiple times
+							break;
 						}
 					}
 				}
-				// Recursively check nested rules (CSS nesting)
 				if (rule.cssRules?.length) {
 					this._collectMatchingRules(rule.cssRules, classNames, result);
 				}
@@ -99,9 +81,6 @@ export class DecorationCssRuleExtractor extends Disposable {
 		}
 	}
 
-	/**
-	 * Resolves a CSS variable to its computed value using the container element.
-	 */
 	resolveCssVariable(canvas: HTMLCanvasElement, variableName: string): string {
 		let result = this._cssVariableCache.get(variableName);
 		if (result === undefined) {
@@ -113,10 +92,6 @@ export class DecorationCssRuleExtractor extends Disposable {
 		return result;
 	}
 
-	/**
-	 * Clears all cached CSS rules and CSS variable values. This should be called when the theme
-	 * changes to ensure fresh values are computed.
-	 */
 	clear(): void {
 		this._ruleCache.clear();
 		this._cssVariableCache.clear();

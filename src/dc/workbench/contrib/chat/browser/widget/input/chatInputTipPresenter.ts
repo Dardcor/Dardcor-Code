@@ -14,28 +14,18 @@ import { ChatInputNoticeHost, ChatInputNoticeLane } from './chatInputNoticeHost.
 import { ChatInputStackSlot, setChatInputStackSlot } from './chatInputStack.js';
 
 export interface IChatInputTipPresenterOptions {
-	/** The element the tip is rendered into. Hidden while no tip is showing. */
 	readonly container: HTMLElement;
-	/** Decides whether this surface currently wants a tip at all. */
 	readonly isEligible: () => boolean;
-	/** Returns focus to the input once the tip removes itself. */
 	readonly focusInput: () => void;
-	/** Runs before every evaluation, for surfaces that must reset tip rotation. */
 	readonly onBeforeUpdate?: () => void;
 }
 
-/**
- * Renders the getting-started tip for one chat input and keeps it out of the
- * way of higher-precedence notices. Shared by the workbench chat widget and the
- * Agents window composer so tip presentation exists in exactly one place.
- */
 export class ChatInputTipPresenter extends Disposable {
 
 	private readonly _part = this._register(new MutableDisposable<DisposableStore>());
 	private readonly _lease = this._register(new MutableDisposable<IDisposable>());
 	private _partRef: ChatTipContentPart | undefined;
 	private _leading = false;
-	/** The rendered tip, when one is showing. */
 	get current(): ChatTipContentPart | undefined {
 		return this._partRef;
 	}
@@ -49,19 +39,11 @@ export class ChatInputTipPresenter extends Disposable {
 	) {
 		super();
 
-		// Takes the tip out of the container even if the notice host is already
-		// gone, so disposal never depends on a stand-down that will not arrive.
 		this._register(toDisposable(() => this._clearContent()));
 
 		this.update();
 	}
 
-	/**
-	 * Re-evaluate whether this surface wants a tip at all. Claiming the tip lane is
-	 * all this does: whether the tip is actually on screen is the notice host's
-	 * answer, delivered through `onDidChangeLeading`, so the tip yields to a higher
-	 * lane and comes back once that content goes away without polling for it.
-	 */
 	update(): void {
 		this._options.onBeforeUpdate?.();
 
@@ -75,14 +57,11 @@ export class ChatInputTipPresenter extends Disposable {
 				focusTarget: {
 					hasFocus: () => this._partRef?.hasFocus() ?? false,
 					focus: () => this._partRef?.focus(),
-					// The lane is claimed while this surface wants a tip, but there is
-					// only something to focus once one is actually rendered.
 					canFocus: () => !!this._partRef,
 				},
 				onDidChangeLeading: leading => this._setLeading(leading),
 			});
 		} else if (this._leading) {
-			// Already on screen: re-evaluate which tip should be showing.
 			this._render();
 		}
 	}
@@ -96,10 +75,6 @@ export class ChatInputTipPresenter extends Disposable {
 		}
 	}
 
-	/**
-	 * Build the tip that should be showing. Never touches the claim, so rendering
-	 * cannot feed back into the arbitration that asked for it.
-	 */
 	private _render(): void {
 		const tip = this._chatTipService.getWelcomeTip(this._contextKeyService);
 		if (!tip) {
@@ -107,7 +82,6 @@ export class ChatInputTipPresenter extends Disposable {
 			return;
 		}
 
-		// An eligible tip is already rendered; keep it rather than rotating.
 		if (this._part.value) {
 			setChatInputStackSlot(this._options.container, ChatInputStackSlot.Docked);
 			return;
@@ -122,8 +96,6 @@ export class ChatInputTipPresenter extends Disposable {
 			this._options.focusInput();
 		}));
 
-		// Set both before touching the DOM so re-entrant calls triggered by
-		// context-key changes during construction do not append a second tip.
 		this._part.value = store;
 		this._partRef = tipPart;
 		dom.clearNode(this._options.container);
@@ -131,7 +103,6 @@ export class ChatInputTipPresenter extends Disposable {
 		setChatInputStackSlot(this._options.container, ChatInputStackSlot.Docked);
 	}
 
-	/** Take the tip off screen and give up the lane. */
 	clear(): void {
 		this._leading = false;
 		this._lease.clear();

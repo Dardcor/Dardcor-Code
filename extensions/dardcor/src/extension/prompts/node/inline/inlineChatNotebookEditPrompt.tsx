@@ -58,7 +58,7 @@ class InlineChatNotebookEditSelection extends PromptElement<InlineChatNotebookEd
 		}
 		const { wholeRange } = state;
 		const contextInfo = generateSelectionContextInNotebook(
-			sizing.endpoint.modelMaxPromptTokens / 3, // consume one 3rd of the model window
+			sizing.endpoint.modelMaxPromptTokens / 3,
 			this.props.documentContext,
 			wholeRange,
 			this.tabsAndEditorsService,
@@ -165,7 +165,7 @@ export class InlineChatNotebookEditPrompt extends PromptElement<InlineChatEditCo
 		const activeDocumentContext = currentDocumentContext;
 		const notebook = findNotebook(currentDocumentContext.document.uri, this.workspaceService.notebookDocuments);
 
-		const isIgnored = await this.ignoreService.isCopilotIgnored(activeDocumentContext.document.uri);
+		const isIgnored = await this.ignoreService.isIgnored(activeDocumentContext.document.uri);
 		const wholeRange = activeDocumentContext.document.validateRange(activeDocumentContext.wholeRange);
 
 		const summarizedDocument = await createPromptingSummarizedDocument(
@@ -173,7 +173,7 @@ export class InlineChatNotebookEditPrompt extends PromptElement<InlineChatEditCo
 			activeDocumentContext.document,
 			activeDocumentContext.fileIndentInfo,
 			wholeRange,
-			sizing.endpoint.modelMaxPromptTokens / 3 // consume one 3rd of the model window
+			sizing.endpoint.modelMaxPromptTokens / 3
 		);
 
 		const isTagBasedDocumentSummary = this.experimentationService.getTreatmentVariable<boolean>('dardcorchat.tagBasedDocumentSummary') ?? false;

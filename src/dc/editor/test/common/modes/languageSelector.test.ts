@@ -64,11 +64,11 @@ suite('LanguageSelector', function () {
 			uri: URI.parse('git:/my/file.js'),
 			langId: 'javascript'
 		};
-		assert.strictEqual(score('javascript', doc.uri, doc.langId, true, undefined, undefined), 10); // 0;
-		assert.strictEqual(score({ language: 'javascript', scheme: 'git' }, doc.uri, doc.langId, true, undefined, undefined), 10); // 10;
-		assert.strictEqual(score('*', doc.uri, doc.langId, true, undefined, undefined), 5); // 5
-		assert.strictEqual(score('fooLang', doc.uri, doc.langId, true, undefined, undefined), 0); // 0
-		assert.strictEqual(score(['fooLang', '*'], doc.uri, doc.langId, true, undefined, undefined), 5); // 5
+		assert.strictEqual(score('javascript', doc.uri, doc.langId, true, undefined, undefined), 10);
+		assert.strictEqual(score({ language: 'javascript', scheme: 'git' }, doc.uri, doc.langId, true, undefined, undefined), 10);
+		assert.strictEqual(score('*', doc.uri, doc.langId, true, undefined, undefined), 5);
+		assert.strictEqual(score('fooLang', doc.uri, doc.langId, true, undefined, undefined), 0);
+		assert.strictEqual(score(['fooLang', '*'], doc.uri, doc.langId, true, undefined, undefined), 5);
 	});
 
 	test('score, max(filters)', function () {

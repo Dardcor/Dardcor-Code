@@ -5,16 +5,9 @@
 
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { IGitService } from '../../../../platform/git/common/gitService';
-import { CopilotChatAttr, emitSessionStartEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, GitHubCopilotAttr, IOTelService, type ISpanHandle, normalizeResponseModel, resolveWorkspaceOTelMetadata, SpanKind, SpanStatusCode, type TraceContext, truncateForOTel, workspaceMetadataToOTelAttributes } from '../../../../platform/otel/common/index';
+import { DardcorChatAttr, emitSessionStartEvent, GenAiAttr, GenAiMetrics, GenAiOperationName, GenAiProviderName, DardcorAttr, IOTelService, type ISpanHandle, normalizeResponseModel, resolveWorkspaceOTelMetadata, SpanKind, SpanStatusCode, type TraceContext, truncateForOTel, workspaceMetadataToOTelAttributes } from '../../../../platform/otel/common/index';
 import { IClaudeSessionStateService } from '../common/claudeSessionStateService';
 
-/**
- * Manages OTel span lifecycle for a Claude agent session.
- *
- * Extracted from ClaudeCodeSession to keep tracing concerns separate from
- * session orchestration. Tracks the invoke_agent root span, accumulates
- * parent-only token usage, and manages trace context for subagent nesting.
- */
 export class ClaudeOTelTracker {
 	private _currentSpan: ISpanHandle | undefined;
 	private _currentTraceContext: TraceContext | undefined;
@@ -34,15 +27,10 @@ export class ClaudeOTelTracker {
 		private readonly _gitService: IGitService,
 	) { }
 
-	/** The trace context of the current invoke_agent span, used to parent child spans. */
 	get traceContext(): TraceContext | undefined {
 		return this._currentTraceContext;
 	}
 
-	/**
-	 * Starts a new invoke_agent span for a user request.
-	 * Ends any previous span and resets accumulators.
-	 */
 	startRequest(modelId: string): void {
 		this.endRequest();
 
@@ -53,10 +41,10 @@ export class ClaudeOTelTracker {
 				[GenAiAttr.AGENT_NAME]: 'claude',
 				[GenAiAttr.PROVIDER_NAME]: GenAiProviderName.GITHUB,
 				[GenAiAttr.CONVERSATION_ID]: this._sessionId,
-				[CopilotChatAttr.SESSION_ID]: this._sessionId,
-				[CopilotChatAttr.CHAT_SESSION_ID]: this._sessionId,
+				[DardcorChatAttr.SESSION_ID]: this._sessionId,
+				[DardcorChatAttr.CHAT_SESSION_ID]: this._sessionId,
 				[GenAiAttr.REQUEST_MODEL]: modelId,
-				[GitHubCopilotAttr.AGENT_TYPE]: 'builtin',
+				[DardcorAttr.AGENT_TYPE]: 'builtin',
 				...workspaceMetadataToOTelAttributes(resolveWorkspaceOTelMetadata(this._gitService)),
 			},
 		});
@@ -69,10 +57,8 @@ export class ClaudeOTelTracker {
 		this._parentCacheReadTokens = 0;
 		this._parentCacheCreationTokens = 0;
 
-		// Store trace context so the language model server can parent chat spans
 		this._sessionStateService.setTraceContextForSession(this._sessionId, this._currentTraceContext);
 
-		// Emit session start event and metric for the first request
 		if (this._isFirstRequest) {
 			this._isFirstRequest = false;
 			GenAiMetrics.incrementSessionCount(this._otelService);
@@ -80,28 +66,21 @@ export class ClaudeOTelTracker {
 		}
 	}
 
-	/**
-	 * Emits a user_message span event for the debug panel.
-	 */
 	emitUserMessage(promptLabel: string): void {
 		const userMsgSpan = this._otelService.startSpan('user_message', {
 			kind: SpanKind.INTERNAL,
 			attributes: {
 				[GenAiAttr.OPERATION_NAME]: 'user_message',
-				[CopilotChatAttr.CHAT_SESSION_ID]: this._sessionId,
+				[DardcorChatAttr.CHAT_SESSION_ID]: this._sessionId,
 			},
 			parentTraceContext: this._currentTraceContext,
 		});
 		const userContent = truncateForOTel(promptLabel, this._otelService.config.maxAttributeSizeChars);
-		userMsgSpan.setAttribute(CopilotChatAttr.USER_REQUEST, userContent);
-		userMsgSpan.addEvent('user_message', { content: userContent, [CopilotChatAttr.CHAT_SESSION_ID]: this._sessionId });
+		userMsgSpan.setAttribute(DardcorChatAttr.USER_REQUEST, userContent);
+		userMsgSpan.addEvent('user_message', { content: userContent, [DardcorChatAttr.CHAT_SESSION_ID]: this._sessionId });
 		userMsgSpan.end();
 	}
 
-	/**
-	 * Processes an SDK message for OTel tracking.
-	 * Call this for every message in the processing loop.
-	 */
 	onMessage(message: SDKMessage, subagentTraceContexts: Map<string, TraceContext>): void {
 		if (message.type === 'assistant') {
 			this._turnCount++;
@@ -115,30 +94,22 @@ export class ClaudeOTelTracker {
 		this._updateTraceContextForMessage(message, subagentTraceContexts);
 	}
 
-	/**
-	 * Ends the current invoke_agent span with OK status and records metrics.
-	 */
 	endRequest(): void {
 		this._endSpan();
 	}
 
-	/**
-	 * Ends the current invoke_agent span with ERROR status.
-	 */
 	endRequestWithError(message: string): void {
 		this._endSpan(SpanStatusCode.ERROR, message);
 	}
 
-	// ── Private ──────────────────────────────────────────────────────────────
 
 	private _endSpan(statusCode?: SpanStatusCode, statusMessage?: string): void {
 		if (!this._currentSpan) {
 			return;
 		}
 		const span = this._currentSpan;
-		span.setAttribute(CopilotChatAttr.TURN_COUNT, this._turnCount);
+		span.setAttribute(DardcorChatAttr.TURN_COUNT, this._turnCount);
 
-		// Set parent-only token usage (comparable with foreground agent).
 		span.setAttributes({
 			[GenAiAttr.USAGE_INPUT_TOKENS]: this._parentInputTokens,
 			[GenAiAttr.USAGE_OUTPUT_TOKENS]: this._parentOutputTokens,
@@ -153,7 +124,6 @@ export class ClaudeOTelTracker {
 		}
 		span.end();
 
-		// Record agent-level metrics
 		if (this._startTime) {
 			const durationSec = (Date.now() - this._startTime) / 1000;
 			GenAiMetrics.recordAgentDuration(this._otelService, 'claude', durationSec);
@@ -167,20 +137,6 @@ export class ClaudeOTelTracker {
 		this._sessionStateService.setTraceContextForSession(this._sessionId, undefined);
 	}
 
-	/**
-	 * Accumulates parent-only token usage from an assistant message.
-	 * Excludes subagent turns so gen_ai.usage.* on the root span is comparable
-	 * with the foreground agent.
-	 *
-	 * NOTE: Anthropic SDK `Usage` does not surface reasoning/thinking tokens
-	 * separately (they are folded into `output_tokens`). The per-turn chat spans
-	 * emitted by `chatMLFetcher` (via `ClaudeStreamingPassThroughEndpoint`) do
-	 * carry `gen_ai.usage.reasoning_tokens` / `gen_ai.usage.reasoning.output_tokens`
-	 * because CAPI normalizes the response. To populate reasoning tokens on this
-	 * root `invoke_agent claude` span we would need to bridge that count from the
-	 * pass-through endpoint into this tracker. See toolCallingLoop.ts for the
-	 * pattern used by the foreground agent.
-	 */
 	private _accumulateParentTokenUsage(message: SDKMessage & { type: 'assistant' }): void {
 		if (message.parent_tool_use_id) {
 			return;
@@ -196,18 +152,15 @@ export class ClaudeOTelTracker {
 		}
 	}
 
-	/**
-	 * Sets cost, turn count, and response model on the invoke_agent span from a result message.
-	 */
 	private _setResultAttributes(message: SDKMessage & { type: 'result' }): void {
 		if (!this._currentSpan) {
 			return;
 		}
 		if (message.num_turns !== undefined) {
-			this._currentSpan.setAttribute(CopilotChatAttr.TURN_COUNT, message.num_turns);
+			this._currentSpan.setAttribute(DardcorChatAttr.TURN_COUNT, message.num_turns);
 		}
 		if (message.total_cost_usd !== undefined) {
-			this._currentSpan.setAttribute(CopilotChatAttr.TOTAL_COST_USD, message.total_cost_usd);
+			this._currentSpan.setAttribute(DardcorChatAttr.TOTAL_COST_USD, message.total_cost_usd);
 		}
 		const rawResponseModel = message.modelUsage ? Object.keys(message.modelUsage)[0] : undefined;
 		const responseModel = normalizeResponseModel(this._currentRequestModel, rawResponseModel);
@@ -216,11 +169,6 @@ export class ClaudeOTelTracker {
 		}
 	}
 
-	/**
-	 * Updates the session trace context based on whether a message is from a subagent.
-	 * Ensures chat spans created by chatMLFetcher are parented under the correct
-	 * Agent tool span during subagent execution.
-	 */
 	private _updateTraceContextForMessage(message: SDKMessage, subagentTraceContexts: Map<string, TraceContext>): void {
 		if (!('parent_tool_use_id' in message)) {
 			return;

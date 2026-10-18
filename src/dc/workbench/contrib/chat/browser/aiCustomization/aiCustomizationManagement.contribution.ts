@@ -65,7 +65,6 @@ import { AICustomizationManagementEditor } from './aiCustomizationManagementEdit
 import { AICustomizationManagementEditorInput } from './aiCustomizationManagementEditorInput.js';
 import './customizationMigrationServiceImpl.js';
 
-//#region Telemetry
 
 type CustomizationEditorDeleteItemEvent = {
 	promptType: string;
@@ -79,9 +78,7 @@ type CustomizationEditorDeleteItemClassification = {
 	comment: 'Tracks item deletion in the Agent Customizations editor.';
 };
 
-//#endregion
 
-//#region Editor Registration
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
@@ -90,14 +87,11 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 		localize('aiCustomizationManagementEditor', "Agent Customizations Editor")
 	),
 	[
-		// Note: Using the class directly since we use a singleton pattern
 		new SyncDescriptor(AICustomizationManagementEditorInput as unknown as { new(): AICustomizationManagementEditorInput })
 	]
 );
 
-//#endregion
 
-//#region Editor Serializer
 
 class AICustomizationManagementEditorInputSerializer implements IEditorSerializer {
 
@@ -119,14 +113,8 @@ Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEdit
 	AICustomizationManagementEditorInputSerializer
 );
 
-//#endregion
 
-//#region Context Menu Actions
 
-/**
- * Type for context passed to actions from list context menus.
- * Handles both direct URI arguments and serialized context objects.
- */
 type AICustomizationContext = {
 	uri: URI | string;
 	name?: string;
@@ -135,9 +123,6 @@ type AICustomizationContext = {
 	[key: string]: unknown;
 } | URI | string;
 
-/**
- * Extracts a URI from various context formats.
- */
 function extractURI(context: AICustomizationContext): URI {
 	if (URI.isUri(context)) {
 		return context;
@@ -151,9 +136,6 @@ function extractURI(context: AICustomizationContext): URI {
 	return URI.parse(context.uri as string);
 }
 
-/**
- * Extracts storage type from context.
- */
 function extractSource(context: AICustomizationContext): AICustomizationSource | undefined {
 	if (URI.isUri(context) || typeof context === 'string') {
 		return undefined;
@@ -161,9 +143,6 @@ function extractSource(context: AICustomizationContext): AICustomizationSource |
 	return context.storage;
 }
 
-/**
- * Extracts prompt type from context.
- */
 function extractPromptType(context: AICustomizationContext): PromptsType | undefined {
 	if (URI.isUri(context) || typeof context === 'string') {
 		return undefined;
@@ -171,9 +150,6 @@ function extractPromptType(context: AICustomizationContext): PromptsType | undef
 	return context.promptType;
 }
 
-/**
- * Extracts the parent plugin URI from context, if present.
- */
 function extractPluginUri(context: AICustomizationContext): URI | undefined {
 	if (URI.isUri(context) || typeof context === 'string') {
 		return undefined;
@@ -186,9 +162,6 @@ function extractPluginUri(context: AICustomizationContext): URI | undefined {
 }
 
 
-/**
- * Extracts the item ID from context (used for identifying individual hooks within a file).
- */
 function extractItemId(context: AICustomizationContext): string | undefined {
 	if (URI.isUri(context) || typeof context === 'string') {
 		return undefined;
@@ -196,11 +169,6 @@ function extractItemId(context: AICustomizationContext): string | undefined {
 	return typeof context.itemId === 'string' ? context.itemId : undefined;
 }
 
-/**
- * Parses a hook item ID to extract the original hook type ID and array index.
- * Hook item IDs have the format: `fileUri#originalId[index]`
- * Returns undefined if the ID does not match this format.
- */
 function parseHookItemId(itemId: string): { originalId: string; index: number } | undefined {
 	const hashIndex = itemId.lastIndexOf('#');
 	if (hashIndex < 0) {
@@ -214,7 +182,6 @@ function parseHookItemId(itemId: string): { originalId: string; index: number } 
 	return { originalId: match[1], index: parseInt(match[2], 10) };
 }
 
-// Open file action
 const OPEN_AI_CUSTOMIZATION_MGMT_FILE_ID = 'aiCustomizationManagement.openFile';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -246,7 +213,6 @@ registerAction2(class extends Action2 {
 });
 
 
-// Run prompt action
 const RUN_PROMPT_MGMT_ID = 'aiCustomizationManagement.runPrompt';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -262,7 +228,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// Reveal in Finder/Explorer action
 const REVEAL_IN_OS_LABEL = isWindows
 	? localize2('revealInWindows', "Reveal in File Explorer")
 	: isMacintosh
@@ -281,12 +246,10 @@ registerAction2(class extends Action2 {
 	async run(accessor: ServicesAccessor, context: AICustomizationContext): Promise<void> {
 		const commandService = accessor.get(ICommandService);
 		const uri = extractURI(context);
-		// Use existing reveal command
 		await commandService.executeCommand('revealFileInOS', uri);
 	}
 });
 
-// Delete action
 const DELETE_AI_CUSTOMIZATION_ID = 'aiCustomizationManagement.delete';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -312,10 +275,8 @@ registerAction2(class extends Action2 {
 		const itemId = extractItemId(context);
 		const isSkill = promptType === PromptsType.skill;
 		const isHook = promptType === PromptsType.hook;
-		// For skills, use the parent folder name since skills are structured as <skillname>/SKILL.md.
 		const fileName = isSkill ? basename(dirname(uri)) : basename(uri);
 
-		// Plugin-provided files: offer to uninstall the plugin
 		if (source === AICustomizationSources.plugin) {
 			const agentPluginService = accessor.get(IAgentPluginService);
 			const plugin = agentPluginService.plugins.get().find(p => isEqualOrParent(uri, p.uri));
@@ -333,7 +294,6 @@ registerAction2(class extends Action2 {
 			return;
 		}
 
-		// Extension and built-in files cannot be deleted
 		if (source === AICustomizationSources.extension || source === AICustomizationSources.builtin) {
 			await dialogService.info(
 				localize('cannotDeleteExtension', "Cannot Delete Extension File"),
@@ -342,7 +302,6 @@ registerAction2(class extends Action2 {
 			return;
 		}
 
-		// Confirm deletion
 		const hookInfo = isHook && itemId ? parseHookItemId(itemId) : undefined;
 		const hookName = typeof context !== 'string' && !URI.isUri(context) ? context.name : undefined;
 		const message = isSkill
@@ -364,11 +323,8 @@ registerAction2(class extends Action2 {
 					storage: source ?? '',
 				});
 			} catch {
-				// Telemetry must not block deletion
 			}
 
-			// For hooks with a specific hook ID, remove only that entry from the file.
-			// Uses JSONC edits to preserve user comments and formatting.
 			if (hookInfo) {
 				try {
 					const content = await fileService.readFile(uri);
@@ -393,13 +349,10 @@ registerAction2(class extends Action2 {
 				return;
 			}
 
-			// For skills, delete the parent folder (e.g. .github/skills/my-skill/)
-			// since each skill is a folder containing SKILL.md.
 			const deleteTarget = isSkill ? dirname(uri) : uri;
 			const useTrash = fileService.hasCapability(deleteTarget, FileSystemProviderCapabilities.Trash);
 			await fileService.del(deleteTarget, { useTrash, recursive: isSkill });
 
-			// Commit the deletion to git (sessions: main repo + worktree)
 			if (source === AICustomizationSources.local) {
 				const projectRoot = workspaceService.getActiveProjectRoot();
 				if (projectRoot) {
@@ -407,8 +360,6 @@ registerAction2(class extends Action2 {
 				}
 			}
 
-			// Refresh the list to remove the deleted item immediately
-			// (provider's onDidChange may not fire if it doesn't watch the filesystem)
 			const activeEditor = editorService.activeEditorPane;
 			if (activeEditor instanceof AICustomizationManagementEditor) {
 				activeEditor.refreshList();
@@ -417,7 +368,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// Copy path action
 const COPY_AI_CUSTOMIZATION_PATH_ID = 'aiCustomizationManagement.copyPath';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -455,31 +405,18 @@ registerAction2(class extends Action2 {
 	}
 });
 
-/**
- * When clause that hides an action for read-only (extension, plugin, built-in) items.
- */
 const WHEN_ITEM_IS_DELETABLE = ContextKeyExpr.and(
 	ContextKeyExpr.notEquals(AI_CUSTOMIZATION_ITEM_STORAGE_KEY, AICustomizationSources.extension),
 	ContextKeyExpr.notEquals(AI_CUSTOMIZATION_ITEM_STORAGE_KEY, AICustomizationSources.plugin),
 	ContextKeyExpr.notEquals(AI_CUSTOMIZATION_ITEM_STORAGE_KEY, AICustomizationSources.builtin),
 );
 
-/**
- * When clause that shows an action only for plugin items.
- *
- * Synced customizations are bundled into a synthetic plugin (under the
- * `vscode-synced-customization:` scheme) as an implementation detail of the
- * sync mechanism. Their plugin identity is not user-facing, so we hide
- * plugin-related actions ("Show Plugin", "Uninstall Plugin") for them.
- */
 const WHEN_ITEM_IS_PLUGIN = ContextKeyExpr.and(
 	ContextKeyExpr.equals(AI_CUSTOMIZATION_ITEM_STORAGE_KEY, AICustomizationSources.plugin),
 	ContextKeyExpr.regex(AI_CUSTOMIZATION_ITEM_PLUGIN_URI_KEY, new RegExp(`^${SYNCED_CUSTOMIZATION_SCHEME}:`)).negate(),
 );
 
-// Register context menu items
 
-// Inline hover actions (shown as icon buttons on hover)
 MenuRegistry.appendMenuItem(AICustomizationManagementItemMenuId, {
 	command: { id: INSTALL_CHAT_CUSTOMIZATION_EXTENSION_ID, title: localize('Install Chat Customization Extension', "Install Chat Customization Extension"), icon: Codicon.beaker },
 	group: 'inline',
@@ -506,7 +443,6 @@ MenuRegistry.appendMenuItem(AICustomizationManagementItemMenuId, {
 	when: WHEN_ITEM_IS_DELETABLE,
 });
 
-// Context menu items (shown on right-click)
 MenuRegistry.appendMenuItem(AICustomizationManagementItemMenuId, {
 	command: { id: OPEN_AI_CUSTOMIZATION_MGMT_FILE_ID, title: localize('open', "Open") },
 	group: '1_open',
@@ -537,7 +473,6 @@ MenuRegistry.appendMenuItem(AICustomizationManagementItemMenuId, {
 	when: WHEN_ITEM_IS_DELETABLE,
 });
 
-// Uninstall Plugin action - shown for plugin-provided items
 const UNINSTALL_PLUGIN_AI_CUSTOMIZATION_ID = 'aiCustomizationManagement.uninstallPlugin';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -583,7 +518,6 @@ MenuRegistry.appendMenuItem(AICustomizationManagementItemMenuId, {
 	when: WHEN_ITEM_IS_PLUGIN,
 });
 
-// Show Plugin action - navigates to the parent plugin detail page
 const SHOW_PLUGIN_AI_CUSTOMIZATION_ID = 'aiCustomizationManagement.showPlugin';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -613,7 +547,6 @@ registerAction2(class extends Action2 {
 			plugin,
 		};
 
-		// Try to show within the active AI Customization editor (with back navigation)
 		const input = AICustomizationManagementEditorInput.getOrCreate();
 		const pane = await editorService.openEditor(input, { pinned: true });
 		if (pane instanceof AICustomizationManagementEditor) {
@@ -629,7 +562,6 @@ MenuRegistry.appendMenuItem(AICustomizationManagementItemMenuId, {
 	when: WHEN_ITEM_IS_PLUGIN,
 });
 
-// Disable item action
 const DISABLE_AI_CUSTOMIZATION_MGMT_ITEM_ID = 'aiCustomizationManagement.disableItem';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -653,7 +585,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-// Enable item action
 const ENABLE_AI_CUSTOMIZATION_MGMT_ITEM_ID = 'aiCustomizationManagement.enableItem';
 registerAction2(class extends Action2 {
 	constructor() {
@@ -678,7 +609,6 @@ registerAction2(class extends Action2 {
 });
 
 for (const menuId of [AICustomizationManagementItemMenuId, AICustomizationManagementSyntheticItemMenuId]) {
-	// Context menu: Disable (shown when builtin item is enabled)
 	MenuRegistry.appendMenuItem(menuId, {
 		command: { id: DISABLE_AI_CUSTOMIZATION_MGMT_ITEM_ID, title: localize('disable', "Disable") },
 		group: '5_toggle',
@@ -690,7 +620,6 @@ for (const menuId of [AICustomizationManagementItemMenuId, AICustomizationManage
 		),
 	});
 
-	// Context menu: Enable (shown when builtin item is disabled)
 	MenuRegistry.appendMenuItem(menuId, {
 		command: { id: ENABLE_AI_CUSTOMIZATION_MGMT_ITEM_ID, title: localize('enable', "Enable") },
 		group: '5_toggle',
@@ -702,7 +631,6 @@ for (const menuId of [AICustomizationManagementItemMenuId, AICustomizationManage
 		),
 	});
 
-	// Inline hover: Disable (shown when builtin item is enabled)
 	MenuRegistry.appendMenuItem(menuId, {
 		command: { id: DISABLE_AI_CUSTOMIZATION_MGMT_ITEM_ID, title: localize('disable', "Disable"), icon: Codicon.eyeClosed },
 		group: 'inline',
@@ -714,7 +642,6 @@ for (const menuId of [AICustomizationManagementItemMenuId, AICustomizationManage
 		),
 	});
 
-	// Inline hover: Enable (shown when builtin item is disabled)
 	MenuRegistry.appendMenuItem(menuId, {
 		command: { id: ENABLE_AI_CUSTOMIZATION_MGMT_ITEM_ID, title: localize('enable', "Enable"), icon: Codicon.eye },
 		group: 'inline',
@@ -727,9 +654,7 @@ for (const menuId of [AICustomizationManagementItemMenuId, AICustomizationManage
 	});
 }
 
-//#endregion
 
-//#region Actions
 
 class AICustomizationManagementActionsContribution extends Disposable implements IWorkbenchContribution {
 
@@ -787,7 +712,6 @@ class AICustomizationManagementActionsContribution extends Disposable implements
 			}
 		}));
 
-		// Open AI Customizations Editor
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
 				super({
@@ -832,7 +756,6 @@ class AICustomizationManagementActionsContribution extends Disposable implements
 			}
 		}));
 
-		// Open Marketplace (hidden command for deep-linking into browse mode)
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
 				super({
@@ -854,7 +777,6 @@ class AICustomizationManagementActionsContribution extends Disposable implements
 			}
 		}));
 
-		// Generate Debug Report
 		this._register(registerAction2(class extends Action2 {
 			constructor() {
 				super({
@@ -868,7 +790,6 @@ class AICustomizationManagementActionsContribution extends Disposable implements
 
 			async run(accessor: ServicesAccessor): Promise<void> {
 				const editorService = accessor.get(IEditorService);
-				// Open the customizations editor if not already open
 				const input = AICustomizationManagementEditorInput.getOrCreate();
 				const pane = await editorService.openEditor(input, { pinned: true });
 				if (!(pane instanceof AICustomizationManagementEditor)) {
@@ -892,4 +813,3 @@ registerWorkbenchContribution2(
 	WorkbenchPhase.AfterRestored
 );
 
-//#endregion

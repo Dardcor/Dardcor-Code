@@ -13,19 +13,11 @@ function hexId(len: number): string {
 	return (nextId++).toString(16).padStart(len, '0');
 }
 
-/**
- * Span context stored in AsyncLocalStorage for correct parent-child propagation
- * across concurrent async operations.
- */
 interface SpanContext {
 	readonly spanId: string;
 	readonly traceId: string;
 }
 
-/**
- * Full-fidelity span handle that tracks all attributes, events, and status in-memory.
- * Fires onDidCompleteSpan on end() and onDidEmitSpanEvent on addEvent().
- */
 class InMemorySpanHandle implements ISpanHandle {
 	private readonly _attributes: Record<string, string | number | boolean | string[]> = {};
 	private readonly _events: ISpanEventRecord[] = [];
@@ -73,7 +65,7 @@ class InMemorySpanHandle implements ISpanHandle {
 		this._statusMessage = message;
 	}
 
-	recordException(_error: unknown): void { /* no-op for in-memory */ }
+	recordException(_error: unknown): void { }
 
 	addEvent(name: string, attributes?: Record<string, string | number | boolean | string[]>): void {
 		const timestamp = Date.now();
@@ -87,7 +79,7 @@ class InMemorySpanHandle implements ISpanHandle {
 				attributes: attributes ?? {},
 				timestamp,
 			});
-		} catch { /* emitter disposed */ }
+		} catch { }
 	}
 
 	end(): void {
@@ -105,7 +97,7 @@ class InMemorySpanHandle implements ISpanHandle {
 				attributes: { ...this._attributes },
 				events: [...this._events],
 			});
-		} catch { /* emitter disposed */ }
+		} catch { }
 	}
 
 	get context(): SpanContext {
@@ -117,17 +109,6 @@ class InMemorySpanHandle implements ISpanHandle {
 	}
 }
 
-/**
- * In-memory OTel service for the debug panel.
- *
- * Uses Node.js AsyncLocalStorage for correct parent-child span propagation
- * across concurrent async operations (e.g., parallel tool calls, subagents).
- * Does NOT load the OTel SDK or export to any backend.
- *
- * Used when OTel external export is disabled (the default).
- * When OTel export IS enabled, NodeOTelService is used instead (which has
- * both in-memory tracking AND SDK-based export).
- */
 export class InMemoryOTelService implements IOTelService {
 	declare readonly _serviceBrand: undefined;
 	readonly config: OTelConfig;
@@ -138,13 +119,11 @@ export class InMemoryOTelService implements IOTelService {
 	readonly onDidEmitSpanEvent: Event<ISpanEventData> = this._onDidEmitSpanEvent.event;
 
 	injectCompletedSpan(span: ICompletedSpanData): void {
-		try { this._onDidCompleteSpan.fire(span); } catch { /* emitter may be disposed */ }
+		try { this._onDidCompleteSpan.fire(span); } catch { }
 	}
 
-	/** AsyncLocalStorage for correct context propagation across concurrent async ops */
 	private readonly _contextStorage = new AsyncLocalStorage<SpanContext>();
 
-	/** Trace context store for cross-boundary propagation (e.g., subagent invocations) */
 	private static readonly _MAX_TRACE_CONTEXT_STORE_SIZE = 1000;
 	private readonly _traceContextStore = new Map<string, TraceContext>();
 	private readonly _traceContextTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -188,7 +167,6 @@ export class InMemoryOTelService implements IOTelService {
 	}
 
 	storeTraceContext(key: string, context: TraceContext): void {
-		// Evict oldest entry if at capacity
 		if (this._traceContextStore.size >= InMemoryOTelService._MAX_TRACE_CONTEXT_STORE_SIZE) {
 			const oldestKey = this._traceContextStore.keys().next().value;
 			if (oldestKey !== undefined) {
@@ -196,7 +174,6 @@ export class InMemoryOTelService implements IOTelService {
 			}
 		}
 		this._traceContextStore.set(key, context);
-		// Auto-cleanup after 30 minutes (generous for long-running agent sessions)
 		const timer = setTimeout(() => this._clearStoredTraceContext(key), 30 * 60 * 1000);
 		this._traceContextTimers.set(key, timer);
 	}
@@ -220,7 +197,6 @@ export class InMemoryOTelService implements IOTelService {
 		return this._contextStorage.run({ spanId: traceContext.spanId, traceId: traceContext.traceId }, fn);
 	}
 
-	// ── No-ops for metrics/logs (not needed for debug panel for now) ──
 
 	recordMetric(_name: string, _value: number, _attributes?: Record<string, string | number | boolean>): void { }
 	incrementCounter(_name: string, _value?: number, _attributes?: Record<string, string | number | boolean>): void { }
@@ -237,17 +213,14 @@ export class InMemoryOTelService implements IOTelService {
 		this._onDidEmitSpanEvent.dispose();
 	}
 
-	// ── Private ──
 
 	private _resolveParentContext(options?: SpanOptions): SpanContext | undefined {
-		// Explicit parent takes priority (e.g., subagent linking)
 		if (options?.parentTraceContext) {
 			return {
 				spanId: options.parentTraceContext.spanId,
 				traceId: options.parentTraceContext.traceId,
 			};
 		}
-		// Otherwise inherit from async context
 		return this._contextStorage.getStore();
 	}
 }

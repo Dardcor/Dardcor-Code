@@ -59,20 +59,17 @@ export class InlineCompletionsHoverParticipant implements IEditorHoverParticipan
 
 		const target = mouseEvent.target;
 		if (target.type === MouseTargetType.CONTENT_VIEW_ZONE) {
-			// handle the case where the mouse is over the view zone
 			const viewZoneData = target.detail;
 			if (controller.shouldShowHoverAtViewZone(viewZoneData.viewZoneId)) {
 				return new HoverForeignElementAnchor(1000, this, Range.fromPositions(this._editor.getModel()!.validatePosition(viewZoneData.positionBefore || viewZoneData.position)), mouseEvent.event.posx, mouseEvent.event.posy, false);
 			}
 		}
 		if (target.type === MouseTargetType.CONTENT_EMPTY) {
-			// handle the case where the mouse is over the empty portion of a line following ghost text
 			if (controller.shouldShowHoverAt(target.range)) {
 				return new HoverForeignElementAnchor(1000, this, target.range, mouseEvent.event.posx, mouseEvent.event.posy, false);
 			}
 		}
 		if (target.type === MouseTargetType.CONTENT_TEXT) {
-			// handle the case where the mouse is directly over ghost text
 			const mightBeForeignElement = target.detail.mightBeForeignElement;
 			if (mightBeForeignElement && controller.shouldShowHoverAt(target.range)) {
 				return new HoverForeignElementAnchor(1000, this, target.range, mouseEvent.event.posx, mouseEvent.event.posy, false);
@@ -165,7 +162,6 @@ export class InlineCompletionsHoverParticipant implements IEditorHoverParticipan
 		};
 
 		disposables.add(autorun(reader => {
-			/** @description update hover */
 			const ghostText = part.controller.model.read(reader)?.primaryGhostText.read(reader);
 			if (ghostText) {
 				const lineText = this._editor.getModel()!.getLineContent(ghostText.lineNumber);

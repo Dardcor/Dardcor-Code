@@ -55,10 +55,6 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 
 	merge(otherDebuggerContribution: IDebuggerContribution, extensionDescription: IExtensionDescription): void {
 
-		/**
-		 * Copies all properties of source into destination. The optional parameter "overwrite" allows to control
-		 * if existing non-structured properties on the destination should be overwritten or not. Defaults to true (overwrite).
-		 */
 		function mixin(destination: any, source: any, overwrite: boolean, level = 0): any {
 
 			if (!isObject(destination)) {
@@ -74,7 +70,6 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 							if (key in destination) {
 								if (overwrite) {
 									if (level === 0 && key === 'type') {
-										// don't merge the 'type' property
 									} else {
 										destination[key] = source[key];
 									}
@@ -90,16 +85,12 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 			return destination;
 		}
 
-		// only if not already merged
 		if (this.mergedExtensionDescriptions.indexOf(extensionDescription) < 0) {
 
-			// remember all extensions that have been merged for this debugger
 			this.mergedExtensionDescriptions.push(extensionDescription);
 
-			// merge new debugger contribution into existing contributions (and don't overwrite values in built-in extensions)
 			mixin(this.debuggerContribution, otherDebuggerContribution, extensionDescription.isBuiltin);
 
-			// remember the extension that is considered the "main" debugger contribution
 			if (isDebuggerMainContribution(otherDebuggerContribution)) {
 				this.mainExtensionDescription = extensionDescription;
 			}
@@ -189,7 +180,6 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 	}
 
 	getInitialConfigurationContent(initialConfigs?: IConfig[]): Promise<string> {
-		// at this point we got some configs from the package.json and/or from registered DebugConfigurationProviders
 		let initialConfigurations = this.debuggerContribution.initialConfigurations || [];
 		if (initialConfigs) {
 			initialConfigurations = initialConfigurations.concat(initialConfigs);
@@ -211,7 +201,6 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 			'}'
 		].join(eol);
 
-		// fix formatting
 		const editorConfig = this.configurationService.getValue<any>();
 		if (editorConfig.editor && editorConfig.editor.insertSpaces) {
 			content = content.replace(new RegExp('\t', 'g'), ' '.repeat(editorConfig.editor.tabSize));
@@ -244,7 +233,6 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 			return null;
 		}
 
-		// fill in the default configuration attributes shared by all adapters.
 		return Object.entries(this.debuggerContribution.configurationAttributes).map(([request, attributes]) => {
 			const definitionId = `${this.type}:${request}`;
 			const platformSpecificDefinitionId = `${this.type}:${request}:platform`;
@@ -278,11 +266,7 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 			const malformedPropertyNames: string[] = [];
 			Object.keys(properties).forEach(name => {
 				const property = properties[name];
-				// A debugger extension may contribute a malformed property whose value is not a schema
-				// object (e.g. the bare string 'integer' instead of `{ "type": "integer" }`). Skip those so
-				// one bad contribution does not throw and abort schema generation for every debugger.
 				if (isObject(property)) {
-					// Use schema allOf property to get independent error reporting #21113
 					ConfigurationResolverUtils.applyDeprecatedVariableMessage(property);
 				} else {
 					malformedPropertyNames.push(name);
@@ -299,7 +283,6 @@ export class Debugger implements IDebugger, IDebuggerMetadata {
 				properties: filter(properties, key => key !== 'type' && key !== 'request' && key !== 'name')
 			};
 
-			// Don't add the OS props to the real attributes object so they don't show up in 'definitions'
 			const attributesCopy = { ...attributes };
 			attributesCopy.properties = {
 				...properties,

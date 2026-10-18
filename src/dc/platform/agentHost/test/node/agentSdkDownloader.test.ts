@@ -39,7 +39,7 @@ class RecordingTelemetryService extends NullTelemetryServiceShape {
 
 interface ITestSdkDownloadFixture {
 	tarballPath: string;
-	innerFile: string; // path that should exist inside the extracted root
+	innerFile: string;
 	innerContents: string;
 	cleanup: () => Promise<void>;
 }
@@ -94,10 +94,6 @@ async function startServer(body: Buffer): Promise<ITestServer> {
 }
 
 function makeEnvService(userDataPath: string): INativeEnvironmentService {
-	// `RequestService.request` calls `getResolvedShellEnv(configService, logService, args, process.env)`.
-	// `force-disable-user-env: true` short-circuits before spawning a shell —
-	// without it `shellEnv.ts:140` registers a cancellation listener that
-	// leaks across tests and trips ensureNoDisposablesAreLeakedInTestSuite.
 	return { userDataPath, args: { 'force-disable-user-env': true } as never } as unknown as INativeEnvironmentService;
 }
 
@@ -108,9 +104,6 @@ function makeProductService(config: { version: string; urlTemplate: string } | u
 }
 
 function makeRequestService(disposables: Pick<DisposableStore, 'add'>): RequestService {
-	// Bare RequestService: no http.proxy setting, no special config.
-	// Reads system proxy env vars (HTTP_PROXY, HTTPS_PROXY, NO_PROXY) — none set
-	// in CI so direct connection to the test loopback server works.
 	return disposables.add(new RequestService(
 		'local',
 		new TestConfigurationService(),
@@ -120,21 +113,12 @@ function makeRequestService(disposables: Pick<DisposableStore, 'add'>): RequestS
 }
 
 function makeFileService(disposables: Pick<DisposableStore, 'add'>): IFileService {
-	// Real FileService with DiskFileSystemProvider for `file://` — matches
-	// the wiring in `agentHostMain.ts`. Each test gets its own clean instance
-	// so provider registrations don't bleed across tests.
 	const log = new NullLogService();
 	const svc = disposables.add(new FileService(log));
 	disposables.add(svc.registerProvider(Schemas.file, disposables.add(new DiskFileSystemProvider(log))));
 	return svc;
 }
 
-/**
- * Unit tests for the platform/arch/libc → sdkTarget mapping. These cover
- * the cross-product the downloader can't easily exercise (Universal x64
- * launches from arm64 hosts, musl Linux from a macOS CI runner, …) by
- * passing a synthetic host directly to the pure function.
- */
 suite('resolveSdkTarget', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -186,11 +170,6 @@ suite('resolveSdkTarget', () => {
 	});
 });
 
-/**
- * Integration tests for the downloader's network → cache → extract flow.
- * These run against whatever `process.platform` the test host is — the
- * pure `resolveSdkTarget` suite above covers the cross-host matrix.
- */
 suite('AgentSdkDownloader', () => {
 
 	const disposables = new DisposableStore();
@@ -201,19 +180,14 @@ suite('AgentSdkDownloader', () => {
 	let fixture: ITestSdkDownloadFixture;
 	let server: ITestServer;
 	let originalEnvOverride: string | undefined;
-	/** Whatever the host resolves to — used for cache-dir path assertions. */
 	let hostSdkTarget: string;
 
-	/** A cancellation token whose source is disposed in teardown. */
 	function newToken() {
 		const src = disposables.add(new CancellationTokenSource());
 		return src.token;
 	}
 
 	suiteSetup(function () {
-		// Skip the integration suite on hosts the downloader can't resolve
-		// a target for (e.g. linux-armhf). `resolveSdkTarget` is covered
-		// above and doesn't need a real host.
 		const target = resolveSdkTarget(ClaudeSdkPackage);
 		if (!target) {
 			this.skip();
@@ -240,12 +214,6 @@ suite('AgentSdkDownloader', () => {
 		}
 	});
 
-	/**
-	 * Default urlTemplate references `{sdkTarget}` so we exercise the
-	 * substitution path; tests that need a custom URL pass urlTemplate
-	 * explicitly. Pass `productConfig: null` to omit the agentSdks block
-	 * entirely (the "no product config" case).
-	 */
 	function makeDownloader(
 		productConfig?: { version?: string; urlTemplate?: string } | null,
 		telemetryService: ITelemetryService = NullTelemetryService,
@@ -307,8 +275,6 @@ suite('AgentSdkDownloader', () => {
 		await downloader.loadSdkRoot(ClaudeSdkPackage, newToken());
 
 		const tarballSize = (await fsp.stat(fixture.tarballPath)).size;
-		// One `started`, ≥1 `progress`, one terminal `completed`, all sharing a
-		// single downloadId and carrying the brand display name.
 		assert.ok(samples.length >= 2, 'expected at least a started and a completed frame');
 		assert.strictEqual(samples[0].phase, 'started');
 		const completed = samples[samples.length - 1];
@@ -316,8 +282,6 @@ suite('AgentSdkDownloader', () => {
 		assert.ok(samples.every(s => s.downloadId === samples[0].downloadId), 'all frames share one downloadId');
 		assert.ok(samples.every(s => s.displayName === 'Claude'), 'all frames carry the brand display name');
 
-		// receivedBytes is monotonically non-decreasing and reaches the total
-		// reported via Content-Length.
 		for (let i = 1; i < samples.length; i++) {
 			assert.ok(samples[i].receivedBytes >= samples[i - 1].receivedBytes, 'receivedBytes must be monotonic');
 		}
@@ -331,7 +295,6 @@ suite('AgentSdkDownloader', () => {
 
 		await downloader.loadSdkRoot(ClaudeSdkPackage, newToken());
 
-		// The throttled `progress` frames drive the progress bar, not the funnel.
 		assert.deepStrictEqual(telemetry.events.map(event => [event.name, event.data.phase]), [
 			['agentHost.agentSdkDownload', 'started'],
 			['agentHost.agentSdkDownload', 'completed'],
@@ -345,8 +308,6 @@ suite('AgentSdkDownloader', () => {
 
 	test('loadSdkRoot: a failed download reports its bucket, never the raw cause', async () => {
 		const telemetry = new RecordingTelemetryService();
-		// Port 1 on loopback refuses instantly, so this is a network failure with
-		// no bytes and no advertised total.
 		const downloader = makeDownloader({ urlTemplate: 'http://127.0.0.1:1/sdk-{sdkTarget}.tgz' }, telemetry);
 
 		await assert.rejects(() => downloader.loadSdkRoot(ClaudeSdkPackage, newToken()));
@@ -369,15 +330,10 @@ suite('AgentSdkDownloader', () => {
 
 		assert.ok(samples.length >= 2);
 		assert.ok(samples.every(sample => sample.explicitlyRequested));
-		// The same split reaches telemetry, which is what separates a button press
-		// from a quiet re-fetch under standing consent.
 		assert.ok(telemetry.events.every(event => event.data.explicitlyRequested === true));
 	});
 
 	test('loadSdkRoot: a user asking by hand retries through the negative cache', async () => {
-		// Port 1 refuses instantly, so every attempt here fails. The latch rethrows
-		// the *same* error it stored, while a real attempt builds a new one — which
-		// is how this tells a short-circuit from a retry without a second server.
 		const downloader = makeDownloader({ urlTemplate: 'http://127.0.0.1:1/sdk-{sdkTarget}.tgz' });
 		const failure = async () => {
 			try {
@@ -399,7 +355,6 @@ suite('AgentSdkDownloader', () => {
 		const downloader = makeDownloader();
 		await downloader.loadSdkRoot(ClaudeSdkPackage, newToken());
 
-		// Second call hits the cache.
 		await downloader.loadSdkRoot(ClaudeSdkPackage, newToken());
 		assert.deepStrictEqual({
 			requests: server.requestCount,
@@ -434,10 +389,6 @@ suite('AgentSdkDownloader', () => {
 	});
 
 	test('loadSdkRoot: cache dir includes sdkTarget so Universal launches stay separate', async () => {
-		// Direct path check that the cache dir layout encodes sdkTarget —
-		// pairs with the resolveSdkTarget unit tests above to cover the
-		// macOS-Universal case (which we can't simulate end-to-end without
-		// injecting a host the production downloader doesn't accept).
 		const root = await makeDownloader().loadSdkRoot(ClaudeSdkPackage, newToken());
 		const expected = path.join(userDataPath, 'agent-host', 'sdk-cache', 'claude', '1.0.0', hostSdkTarget);
 		assert.strictEqual(root, expected);
@@ -451,9 +402,6 @@ suite('AgentSdkDownloader', () => {
 	});
 
 	test('loadSdkRoot: urlTemplate with unknown placeholder throws config error', async () => {
-		// vscode-distro typo guard: `{sdkTaret}` left untouched by format2
-		// would otherwise yield a 404 from the CDN with no hint at the
-		// real cause.
 		const downloader = makeDownloader({
 			urlTemplate: `http://127.0.0.1:${server.port}/sdk-{sdkTaret}.tgz`,
 		});
@@ -466,13 +414,11 @@ suite('AgentSdkDownloader', () => {
 
 	test('loadSdkRoot: cancel before download completes cleans up scratch dir', async function () {
 		this.timeout(15_000);
-		// Replace server with one that hangs forever.
 		await server.close();
 		const http: typeof httpType = await import('http');
 		const hangingServer = http.createServer((_req, res) => {
 			res.writeHead(200, { 'content-length': '999999' });
 			res.write(Buffer.alloc(8));
-			// never end
 		});
 		await new Promise<void>(r => hangingServer.listen(0, '127.0.0.1', () => r()));
 		const port = (hangingServer.address() as { port: number }).port;
@@ -483,24 +429,15 @@ suite('AgentSdkDownloader', () => {
 			});
 			const cts = disposables.add(new CancellationTokenSource());
 			const promise = downloader.loadSdkRoot(ClaudeSdkPackage, cts.token);
-			// Give the request a moment to start.
 			await new Promise(r => setTimeout(r, 50));
 			cts.cancel();
 			await assert.rejects(() => promise, /Cancel|cancel|Failed to download/);
-			// No half-extracted dir left around. The scratch dir lands at
-			// <userDataPath>/agent-host/sdk-cache/claude/1.0.0/<target>.tmp.<pid>
-			// — a sibling of the resolved target dir under the version dir.
 			const versionDir = path.join(userDataPath, 'agent-host', 'sdk-cache', 'claude', '1.0.0');
 			const leftover = fs.existsSync(versionDir)
 				? (await fsp.readdir(versionDir)).filter(f => f.includes('.tmp.'))
 				: [];
 			assert.deepStrictEqual(leftover, []);
 		} finally {
-			// Force-close any sockets the test left dangling — the cancel path
-			// only tears down OUR streams, the underlying http connection on
-			// the server side stays alive until the OS reaps it. Without this
-			// `hangingServer.close()` would hang waiting for the still-open
-			// connection.
 			hangingServer.closeAllConnections();
 			await new Promise<void>(r => hangingServer.close(() => r()));
 		}
@@ -522,13 +459,11 @@ suite('AgentSdkDownloader', () => {
 		const downloader = makeDownloader();
 		const target = path.join(userDataPath, 'agent-host', 'sdk-cache', 'claude', '1.0.0', hostSdkTarget);
 
-		// Pre-populate the cache as if a "winner" already extracted it.
 		await fsp.mkdir(target, { recursive: true });
 		await fsp.mkdir(path.dirname(path.join(target, fixture.innerFile)), { recursive: true });
 		await fsp.writeFile(path.join(target, fixture.innerFile), fixture.innerContents);
 		await fsp.writeFile(path.join(target, '.complete'), '');
 
-		// loadSdkRoot should hit the cache first and never invoke the server.
 		const root = await downloader.loadSdkRoot(ClaudeSdkPackage, newToken());
 		assert.strictEqual(root, target);
 		assert.strictEqual(server.requestCount, 0);

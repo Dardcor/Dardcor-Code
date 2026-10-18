@@ -20,11 +20,6 @@ export interface ILogFile {
 	readonly contents: string;
 }
 
-/**
- * Only used in browser contexts where the log files are not stored on disk
- * but in IndexedDB. A method to get all logs with their contents so that
- * CI automation can persist them.
- */
 export async function getLogs(fileService: IFileService, environmentService: IEnvironmentService): Promise<ILogFile[]> {
 	const result: ILogFile[] = [];
 
@@ -81,7 +76,6 @@ export class ConsoleLogInAutomationLogger extends AdapterLogger implements ILogg
 			try {
 				automatedWindow.codeAutomationLog(type, args);
 			} catch (err) {
-				// see https://github.com/microsoft/vscode-test-web/issues/69
 				console.error('Problems writing to codeAutomationLog', err);
 			}
 		}

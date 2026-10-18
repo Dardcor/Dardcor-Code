@@ -27,7 +27,6 @@ export class Highlighter {
 			loadWasm: getWasmInlined,
 		});
 
-		// Load additional language if not out of the box for shiki
 		if (!langs.bundledLanguages[languageId as BundledLanguage]) {
 			const additionalLang = vscLanguageMap[languageId as keyof typeof vscLanguageMap];
 			if (additionalLang) {
@@ -78,7 +77,7 @@ function getCurrentTheme(): ThemeRegistration {
 			return vscThemeMap[vsCodeTheme];
 		}
 		const themeType = window.activeColorTheme;
-		const defaultTheme = vscDefaultMap[themeType.kind]; // fall back to default themes if we don't have a match
+		const defaultTheme = vscDefaultMap[themeType.kind];
 
 		return defaultTheme;
 	} else {
@@ -93,7 +92,6 @@ const vscDefaultMap: { [key in ColorThemeKind]: ThemeRegistrationAny } = {
 	[ColorThemeKind.HighContrastLight]: themes.lightHC,
 };
 
-// These are vs code themes that aren't out of the box in shiki but come standard with vs code
 const vscThemeMap: { [key: string]: ThemeRegistrationAny } = {
 	Abyss: themes.abyss,
 	'Dark High Contrast': themes.darkHC,
@@ -107,6 +105,8 @@ const vscThemeMap: { [key: string]: ThemeRegistrationAny } = {
 	'Tomorrow Night Blue': themes.tomorrowNightBlue,
 	'Visual Studio Dark': themes.vsDark,
 	'Visual Studio Light': themes.vsLight,
+	'Dark (Dardcor Classic)': themes.vsDark,
+	'Light (Dardcor Classic)': themes.vsLight,
 	'Default Dark+': themes.darkPlus,
 	'Default Light+': themes.lightPlus,
 	Monokai: themes.monokai,
@@ -118,7 +118,6 @@ function isSupportedTheme(theme: keyof typeof vscThemeMap): theme is keyof typeo
 	return theme in vscThemeMap;
 }
 
-// These are vs code themes that aren't out of the box in shiki but come standard with vs code
 const vscLanguageMap = {
 	'cuda-cpp': languages.cudaCpp,
 	javascriptreact: languages.javascriptreact,

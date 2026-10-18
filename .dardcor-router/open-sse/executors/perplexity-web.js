@@ -36,7 +36,6 @@ const SESSION_MAX_ENTRIES = 200;
 
 const sessionCache = new Map();
 
-// FNV-1a hash for session key lookup
 function sessionKey(history) {
   const parts = history.map((h) => `${h.role}:${h.content}`).join("\n");
   let hash = 0x811c9dc5;

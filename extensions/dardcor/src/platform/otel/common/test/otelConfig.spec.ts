@@ -22,9 +22,9 @@ describe('resolveOTelConfig', () => {
 		expect(config.enabled).toBe(false);
 	});
 
-	it('enables when COPILOT_OTEL_ENABLED=true', () => {
+	it('enables when DARDCOR_OTEL_ENABLED=true', () => {
 		const config = resolveOTelConfig(makeInput({
-			env: { 'COPILOT_OTEL_ENABLED': 'true' },
+			env: { 'DARDCOR_OTEL_ENABLED': 'true' },
 		}));
 		expect(config.enabled).toBe(true);
 	});
@@ -44,9 +44,9 @@ describe('resolveOTelConfig', () => {
 		expect(config.enabled).toBe(true);
 	});
 
-	it('env COPILOT_OTEL_ENABLED overrides VS Code setting', () => {
+	it('env DARDCOR_OTEL_ENABLED overrides VS Code setting', () => {
 		const config = resolveOTelConfig(makeInput({
-			env: { 'COPILOT_OTEL_ENABLED': 'false' },
+			env: { 'DARDCOR_OTEL_ENABLED': 'false' },
 			settingEnabled: true,
 		}));
 		expect(config.enabled).toBe(false);
@@ -54,17 +54,17 @@ describe('resolveOTelConfig', () => {
 
 	it('disables when vscodeTelemetryLevel is off', () => {
 		const config = resolveOTelConfig(makeInput({
-			env: { 'COPILOT_OTEL_ENABLED': 'true' },
+			env: { 'DARDCOR_OTEL_ENABLED': 'true' },
 			vscodeTelemetryLevel: 'off',
 		}));
 		expect(config.enabled).toBe(false);
 	});
 
-	it('uses file exporter when COPILOT_OTEL_FILE_EXPORTER_PATH is set', () => {
+	it('uses file exporter when DARDCOR_OTEL_FILE_EXPORTER_PATH is set', () => {
 		const config = resolveOTelConfig(makeInput({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
-				'COPILOT_OTEL_FILE_EXPORTER_PATH': '/tmp/otel.jsonl',
+				'DARDCOR_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_FILE_EXPORTER_PATH': '/tmp/otel.jsonl',
 			},
 		}));
 		expect(config.enabled).toBe(true);
@@ -80,11 +80,11 @@ describe('resolveOTelConfig', () => {
 		expect(config.exporterType).toBe('console');
 	});
 
-	it('resolves COPILOT_OTEL_CAPTURE_CONTENT', () => {
+	it('resolves DARDCOR_OTEL_CAPTURE_CONTENT', () => {
 		const config = resolveOTelConfig(makeInput({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
-				'COPILOT_OTEL_CAPTURE_CONTENT': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_CAPTURE_CONTENT': 'true',
 			},
 		}));
 		expect(config.captureContent).toBe(true);
@@ -93,8 +93,8 @@ describe('resolveOTelConfig', () => {
 	it('captureContent env overrides VS Code setting', () => {
 		const config = resolveOTelConfig(makeInput({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
-				'COPILOT_OTEL_CAPTURE_CONTENT': 'false',
+				'DARDCOR_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_CAPTURE_CONTENT': 'false',
 			},
 			settingCaptureContent: true,
 		}));
@@ -104,7 +104,7 @@ describe('resolveOTelConfig', () => {
 	it('parses OTEL_RESOURCE_ATTRIBUTES', () => {
 		const config = resolveOTelConfig(makeInput({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_RESOURCE_ATTRIBUTES': 'benchmark.id=test-123,benchmark.name=say_hello',
 			},
 		}));
@@ -119,7 +119,7 @@ describe('resolveOTelConfig', () => {
 			settingResourceAttributes: { fromSetting: 'setting', shared: 'setting' },
 			policyResourceAttributes: { fromPolicy: 'policy', shared: 'policy' },
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_RESOURCE_ATTRIBUTES': 'fromEnv=env,shared=env',
 			},
 		}));
@@ -136,7 +136,7 @@ describe('resolveOTelConfig', () => {
 			settingHeaders: { fromSetting: 'setting', shared: 'setting' },
 			policyHeaders: { fromPolicy: 'policy', shared: 'policy' },
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_EXPORTER_OTLP_HEADERS': 'fromEnv=env,shared=env',
 			},
 		}));
@@ -151,14 +151,13 @@ describe('resolveOTelConfig', () => {
 	it('uses grpc protocol when OTEL_EXPORTER_OTLP_PROTOCOL=grpc', () => {
 		const config = resolveOTelConfig(makeInput({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_EXPORTER_OTLP_PROTOCOL': 'grpc',
 				'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://collector:4317',
 			},
 		}));
 		expect(config.otlpProtocol).toBe('grpc');
 		expect(config.exporterType).toBe('otlp-grpc');
-		// gRPC should use origin (strip path)
 		expect(config.otlpEndpoint).toBe('http://collector:4317');
 	});
 
@@ -170,7 +169,6 @@ describe('resolveOTelConfig', () => {
 		}));
 		expect(config.otlpProtocol).toBe('grpc');
 		expect(config.exporterType).toBe('otlp-grpc');
-		// gRPC parsing keeps only the origin
 		expect(config.otlpEndpoint).toBe('http://collector:4317');
 	});
 
@@ -194,7 +192,7 @@ describe('resolveOTelConfig', () => {
 	it('overrides service name from OTEL_SERVICE_NAME', () => {
 		const config = resolveOTelConfig(makeInput({
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_SERVICE_NAME': 'my-service',
 			},
 		}));
@@ -213,7 +211,7 @@ describe('resolveOTelConfig', () => {
 		const config = resolveOTelConfig(makeInput({
 			settingServiceName: 'setting-service',
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_SERVICE_NAME': 'env-service',
 			},
 		}));
@@ -225,7 +223,7 @@ describe('resolveOTelConfig', () => {
 			policyServiceName: 'policy-service',
 			settingServiceName: 'setting-service',
 			env: {
-				'COPILOT_OTEL_ENABLED': 'true',
+				'DARDCOR_OTEL_ENABLED': 'true',
 				'OTEL_SERVICE_NAME': 'env-service',
 			},
 		}));
@@ -246,27 +244,26 @@ describe('resolveOTelConfig', () => {
 			expect(config.enabledVia).toBe('disabled');
 		});
 
-		it('returns envVar when COPILOT_OTEL_ENABLED is set', () => {
+		it('returns envVar when DARDCOR_OTEL_ENABLED is set', () => {
 			const config = resolveOTelConfig(makeInput({
-				env: { 'COPILOT_OTEL_ENABLED': 'true' },
+				env: { 'DARDCOR_OTEL_ENABLED': 'true' },
 			}));
 			expect(config.enabledVia).toBe('envVar');
 		});
 
-		it('returns disabled when COPILOT_OTEL_ENABLED=false overrides setting', () => {
+		it('returns disabled when DARDCOR_OTEL_ENABLED=false overrides setting', () => {
 			const config = resolveOTelConfig(makeInput({
-				env: { 'COPILOT_OTEL_ENABLED': 'false' },
+				env: { 'DARDCOR_OTEL_ENABLED': 'false' },
 				settingEnabled: true,
 			}));
 			expect(config.enabledVia).toBe('disabled');
 		});
 
-		it('returns dbSpanExporterOnly when COPILOT_OTEL_ENABLED=false but dbSpanExporter is on', () => {
+		it('returns dbSpanExporterOnly when DARDCOR_OTEL_ENABLED=false but dbSpanExporter is on', () => {
 			const config = resolveOTelConfig(makeInput({
-				env: { 'COPILOT_OTEL_ENABLED': 'false' },
+				env: { 'DARDCOR_OTEL_ENABLED': 'false' },
 				settingDbSpanExporter: true,
 			}));
-			// env var disabled OTel export, but dbSpanExporter keeps SDK loaded
 			expect(config.enabledVia).toBe('dbSpanExporterOnly');
 		});
 
@@ -301,7 +298,7 @@ describe('resolveOTelConfig', () => {
 
 		it('returns envVar when env var takes precedence over dbSpanExporter', () => {
 			const config = resolveOTelConfig(makeInput({
-				env: { 'COPILOT_OTEL_ENABLED': 'true' },
+				env: { 'DARDCOR_OTEL_ENABLED': 'true' },
 				settingDbSpanExporter: true,
 			}));
 			expect(config.enabledVia).toBe('envVar');
@@ -338,8 +335,8 @@ describe('resolveOTelConfig', () => {
 		it('env var overrides VS Code setting', () => {
 			const config = resolveOTelConfig(makeInput({
 				env: {
-					'COPILOT_OTEL_ENABLED': 'true',
-					'COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '128000',
+					'DARDCOR_OTEL_ENABLED': 'true',
+					'DARDCOR_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '128000',
 				},
 				settingMaxAttributeSizeChars: 32_000,
 			}));
@@ -349,8 +346,8 @@ describe('resolveOTelConfig', () => {
 		it('env var value 0 disables truncation', () => {
 			const config = resolveOTelConfig(makeInput({
 				env: {
-					'COPILOT_OTEL_ENABLED': 'true',
-					'COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '0',
+					'DARDCOR_OTEL_ENABLED': 'true',
+					'DARDCOR_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '0',
 				},
 				settingMaxAttributeSizeChars: 32_000,
 			}));
@@ -368,8 +365,8 @@ describe('resolveOTelConfig', () => {
 		it('falls back to default (0) when env var is non-numeric', () => {
 			const config = resolveOTelConfig(makeInput({
 				env: {
-					'COPILOT_OTEL_ENABLED': 'true',
-					'COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': 'not-a-number',
+					'DARDCOR_OTEL_ENABLED': 'true',
+					'DARDCOR_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': 'not-a-number',
 				},
 			}));
 			expect(config.maxAttributeSizeChars).toBe(0);
@@ -378,8 +375,8 @@ describe('resolveOTelConfig', () => {
 		it('falls back to default (0) when env var is fractional', () => {
 			const config = resolveOTelConfig(makeInput({
 				env: {
-					'COPILOT_OTEL_ENABLED': 'true',
-					'COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '1.5',
+					'DARDCOR_OTEL_ENABLED': 'true',
+					'DARDCOR_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '1.5',
 				},
 			}));
 			expect(config.maxAttributeSizeChars).toBe(0);
@@ -388,8 +385,8 @@ describe('resolveOTelConfig', () => {
 		it('falls back to default (0) when env var exceeds safe integer range', () => {
 			const config = resolveOTelConfig(makeInput({
 				env: {
-					'COPILOT_OTEL_ENABLED': 'true',
-					'COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '1e308',
+					'DARDCOR_OTEL_ENABLED': 'true',
+					'DARDCOR_OTEL_MAX_ATTRIBUTE_SIZE_CHARS': '1e308',
 				},
 			}));
 			expect(config.maxAttributeSizeChars).toBe(0);
@@ -408,7 +405,7 @@ describe('resolveOTelConfig', () => {
 
 		it('policy disabled forces OTel off even when env enables it', () => {
 			const config = resolveOTelConfig(makeInput({
-				env: { 'COPILOT_OTEL_ENABLED': 'true' },
+				env: { 'DARDCOR_OTEL_ENABLED': 'true' },
 				policyEnabled: false,
 			}));
 			expect(config.enabled).toBe(false);

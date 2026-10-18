@@ -45,9 +45,9 @@ export interface ICheckboxStyles {
 }
 
 export const unthemedToggleStyles = {
-	inputActiveOptionBorder: '#007ACC00',
+	inputActiveOptionBorder: '#7C4DFF00',
 	inputActiveOptionForeground: '#FFFFFF',
-	inputActiveOptionBackground: '#0E639C50'
+	inputActiveOptionBackground: '#6A1B9A50'
 };
 
 export class ToggleActionViewItem extends BaseActionViewItem {
@@ -122,7 +122,7 @@ export class ToggleActionViewItem extends BaseActionViewItem {
 export class Toggle extends Widget {
 
 	private readonly _onChange = this._register(new Emitter<boolean>());
-	get onChange(): Event<boolean /* via keyboard */> { return this._onChange.event; }
+	get onChange(): Event<boolean > { return this._onChange.event; }
 
 	private readonly _onKeyDown = this._register(new Emitter<IKeyboardEvent>());
 	get onKeyDown(): Event<IKeyboardEvent> { return this._onKeyDown.event; }
@@ -228,7 +228,7 @@ export class Toggle extends Widget {
 	}
 
 	width(): number {
-		return 2 /*margin left*/ + 2 /*border*/ + 2 /*padding*/ + 16 /* icon width */;
+		return 2 + 2 + 2 + 16 ;
 	}
 
 	protected applyStyles(): void {
@@ -277,7 +277,7 @@ abstract class BaseCheckbox extends Widget {
 	static readonly CLASS_NAME = 'monaco-checkbox';
 
 	protected readonly _onChange = this._register(new Emitter<boolean>());
-	readonly onChange: Event<boolean /* via keyboard */> = this._onChange.event;
+	readonly onChange: Event<boolean > = this._onChange.event;
 
 	constructor(
 		protected readonly checkbox: Toggle,
@@ -449,9 +449,6 @@ export class CheckboxActionViewItem extends BaseActionViewItem {
 		this.element.appendChild(this.toggle.domNode);
 		if ((<IActionViewItemOptions>this.options).label && this._action.label) {
 			const label = this.element.appendChild($('span.checkbox-label', undefined, this._action.label));
-			// Focus the checkbox when the (non-focusable) label is clicked, mirroring
-			// native `<label>` behavior. This is done on mousedown, with the default
-			// prevented, so focus does not first land on a focusable ancestor.
 			this._register(addDisposableGenericMouseDownListener(label, (e: MouseEvent) => {
 				e.preventDefault();
 
@@ -524,20 +521,11 @@ export class CheckboxActionViewItem extends BaseActionViewItem {
 
 }
 
-/**
- * Creates an action view item provider that renders toggles for actions with a checked state
- * and falls back to default button rendering for regular actions.
- *
- * @param toggleStyles - Optional styles to apply to toggle items
- * @returns An IActionViewItemProvider that can be used with ActionBar
- */
 export function createToggleActionViewItemProvider(toggleStyles?: IToggleStyles): IActionViewItemProvider {
 	return (action: IAction, options: IActionViewItemOptions) => {
-		// Only render as a toggle if the action has a checked property
 		if (action.checked !== undefined) {
 			return new ToggleActionViewItem(null, action, { ...options, toggleStyles });
 		}
-		// Return undefined to fall back to default button rendering
 		return undefined;
 	};
 }

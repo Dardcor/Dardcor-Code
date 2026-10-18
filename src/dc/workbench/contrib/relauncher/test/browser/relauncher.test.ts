@@ -25,8 +25,6 @@ suite('SettingsChangeRelauncher', () => {
 	let confirmCount: number;
 
 	function createRelauncher(initialConfiguration: Record<string, unknown>): TestConfigurationService {
-		// `update()` reads `config.window.titleBarStyle` unconditionally on native, so
-		// the `window` object must always be present on the configuration root.
 		initialConfiguration.window ??= {};
 		const configurationService = new TestConfigurationService(initialConfiguration);
 

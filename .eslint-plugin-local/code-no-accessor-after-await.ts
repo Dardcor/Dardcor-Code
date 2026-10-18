@@ -6,21 +6,6 @@
 import { TSESTree } from '@typescript-eslint/utils';
 import * as eslint from 'eslint';
 
-/**
- * Lint rule that prevents using a `ServicesAccessor` after an `await` expression.
- *
- * The accessor returned by `IInstantiationService.invokeFunction` is only valid
- * synchronously during the invocation of the target function. Calling
- * `accessor.get(...)` after any `await` is a bug because the accessor will have
- * been invalidated.
- *
- * Detection strategies:
- * 1. `invokeFunction` / `invokeWithinContext` calls — first param of the callback
- *    is the accessor.
- * 2. Functions/methods with a parameter typed as `ServicesAccessor` — these are
- *    always called through `invokeFunction` at runtime (e.g. `Action2.run`,
- *    `ICommandHandler`).
- */
 export default new class NoAccessorAfterAwait implements eslint.Rule.RuleModule {
 
 	readonly meta: eslint.Rule.RuleMetaData = {
@@ -32,7 +17,6 @@ export default new class NoAccessorAfterAwait implements eslint.Rule.RuleModule 
 
 	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return {
-			// Strategy 1: invokeFunction / invokeWithinContext calls
 			'CallExpression': (node: eslint.Rule.Node) => {
 				const callExpression = node as unknown as TSESTree.CallExpression;
 
@@ -56,7 +40,6 @@ export default new class NoAccessorAfterAwait implements eslint.Rule.RuleModule 
 				checkForAccessorAfterAwait(functionArg, accessorName, context);
 			},
 
-			// Strategy 2: functions/methods with a `ServicesAccessor` typed parameter
 			'FunctionDeclaration': (node: eslint.Rule.Node) => {
 				checkFunctionWithAccessorParam(node as unknown as TSESTree.FunctionDeclaration, context);
 			},
@@ -76,8 +59,6 @@ function checkFunctionWithAccessorParam(
 ) {
 	for (const param of fn.params) {
 		if (param.type === 'Identifier' && hasServicesAccessorAnnotation(param)) {
-			// Skip if this function is the direct callback of an invokeFunction call
-			// (already handled by strategy 1)
 			if (isDirectInvokeFunctionCallback(fn)) {
 				return;
 			}
@@ -87,10 +68,6 @@ function checkFunctionWithAccessorParam(
 	}
 }
 
-/**
- * Check whether a function node is the direct callback argument of an
- * `invokeFunction` / `invokeWithinContext` call.
- */
 function isDirectInvokeFunctionCallback(
 	fn: TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression
 ): boolean {
@@ -127,8 +104,6 @@ function checkForAccessorAfterAwait(
 		}
 		visited.add(node);
 
-		// Don't descend into nested function scopes — they have their own
-		// async context and the accessor name may be shadowed.
 		if (node !== fn &&
 			(node.type === 'ArrowFunctionExpression' ||
 				node.type === 'FunctionExpression' ||
@@ -137,7 +112,6 @@ function checkForAccessorAfterAwait(
 		}
 
 		if (node.type === 'AwaitExpression') {
-			// Walk the argument first (it is evaluated before the await suspends)
 			if (node.argument) {
 				walk(node.argument);
 			}
@@ -154,18 +128,14 @@ function checkForAccessorAfterAwait(
 			return;
 		}
 
-		// Branch-aware walking: isolate await state across branches so an
-		// await in one branch does not taint the other branch.
 		if (node.type === 'IfStatement') {
 			walk(node.test);
 			const beforeBranches = sawAwait;
 
-			// Walk consequent
 			walk(node.consequent);
 			const awaitAfterConsequent = sawAwait;
 			const consequentExits = blockAlwaysExits(node.consequent);
 
-			// Restore before walking alternate
 			sawAwait = beforeBranches;
 			if (node.alternate) {
 				walk(node.alternate);
@@ -173,17 +143,11 @@ function checkForAccessorAfterAwait(
 			const awaitAfterAlternate = sawAwait;
 			const alternateExits = node.alternate ? blockAlwaysExits(node.alternate) : false;
 
-			// Determine sawAwait for code after the if-statement.
-			// If a branch always exits (return/throw), code after is only
-			// reachable from the other branch.
 			if (consequentExits && alternateExits) {
-				// Both exit — code after is unreachable, keep conservative
 				sawAwait = awaitAfterConsequent || awaitAfterAlternate;
 			} else if (consequentExits) {
-				// Only reachable through alternate path
 				sawAwait = awaitAfterAlternate;
 			} else if (alternateExits) {
-				// Only reachable through consequent path
 				sawAwait = awaitAfterConsequent;
 			} else {
 				sawAwait = awaitAfterConsequent || awaitAfterAlternate;
@@ -220,8 +184,6 @@ function checkForAccessorAfterAwait(
 			const beforeTry = sawAwait;
 			walk(node.block);
 			const awaitAfterTry = sawAwait;
-			// Catch: an exception may have been thrown before or after an await
-			// in the try block, so we conservatively use the before-try state.
 			sawAwait = beforeTry;
 			if (node.handler) { walk(node.handler.body); }
 			const awaitAfterCatch = sawAwait;
@@ -230,7 +192,6 @@ function checkForAccessorAfterAwait(
 			return;
 		}
 
-		// `for await...of` suspends on each iteration
 		if (node.type === 'ForOfStatement' && node.await) {
 			walkChildren(node, (child) => {
 				if (child === node.right) {
@@ -243,7 +204,6 @@ function checkForAccessorAfterAwait(
 			return;
 		}
 
-		// Walk children in source order for all other node types
 		walkChildren(node, walk);
 	}
 
@@ -252,11 +212,6 @@ function checkForAccessorAfterAwait(
 	}
 }
 
-/**
- * Check whether a statement or block always exits the current function scope
- * via `return` or `throw`. Note: `break`/`continue` only exit loops, not the
- * enclosing function, so they are intentionally excluded.
- */
 function blockAlwaysExits(node: TSESTree.Node): boolean {
 	if (node.type === 'ReturnStatement' || node.type === 'ThrowStatement') {
 		return true;
@@ -271,22 +226,14 @@ function blockAlwaysExits(node: TSESTree.Node): boolean {
 	return false;
 }
 
-/**
- * Check if a node is a usage of the accessor — either `accessor.get(...)` or
- * just a reference to the accessor identifier (e.g. passing it to another fn).
- */
 function isAccessorUsage(node: TSESTree.Node, accessorName: string): boolean {
-	// accessor.get(...)
 	if (node.type === 'CallExpression' &&
 		node.callee.type === 'MemberExpression' &&
 		node.callee.object.type === 'Identifier' &&
 		node.callee.object.name === accessorName) {
 		return true;
 	}
-	// Passing accessor as an argument: someFunction(accessor)
 	if (node.type === 'Identifier' && node.name === accessorName) {
-		// Only flag when used as a call argument or assignment, not in
-		// the function's own parameter list
 		const parent = node.parent;
 		if (parent?.type === 'CallExpression' && parent.arguments.includes(node)) {
 			return true;
@@ -391,7 +338,6 @@ function walkChildren(node: TSESTree.Node, visit: (child: TSESTree.Node) => void
 		case 'TSNonNullExpression':
 			visit(node.expression);
 			break;
-		// Leaf / unhandled nodes — nothing to traverse
 		default:
 			break;
 	}
@@ -407,13 +353,11 @@ function getParamName(param: TSESTree.Parameter): string | null {
 const invokeFunctionNames = new Set(['invokeFunction', 'invokeWithinContext']);
 
 function isInvokeFunctionCall(callee: TSESTree.Expression): boolean {
-	// object.invokeFunction(...)
 	if (callee.type === 'MemberExpression' &&
 		callee.property.type === 'Identifier' &&
 		invokeFunctionNames.has(callee.property.name)) {
 		return true;
 	}
-	// Standalone invokeFunction(...) — unlikely but handle it
 	if (callee.type === 'Identifier' && invokeFunctionNames.has(callee.name)) {
 		return true;
 	}

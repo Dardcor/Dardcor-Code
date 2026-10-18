@@ -19,7 +19,7 @@ export class MainThreadChatOutputRenderer extends Disposable implements MainThre
 
 	private _webviewHandlePool = 0;
 
-	private readonly registeredRenderers = new Map</* viewType */ string, IDisposable>();
+	private readonly registeredRenderers = new Map< string, IDisposable>();
 
 	constructor(
 		extHostContext: IExtHostContext,

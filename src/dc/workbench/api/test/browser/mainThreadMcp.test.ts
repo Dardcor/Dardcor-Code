@@ -33,11 +33,6 @@ suite('MainThreadMcp - McpServerAuthTracker', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	/**
-	 * Builds a representative auth context. Defaults model a tenant-specific Entra sign-in so tests
-	 * assert that the authorization server / resource survive tracking (the values that were dropped
-	 * on re-validation in #324925).
-	 */
 	function ctx(overrides: Partial<IMcpServerAuthContext> = {}): IMcpServerAuthContext {
 		return {
 			authorizationServer: URI.parse('https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111'),
@@ -103,10 +98,6 @@ suite('MainThreadMcp - re-validation', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	// Guards the #324925 regression end-to-end: an unrelated auth-session change must re-validate the
-	// tracked server by replaying the authorization server / client id / resource / audience it was
-	// established with, rather than dropping them (which fell back to the wrong tenant authority). The
-	// McpServerAuthTracker tests only prove the context is *stored*; this proves it is *forwarded*.
 	test('replays the tracked auth context to getSessions on an unrelated session change (#324925)', async () => {
 		const authorizationServer = URI.parse('https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47');
 		const resource = 'api://icmmcpapi-prod/mcp.tools';
@@ -117,8 +108,6 @@ suite('MainThreadMcp - re-validation', () => {
 			scopes: ['scope.read'],
 		};
 
-		// The options bag passed to getSessions on each call, in order. Index 0 is the initial
-		// acquisition; index 1 is the re-validation triggered by the unrelated session change.
 		const getSessionsOptions: Array<IAuthenticationGetSessionsOptions | undefined> = [];
 		const revalidated = new DeferredPromise<void>();
 
@@ -189,7 +178,6 @@ suite('MainThreadMcp - re-validation', () => {
 			},
 		));
 
-		// Register a running HTTP server via the host delegate (the only path into the private maps).
 		const launch: McpServerLaunch = { type: McpServerTransportType.HTTP, uri: URI.parse('https://myserver.example/mcp'), headers: [] };
 		const serverDefinition: McpServerDefinition = { id: 'my-server', label: 'My Server', launch, cacheNonce: 'nonce-1' };
 		const collection: McpCollectionDefinition = {
@@ -206,7 +194,6 @@ suite('MainThreadMcp - re-validation', () => {
 		capturedDelegate.start(collection, serverDefinition, launch, {});
 		mainThreadMcp.$onDidChangeState(1, { state: McpConnectionState.Kind.Running });
 
-		// Establish (and track) the session against the tenant-specific authority + resource.
 		const authDetails: IMcpAuthenticationDetails = {
 			authorizationServer,
 			authorizationServerMetadata: { issuer: authorizationServer.toString(), response_types_supported: ['code'], scopes_supported: ['scope.read'] },
@@ -217,12 +204,9 @@ suite('MainThreadMcp - re-validation', () => {
 		await mainThreadMcp.$getTokenFromServerMetadata(1, authDetails, {});
 		assert.strictEqual(getSessionsOptions.length, 1, 'the initial acquisition queried getSessions once');
 
-		// An unrelated Microsoft session change fires -> every tracked server is re-validated.
 		onDidChangeSessions.fire({ providerId: 'test-provider', label: 'Test Provider', event: { added: undefined, removed: undefined, changed: undefined } });
 		await revalidated.p;
 
-		// The re-validation call must carry the tracked context, not undefined. Dropping the
-		// authorization server here is exactly the #324925 regression (wrong-tenant token request).
 		assert.deepStrictEqual(getSessionsOptions[1], {
 			authorizationServer,
 			clientId: 'client-abc',

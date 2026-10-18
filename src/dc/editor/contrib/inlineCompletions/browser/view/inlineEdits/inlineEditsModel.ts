@@ -12,10 +12,6 @@ import { InlineCompletionEditorType } from '../../model/provideInlineCompletions
 import { InlineCompletionViewData, InlineCompletionViewKind, InlineEditTabAction } from './inlineEditsViewInterface.js';
 import { InlineEditWithChanges } from './inlineEditWithChanges.js';
 
-/**
- * Warning: This is not per inline edit id and gets created often.
- * @deprecated TODO@hediet remove
-*/
 export class ModelPerInlineEdit {
 
 	readonly editorType: InlineCompletionEditorType;
@@ -23,7 +19,6 @@ export class ModelPerInlineEdit {
 	readonly displayLocation: InlineSuggestHint | undefined;
 
 
-	/** Determines if the inline suggestion is fully in the view port */
 	readonly inViewPort: IObservable<boolean>;
 
 	readonly onDidAccept: Event<void>;

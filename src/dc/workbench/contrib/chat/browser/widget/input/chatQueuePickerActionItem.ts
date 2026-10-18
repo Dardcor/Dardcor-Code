@@ -31,15 +31,6 @@ import { IChatWidgetService } from '../../chat.js';
 import { ChatSubmitAction, type IChatExecuteActionContext } from '../../actions/chatExecuteActions.js';
 import { ChatAskInSideChatAction, ChatQueueMessageAction, ChatSteerWithMessageAction } from '../../actions/chatQueueActions.js';
 
-/**
- * Split-button action view item for the queue/steer picker in the chat execute toolbar.
- * The primary button runs the current default action (queue or steer).
- * The dropdown arrow opens a custom action widget with hover descriptions.
- *
- * Follows the same split-button pattern as {@link DropdownWithDefaultActionViewItem},
- * but uses {@link ActionWidgetDropdownActionViewItem} for the dropdown to show
- * an action widget with hover descriptions instead of a standard context menu.
- */
 export class ChatQueuePickerActionItem extends BaseActionViewItem {
 
 	private readonly _primaryActionAction: Action;
@@ -63,7 +54,6 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 
 		const isSteerDefault = this._isSteerDefault();
 
-		// Primary action - runs the current default (queue or steer)
 		this._primaryActionAction = this._register(new Action(
 			'chat.queuePickerPrimary',
 			isSteerDefault ? localize('chat.steerWithMessage', "Steer with Message") : localize('chat.queueMessage', "Add to Queue"),
@@ -77,7 +67,6 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 			this._primaryActionAction.enabled = !!this.contextKeyService.getContextKeyValue(ChatContextKeys.inputHasText.key);
 		}));
 
-		// Dropdown - action widget with hover descriptions and chevron-down icon
 		const dropdownAction = this._register(new Action('chat.queuePickerDropdown', localize('chat.queuePicker.moreActions', "More Actions...")));
 		this._dropdown = this._register(new ChevronActionWidgetDropdown(
 			dropdownAction,
@@ -91,14 +80,12 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 			telemetryService,
 		));
 
-		// React to config changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ChatConfiguration.RequestQueueingDefaultAction)) {
 				this._updatePrimaryAction();
 			}
 		}));
 
-		// Toggle icon when Alt key is pressed/released
 		this._register(ModifierKeyEmitter.getInstance().event(status => {
 			if (this._altKeyPressed !== status.altKey) {
 				this._altKeyPressed = status.altKey;
@@ -135,7 +122,6 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 		super.render(container);
 		container.classList.add('monaco-dropdown-with-default');
 
-		// Primary action button
 		const primaryContainer = $('.action-container');
 		this._primaryAction.render(append(container, primaryContainer));
 		this._register(addDisposableListener(primaryContainer, EventType.KEY_DOWN, (e: KeyboardEvent) => {
@@ -147,7 +133,6 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 			}
 		}));
 
-		// Dropdown arrow button
 		const dropdownContainer = $('.dropdown-action-container');
 		this._dropdown.render(append(container, dropdownContainer));
 		this._register(addDisposableListener(dropdownContainer, EventType.KEY_DOWN, (e: KeyboardEvent) => {
@@ -181,16 +166,7 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 	private _getDropdownActions(): IActionWidgetDropdownAction[] {
 		const isSteerDefault = this._isSteerDefault();
 
-		// Resolve display keybindings against an overlay context that simulates the chat input
-		// being focused with a request in progress. The injected `contextKeyService` may be the
-		// chat widget's outer scope (which has `requestInProgress` but lacks `inChatInput`) or
 		// even the global scope; either way, the queue/steer keybindings' `when` clauses would
-		// not match and the resolver would fall back to the last-registered binding for each
-		// command, producing labels that contradict actual behavior. Overlaying the scope keys
-		// the bindings expect ensures we look up the binding that would actually fire.
-		// Other context keys (e.g. `editingRequestType`, `config.chat.requestQueuing.defaultAction`)
-		// are read from the parent context, so user customizations and scoped overrides like
-		// editing a queued/steer request are still respected.
 		const lookupContext = this.contextKeyService.createOverlay([
 			[ChatContextKeys.inputHasText.key, true],
 			[ChatContextKeys.inChatInput.key, true],
@@ -234,7 +210,7 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 		};
 
 		const sendAction: IActionWidgetDropdownAction = {
-			id: '_' + ChatSubmitAction.ID, // _ to avoid showing a keybinding which is not valid in this context
+			id: '_' + ChatSubmitAction.ID,
 			label: localize('chat.sendImmediately', "Stop and Send"),
 			tooltip: '',
 			enabled: true,
@@ -266,21 +242,12 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 		return coalesce([sendAction, queueAction, steerAction, askInSideChatAction]);
 	}
 
-	/**
-	 * Side chats are provided by the layer hosting the conversation (today the
-	 * Agents window), so the entry is offered only once a provider reports the
-	 * current conversation can branch one.
-	 */
 	private _canAskInSideChat(): boolean {
 		const sessionResource = this.chatWidgetService.lastFocusedWidget?.viewModel?.model.sessionResource;
 		return !!sessionResource && this.chatSideChatService.canAskInSideChat(sessionResource);
 	}
 }
 
-/**
- * {@link ActionWidgetDropdownActionViewItem} that renders a chevron-down icon
- * as its label, used as the dropdown arrow in the split button.
- */
 class ChevronActionWidgetDropdown extends ActionWidgetDropdownActionViewItem {
 	protected override renderLabel(element: HTMLElement): IDisposable | null {
 		element.classList.add('codicon', 'codicon-chevron-down');
@@ -289,11 +256,6 @@ class ChevronActionWidgetDropdown extends ActionWidgetDropdownActionViewItem {
 }
 
 
-/**
- * Workbench contribution that registers a custom action view item for the
- * queue/steer picker in the execute toolbar. This replaces the default split
- * button with a custom dropdown similar to the model switcher.
- */
 export class ChatQueuePickerRendering extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'chat.queuePickerRendering';

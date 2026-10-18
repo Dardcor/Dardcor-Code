@@ -19,16 +19,15 @@ import { ExtendedLanguageModelToolResult, LanguageModelPromptTsxPart, MarkdownSt
 import { getUniqueReferences } from '../../prompt/common/conversation';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface GithubTextSearchToolParams {
 	readonly query: string;
-	/** Either 'owner/repo' for a single repo, or an org name (no slash) */
 	readonly scope: string;
 	readonly maxResults?: number;
 }
 
-export class GithubTextSearchTool implements ICopilotTool<GithubTextSearchToolParams> {
+export class GithubTextSearchTool implements IAgentTool<GithubTextSearchToolParams> {
 	public static readonly toolName = ToolName.GithubTextSearch;
 
 	constructor(
@@ -57,7 +56,6 @@ export class GithubTextSearchTool implements ICopilotTool<GithubTextSearchToolPa
 		const chunks = searchResults.chunks.map((entry): FileChunkAndScore => {
 			let file = entry.file;
 			if (file.scheme === 'githubRepoResult') {
-				// Path format: /owner/repo/relative/file/path
 				const parts = file.path.split('/').filter(Boolean);
 				if (parts.length >= 3) {
 					const nwo = `${parts[0]}/${parts[1]}`;
@@ -169,7 +167,6 @@ class GithubTextSearchResults extends PromptElement<GithubTextSearchResultsProps
 function parseGithubFileUrl(uri: URI): { nwo: string; path: string } | undefined {
 	if (uri.scheme === 'https' && uri.authority === 'github.com') {
 		const parts = uri.path.split('/').filter(Boolean);
-		// Pattern: /owner/repo/tree/branch/...path
 		if (parts.length >= 4 && parts[2] === 'tree') {
 			return {
 				nwo: `${parts[0]}/${parts[1]}`,

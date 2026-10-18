@@ -19,18 +19,12 @@ export class ResolvedKeybindingItem {
 	public readonly isDefault: boolean;
 	public readonly extensionId: string | null;
 	public readonly isBuiltinExtension: boolean;
-	/**
-	 * Whether this keybinding was declared as a system-wide (OS global) shortcut via
-	 * `keybindings.json`. Only ever `true` for user keybindings; defaults/extension keybindings
-	 * are always `false`.
-	 */
 	public readonly systemWide: boolean;
 
 	constructor(resolvedKeybinding: ResolvedKeybinding | undefined, command: string | null, commandArgs: any, when: ContextKeyExpression | undefined, isDefault: boolean, extensionId: string | null, isBuiltinExtension: boolean, systemWide: boolean = false) {
 		this.resolvedKeybinding = resolvedKeybinding;
 		this.chords = resolvedKeybinding ? toEmptyArrayIfContainsNull(resolvedKeybinding.getDispatchChords()) : [];
 		if (resolvedKeybinding && this.chords.length === 0) {
-			// handle possible single modifier chord keybindings
 			this.chords = toEmptyArrayIfContainsNull(resolvedKeybinding.getSingleModifierDispatchChords());
 		}
 		this.bubble = (command ? command.charCodeAt(0) === CharCode.Caret : false);

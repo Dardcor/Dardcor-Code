@@ -137,7 +137,6 @@ class LanguageStatus {
 		this._renderDisposables.dispose();
 	}
 
-	// --- persisting dedicated items
 
 	private _handleStorageChange() {
 		this._restoreState();
@@ -163,7 +162,6 @@ class LanguageStatus {
 		}
 	}
 
-	// --- language status model and UI
 
 	private _createViewModel(editor: ICodeEditor | null): LanguageStatusViewModel {
 		if (!editor?.hasModel()) {
@@ -192,13 +190,9 @@ class LanguageStatus {
 
 		this._model = model;
 
-		// update when editor language changes
 		editor?.onDidChangeModelLanguage(this._update, this, this._renderDisposables);
 
-		// combined status bar item is a single item which hover shows
-		// each status item
 		if (model.combined.length === 0) {
-			// nothing
 			this._combinedEntry?.dispose();
 			this._combinedEntry = undefined;
 
@@ -213,7 +207,7 @@ class LanguageStatus {
 				const isPinned = model.dedicated.includes(status);
 				this._renderStatus(this._combinedEntryTooltip, status, showSeverity, isPinned, this._renderDisposables);
 				ariaLabels.push(LanguageStatus._accessibilityInformation(status).label);
-				isOneBusy = isOneBusy || (!isPinned && status.busy); // unpinned items contribute to the busy-indicator of the composite status item
+				isOneBusy = isOneBusy || (!isPinned && status.busy);
 			}
 
 			const props: IStatusbarEntry = {
@@ -229,8 +223,6 @@ class LanguageStatus {
 				this._combinedEntry.update(props);
 			}
 
-			// animate the status bar icon whenever language status changes, repeat animation
-			// when severity is warning or error, don't show animation when showing progress/busy
 			const userHasInteractedWithStatus = this._interactionCounter.value >= 3;
 			const targetWindow = dom.getWindow(editor?.getContainerDomNode());
 			// eslint-disable-next-line no-restricted-syntax
@@ -241,10 +233,8 @@ class LanguageStatus {
 				const _wiggle = 'wiggle';
 				const _flash = 'flash';
 				if (!isOneBusy) {
-					// wiggle icon when severe or "new"
 					node.classList.toggle(_wiggle, showSeverity || !userHasInteractedWithStatus);
 					this._renderDisposables.add(dom.addDisposableListener(node, 'animationend', _e => node.classList.remove(_wiggle)));
-					// flash background when severe
 					container.classList.toggle(_flash, showSeverity);
 					this._renderDisposables.add(dom.addDisposableListener(container, 'animationend', _e => container.classList.remove(_flash)));
 				} else {
@@ -253,8 +243,6 @@ class LanguageStatus {
 				}
 			}
 
-			// track when the hover shows (this is automagic and DOM mutation spying is needed...)
-			//  use that as signal that the user has interacted/learned language status items work
 			if (!userHasInteractedWithStatus) {
 				// eslint-disable-next-line no-restricted-syntax
 				const hoverTarget = targetWindow.document.querySelector('.monaco-workbench .context-view');
@@ -271,14 +259,10 @@ class LanguageStatus {
 			}
 		}
 
-		// dedicated status bar items are shows as-is in the status bar
 		const newDedicatedEntries = new Map<string, IStatusbarEntryAccessor>();
 		for (const status of model.dedicated) {
 			const props = LanguageStatus._asStatusbarEntry(status);
 
-			// First check if we already processed a status with this id in the current update
-			// (can happen when duplicate status ids exist momentarily during status updates).
-			// Also check the previous entries map for an existing accessor to reuse.
 			let entry = newDedicatedEntries.get(status.id) ?? this._dedicatedEntries.get(status.id);
 			if (!entry) {
 				entry = this._statusBarService.addEntry(props, status.id, StatusbarAlignment.RIGHT, { location: { id: 'status.editor.mode', priority: 100.1 }, alignment: StatusbarAlignment.RIGHT });
@@ -324,7 +308,6 @@ class LanguageStatus {
 		right.classList.add('right');
 		element.appendChild(right);
 
-		// -- command (if available)
 		const { command } = status;
 		if (command) {
 			store.add(new Link(right, {
@@ -336,7 +319,6 @@ class LanguageStatus {
 			}, { hoverDelegate: nativeHoverDelegate }, this._hoverService, this._openerService));
 		}
 
-		// -- pin
 		const actionBar = new ActionBar(right, { hoverDelegate: nativeHoverDelegate });
 		const actionLabel: string = isPinned ? localize('unpin', "Remove from Status Bar") : localize('pin', "Add to Status Bar");
 		actionBar.setAriaLabel(actionLabel);
@@ -407,7 +389,6 @@ class LanguageStatus {
 		}
 	}
 
-	// ---
 
 	private static _asStatusbarEntry(item: ILanguageStatus): IStatusbarEntry {
 

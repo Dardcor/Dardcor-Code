@@ -32,21 +32,18 @@ export class FloatingEditorToolbar extends Disposable implements IEditorContribu
 		const editorObs = this._register(observableCodeEditor(editor));
 		const editorUriObs = derived(reader => editorObs.model.read(reader)?.uri);
 
-		// Widget
 		const widget = this._register(instantiationService.createInstance(
 			FloatingEditorToolbarWidget,
 			MenuId.EditorContent,
 			editor.contextKeyService,
 			editorUriObs));
 
-		// Render widget
 		this._register(autorun(reader => {
 			const hasActions = widget.hasActions.read(reader);
 			if (!hasActions) {
 				return;
 			}
 
-			// Overlay widget
 			reader.store.add(editorObs.createOverlayWidget({
 				allowEditorOverflow: false,
 				domNode: widget.element,
@@ -94,15 +91,12 @@ export class FloatingEditorToolbarWidget extends Disposable {
 
 			const isSingleButton = primaryActions.length === 1;
 			this.element.classList.toggle('single-button', isSingleButton);
-			// Set height explicitly to ensure that the floating menu element
-			// is rendered in the lower right corner at the correct position.
 			this.element.style.height = isSingleButton ? '28px' : '26px';
 
 			if (!hasActions) {
 				return;
 			}
 
-			// Toolbar
 			const toolbar = instantiationService.createInstance(MenuWorkbenchToolBar, this.element, _menuId, {
 				actionViewItemProvider: (action, options) => {
 					if (!(action instanceof MenuItemAction)) {
@@ -113,7 +107,6 @@ export class FloatingEditorToolbarWidget extends Disposable {
 						override render(container: HTMLElement): void {
 							super.render(container);
 
-							// Highlight primary action
 							if (action.id === menuPrimaryActionId) {
 								this.element?.classList.add('primary');
 							}

@@ -66,14 +66,13 @@ export function createEditsFromRealDiff(code: Lines, diff: Lines, reporter?: Rep
 			case CharCode.Dash:
 				if (diffLine.substring(1) !== code[originalLineIndex]) {
 					if (!handleLineContentMismatch(diffLine.substring(1), code, originalLineIndex)) {
-						break; // don't do the delete
+						break;
 					}
 				}
 				edits.push(new LinesEdit(originalLineIndex, originalLineIndex + 1, []));
 				originalLineIndex++;
 				break;
 			case CharCode.Backslash: {
-				// ignore, already handled for insert, and not relevant for delete
 				break;
 			}
 			default: {
@@ -127,7 +126,6 @@ export function createEditsFromPseudoDiff(code: Lines, diff: Lines, reporter?: R
 		let i = diffLineInfo.indentLength, k = codeIndentLength;
 		let charactersMatched = 0;
 
-		// ignore the leading indentation
 		while (i < diffLine.length && k < codeLine.length) {
 			if (diffLine.charCodeAt(i) !== codeLine.charCodeAt(k)) {
 				break;
@@ -190,13 +188,12 @@ export function createEditsFromPseudoDiff(code: Lines, diff: Lines, reporter?: R
 					if (line !== -1) {
 						originalLineIndex = line;
 					} else {
-						break; // do not delete
+						break;
 					}
 				}
 				const nextDiffLine = diffLineInfos[diffLineIndex + 1];
 				if (nextDiffLine?.op === Op.Insert) {
 					if (nextDiffLine.indentLength === diffLineInfo.indentLength) {
-						// special handling of the case where an insert follows the remove and they use the same indentation
 						const newContent = getIndent(codeLine) + nextDiffLine.content.substring(nextDiffLine.indentLength);
 						edits.push(new LinesEdit(originalLineIndex, originalLineIndex + 1, [newContent]));
 						diffLineIndex++;
@@ -215,7 +212,7 @@ export function createEditsFromPseudoDiff(code: Lines, diff: Lines, reporter?: R
 					if (line !== -1) {
 						originalLineIndex = line;
 					} else {
-						break; // do not increase originalLineIndex
+						break;
 					}
 				} else if (match === Match.Similar) {
 					const codeLineContent = adjustIndenation(diffLineInfo, diffTabSize, indentDiff ?? 0, codeIndentInfo);
@@ -228,7 +225,6 @@ export function createEditsFromPseudoDiff(code: Lines, diff: Lines, reporter?: R
 		diffLineIndex++;
 	}
 	if (originalLineIndex === code.length && diffLineIndex < diffLineInfos.length) {
-		// there are still some lines to add
 		for (; diffLineIndex < diffLineInfos.length; diffLineIndex++) {
 			const diffLineInfo = diffLineInfos[diffLineIndex];
 			if (diffLineInfo.op === Op.Insert) {
@@ -339,7 +335,6 @@ function getLineInfos(diffLines: Lines): LineInfo[] {
 				lineInfo.op = line.charCodeAt(0) === CharCode.Dash ? Op.Delete : Op.Insert;
 				if (line.length > 1 && line.charCodeAt(1) === CharCode.Space) {
 					lineInfo.content = line.substring(1);
-					// replace the + or - with a space if the remaining indentation is odd
 					if (getIndentLength(lineInfo.content) % 2 === 1) {
 						lineInfo.content = ' ' + lineInfo.content;
 					}

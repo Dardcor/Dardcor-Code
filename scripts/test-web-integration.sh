@@ -23,7 +23,6 @@ if [ ! -e 'test/integration/browser/out/index.js' ];then
 fi
 
 
-# Tests in the extension host
 
 echo
 echo "### API tests (folder)"

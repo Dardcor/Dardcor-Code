@@ -11,75 +11,27 @@ import type { CompletionItem, CompletionItemKind, CompletionsParams, Completions
 
 export const IAgentHostCompletions = createDecorator<IAgentHostCompletions>('agentHostCompletions');
 
-/**
- * Well-known completion trigger characters announced to clients in the
- * `initialize` handshake. Clients SHOULD issue a `completions` request when
- * the user types one of these characters in a {@link UserMessage} input.
- */
 export const enum CompletionTriggerCharacter {
-	/** File reference, used for `@`-mentions handled by the file completion provider. */
 	File = '@',
-	/** File reference, used for `#`-mentions handled by the file completion provider. */
 	Hash = '#',
-	/** Leading slash command or skill reference. */
 	Slash = '/',
 }
 
-/**
- * Pluggable provider that contributes {@link CompletionItem}s for one or
- * more {@link CompletionItemKind}s.
- *
- * Providers are registered via {@link IAgentHostCompletions.registerProvider}
- * and may be agent-specific (e.g. registered alongside an `IAgent`) or
- * generic (e.g. the built-in workspace file completion provider).
- */
 export interface IAgentHostCompletionItemProvider {
-	/** Completion kinds this provider handles. Providers are skipped for any other kind. */
 	readonly kinds: ReadonlySet<CompletionItemKind>;
 
-	/**
-	 * Characters that, when typed by the user, should trigger a request for
-	 * this provider's completions. Aggregated across all registered providers
-	 * and announced to clients via `InitializeResult.completionTriggerCharacters`.
-	 */
 	readonly triggerCharacters?: readonly string[];
 
-	/**
-	 * Compute completion items for the given input.
-	 *
-	 * Implementations SHOULD respect `token` and return promptly.
-	 * Throwing or rejecting fails this provider only; other providers'
-	 * results are still returned by {@link IAgentHostCompletions.completions}.
-	 */
 	provideCompletionItems(params: CompletionsParams, token: CancellationToken): Promise<readonly CompletionItem[]>;
 }
 
-/**
- * Server-side completions service. Owns a set of pluggable providers and
- * fans out a single `completions` request to every provider whose
- * {@link IAgentHostCompletionItemProvider.kinds} includes the requested kind.
- *
- * Provider results are concatenated in registration order; a single failing
- * provider does not prevent other providers' results from being returned.
- */
 export interface IAgentHostCompletions {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * Aggregated, deduplicated trigger characters from every registered
-	 * provider. Used to populate `InitializeResult.completionTriggerCharacters`.
-	 */
 	readonly triggerCharacters: readonly string[];
 
-	/**
-	 * Register a completion provider. The returned {@link IDisposable} unregisters
-	 * the provider when disposed.
-	 */
 	registerProvider(provider: IAgentHostCompletionItemProvider): IDisposable;
 
-	/**
-	 * Compute completion items by fanning out to all matching providers.
-	 */
 	completions(params: CompletionsParams, token?: CancellationToken): Promise<CompletionsResult>;
 }
 

@@ -3,8 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// WebSocket transport for the sessions process protocol.
-// Uses JSON serialization with URI revival for cross-process communication.
 
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -20,30 +18,14 @@ import type { IProtocolServer, IProtocolTransport } from '../common/state/sessio
 import type * as wsTypes from 'ws';
 import type * as httpTypes from 'http';
 
-/**
- * Options for creating a {@link WebSocketProtocolServer}.
- * Provide either `port`+`host` or `socketPath`, not both.
- */
 export interface IWebSocketServerOptions {
-	/** TCP port to listen on. Ignored when {@link socketPath} is set. */
 	readonly port?: number;
-	/** Host/IP to bind to. Defaults to `'127.0.0.1'`. */
 	readonly host?: string;
-	/** Unix domain socket / Windows named pipe path. Takes precedence over port. */
 	readonly socketPath?: string;
-	/**
-	 * Optional token validator. When provided, WebSocket upgrade requests
-	 * must include a valid token in the `tkn` query parameter.
-	 */
 	readonly connectionTokenValidate?: (token: unknown) => boolean;
 }
 
-// ---- Per-connection transport -----------------------------------------------
 
-/**
- * Wraps a single WebSocket connection as an {@link IProtocolTransport}.
- * Messages are serialized as JSON with URI revival.
- */
 export class WebSocketProtocolTransport extends Disposable implements IProtocolTransport {
 	readonly transportKind = AgentHostTransportKind.WebSocket;
 
@@ -79,7 +61,6 @@ export class WebSocketProtocolTransport extends Disposable implements IProtocolT
 		});
 
 		this._ws.on('error', () => {
-			// Error always precedes close — closing is handled in the close handler.
 			this._onClose.fire();
 		});
 	}
@@ -98,15 +79,7 @@ export class WebSocketProtocolTransport extends Disposable implements IProtocolT
 	}
 }
 
-// ---- Server -----------------------------------------------------------------
 
-/**
- * WebSocket server that accepts client connections and wraps each one
- * as an {@link IProtocolTransport}.
- *
- * Use the static {@link create} method to construct — it dynamically imports
- * `ws` and `http` so the modules are only loaded when needed.
- */
 export class WebSocketProtocolServer extends Disposable implements IProtocolServer {
 
 	private readonly _wss: wsTypes.WebSocketServer;
@@ -117,12 +90,6 @@ export class WebSocketProtocolServer extends Disposable implements IProtocolServ
 	private readonly _onConnection = this._register(new Emitter<IProtocolTransport>());
 	readonly onConnection = this._onConnection.event;
 
-	/**
-	 * Resolves once the underlying TCP / socket listener has bound, or
-	 * rejects with the bind error. Use this before reading {@link address}
-	 * or {@link boundPort} — querying the address synchronously after
-	 * construction races against the listener bind.
-	 */
 	readonly whenListening: Promise<void>;
 
 	get address(): string | undefined {
@@ -133,11 +100,6 @@ export class WebSocketProtocolServer extends Disposable implements IProtocolServ
 		return `${addr.address}:${addr.port}`;
 	}
 
-	/**
-	 * The actual TCP port the server is bound to. `undefined` when the
-	 * listener has not bound yet (await {@link whenListening} first) or
-	 * when the server is bound to a unix socket / named pipe.
-	 */
 	get boundPort(): number | undefined {
 		const addr = this._wss.address();
 		if (!addr || typeof addr === 'string') {
@@ -146,10 +108,6 @@ export class WebSocketProtocolServer extends Disposable implements IProtocolServ
 		return addr.port;
 	}
 
-	/**
-	 * Creates a new WebSocket protocol server. Dynamically imports `ws` and
-	 * `http` so callers don't pay the cost when unused.
-	 */
 	static async create(
 		options: IWebSocketServerOptions | number,
 		logService: ILogService,
@@ -173,7 +131,6 @@ export class WebSocketProtocolServer extends Disposable implements IProtocolServ
 
 		this._WebSocket = ws.WebSocket;
 
-		// Backwards compat: accept a plain port number
 		const opts: IWebSocketServerOptions = typeof options === 'number' ? { port: options } : options;
 		const host = opts.host ?? '127.0.0.1';
 
@@ -198,8 +155,6 @@ export class WebSocketProtocolServer extends Disposable implements IProtocolServ
 			: undefined;
 
 		if (opts.socketPath) {
-			// For socket paths, create an HTTP server listening on the path
-			// and attach the WebSocket server to it.
 			this._httpServer = http.createServer();
 			this._wss = new ws.WebSocketServer({ server: this._httpServer, verifyClient });
 			const httpServer = this._httpServer;

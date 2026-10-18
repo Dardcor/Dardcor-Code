@@ -19,7 +19,7 @@ pub struct AppMutex {
 	handle: HANDLE,
 }
 
-#[cfg(windows)] // handle is thread-safe, mark it so with this
+#[cfg(windows)]
 unsafe impl Send for AppMutex {}
 
 impl AppMutex {
@@ -41,8 +41,6 @@ impl AppMutex {
 
 		let err = io::Error::last_os_error();
 		let raw = err.raw_os_error();
-		// docs report it should return ERROR_IO_PENDING, but in my testing it actually
-		// returns ERROR_LOCK_VIOLATION. Or maybe winapi is wrong?
 		if raw == Some(ERROR_ALREADY_EXISTS as i32) {
 			return Err(CodeError::AppAlreadyLocked(name.to_string()));
 		}

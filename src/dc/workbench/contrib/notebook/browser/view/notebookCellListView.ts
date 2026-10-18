@@ -10,10 +10,6 @@ import { ConstantTimePrefixSumComputer } from '../../../../../editor/common/mode
 
 export interface IWhitespace {
 	id: string;
-	/**
-	 * To insert whitespace before the first item, use afterPosition 0.
-	 * In other cases, afterPosition is 1-based.
-	 */
 	afterPosition: number;
 	size: number;
 	priority: number;
@@ -38,9 +34,6 @@ export class NotebookCellsLayout implements IRangeMap {
 		return this._items.length;
 	}
 
-	/**
-	 * Returns the sum of the sizes of all items in the range map.
-	 */
 	get size(): number {
 		return this._size;
 	}
@@ -59,17 +52,13 @@ export class NotebookCellsLayout implements IRangeMap {
 		this._size = this._paddingTop + this._items.reduce((total, item) => total + item.size, 0) + this._whitespace.reduce((total, ws) => total + ws.size, 0);
 	}
 
-	/**
-	 */
 	splice(index: number, deleteCount: number, items?: IItem[] | undefined): void {
 		const inserts = items ?? [];
-		// Perform the splice operation on the items array.
 		this._items.splice(index, deleteCount, ...inserts);
 
 		this._size = this._paddingTop + this._items.reduce((total, item) => total + item.size, 0) + this._whitespace.reduce((total, ws) => total + ws.size, 0);
 		this._prefixSumComputer.removeValues(index, deleteCount);
 
-		// inserts should also include whitespaces
 		const newSizes = [];
 		for (let i = 0; i < inserts.length; i++) {
 			const insertIndex = i + index;
@@ -84,8 +73,6 @@ export class NotebookCellsLayout implements IRangeMap {
 		}
 		this._prefixSumComputer.insertValues(index, newSizes);
 
-		// Now that the items array has been updated, and the whitespaces are updated elsewhere, if an item is removed/inserted, the accumlated size of the items are all updated.
-		// Loop through all items from the index where the splice started, to the end
 		for (let i = index; i < this._items.length; i++) {
 			const existingWhitespaces = this._whitespace.filter(ws => ws.afterPosition === i + 1);
 			if (existingWhitespaces.length > 0) {
@@ -104,7 +91,7 @@ export class NotebookCellsLayout implements IRangeMap {
 		}
 
 		this._whitespace.push({ id, afterPosition: afterPosition, size, priority });
-		this._size += size; // Update the total size to include the whitespace
+		this._size += size;
 		this._whitespace.sort((a, b) => {
 			if (a.afterPosition === b.afterPosition) {
 				return a.priority - b.priority;
@@ -112,7 +99,6 @@ export class NotebookCellsLayout implements IRangeMap {
 			return a.afterPosition - b.afterPosition;
 		});
 
-		// find item size of index
 		if (afterPosition > 0) {
 			const index = afterPosition - 1;
 			const itemSize = this._items[index].size;
@@ -153,7 +139,7 @@ export class NotebookCellsLayout implements IRangeMap {
 		if (whitespaceIndex !== -1) {
 			const whitespace = this._whitespace[whitespaceIndex];
 			this._whitespace.splice(whitespaceIndex, 1);
-			this._size -= whitespace.size; // Reduce the total size by the size of the removed whitespace
+			this._size -= whitespace.size;
 
 			if (whitespace.afterPosition > 0) {
 				const index = whitespace.afterPosition - 1;
@@ -165,11 +151,6 @@ export class NotebookCellsLayout implements IRangeMap {
 		}
 	}
 
-	/**
-	 * find position of whitespace
-	 * @param id: id of the whitespace
-	 * @returns: position in the list view
-	 */
 	getWhitespacePosition(id: string): number {
 		const whitespace = this._whitespace.find(ws => ws.id === id);
 		if (!whitespace) {
@@ -178,14 +159,12 @@ export class NotebookCellsLayout implements IRangeMap {
 
 		const afterPosition = whitespace.afterPosition;
 		if (afterPosition === 0) {
-			// find all whitespaces at the same position but with higher priority (smaller number)
 			const whitespaces = this._whitespace.filter(ws => ws.afterPosition === afterPosition && ws.priority < whitespace.priority);
 			return whitespaces.reduce((acc, ws) => acc + ws.size, 0) + this.paddingTop;
 		}
 
 		const whitespaceBeforeFirstItem = this._whitespace.filter(ws => ws.afterPosition === 0).reduce((acc, ws) => acc + ws.size, 0);
 
-		// previous item index
 		const index = afterPosition - 1;
 		const previousItemPosition = this._prefixSumComputer.getPrefixSum(index);
 		const previousItemSize = this._items[index].size;
@@ -225,13 +204,12 @@ export class NotebookCellsLayout implements IRangeMap {
 			return -1;
 		}
 
-		// index is zero based, if index+1 > this.count, then it points to the fictitious element after the last element of this array.
 		if (index >= this.count) {
 			return -1;
 		}
 
 		const whitespaceBeforeFirstItem = this._whitespace.filter(ws => ws.afterPosition === 0).reduce((acc, ws) => acc + ws.size, 0);
-		return this._prefixSumComputer.getPrefixSum(index/** count */) + this._paddingTop + whitespaceBeforeFirstItem;
+		return this._prefixSumComputer.getPrefixSum(index) + this._paddingTop + whitespaceBeforeFirstItem;
 	}
 }
 

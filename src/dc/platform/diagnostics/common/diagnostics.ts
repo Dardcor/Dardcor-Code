@@ -149,7 +149,7 @@ export interface IGPULogMessage {
 
 export interface IMainProcessDiagnostics {
 	readonly mainPID: number;
-	readonly mainArguments: string[]; // All arguments after argv[0], the exec path
+	readonly mainArguments: string[];
 	readonly windows: IWindowDiagnostics[];
 	readonly pidToNames: IProcessDiagnostics[];
 	readonly screenReader: boolean;

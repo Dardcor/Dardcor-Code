@@ -27,37 +27,20 @@ export interface IDialogInputOptions {
 }
 
 export enum DialogContentsAlignment {
-	/**
-	 * Dialog contents align from left to right (icon, message, buttons on a separate row).
-	 *
-	 * Note: this is the default alignment for dialogs.
-	 */
 	Horizontal = 0,
 
-	/**
-	 * Dialog contents align from top to bottom (icon, message, buttons stack on top of each other)
-	 */
 	Vertical
 }
 
 export interface IDialogOptions {
 	readonly cancelId?: number;
 	readonly detail?: string;
-	/**
-	 * A pre-rendered element to show in place of the plain-text {@link detail}.
-	 * Used to present rich detail content (e.g. rendered Markdown) since this
-	 * base widget has no Markdown rendering capability of its own. Takes
-	 * precedence over {@link detail} when both are provided. Any `<a>` element
-	 * within is made keyboard-focusable and participates in tab order like
-	 * links rendered via {@link renderBody}.
-	 */
 	readonly detailElement?: HTMLElement;
 	readonly alignment?: DialogContentsAlignment;
 	readonly checkboxLabel?: string;
 	readonly checkboxChecked?: boolean;
 	readonly type?: 'none' | 'info' | 'error' | 'question' | 'warning' | 'pending';
 	readonly extraClasses?: string[];
-	/** Classes to add to the full-window modal blocker. */
 	readonly modalBlockExtraClasses?: string[];
 	readonly inputs?: IDialogInputOptions[];
 	readonly keyEventProcessor?: (event: StandardKeyboardEvent) => void;
@@ -69,12 +52,6 @@ export interface IDialogOptions {
 	readonly disableCloseAction?: boolean;
 	readonly disableCloseButton?: boolean;
 	readonly disableDefaultAction?: boolean;
-	/**
-	 * Temporary escape hatch for dialogs that embed widgets whose popups mount
-	 * at window root (outside the dialog DOM). Needed because the focus trap
-	 * would otherwise immediately reclaim focus from context views and pickers.
-	 * See https://github.com/microsoft/vscode/issues/323920 for removal plan.
-	 */
 	readonly isExternalFocusAllowed?: (relatedTarget: HTMLElement) => boolean;
 	readonly onVisibilityChange?: (window: Window, visible: boolean) => void;
 	readonly buttonStyles: IButtonStyles;
@@ -128,18 +105,16 @@ export class Dialog extends Disposable {
 	constructor(private container: HTMLElement, private message: string, buttons: string[] | undefined, private readonly options: IDialogOptions) {
 		super();
 
-		// Modal background blocker
 		this.modalElement = this.container.appendChild($(`.monaco-dialog-modal-block.dimmed`));
 		if (options.modalBlockExtraClasses) {
 			this.modalElement.classList.add(...options.modalBlockExtraClasses);
 		}
 		this._register(addStandardDisposableListener(this.modalElement, EventType.CLICK, e => {
 			if (e.target === this.modalElement) {
-				this.element.focus(); // guide users back into the dialog if clicked elsewhere
+				this.element.focus();
 			}
 		}));
 
-		// Dialog Box
 		this.shadowElement = this.modalElement.appendChild($('.dialog-shadow'));
 		this.element = this.shadowElement.appendChild($('.monaco-dialog-box'));
 		if (options.alignment === DialogContentsAlignment.Vertical) {
@@ -152,7 +127,6 @@ export class Dialog extends Disposable {
 		this.element.tabIndex = -1;
 		hide(this.element);
 
-		// Footer
 		if (this.options.renderFooter) {
 			this.footerContainer = this.element.appendChild($('.dialog-footer-row'));
 
@@ -166,7 +140,6 @@ export class Dialog extends Disposable {
 			}
 		}
 
-		// Buttons
 		this.buttonStyles = options.buttonStyles;
 
 		if (Array.isArray(buttons) && buttons.length > 0) {
@@ -179,7 +152,6 @@ export class Dialog extends Disposable {
 		const buttonsRowElement = this.element.appendChild($('.dialog-buttons-row'));
 		this.buttonsContainer = buttonsRowElement.appendChild($('.dialog-buttons'));
 
-		// Message
 		const messageRowElement = this.element.appendChild($('.dialog-message-row'));
 		this.iconElement = messageRowElement.appendChild($('#monaco-dialog-icon.dialog-icon'));
 		this.iconElement.setAttribute('aria-label', this.getIconAriaLabel());
@@ -213,7 +185,6 @@ export class Dialog extends Disposable {
 			}
 		}
 
-		// Inputs
 		if (this.options.inputs) {
 			this.inputs = this.options.inputs.map(input => {
 				const inputRowElement = this.messageContainer.appendChild($('.dialog-message-input'));
@@ -234,7 +205,6 @@ export class Dialog extends Disposable {
 			this.inputs = [];
 		}
 
-		// Checkbox
 		if (this.options.checkboxLabel) {
 			const checkboxRowElement = this.messageContainer.appendChild($('.dialog-checkbox-row'));
 
@@ -249,7 +219,6 @@ export class Dialog extends Disposable {
 			this._register(addDisposableListener(checkboxMessageElement, EventType.CLICK, () => checkbox.checked = !checkbox.checked));
 		}
 
-		// Toolbar
 		const toolbarRowElement = this.element.appendChild($('.dialog-toolbar-row'));
 		this.toolbarContainer = toolbarRowElement.appendChild($('.dialog-toolbar'));
 
@@ -308,7 +277,6 @@ export class Dialog extends Disposable {
 				});
 			};
 
-			// Buttons
 			buttonMap.forEach((_, index) => {
 				const primary = buttonMap[index].index === 0;
 
@@ -319,7 +287,7 @@ export class Dialog extends Disposable {
 					button = this._register(buttonBar.addButtonWithDropdown({
 						...this.options.primaryButtonDropdown,
 						...this.buttonStyles,
-						dropdownLayer: 2600, // ensure the dropdown is above the dialog
+						dropdownLayer: 2600,
 						actions: actions.map(action => toAction({
 							...action,
 							run: async () => {
@@ -354,7 +322,6 @@ export class Dialog extends Disposable {
 				}));
 			});
 
-			// Handle keyboard events globally: Tab, Arrow-Left/Right
 			const window = getWindow(this.container);
 			let sawEscapeKeyDown = false;
 			this._register(addDisposableListener(window, 'keydown', e => {
@@ -370,7 +337,6 @@ export class Dialog extends Disposable {
 
 				if (evt.equals(KeyCode.Enter)) {
 
-					// Enter in input field should OK the dialog
 					if (this.inputs.some(input => input.hasFocus())) {
 						EventHelper.stop(e);
 
@@ -381,10 +347,9 @@ export class Dialog extends Disposable {
 						});
 					}
 
-					return; // leave default handling
+					return;
 				}
 
-				// Cmd+D (trigger the "no"/"do not save"-button) (macOS only)
 				if (isMacintosh && evt.equals(KeyMod.CtrlCmd | KeyCode.KeyD)) {
 					EventHelper.stop(e);
 
@@ -397,21 +362,19 @@ export class Dialog extends Disposable {
 						});
 					}
 
-					return; // leave default handling
+					return;
 				}
 
 				if (evt.equals(KeyCode.Space)) {
-					return; // leave default handling
+					return;
 				}
 
 				let eventHandled = false;
 
-				// Focus: Next / Previous
 				const isArrowNavigation = evt.equals(KeyCode.RightArrow) || evt.equals(KeyCode.LeftArrow);
 				const isEditableTarget = isHTMLElement(e.target) && (isEditableElement(e.target) || e.target.isContentEditable);
 				if (evt.equals(KeyCode.Tab) || evt.equals(KeyMod.Shift | KeyCode.Tab) || isArrowNavigation && !isEditableTarget) {
 
-					// Build a list of focusable elements in their visual order
 					const focusableElements: { focus: () => void }[] = [];
 					let focusedIndex = -1;
 
@@ -471,16 +434,14 @@ export class Dialog extends Disposable {
 						}
 					}
 
-					// Focus next element (with wrapping)
 					if (evt.equals(KeyCode.Tab) || evt.equals(KeyCode.RightArrow)) {
 						const newFocusedIndex = (focusedIndex + 1) % focusableElements.length;
 						focusableElements[newFocusedIndex].focus();
 					}
 
-					// Focus previous element (with wrapping)
 					else {
 						if (focusedIndex === -1) {
-							focusedIndex = focusableElements.length; // default to focus last element if none have focus
+							focusedIndex = focusableElements.length;
 						}
 
 						let newFocusedIndex = focusedIndex - 1;
@@ -510,12 +471,9 @@ export class Dialog extends Disposable {
 				}
 			}, true));
 
-			// Detect focus out
 			this._register(addDisposableListener(this.element, 'focusout', e => {
 				if (!!e.relatedTarget && !!this.element) {
 					if (!isAncestor(e.relatedTarget as HTMLElement, this.element)) {
-						// Temporary: let focus escape for body-level popups.
-						// See https://github.com/microsoft/vscode/issues/323920
 						if (this.options.isExternalFocusAllowed?.(e.relatedTarget as HTMLElement)) {
 							return;
 						}
@@ -577,11 +535,9 @@ export class Dialog extends Disposable {
 			this.element.setAttribute('aria-describedby', 'monaco-dialog-icon monaco-dialog-message-text monaco-dialog-message-detail monaco-dialog-message-body monaco-dialog-footer');
 			show(this.element);
 
-			// Notify visibility change
 			this.options.onVisibilityChange?.(window, true);
 			this._register(toDisposable(() => this.options.onVisibilityChange?.(window, false)));
 
-			// Focus first element (input or button)
 			if (this.inputs.length > 0) {
 				this.inputs[0].focus();
 				this.inputs[0].select();
@@ -622,7 +578,6 @@ export class Dialog extends Disposable {
 					continue;
 				}
 				el.style.color = linkFgColor;
-				// Ensure links are distinguishable by more than just color (WCAG 1.4.1)
 				el.style.textDecoration = 'underline';
 			}
 		}
@@ -662,27 +617,15 @@ export class Dialog extends Disposable {
 
 	private rearrangeButtons(buttons: Array<string>, cancelId: number | undefined): ButtonMapEntry[] {
 
-		// Maps each button to its current label and old index
-		// so that when we move them around it's not a problem
 		const buttonMap: ButtonMapEntry[] = buttons.map((label, index) => ({ label, index }));
 
 		if (buttons.length < 2 || this.options.alignment === DialogContentsAlignment.Vertical) {
-			return buttonMap; // only need to rearrange if there are 2+ buttons and the alignment is left-to-right
+			return buttonMap;
 		}
 
 		if (isMacintosh || isLinux) {
 
-			// Linux: the GNOME HIG (https://developer.gnome.org/hig/patterns/feedback/dialogs.html?highlight=dialog)
-			// recommend the following:
-			// "Always ensure that the cancel button appears first, before the affirmative button. In left-to-right
-			//  locales, this is on the left. This button order ensures that users become aware of, and are reminded
-			//  of, the ability to cancel prior to encountering the affirmative button."
 
-			// macOS: the HIG (https://developer.apple.com/design/human-interface-guidelines/components/presentation/alerts)
-			// recommend the following:
-			// "Place buttons where people expect. In general, place the button people are most likely to choose on the trailing side in a
-			//  row of buttons or at the top in a stack of buttons. Always place the default button on the trailing side of a row or at the
-			//  top of a stack. Cancel buttons are typically on the leading side of a row or at the bottom of a stack."
 
 			if (typeof cancelId === 'number' && buttonMap[cancelId]) {
 				const cancelButton = buttonMap.splice(cancelId, 1)[0];
@@ -692,10 +635,6 @@ export class Dialog extends Disposable {
 			buttonMap.reverse();
 		} else if (isWindows) {
 
-			// Windows: the HIG (https://learn.microsoft.com/en-us/windows/win32/uxguide/win-dialog-box)
-			// recommend the following:
-			// "One of the following sets of concise commands: Yes/No, Yes/No/Cancel, [Do it]/Cancel,
-			//  [Do it]/[Don't do it], [Do it]/[Don't do it]/Cancel."
 
 			if (typeof cancelId === 'number' && buttonMap[cancelId]) {
 				const cancelButton = buttonMap.splice(cancelId, 1)[0];

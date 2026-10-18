@@ -9,7 +9,6 @@ import { TelemetryWithExp } from '../telemetry';
 import { CompletionHeaders } from './fetch';
 import { ICompletionsModelManagerService, ModelChoiceSourceTelemetryValue } from './model';
 
-// Config methods
 
 export type EngineRequestInfo = {
 	headers: CompletionHeaders;

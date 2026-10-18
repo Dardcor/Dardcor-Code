@@ -116,9 +116,6 @@ suite('normalizeManagedSettings', () => {
 	});
 
 	test('flattens the model setting nested under permissions', () => {
-		// The server/file managed-settings schema carries `model` under `permissions`
-		// (alongside disableBypassPermissionsMode); it must flatten to `permissions.model`,
-		// which is the key the ChatDefaultModel policy value callback reads.
 		const result = normalizeManagedSettings({
 			permissions: { model: 'auto' }
 		});
@@ -159,7 +156,6 @@ suite('FileManagedSettingsService', () => {
 
 		const service = disposables.add(new FileManagedSettingsService(managedSettingsFile, fileService, logService));
 
-		// Wait for the async refresh to complete
 		await new Promise<void>(resolve => {
 			if (Object.keys(service.managedSettings).length > 0) {
 				resolve();
@@ -209,7 +205,6 @@ suite('FileManagedSettingsService', () => {
 
 		const service = disposables.add(new FileManagedSettingsService(managedSettingsFile, fileService, logService));
 
-		// Give the async refresh a chance to run
 		await new Promise(resolve => setTimeout(resolve, 10));
 
 		assert.deepStrictEqual(service.managedSettings, {});
@@ -227,7 +222,6 @@ suite('FileManagedSettingsService', () => {
 
 		const service = disposables.add(new FileManagedSettingsService(managedSettingsFile, fileService, logService));
 
-		// Wait for initial read
 		await new Promise<void>(resolve => {
 			if (Object.keys(service.managedSettings).length > 0) {
 				resolve();
@@ -239,7 +233,6 @@ suite('FileManagedSettingsService', () => {
 			}
 		});
 
-		// Update the file
 		const changePromise = new Promise<void>(resolve => {
 			const listener = disposables.add(service.onDidChangeManagedSettings(() => {
 				listener.dispose();
@@ -298,7 +291,6 @@ suite('FileManagedSettingsService', () => {
 
 		const service = disposables.add(new FileManagedSettingsService(managedSettingsFile, fileService, logService));
 
-		// Wait for initial read
 		await new Promise<void>(resolve => {
 			if (Object.keys(service.managedSettings).length > 0) {
 				resolve();
@@ -333,8 +325,6 @@ suite('FileManagedSettingsChannelClient', () => {
 		const channel = disposables.add(new DeferredManagedSettingsChannel());
 		const client = disposables.add(new FileManagedSettingsChannelClient(channel));
 
-		// A change event arrives before the initial getManagedSettings call resolves; the later,
-		// stale snapshot must not clobber the newer event-delivered state.
 		channel.fireRaw({ permissions: { allow: ['Shell(echo *)'] } });
 		channel.fire({ [COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY]: 'disable' });
 		channel.resolveInitialRawSnapshot({ permissions: { deny: ['Shell(echo *)'] } });

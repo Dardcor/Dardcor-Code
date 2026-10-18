@@ -8,7 +8,7 @@ import { IPromptPathRepresentationService } from '../../../platform/prompts/comm
 import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
-import { ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
 
 export interface IVisualPerceptualParams {
 	targetUrlOrFilePath: string;
@@ -16,7 +16,7 @@ export interface IVisualPerceptualParams {
 	description: string;
 }
 
-export class VisualPerceptualAuditorTool implements ICopilotTool<IVisualPerceptualParams> {
+export class VisualPerceptualAuditorTool implements IAgentTool<IVisualPerceptualParams> {
 	public static toolName = ToolName.VisualPerceptualAuditor;
 
 	constructor(
@@ -55,7 +55,6 @@ export class VisualPerceptualAuditorTool implements ICopilotTool<IVisualPerceptu
 			}
 
 			case 'css_overflow_audit': {
-				// Audit for unwanted horizontal scroll or absolute positioned elements leaking out
 				analysisResult = {
 					target: targetUrlOrFilePath,
 					bodyOverflowX: 'hidden',

@@ -60,28 +60,23 @@ export class FormatOnType implements IEditorContribution {
 
 	private _update(): void {
 
-		// clean up
 		this._sessionDisposables.clear();
 
-		// we are disabled
 		if (!this._editor.getOption(EditorOption.formatOnType)) {
 			return;
 		}
 
-		// no model
 		if (!this._editor.hasModel()) {
 			return;
 		}
 
 		const model = this._editor.getModel();
 
-		// no support
 		const [support] = this._languageFeaturesService.onTypeFormattingEditProvider.ordered(model);
 		if (!support || !support.autoFormatTriggerCharacters) {
 			return;
 		}
 
-		// register typing listeners that will trigger the format
 		const triggerChars = new CharacterSet();
 		for (const ch of support.autoFormatTriggerCharacters) {
 			triggerChars.add(ch.charCodeAt(0));
@@ -107,13 +102,8 @@ export class FormatOnType implements IEditorContribution {
 		const position = this._editor.getPosition();
 		const cts = new CancellationTokenSource();
 
-		// install a listener that checks if edits happens before the
-		// position on which we format right now. If so, we won't
-		// apply the format edits
 		const unbind = this._editor.onDidChangeModelContent((e) => {
 			if (e.isFlush) {
-				// a model.setValue() was called
-				// cancel only once
 				cts.cancel();
 				unbind.dispose();
 				return;
@@ -122,7 +112,6 @@ export class FormatOnType implements IEditorContribution {
 			for (let i = 0, len = e.changes.length; i < len; i++) {
 				const change = e.changes[i];
 				if (change.range.endLineNumber <= position.lineNumber) {
-					// cancel only once
 					cts.cancel();
 					unbind.dispose();
 					return;
@@ -177,20 +166,16 @@ class FormatOnPaste implements IEditorContribution {
 
 	private _update(): void {
 
-		// clean up
 		this._callOnModel.clear();
 
-		// we are disabled
 		if (!this.editor.getOption(EditorOption.formatOnPaste)) {
 			return;
 		}
 
-		// no model
 		if (!this.editor.hasModel()) {
 			return;
 		}
 
-		// no formatter
 		if (!this._languageFeaturesService.documentRangeFormattingEditProvider.has(this.editor.getModel())) {
 			return;
 		}
@@ -287,8 +272,6 @@ registerEditorContribution(FormatOnPaste.ID, FormatOnPaste, EditorContributionIn
 registerEditorAction(FormatDocumentAction);
 registerEditorAction(FormatSelectionAction);
 
-// this is the old format action that does both (format document OR format selection)
-// and we keep it here such that existing keybinding configurations etc will still work
 CommandsRegistry.registerCommand('editor.action.format', async accessor => {
 	const editor = accessor.get(ICodeEditorService).getFocusedCodeEditor();
 	if (!editor || !editor.hasModel()) {

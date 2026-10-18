@@ -2,9 +2,6 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-/**
- * @fileoverview Common build script for extensions.
- */
 import esbuild from 'esbuild';
 import { runBuild, type RunConfig } from './esbuild-common.mts';
 

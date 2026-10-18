@@ -18,11 +18,6 @@ export function activate(_context: vscode.ExtensionContext) {
 	});
 }
 
-/**
- * The initial message passing is a bit special because we need to
- * wait for the HTTP headers to arrive before we can create the
- * actual WebSocket.
- */
 class InitialManagedMessagePassing implements vscode.ManagedMessagePassing {
 	private readonly dataEmitter = new vscode.EventEmitter<Uint8Array<ArrayBuffer>>();
 	private readonly closeEmitter = new vscode.EventEmitter<Error | undefined>();
@@ -37,21 +32,17 @@ class InitialManagedMessagePassing implements vscode.ManagedMessagePassing {
 
 	public send(d: Uint8Array): void {
 		if (this._actual) {
-			// we already got the HTTP headers
 			this._actual.send(d as Uint8Array<ArrayBuffer>);
 			return;
 		}
 
 		if (this._isDisposed) {
-			// got disposed in the meantime, ignore
 			return;
 		}
 
-		// we now received the HTTP headers
 		const decoder = new TextDecoder();
 		const str = decoder.decode(d);
 
-		// example str GET ws://localhost/oss-dev?reconnectionToken=4354a323-a45a-452c-b5d7-d8d586e1cd5c&reconnection=false&skipWebSocketFrames=true HTTP/1.1
 		const match = str.match(/GET\s+(\S+)\s+HTTP/);
 		if (!match) {
 			console.error(`Coult not parse ${str}`);
@@ -59,10 +50,8 @@ class InitialManagedMessagePassing implements vscode.ManagedMessagePassing {
 			return;
 		}
 
-		// example url ws://localhost/oss-dev?reconnectionToken=4354a323-a45a-452c-b5d7-d8d586e1cd5c&reconnection=false&skipWebSocketFrames=true
 		const url = new URL(match[1]);
 
-		// extract path and query from url using browser's URL
 		const parsedUrl = new URL(url);
 		this._actual = new OpeningManagedMessagePassing(parsedUrl, this.dataEmitter, this.closeEmitter, this.endEmitter);
 	}
@@ -102,11 +91,6 @@ class OpeningManagedMessagePassing {
 			}
 			this.isOpen = true;
 
-			// https://tools.ietf.org/html/rfc6455#section-4
-			// const requestNonce = req.headers['sec-websocket-key'];
-			// const hash = crypto.createHash('sha1');
-			// hash.update(requestNonce + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
-			// const responseNonce = hash.digest('base64');
 			const responseHeaders = [
 				`HTTP/1.1 101 Switching Protocols`,
 				`Upgrade: websocket`,

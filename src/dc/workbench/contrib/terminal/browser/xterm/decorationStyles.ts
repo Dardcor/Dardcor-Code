@@ -232,7 +232,6 @@ export function updateLayout(configurationService: IConfigurationService, elemen
 	const lineHeight = configurationService.inspect(TerminalSettingId.LineHeight).value;
 	if (isNumber(fontSize) && isNumber(defaultFontSize) && isNumber(lineHeight)) {
 		const scalar = (fontSize / defaultFontSize) <= 1 ? (fontSize / defaultFontSize) : 1;
-		// must be inlined to override the inlined styles from xterm
 		element.style.width = `${scalar * DecorationStyles.DefaultDimension}px`;
 		element.style.height = `${scalar * DecorationStyles.DefaultDimension * lineHeight}px`;
 		element.style.fontSize = `${scalar * DecorationStyles.DefaultDimension}px`;

@@ -28,7 +28,6 @@ export function getAlignments(m: ModifiedBaseRange): LineAlignment[] {
 		return lineAlignment.every((i) => i !== undefined);
 	}
 
-	// One base line has either up to one full sync or up to two half syncs.
 	for (const m of commonRanges) {
 		const lineAlignment: LineAlignment = [m.output1Pos?.lineNumber, m.inputPos.lineNumber, m.output2Pos?.lineNumber];
 		const alignmentIsFullSync = isFullSync(lineAlignment);
@@ -37,7 +36,6 @@ export function getAlignments(m: ModifiedBaseRange): LineAlignment[] {
 		if (alignmentIsFullSync) {
 			const isNewFullSyncAlignment = !result.some(r => isFullSync(r) && r.some((v, idx) => v !== undefined && v === lineAlignment[idx]));
 			if (isNewFullSyncAlignment) {
-				// Remove half syncs
 				result = result.filter(r => !r.some((v, idx) => v !== undefined && v === lineAlignment[idx]));
 			}
 			shouldAdd = isNewFullSyncAlignment;
@@ -116,9 +114,6 @@ function toEqualRangeMappings(diffs: RangeMapping[], inputRange: Range, outputRa
 	return result;
 }
 
-/**
- * It is `result[i][0].inputRange.equals(result[i][1].inputRange)`.
-*/
 function splitUpCommonEqualRangeMappings(
 	equalRangeMappings1: RangeMapping[],
 	equalRangeMappings2: RangeMapping[]

@@ -33,16 +33,13 @@ type FrameTreeNode = Readonly<{
 	childFrames?: FrameTreeNode[];
 }>;
 
-/**
- * A web page loader that uses Electron to load web pages and extract their content.
- */
 export class WebPageLoader extends Disposable {
-	private static readonly TIMEOUT = 30000; // 30 seconds
-	private static readonly POST_LOAD_TIMEOUT = 5000; // 5 seconds - increased for dynamic content
-	private static readonly FRAME_TIMEOUT = 500; // 0.5 seconds
-	private static readonly EXTRACT_CONTENT_TIMEOUT = 2000; // 2 seconds
-	private static readonly IDLE_DEBOUNCE_TIME = 500; // 0.5 seconds - wait after last network request
-	private static readonly MIN_CONTENT_LENGTH = 100; // Minimum content length to consider extraction successful
+	private static readonly TIMEOUT = 30000;
+	private static readonly POST_LOAD_TIMEOUT = 5000;
+	private static readonly FRAME_TIMEOUT = 500;
+	private static readonly EXTRACT_CONTENT_TIMEOUT = 2000;
+	private static readonly IDLE_DEBOUNCE_TIME = 500;
+	private static readonly MIN_CONTENT_LENGTH = 100;
 
 	private readonly _window: BrowserWindow;
 	private readonly _debugger: Electron.Debugger;
@@ -69,7 +66,7 @@ export class WebPageLoader extends Disposable {
 			height: 600,
 			show: false,
 			webPreferences: {
-				partition: generateUuid(), // do not share any state with the default renderer session
+				partition: generateUuid(),
 				javascript: true,
 				offscreen: true,
 				sandbox: true,
@@ -104,9 +101,6 @@ export class WebPageLoader extends Disposable {
 		this._logger.trace(`[WebPageLoader] [${this._uri}] ${message}`);
 	}
 
-	/**
-	 * Loads the web page and extracts its content.
-	 */
 	public async load() {
 		return await new Promise<WebContentExtractResult>((resolve) => {
 			this._onResult = createSingleCallFunction((result) => {
@@ -137,9 +131,6 @@ export class WebPageLoader extends Disposable {
 		});
 	}
 
-	/**
-	 * Sets a timeout to trigger content extraction regardless of current loading state.
-	 */
 	private setTimeout(time: number) {
 		if (this._store.isDisposed) {
 			return;
@@ -152,18 +143,12 @@ export class WebPageLoader extends Disposable {
 		}, time);
 	}
 
-	/**
-	 * Updates HTTP headers for each web request.
-	 */
 	private onBeforeSendHeaders(details: OnBeforeSendHeadersListenerDetails, callback: (beforeSendResponse: BeforeSendResponse) => void) {
 		const headers = { ...details.requestHeaders };
 
-		// Request privacy for web-sites that respect these.
 		headers['DNT'] = '1';
 		headers['Sec-GPC'] = '1';
 
-		// For the main document request, prefer markdown responses from sites that
-		// support agent-friendly content negotiation (e.g. Microsoft Learn, Cloudflare docs).
 		if (details.resourceType === 'mainFrame') {
 			headers['Accept'] = 'text/markdown, text/html;q=0.9, application/xhtml+xml;q=0.9, application/xml;q=0.8, */*;q=0.7';
 		}
@@ -171,11 +156,6 @@ export class WebPageLoader extends Disposable {
 		callback({ requestHeaders: headers });
 	}
 
-	/**
-	 * Checks response headers for download-triggering Content-Disposition.
-	 * For text-based content types, replaces it with 'inline' so the content
-	 * is rendered and can be extracted. For binary content, cancels the response.
-	 */
 	private onHeadersReceived(details: OnHeadersReceivedListenerDetails, callback: (headersReceivedResponse: HeadersReceivedResponse) => void) {
 		const headers = details.responseHeaders;
 		if (headers) {
@@ -194,7 +174,6 @@ export class WebPageLoader extends Disposable {
 				}
 			}
 
-			// Track whether the current main-frame response is markdown (redirects can change content-type)
 			if (details.resourceType === 'mainFrame') {
 				this._receivedMarkdown = contentType?.split(';')[0].trim() === 'text/markdown';
 				if (this._receivedMarkdown) {
@@ -217,10 +196,6 @@ export class WebPageLoader extends Disposable {
 		callback({ cancel: false });
 	}
 
-	/**
-	 * Returns whether the given MIME type represents text-based content
-	 * that can be meaningfully rendered and extracted.
-	 */
 	private static readonly TEXT_MIME_TYPE_RE = /^(?:text\/|application\/(?:json|xml|xhtml\+xml|rss\+xml|atom\+xml|svg\+xml|javascript|ecmascript|x-yaml|yaml|toml|.*\+(?:xml|json))$)/;
 
 	private isTextMimeType(contentType: string | undefined): boolean {
@@ -228,9 +203,6 @@ export class WebPageLoader extends Disposable {
 		return !!mimeType && WebPageLoader.TEXT_MIME_TYPE_RE.test(mimeType);
 	}
 
-	/**
-	 * Handles the 'will-download' event, blocking any downloads.
-	 */
 	private onDownload(_event: Event, item: Electron.DownloadItem) {
 		const filename = item.getFilename();
 		this.trace(`Blocked download: ${filename}`);
@@ -238,9 +210,6 @@ export class WebPageLoader extends Disposable {
 		void this._queue.queue(() => this.extractContent({ status: 'error', error: `Download not allowed: ${filename}` }));
 	}
 
-	/**
-	 * Handles the 'did-start-loading' event, enabling network tracking.
-	 */
 	private onStartLoading() {
 		if (this._store.isDisposed) {
 			return;
@@ -248,14 +217,9 @@ export class WebPageLoader extends Disposable {
 
 		this.trace(`Received 'did-start-loading' event`);
 		void this._debugger.sendCommand('Network.enable').catch(() => {
-			// This throws when we destroy the window on redirect.
 		});
 	}
 
-	/**
-	 * Handles the 'did-finish-load' event, checking for idle state
-	 * and updating timeout to allow for post-load activities.
-	 */
 	private onFinishLoad() {
 		if (this._store.isDisposed) {
 			return;
@@ -267,9 +231,6 @@ export class WebPageLoader extends Disposable {
 		this.setTimeout(WebPageLoader.POST_LOAD_TIMEOUT);
 	}
 
-	/**
-	 * Handles the 'did-fail-load' event, reporting load failures.
-	 */
 	private onFailLoad(_event: Event, statusCode: number, error: string) {
 		if (this._store.isDisposed) {
 			return;
@@ -287,9 +248,6 @@ export class WebPageLoader extends Disposable {
 		}
 	}
 
-	/**
-	 * Handles the 'will-navigate' and 'will-redirect' events, managing redirects.
-	 */
 	private onRedirect(event: Event, url: string) {
 		if (this._store.isDisposed) {
 			return;
@@ -297,7 +255,6 @@ export class WebPageLoader extends Disposable {
 
 		this.trace(`Received 'will-navigate' or 'will-redirect' event, url: ${url}`);
 
-		// Check domain filter policy first — this applies regardless of followRedirects
 		const toURI = URI.parse(url);
 		if (!this._agentNetworkFilterService.isUriAllowed(toURI)) {
 			this.trace(`Blocking navigation to ${url} (blocked by domain filter policy)`);
@@ -307,40 +264,29 @@ export class WebPageLoader extends Disposable {
 		}
 
 		if (!this._options?.followRedirects) {
-			// Allow redirect if authority is the same when ignoring www prefix
 			if (this.normalizeAuthority(toURI.authority) === this.normalizeAuthority(this._uri.authority)) {
 				return;
 			}
 
-			// Allow redirect if target is a trusted domain
 			if (this._isTrustedDomain(toURI)) {
 				return;
 			}
 
-			// Ignore script-initiated navigation (ads/trackers etc)
 			if (this._didFinishLoad) {
 				this.trace(`Blocking post-load navigation to ${url} (likely ad/tracker script)`);
 				event.preventDefault();
 				return;
 			}
 
-			// Otherwise, prevent redirect and report it
 			event.preventDefault();
 			this._onResult({ status: 'redirect', toURI });
 		}
 	}
 
-	/**
-	 * Normalizes an authority by removing the 'www.' prefix if present.
-	 */
 	private normalizeAuthority(authority: string): string {
 		return authority.toLowerCase().replace(/^www\./, '');
 	}
 
-	/**
-	 * Handles debugger messages related to network requests, tracking their lifecycle.
-	 * @note DO NOT add logging to this function, microsoft.com will freeze when too many logs are generated
-	 */
 	private onDebugMessage(_event: Event, method: string, params: NetworkRequestEventParams) {
 		if (this._store.isDisposed) {
 			return;
@@ -375,10 +321,6 @@ export class WebPageLoader extends Disposable {
 		}
 	}
 
-	/**
-	 * Schedules an idle check after a debounce period to allow for bursts of network activity.
-	 * If idle is detected, proceeds to extract content.
-	 */
 	private scheduleIdleCheck() {
 		if (this._store.isDisposed) {
 			return;
@@ -399,15 +341,11 @@ export class WebPageLoader extends Disposable {
 		}, WebPageLoader.IDLE_DEBOUNCE_TIME);
 	}
 
-	/**
-	 * Waits for a rendering frame to ensure the page had a chance to update.
-	 */
 	private async nextFrame() {
 		if (this._store.isDisposed) {
 			return;
 		}
 
-		// Wait for a rendering frame to ensure the page had a chance to update.
 		await raceTimeout(
 			new Promise<void>((resolve) => {
 				try {
@@ -417,12 +355,10 @@ export class WebPageLoader extends Disposable {
 							this.trace(`A frame has been rendered`);
 							this._window.webContents.endFrameSubscription();
 						} catch {
-							// ignore errors
 						}
 						resolve();
 					});
 				} catch {
-					// ignore errors
 					resolve();
 				}
 			}),
@@ -430,9 +366,6 @@ export class WebPageLoader extends Disposable {
 		);
 	}
 
-	/**
-	 * Extracts the content of the loaded web page using the Accessibility domain and reports the result.
-	 */
 	private async extractContent(errorResult?: WebContentExtractResult & { status: 'error' }) {
 		if (this._store.isDisposed) {
 			return;
@@ -445,8 +378,6 @@ export class WebPageLoader extends Disposable {
 			const cts = new CancellationTokenSource();
 			try {
 				await raceTimeout((async () => {
-					// If the server returned text/markdown, the document is already plain text.
-					// Extract it directly from the document instead of running accessibility/DOM heuristics.
 					if (this._receivedMarkdown) {
 						this.trace('Extracting markdown text content from document');
 						result = await this._window.webContents.executeJavaScript('document.body?.textContent ?? document.documentElement?.textContent ?? ""') ?? '';
@@ -487,21 +418,14 @@ export class WebPageLoader extends Disposable {
 		}
 	}
 
-	/**
-	 * Extracts content from the Accessibility tree of the loaded web page.
-	 * @param token Cancellation token to abort the operation.
-	 * @return The extracted content, or undefined if extraction fails or is cancelled.
-	 */
 	private async extractAccessibilityTreeContent(token: CancellationToken): Promise<string | undefined> {
 		this.trace(`Extracting content using Accessibility domain`);
 		try {
-			// Enable the Page domain to get frame information
 			await this._debugger.sendCommand('Page.enable');
 			if (token.isCancellationRequested) {
 				return undefined;
 			}
 
-			// Get all frames including iframes
 			const { frameTree } = await this._debugger.sendCommand('Page.getFrameTree') as { frameTree: FrameTreeNode };
 			if (token.isCancellationRequested) {
 				return undefined;
@@ -512,7 +436,6 @@ export class WebPageLoader extends Disposable {
 				frameNodes.push(...frameNodes[i].childFrames ?? []);
 			}
 
-			// Collect accessibility nodes from all frames
 			const allNodes: AXNode[] = [];
 			for (const { frame } of frameNodes) {
 				try {
@@ -522,7 +445,6 @@ export class WebPageLoader extends Disposable {
 						return undefined;
 					}
 				} catch {
-					// ignore
 				}
 			}
 
@@ -533,11 +455,6 @@ export class WebPageLoader extends Disposable {
 		}
 	}
 
-	/**
-	 * Fallback method for extracting web page content when Accessibility tree extraction yields insufficient content.
-	 * Attempts to extract meaningful text content from the main DOM elements of the loaded web page.
-	 * @returns The extracted text content, or undefined if extraction fails.
-	 */
 	private async extractMainDomElementContent(): Promise<string | undefined> {
 		try {
 			this.trace(`Extracting content from main DOM element`);

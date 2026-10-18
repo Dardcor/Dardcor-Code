@@ -73,14 +73,12 @@ export class SearchFindInput extends ContextScopedFindInput {
 	}
 
 	updateFilterStyles() {
-		// filter is checked if it's in a non-default state
 		this._filterChecked =
 			!this.filters.markupInput ||
 			!this.filters.markupPreview ||
 			!this.filters.codeInput ||
 			!this.filters.codeOutput;
 
-		// TODO: find a way to express that searching notebook output and markdown preview don't support regex.
 		this._findFilter.applyStyles(this._filterChecked);
 	}
 }

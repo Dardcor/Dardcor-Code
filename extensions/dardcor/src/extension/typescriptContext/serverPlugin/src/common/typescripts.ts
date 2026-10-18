@@ -35,9 +35,6 @@ namespace tss {
 	};
 
 	export function getRelevantTokens(sourceFile: tt.SourceFile, position: number): TokenInfo {
-		// We first get the token at the position. This will be the leaf token even if
-		// position denotes a white space. In this case the next token after the while space
-		// will be considered.
 		const token = tss.getTokenAtPosition(sourceFile, position);
 
 		if (token.kind === ts.SyntaxKind.EndOfFileToken) {
@@ -55,7 +52,6 @@ namespace tss {
 
 		const result: TokenInfo = { token };
 		let needsPrevious = true;
-		// if the position is actual inside the token use it exclusively.
 		if (position > token.getStart(sourceFile)) {
 			result.touching = token;
 			needsPrevious = false;
@@ -75,7 +71,6 @@ namespace tss {
 				const children = Nodes.getChildren(current.parent, sourceFile);
 				const currentIndex = findNodeIndex(children, current);
 				if (currentIndex > 0) {
-					// Found a previous sibling, now get its rightmost token
 					let previousNode = children[currentIndex - 1];
 					let previousChildren = Nodes.getChildren(previousNode, sourceFile);
 					while (previousChildren.length > 0) {
@@ -108,7 +103,6 @@ namespace tss {
 			const targetPos = target.getStart();
 
 			if (midPos === targetPos) {
-				// Found matching position, but need to verify it's the same node
 				if (nodes[mid] === target) {
 					return mid;
 				}
@@ -171,7 +165,6 @@ namespace tss {
 			return false;
 		}
 		public throwIfCancellationRequested(): void {
-			// noop
 		}
 	}
 
@@ -182,8 +175,6 @@ namespace tss {
 	export namespace Nodes {
 
 		export function getChildren(node: tt.Node, sourceFile: tt.SourceFile): readonly tt.Node[] {
-			// If you ask a source file for its children you get an array
-			// with [SyntaxList, EndOfFileToken]
 			if (ts.isSourceFile(node)) {
 				const children = node.getChildren(sourceFile);
 				if (children.length > 0 && children[0].kind === ts.SyntaxKind.SyntaxList) {
@@ -332,7 +323,7 @@ namespace tss {
 			if (declarations === undefined) {
 				return undefined;
 			}
-			const result: tt.Type[] = []; // Changed from tts.Type[] to tts.Type[]
+			const result: tt.Type[] = [];
 			for (const declaration of declarations) {
 				if (ts.isClassDeclaration(declaration)) {
 					const heritageClauses = declaration.heritageClauses;
@@ -669,14 +660,6 @@ namespace tss {
 			return hash.digest('base64');
 		}
 
-		/**
-		 * Creates a key for a symbol that takes the document's version into account. The key is used
-		 * on the server side. It ensures that the key changes when the document changes.
-		 * @param symbol The symbol to create the key for.
-		 * @param versionProvider Provides the script version for a source file.
-		 * @param hashProvider Provides a hash function to create the key.
-		 * @returns A versioned key for the symbol or `undefined` if the key could not be created.
-		 */
 		public static createVersionedKey(symbol: tt.Symbol, context: KeyComputationContext): string | undefined {
 			const declarations = symbol.getDeclarations();
 			if (declarations === undefined) {
@@ -732,9 +715,6 @@ namespace tss {
 				return undefined;
 			}
 
-			// Make sure all declarations come out of the same source file. We only need to check
-			// this for the first declaration since all parent declarations are in the same source file
-			// when using a module system (see below).
 			const sourceFile = declarations[0].getSourceFile();
 			for (let i = 1; i < declarations.length; i++) {
 				const otherSourceFile = declarations[i].getSourceFile();
@@ -743,9 +723,6 @@ namespace tss {
 				}
 			}
 
-			// We can only compute a reasonable moniker for symbols used in module systems.
-			// These are the huge majority of the TypeScript project so we ignore the rest
-			// for now. In a module system the source file has an attached symbol.
 			if (this.getSymbolAtLocation(sourceFile) === undefined) {
 				return undefined;
 			}
@@ -757,7 +734,6 @@ namespace tss {
 				if (declarations === undefined || declarations.length === 0) {
 					return undefined;
 				}
-				// The symbol represents a source file. Use the file path as a moniker.
 				if (declarations.length === 1 && ts.isSourceFile(declarations[0])) {
 					break;
 				}
@@ -773,7 +749,6 @@ namespace tss {
 			if (escapedName.charAt(0) === '\"' || escapedName.charAt(0) === '\'') {
 				escapedName = escapedName.substr(1, escapedName.length - 2);
 			}
-			// We use `.` as a path separator so escape `.` into `..`
 			escapedName = escapedName.replace(Symbols.escapeRegExp, '..');
 			return escapedName;
 		}
@@ -951,11 +926,8 @@ namespace tss {
 						if (heritageClauses === undefined) {
 							continue;
 						}
-						// In TS classes must come first.
 						for (const heritageClause of heritageClauses) {
 							for (const type of heritageClause.types) {
-								// We can't reach to the leave symbol here since in a hierarchy we need to
-								// reference Type References by name.
 								const superType = this.getAliasedSymbolAtLocation(type.expression);
 								if (superType !== undefined && !seen.has(superType)) {
 									seen.add(superType);
@@ -965,7 +937,6 @@ namespace tss {
 									} else if (traversal === Traversal.breadthFirst) {
 										queue.push(superType);
 									}
-									// Here traversal === InternalTraversal.breadthFirstOnly; do nothing since iteration is already done.
 								}
 							}
 						}
@@ -987,15 +958,13 @@ namespace tss {
 							} else if (ts.isTypeReferenceNode(type)) {
 								const superType = this.getAliasedSymbolAtLocation(type.typeName);
 								if (superType !== undefined && !seen.has(superType)) {
-									// This is something like type _NameLength = NameLength
-									// Yield NameLength since it could represent and interface.
 									seen.add(superType);
 									yield includePath ? [symbol, superType] : superType;
 									if (traversal === Traversal.depthFirst) {
 										yield* this._getAllSuperTypes(superType, traversal, seen, includePath);
 									} else if (traversal === Traversal.breadthFirst) {
 										queue.push(superType);
-									} // Here traversal === InternalTraversal.breadthFirstOnly; do nothing since iteration is already done.
+									}
 								}
 							} else if (ts.isIntersectionTypeNode(type)) {
 								for (const item of type.types) {
@@ -1010,7 +979,7 @@ namespace tss {
 												yield* this._getAllSuperTypes(superType, traversal, seen, includePath);
 											} else if (traversal === Traversal.breadthFirst) {
 												queue.push(superType);
-											} // Here traversal === InternalTraversal.breadthFirstOnly; do nothing since iteration is already done.
+											}
 										} else {
 											seen.add(superType);
 											yield includePath ? [symbol, superType] : superType;
@@ -1018,7 +987,7 @@ namespace tss {
 												yield* this._getAllSuperTypes(superType, traversal, seen, includePath);
 											} else if (traversal === Traversal.breadthFirst) {
 												queue.push(superType);
-											} // Here traversal === InternalTraversal.breadthFirstOnly; do nothing since iteration is already done.
+											}
 										}
 									}
 								}
@@ -1056,7 +1025,6 @@ namespace tss {
 						if (heritageClause.token !== ts.SyntaxKind.ExtendsKeyword || heritageClause.types.length < 1) {
 							continue;
 						}
-						// TypeScript has exactly one extends clause.
 						const type = heritageClause.types[0];
 						const superClass = this.getAliasedSymbolAtLocation(type.expression);
 						if (superClass !== undefined && !seen.has(superClass)) {
@@ -1092,7 +1060,6 @@ namespace tss {
 				if (heritageClause.token !== ts.SyntaxKind.ExtendsKeyword) {
 					continue;
 				}
-				// TypeScript has exactly one extends clause.
 				if (heritageClause.types.length < 1) {
 					return false;
 				}
@@ -1125,9 +1092,6 @@ namespace tss {
 		}
 
 		private *_getAllSubTypes(traversal: SubTypeTraversal<TypeDeclarations.Type>, preferredSourceFiles: tt.SourceFile[] | undefined, stateProvider: StateProvider, seen: Set<tt.Symbol>, token: tt.CancellationToken): IterableIterator<tt.Symbol> {
-			// In TypeScript classes can be used as interfaces as well (e.g. interface Foo extends Clazz)
-			// However we ignore this pattern for now since it allows that if we have a class as a start symbol
-			// that we can traverse the class hierarchy only.
 			if (!traversal.isValid()) {
 				return;
 			}
@@ -1156,7 +1120,7 @@ namespace tss {
 									yield* this._getAllSubTypes(traversal.with(symbol), preferredSourceFiles, stateProvider, seen, token);
 								} else if (traversal.mode === Traversal.breadthFirst) {
 									queue.push(symbol);
-								} // Here traversal === InternalTraversal.breadthFirstOnly; do nothing since iteration is already done.
+								}
 							}
 						}
 					}
@@ -1365,8 +1329,6 @@ namespace tss {
 
 			const program = this.program;
 
-			// We have some imported by state. We first use it to see if we can find something in
-			// the cache.
 			if (this.importedByState !== undefined) {
 				for (const fileName of this.importedByState.getImportedBy(this.sourceFile, true)) {
 					this.token.throwIfCancellationRequested();
@@ -1375,7 +1337,6 @@ namespace tss {
 						yield sourceFile;
 					}
 				}
-				// If the imported by state was complete we are done.
 				if (this.importedByState.isComplete() && !this.importedByState.isOutdated()) {
 					return;
 				}
@@ -1393,8 +1354,6 @@ namespace tss {
 				if (importedSymbol === undefined || !Symbols.isSourceFile(importedSymbol)) {
 					return undefined;
 				}
-				// We know the symbol is a source file which means the declaration at position 0
-				// is the source file itself.
 				return importedSymbol.declarations![0] as tt.SourceFile;
 			}
 
@@ -1415,8 +1374,6 @@ namespace tss {
 				if (this.skipSourceFile(program, sourceFile)) {
 					continue;
 				}
-				// We have a module system.
-				// externalModuleIndicator is either true or the Node.
 				if (sourceFile.externalModuleIndicator && sourceFile.imports !== undefined) {
 					for (let i = 0; i < sourceFile.imports.length; i++) {
 						this.token.throwIfCancellationRequested();
@@ -1424,8 +1381,6 @@ namespace tss {
 						if (importedSymbol === sourceFileSymbolToCheck) {
 							if (this.importedByState !== undefined) {
 								this.importedByState.imports(sourceFile, this.sourceFile);
-								// If we capture the state for the imported by we need to visit
-								// all imports. Otherwise the traversed state will be incomplete.
 								for (let r = i + 1; r < sourceFile.imports.length; r++) {
 									const importedSourceFile = getUnderlyingSourceFileFromImport(checker, sourceFile.imports[i]);
 									if (importedSourceFile !== undefined && !this.skipSourceFile(program, importedSourceFile)) {
@@ -1881,7 +1836,7 @@ namespace tss {
 			[ts.SyntaxKind.PartiallyEmittedExpression, 354],
 			[ts.SyntaxKind.CommaListExpression, 355],
 			[ts.SyntaxKind.SyntheticReferenceExpression, 356],
-			[ts.SyntaxKind.NotEmittedTypeElement, 357], // New in 5.8.x. Position in 5.8 is 354 and the rest shifts.
+			[ts.SyntaxKind.NotEmittedTypeElement, 357],
 		]);
 		const UnknownStableSyntaxKind: number = 9999;
 		export function getPath(node: tt.Node): number[] {

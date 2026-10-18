@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import type { HttpHeaders } from '../fetchTypes';
 import { cloneResponse, type CloneableResponse } from '../httpResponse';
 
-// ── Helpers ─────────────────────────────────────────────────────────────
 
 function makeHeaders(entries: Record<string, string> = {}): HttpHeaders {
 	const map = new Map(Object.entries(entries));
@@ -34,7 +33,6 @@ function multiChunkStream(chunks: string[]): ReadableStream<Uint8Array> {
 	});
 }
 
-/** Simulates the platform `DestroyableStream` which exposes `toReadableStream()`. */
 function fakeDestroyableStream(text: string) {
 	return { toReadableStream: () => textStream(text) };
 }
@@ -43,7 +41,6 @@ function makeResponse(status: number, headers: HttpHeaders, body: ReadableStream
 	return { status, headers, body };
 }
 
-// ── cloneResponse ───────────────────────────────────────────────────────
 
 describe('cloneResponse', () => {
 
@@ -123,7 +120,6 @@ describe('cloneResponse', () => {
 			const response = makeResponse(200, makeHeaders(), textStream('original'));
 			const [first, second] = cloneResponse(response);
 
-			// Clone one of the halves again
 			const [firstA, firstB] = cloneResponse(first);
 
 			expect(await firstA.text()).toBe('original');

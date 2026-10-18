@@ -11,24 +11,6 @@ import type { McpElicitationPrimitiveSchema } from './protocol/generated/v2/McpE
 import type { McpServerElicitationRequestParams } from './protocol/generated/v2/McpServerElicitationRequestParams.js';
 import type { McpServerElicitationRequestResponse } from './protocol/generated/v2/McpServerElicitationRequestResponse.js';
 
-/**
- * Translate a codex `mcpServer/elicitation/request` into an agent-host
- * {@link ChatInputRequest}. Three modes are supported, mirroring the MCP
- * elicitation spec:
- *
- *  - `form` — projects each field of the requested JSON schema into a
- *    {@link ChatInputQuestion} (text / number / boolean / single- or
- *    multi-select), reusing the same chat-input surface as the model's
- *    `ask_user` tool.
- *  - `openai/form` — carries an opaque, OpenAI-specific form schema we
- *    cannot project into typed questions; surfaces the message only so the
- *    user can still accept or decline.
- *  - `url` — surfaces the URL the server wants the user to open via
- *    {@link ChatInputRequest.url} with no questions.
- *
- * MCP field names are used directly as the stable question id (the key
- * the answer map is later read back by).
- */
 export function buildElicitationRequest(requestId: string, params: McpServerElicitationRequestParams): ChatInputRequest {
 	if (params.mode === 'url') {
 		const request: ChatInputRequest = { id: requestId, message: params.message };
@@ -38,9 +20,6 @@ export function buildElicitationRequest(requestId: string, params: McpServerElic
 		return withChatInputRequestPurpose(request, ChatInputRequestPurpose.Elicitation);
 	}
 	if (params.mode !== 'form') {
-		// `openai/form` carries an opaque, OpenAI-specific schema we cannot
-		// project into typed questions; surface the message only so the user
-		// can still accept or decline.
 		return withChatInputRequestPurpose({ id: requestId, message: params.message }, ChatInputRequestPurpose.Elicitation);
 	}
 	const required = new Set(params.requestedSchema.required ?? []);
@@ -58,13 +37,6 @@ export function buildElicitationRequest(requestId: string, params: McpServerElic
 	);
 }
 
-/**
- * Build the codex elicitation response from the client's answers. A
- * declined request maps to `decline`, a cancelled/closed request to
- * `cancel`, and an accepted request to `accept` with a `content` object
- * keyed by field name (omitting skipped/missing answers). `url`-mode
- * acceptances carry no content.
- */
 export function elicitationResponseFromAnswers(
 	params: McpServerElicitationRequestParams,
 	response: ChatInputResponseKind,
@@ -77,7 +49,6 @@ export function elicitationResponseFromAnswers(
 		return { action: 'cancel', content: null, _meta: null };
 	}
 	if (params.mode !== 'form') {
-		// `url` and `openai/form` acceptances carry no projected content.
 		return { action: 'accept', content: null, _meta: null };
 	}
 	const content: { [key: string]: JsonValue } = {};
@@ -93,12 +64,10 @@ export function elicitationResponseFromAnswers(
 	return { action: 'accept', content, _meta: null };
 }
 
-/** Decline response used when there is no session to route the elicitation to. */
 export function declinedElicitationResponse(): McpServerElicitationRequestResponse {
 	return { action: 'decline', content: null, _meta: null };
 }
 
-/** Cancel response used when the session is torn down mid-elicitation. */
 export function cancelledElicitationResponse(): McpServerElicitationRequestResponse {
 	return { action: 'cancel', content: null, _meta: null };
 }
@@ -129,8 +98,6 @@ function elicitationFieldToQuestion(id: string, field: McpElicitationPrimitiveSc
 				max: bigintToNumber(field.maxItems),
 			};
 		case 'string':
-			// Titled single-select (`oneOf`), enum/legacy single-select (`enum`,
-			// optionally `enumNames`), or a plain text field.
 			if (hasKey(field, { oneOf: true })) {
 				return {
 					...base,

@@ -27,29 +27,14 @@ export class StickyLineCandidate {
 }
 
 export interface IStickyLineCandidateProvider {
-	/**
-	 * Dispose resources used by the provider.
-	 */
 	dispose(): void;
 
-	/**
-	 * Get the version ID of the sticky model.
-	 */
 	getVersionId(): number | undefined;
 
-	/**
-	 * Update the sticky line candidates.
-	 */
 	update(): Promise<void>;
 
-	/**
-	 * Get sticky line candidates intersecting a given range.
-	 */
 	getCandidateStickyLinesIntersecting(range: StickyRange): StickyLineCandidate[];
 
-	/**
-	 * Event triggered when sticky scroll changes.
-	 */
 	readonly onDidChangeStickyScroll: Event<void>;
 }
 
@@ -85,9 +70,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		this.readConfiguration();
 	}
 
-	/**
-	 * Read and apply the sticky scroll configuration.
-	 */
 	private readConfiguration() {
 		this._sessionStore.clear();
 		const options = this._editor.getOption(EditorOption.stickyScroll);
@@ -111,16 +93,10 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		this.update();
 	}
 
-	/**
-	 * Get the version ID of the sticky model.
-	 */
 	public getVersionId(): number | undefined {
 		return this._model?.version;
 	}
 
-	/**
-	 * Update the sticky model provider.
-	 */
 	private updateStickyModelProvider() {
 		this._stickyModelProvider?.dispose();
 		this._stickyModelProvider = null;
@@ -134,9 +110,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		}
 	}
 
-	/**
-	 * Update the sticky line candidates.
-	 */
 	public async update(): Promise<void> {
 		this._cts?.dispose(true);
 		this._cts = new CancellationTokenSource();
@@ -144,9 +117,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		this._onDidChangeStickyScroll.fire();
 	}
 
-	/**
-	 * Update the sticky model based on the current editor state.
-	 */
 	private async updateStickyModel(token: CancellationToken): Promise<void> {
 		if (!this._editor.hasModel() || !this._stickyModelProvider || this._editor.getModel().isTooLargeForTokenization()) {
 			this._model = null;
@@ -158,9 +128,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		}
 	}
 
-	/**
-	 * Get sticky line candidates intersecting a given range.
-	 */
 	public getCandidateStickyLinesIntersecting(range: StickyRange): StickyLineCandidate[] {
 		if (!this._model?.element) {
 			return [];
@@ -170,9 +137,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		return this.filterHiddenRanges(stickyLineCandidates);
 	}
 
-	/**
-	 * Get sticky line candidates intersecting a given range from the sticky model.
-	 */
 	private getCandidateStickyLinesIntersectingFromStickyModel(
 		range: StickyRange,
 		outlineModel: StickyElement,
@@ -221,9 +185,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		}
 	}
 
-	/**
-	 * Filter out sticky line candidates that are within hidden ranges.
-	 */
 	private filterHiddenRanges(stickyLineCandidates: StickyLineCandidate[]): StickyLineCandidate[] {
 		const hiddenRanges = this._editor._getViewModel()?.getHiddenAreas();
 		if (!hiddenRanges) {
@@ -237,9 +198,6 @@ export class StickyLineCandidateProvider extends Disposable implements IStickyLi
 		});
 	}
 
-	/**
-	 * Update the binary search index.
-	 */
 	private updateIndex(index: number): number {
 		if (index === -1) {
 			return 0;

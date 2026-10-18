@@ -120,7 +120,6 @@ export class ChangeIndentationSizeAction extends EditorAction {
 		const picks = [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
 			id: n.toString(),
 			label: n.toString(),
-			// add description for tabSize value set in the configuration
 			description: (
 				n === creationOpts.tabSize && n === modelOpts.tabSize
 					? nls.localize('configuredTabSize', "Configured Tab Size")
@@ -132,7 +131,6 @@ export class ChangeIndentationSizeAction extends EditorAction {
 			)
 		}));
 
-		// auto focus the tabSize set for the current editor
 		const autoFocusIndex = Math.min(model.getOptions().tabSize - 1, 7);
 
 		setTimeout(() => {
@@ -154,7 +152,7 @@ export class ChangeIndentationSizeAction extends EditorAction {
 					}
 				}
 			});
-		}, 50/* quick input is sensitive to being opened so soon after another */);
+		}, 50);
 	}
 }
 
@@ -384,15 +382,12 @@ export class AutoIndentOnPaste implements IEditorContribution {
 
 	private update(): void {
 
-		// clean up
 		this.callOnModel.clear();
 
-		// we are disabled
 		if (!this.editor.getOption(EditorOption.autoIndentOnPaste) || this.editor.getOption(EditorOption.autoIndent) < EditorAutoIndentStrategy.Full) {
 			return;
 		}
 
-		// no model
 		if (!this.editor.hasModel()) {
 			return;
 		}
@@ -457,10 +452,6 @@ export class AutoIndentOnPaste implements IEditorContribution {
 					const indentMetadata = getIndentMetadata(model, startLineNumber, this._languageConfigurationService);
 
 					if (indentMetadata === 0 || indentMetadata === IndentConsts.UNINDENT_MASK) {
-						// we paste content into a line where only contains whitespaces
-						// after pasting, the indentation of the first line is already correct
-						// the first line doesn't match any indentation rule
-						// then no-op.
 						return;
 					}
 				}
@@ -469,7 +460,6 @@ export class AutoIndentOnPaste implements IEditorContribution {
 
 		const firstLineNumber = startLineNumber;
 
-		// ignore empty or ignored lines
 		while (startLineNumber < range.endLineNumber) {
 			if (!/\S/.test(model.getLineContent(startLineNumber + 1))) {
 				startLineNumber++;
@@ -577,7 +567,6 @@ function isStartOrEndInString(model: ITextModel, range: Range): boolean {
 
 function getIndentationEditOperations(model: ITextModel, builder: IEditOperationBuilder, tabSize: number, tabsToSpaces: boolean): void {
 	if (model.getLineCount() === 1 && model.getLineMaxColumn(1) === 1) {
-		// Model is empty
 		return;
 	}
 

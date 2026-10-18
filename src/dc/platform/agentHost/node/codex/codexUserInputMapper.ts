@@ -9,13 +9,6 @@ import type { ToolRequestUserInputAnswer } from './protocol/generated/v2/ToolReq
 import type { ToolRequestUserInputQuestion } from './protocol/generated/v2/ToolRequestUserInputQuestion.js';
 import type { ToolRequestUserInputResponse } from './protocol/generated/v2/ToolRequestUserInputResponse.js';
 
-/**
- * Translate codex `request_user_input` (the model's `ask_user`) questions into
- * an agent-host {@link ChatInputRequest}. Questions with options become a
- * single-select (with freeform allowed when codex marks `isOther`); option-less
- * questions become a free text question. Codex options have no stable id, so
- * the option label doubles as the id.
- */
 export function buildUserInputRequest(requestId: string, questions: readonly ToolRequestUserInputQuestion[]): ChatInputRequest {
 	return withChatInputRequestPurpose({
 		id: requestId,
@@ -42,11 +35,6 @@ export function buildUserInputRequest(requestId: string, questions: readonly Too
 	}, ChatInputRequestPurpose.AskUser);
 }
 
-/**
- * Build the codex `request_user_input` response from the client's answers.
- * Codex expects an answer (a string array) per question id; a declined/cancelled
- * request or a skipped/missing answer yields an empty array for that question.
- */
 export function userInputResponseFromAnswers(
 	questions: readonly ToolRequestUserInputQuestion[],
 	response: ChatInputResponseKind,
@@ -59,7 +47,6 @@ export function userInputResponseFromAnswers(
 	return { answers: out };
 }
 
-/** Response with empty answers for every question (used when there is no session to ask). */
 export function emptyUserInputResponse(questions: readonly ToolRequestUserInputQuestion[]): ToolRequestUserInputResponse {
 	const out: Record<string, ToolRequestUserInputAnswer> = {};
 	for (const q of questions) {
@@ -68,7 +55,6 @@ export function emptyUserInputResponse(questions: readonly ToolRequestUserInputQ
 	return { answers: out };
 }
 
-/** Flatten a single chat input answer into the string array codex expects. */
 export function answerStrings(answer: ChatInputAnswer | undefined, response: ChatInputResponseKind): string[] {
 	if (response !== ChatInputResponseKind.Accept || !answer || answer.state === ChatInputAnswerState.Skipped) {
 		return [];

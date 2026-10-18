@@ -9,9 +9,6 @@ import path from 'path';
 import { Page } from 'playwright';
 import { TestContext } from './context.js';
 
-/**
- * UI Test helper class to perform common UI actions and verifications.
- */
 export class UITest {
 	private _extensionsDir: string | undefined;
 	private _workspaceDir: string | undefined;
@@ -27,30 +24,18 @@ export class UITest {
 		}
 	}
 
-	/**
-	 * The directory where extensions are installed.
-	 */
 	public get extensionsDir(): string {
 		return this._extensionsDir ??= this.context.createTempDir();
 	}
 
-	/**
-	 * The workspace directory used for testing.
-	 */
 	public get workspaceDir(): string {
 		return this._workspaceDir ??= this.context.createTempDir();
 	}
 
-	/**
-	 * The user data directory used for testing.
-	 */
 	public get userDataDir(): string {
 		return this._userDataDir ??= this.context.createTempDir();
 	}
 
-	/**
-	 * Run the UI test actions.
-	 */
 	public async run(page: Page) {
 		try {
 			await this.dismissWelcomeDialog(page);
@@ -63,17 +48,11 @@ export class UITest {
 		}
 	}
 
-	/**
-	 * Validate the results of the UI test actions.
-	 */
 	public validate() {
 		this.verifyTextFileCreated();
 		this.verifyExtensionInstalled();
 	}
 
-	/**
-	 * Dismiss the welcome sign-in dialog if it is shown.
-	 */
 	public async dismissWelcomeDialog(page: Page) {
 		this.context.log('Dismissing welcome dialog (if shown)');
 		const closeButton = page.locator('button.onboarding-a-close-btn');
@@ -87,9 +66,6 @@ export class UITest {
 		await closeButton.waitFor({ state: 'hidden' });
 	}
 
-	/**
-	 * Run a command from the command palette.
-	 */
 	private async runCommand(page: Page, command: string) {
 		this.context.log(`Running command: ${command}`);
 		await page.keyboard.press('F1');
@@ -100,9 +76,6 @@ export class UITest {
 		await input.waitFor({ state: 'hidden' });
 	}
 
-	/**
-	 * Create a new text file in the editor with some content and save it.
-	 */
 	private async createTextFile(page: Page) {
 		await this.runCommand(page, 'View: Show Explorer');
 
@@ -122,9 +95,6 @@ export class UITest {
 		await this.runCommand(page, 'File: Save');
 	}
 
-	/**
-	 * Verify that the text file was created with the expected content.
-	 */
 	protected verifyTextFileCreated() {
 		this.context.log('Verifying file contents');
 		const filePath = `${this.workspaceDir}/helloWorld.txt`;
@@ -132,10 +102,6 @@ export class UITest {
 		assert.strictEqual(fileContents, 'Hello, World!', 'File contents do not match expected value');
 	}
 
-	/**
-	 * Run a workspace search (Search: Find in Files) and verify ripgrep returns
-	 * the expected match from the file created in {@link createTextFile}.
-	 */
 	private async searchInWorkspace(page: Page) {
 		await this.runCommand(page, 'Search: Find in Files');
 
@@ -165,9 +131,6 @@ export class UITest {
 		);
 	}
 
-	/**
-	 * Install GitHub Pull Requests extension from the Extensions view.
-	 */
 	private async installExtension(page: Page) {
 		await this.runCommand(page, 'View: Show Extensions');
 
@@ -234,9 +197,6 @@ export class UITest {
 		throw new Error(`Failed to install extension after 3 attempts; last failure: ${lastFailure ?? '<none captured>'}`);
 	}
 
-	/**
-	 * Verify that the GitHub Pull Requests extension is installed.
-	 */
 	protected verifyExtensionInstalled() {
 		this.context.log('Verifying extension is installed');
 		const extensions = fs.readdirSync(this.extensionsDir);

@@ -24,12 +24,10 @@ export function getTokenType(ctx: { commandLine: string; cursorIndex: number }, 
 	const cursorPosition = ctx.cursorIndex;
 	const commandResetChars = shellType === undefined ? defaultShellTypeResetChars : shellTypeResetChars.get(shellType) ?? defaultShellTypeResetChars;
 
-	// Check for reset char before the current word
 	const beforeCursor = commandLine.substring(0, cursorPosition);
 	const wordStart = beforeCursor.lastIndexOf(' ') + 1;
 	const beforeWord = commandLine.substring(0, wordStart);
 
-	// Look for " <reset char> " before the word
 	for (const resetChar of commandResetChars) {
 		const pattern = shellType === TerminalShellType.PowerShell ? `${resetChar}` : ` ${resetChar} `;
 		if (beforeWord.endsWith(pattern)) {
@@ -37,7 +35,6 @@ export function getTokenType(ctx: { commandLine: string; cursorIndex: number }, 
 		}
 	}
 
-	// Fallback to original logic for the very first command
 	const spaceIndex = beforeCursor.lastIndexOf(' ');
 	if (spaceIndex === -1) {
 		return TokenType.Command;

@@ -6,14 +6,6 @@
 import { URI } from '../../../base/common/uri.js';
 import { testUrlMatchesGlob } from './urlGlob.js';
 
-/**
- * Check whether a domain like https://www.microsoft.com matches
- * the list of trusted domains.
- *
- * - Schemes must match
- * - There's no subdomain matching. For example https://microsoft.com doesn't match https://www.microsoft.com
- * - Star matches all subdomains. For example https://*.microsoft.com matches https://www.microsoft.com and https://foo.bar.microsoft.com
- */
 export function isURLDomainTrusted(url: URI, trustedDomains: string[]): boolean {
 	url = URI.parse(normalizeURL(url));
 	trustedDomains = trustedDomains.map(normalizeURL);
@@ -35,9 +27,6 @@ export function isURLDomainTrusted(url: URI, trustedDomains: string[]): boolean 
 	return false;
 }
 
-/**
- * Case-normalize some case-insensitive URLs, such as github.
- */
 export function normalizeURL(url: string | URI): string {
 	const caseInsensitiveAuthorities = ['github.com'];
 	try {

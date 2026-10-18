@@ -47,7 +47,6 @@ export class ConfigureLanguageBasedSettingsAction extends Action {
 		const languages = this.languageService.getSortedRegisteredLanguageNames();
 		const picks: IQuickPickItem[] = languages.map(({ languageName, languageId }): IQuickPickItem => {
 			const description: string = nls.localize('languageDescriptionConfigured', "({0})", languageId);
-			// construct a fake resource to be able to show nice icons if any
 			let fakeResource: URI | undefined;
 			const extensions = this.languageService.getExtensions(languageId);
 			if (extensions.length) {
@@ -79,7 +78,6 @@ export class ConfigureLanguageBasedSettingsAction extends Action {
 	}
 }
 
-// Register a command that gets all settings
 CommandsRegistry.registerCommand({
 	id: '_getAllSettings',
 	handler: () => {
@@ -89,11 +87,6 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-/**
- * Schema information for a single configuration property as returned by
- * `_developer.getConfigurationInformation`. Self-contained so it can be
- * copied verbatim into other projects.
- */
 export interface IConfigurationPropertyInformation {
 	type?: string | string[];
 	default?: unknown;
@@ -105,7 +98,6 @@ export interface IConfigurationPropertyInformation {
 	enumDescriptions?: string[];
 	markdownEnumDescriptions?: string[];
 	enumItemLabels?: string[];
-	/** 1=APPLICATION, 2=MACHINE, 3=WINDOW, 4=RESOURCE, 5=LANGUAGE_OVERRIDABLE, 6=APPLICATION_MACHINE, 7=MACHINE_OVERRIDABLE */
 	scope?: number;
 	restricted?: boolean;
 	included?: boolean;
@@ -141,14 +133,9 @@ export interface IConfigurationPropertyInformation {
 		id: string;
 		displayName?: string;
 	};
-	// Additional JSON Schema fields may be present (e.g. minimum, maximum, pattern, items, properties).
 	[key: string]: unknown;
 }
 
-/**
- * The shape of the JSON returned by `_developer.getConfigurationInformation`:
- * a map from configuration key to its schema information.
- */
 export interface IConfigurationInformation {
 	[settingId: string]: IConfigurationPropertyInformation;
 }
@@ -162,21 +149,11 @@ CommandsRegistry.registerCommand({
 		const extensionManagementService = accessor.get(IWorkbenchExtensionManagementService);
 		const extensionEnablementService = accessor.get(IWorkbenchExtensionEnablementService);
 
-		// Ensure extension-contributed configuration has been registered before
-		// reading the registry, otherwise extension settings may be missing.
 		await extensionService.whenInstalledExtensionsRegistered();
 
-		// Some built-in extensions (e.g. Copilot when chat setup is incomplete) may be
-		// disabled and therefore not contribute their configuration. Enable any disabled
-		// built-in extensions and wait for them to register so their settings are dumped too.
 		const installed = await extensionManagementService.getInstalled();
 		const toEnable = installed.filter(e => e.isBuiltin && extensionEnablementService.canChangeEnablement(e) && !extensionEnablementService.isEnabled(e));
 		if (toEnable.length) {
-			// Wait until every extension we're about to enable has actually been
-			// registered with the extension service (its contributions, including
-			// configuration, are processed at that point). Racing with a single
-			// `onDidChangeExtensions` event is unreliable because the event may
-			// fire before all of the enabled extensions have joined the registry.
 			const pending = new ExtensionIdentifierSet(toEnable.map(e => e.identifier.id));
 			for (const ext of extensionService.extensions) {
 				pending.delete(ext.identifier);
@@ -205,7 +182,6 @@ CommandsRegistry.registerCommand({
 
 		const configurationProperties = configRegistry.getConfigurationProperties();
 		const configurationInformation: IConfigurationInformation = Object.fromEntries(Object.entries(configurationProperties).map(([key, property]) => {
-			// A map is not JSON-serializable and is not needed for schema consumers.
 			const { defaultValueSource, ...schema } = property;
 			return [key, schema];
 		}));
@@ -227,7 +203,6 @@ CommandsRegistry.registerCommand({
 	}
 });
 
-//#region --- Register a command to get all actions from the command palette
 CommandsRegistry.registerCommand('_getAllCommands', function (accessor, filterByPrecondition?: boolean) {
 	const keybindingService = accessor.get(IKeybindingService);
 	const contextKeyService = accessor.get(IContextKeyService);
@@ -267,4 +242,3 @@ CommandsRegistry.registerCommand('_getAllCommands', function (accessor, filterBy
 
 	return actions;
 });
-//#endregion

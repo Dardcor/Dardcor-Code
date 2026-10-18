@@ -128,17 +128,10 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 
 		this._extensionScanner = extensionScanner;
 
-		// delay extension host creation and extension scanning
-		// until the workbench is running. we cannot defer the
-		// extension host more (LifecyclePhase.Restored) because
-		// some editors require the extension host to restore
-		// and this would result in a deadlock
-		// see https://github.com/microsoft/vscode/issues/41322
 		lifecycleService.when(LifecyclePhase.Ready).then(() => {
-			// reschedule to ensure this runs after restoring viewlets, panels, and editors
 			runWhenWindowIdle(mainWindow, () => {
 				this._initializeIfNeeded();
-			}, 50 /*max delay*/);
+			}, 50 );
 		});
 	}
 
@@ -216,7 +209,7 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 						run: () => {
 							this._instantiationService.invokeFunction(accessor => {
 								const openerService = accessor.get(IOpenerService);
-								openerService.open('https://aka.ms/vscode-extension-bisect');
+								openerService.open('https://www.dardcor-code.web.id/docs/extensions/troubleshooting/bisect');
 							});
 						}
 					});
@@ -267,21 +260,13 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 		}
 	}
 
-	// --- impl
 
 	protected async _resolveAuthority(remoteAuthority: string): Promise<ResolverResult> {
 
 		const authorityPlusIndex = remoteAuthority.indexOf('+');
 		if (authorityPlusIndex === -1) {
-			// This authority does not need to be resolved, simply parse the port number
 			const { host, port } = parseAuthorityWithPort(remoteAuthority);
 
-			// A direct `<host>:<port>` authority bypasses resolver extensions and connects
-			// straight to the given server. This form can originate from untrusted sources
-			// (e.g. the `remoteAuthority` of a `.code-workspace` file), so before connecting
-			// to anything that is not the local loopback interface we ask the user to confirm.
-			// This prevents a crafted workspace from silently pointing the window's backend at
-			// an attacker controlled server.
 			if (!isLoopbackHost(host)) {
 				await this._confirmDirectRemoteConnection(host, port);
 			}
@@ -322,13 +307,11 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 
 		const authorityPlusIndex = remoteAuthority.indexOf('+');
 		if (authorityPlusIndex === -1) {
-			// This authority does not use a resolver
 			return uri;
 		}
 
 		const localProcessExtensionHosts = this._getExtensionHostManagers(ExtensionHostKind.LocalProcess);
 		if (localProcessExtensionHosts.length === 0) {
-			// no local process extension hosts
 			throw new Error(`Cannot resolve canonical URI`);
 		}
 
@@ -340,7 +323,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 			}
 		}
 
-		// we can only reach this if there was no resolver extension that can return the cannonical uri
 		throw new Error(`Cannot get canonical URI because no extension is installed to resolve ${getRemoteAuthorityPrefix(remoteAuthority)}`);
 	}
 
@@ -360,7 +342,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 
 			this._remoteAuthorityResolverService._setCanonicalURIProvider(async (uri) => {
 				if (uri.scheme !== Schemas.vscodeRemote || uri.authority !== remoteAuthority) {
-					// The current remote authority resolver cannot give the canonical URI for this URI
 					return uri;
 				}
 				performance.mark(`code/willGetCanonicalURI/${getRemoteAuthorityPrefix(remoteAuthority)}`);
@@ -381,9 +362,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 				this._logService.info(`Starting to wait on IWorkspaceTrustManagementService.workspaceResolved...`);
 			}
 
-			// Now that the canonical URI provider has been registered, we need to wait for the trust state to be
-			// calculated. The trust state will be used while resolving the authority, however the resolver can
-			// override the trust state through the resolver result.
 			await this._workspaceTrustManagementService.workspaceResolved;
 
 			if (isCI) {
@@ -409,15 +387,12 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 				}
 				this._remoteAuthorityResolverService._setResolvedAuthorityError(remoteAuthority, err);
 
-				// Proceed with the local extension host
 				return this._startLocalExtensionHost(emitter);
 			}
 
-			// set the resolved authority
 			this._remoteAuthorityResolverService._setResolvedAuthority(resolverResult.authority, resolverResult.options);
 			this._remoteExplorerService.setTunnelInformation(resolverResult.tunnelInformation);
 
-			// monitor for breakage
 			const connection = this._remoteAgentService.getConnection();
 			if (connection) {
 				this._register(connection.onDidStateChange(async (e) => {
@@ -428,7 +403,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 				this._register(connection.onReconnecting(() => this._resolveAuthorityAgain()));
 			}
 
-			// fetch the remote environment
 			[remoteEnv, remoteExtensions] = await Promise.all([
 				this._remoteAgentService.getEnvironment(),
 				this._remoteExtensionsScannerService.scanExtensions()
@@ -436,7 +410,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 
 			if (!remoteEnv) {
 				this._notificationService.notify({ severity: Severity.Error, message: nls.localize('getEnvironmentFailure', "Could not fetch remote environment") });
-				// Proceed with the local extension host
 				return this._startLocalExtensionHost(emitter);
 			}
 
@@ -457,8 +430,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 	}
 
 	private async _startLocalExtensionHost(emitter: AsyncIterableEmitter<ResolvedExtensions>, remoteExtensions: IExtensionDescription[] = []): Promise<void> {
-		// Ensure that the workspace trust state has been fully initialized so
-		// that the extension host can start with the correct set of extensions.
 		await this._workspaceTrustManagementService.workspaceTrustInitialized;
 
 		if (remoteExtensions.length) {
@@ -469,21 +440,17 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 	}
 
 	protected async _onExtensionHostExit(code: number): Promise<void> {
-		// Dispose everything associated with the extension host
 		await this._doStopExtensionHosts();
 
-		// Dispose the management connection to avoid reconnecting after the extension host exits
 		const connection = this._remoteAgentService.getConnection();
 		connection?.dispose();
 
 		if (parseExtensionDevOptions(this._environmentService).isExtensionDevTestFromCli) {
-			// When CLI testing make sure to exit with proper exit code
 			if (isCI) {
 				this._logService.info(`Asking native host service to exit with code ${code}.`);
 			}
 			this._nativeHostService.exit(code);
 		} else {
-			// Expected development extension termination: When the extension host goes down we also shutdown the window
 			this._nativeHostService.closeWindow();
 		}
 	}
@@ -516,7 +483,6 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 				);
 			}
 		} else {
-			// Install the Extension and reload the window to handle.
 			const message = nls.localize('installResolver', "Extension '{0}' is required to open the remote window.\nDo you want to install the extension?", recommendation.friendlyName);
 			this._notificationService.prompt(Severity.Info, message,
 				[{
@@ -593,13 +559,12 @@ class NativeExtensionHostFactory implements IExtensionHostFactory {
 		return {
 			getInitData: async (): Promise<ILocalProcessExtensionHostInitData> => {
 				if (isInitialStart) {
-					// Here we load even extensions that would be disabled by workspace trust
 					const scannedExtensions = await this._extensionScanner.scannedExtensions;
 					if (isCI) {
 						this._logService.info(`NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.scannedExtensions: ${scannedExtensions.map(ext => ext.identifier.value).join(',')}`);
 					}
 
-					const localExtensions = checkEnabledAndProposedAPI(this._logService, this._extensionEnablementService, this._extensionsProposedApi, scannedExtensions, /* ignore workspace trust */true);
+					const localExtensions = checkEnabledAndProposedAPI(this._logService, this._extensionEnablementService, this._extensionsProposedApi, scannedExtensions, true);
 					if (isCI) {
 						this._logService.info(`NativeExtensionHostFactory._createLocalProcessExtensionHostDataProvider.localExtensions: ${localExtensions.map(ext => ext.identifier.value).join(',')}`);
 					}
@@ -612,7 +577,6 @@ class NativeExtensionHostFactory implements IExtensionHostFactory {
 					}
 					return { extensions };
 				} else {
-					// restart case
 					const snapshot = await this._getExtensionRegistrySnapshotWhenReady();
 					const myExtensions = runningLocations.filterByRunningLocation(snapshot.extensions, desiredRunningLocation);
 					const extensions = new ExtensionHostExtensions(snapshot.versionId, snapshot.extensions, myExtensions.map(extension => extension.identifier));
@@ -707,7 +671,6 @@ export class NativeExtensionHostKindPicker implements IExtensionHostKindPicker {
 		const result: ExtensionHostKind[] = [];
 		for (const extensionKind of extensionKinds) {
 			if (extensionKind === 'ui' && isInstalledLocally) {
-				// ui extensions run locally if possible
 				if (preference === ExtensionRunningPreference.None || preference === ExtensionRunningPreference.Local) {
 					return ExtensionHostKind.LocalProcess;
 				} else {
@@ -715,7 +678,6 @@ export class NativeExtensionHostKindPicker implements IExtensionHostKindPicker {
 				}
 			}
 			if (extensionKind === 'workspace' && isInstalledRemotely) {
-				// workspace extensions run remotely if possible
 				if (preference === ExtensionRunningPreference.None || preference === ExtensionRunningPreference.Remote) {
 					return ExtensionHostKind.Remote;
 				} else {
@@ -723,7 +685,6 @@ export class NativeExtensionHostKindPicker implements IExtensionHostKindPicker {
 				}
 			}
 			if (extensionKind === 'workspace' && !hasRemoteExtHost) {
-				// workspace extensions also run locally if there is no remote
 				if (preference === ExtensionRunningPreference.None || preference === ExtensionRunningPreference.Local) {
 					return ExtensionHostKind.LocalProcess;
 				} else {
@@ -731,7 +692,6 @@ export class NativeExtensionHostKindPicker implements IExtensionHostKindPicker {
 				}
 			}
 			if (extensionKind === 'web' && isInstalledLocally && hasWebWorkerExtHost) {
-				// web worker extensions run in the local web worker if possible
 				if (preference === ExtensionRunningPreference.None || preference === ExtensionRunningPreference.Local) {
 					return ExtensionHostKind.LocalWebWorker;
 				} else {

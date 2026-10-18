@@ -117,7 +117,7 @@ export class PromptExtensionInstallFailureAction extends Action {
 				cancelButton: localize('close', "Close")
 			});
 			if (confirmed) {
-				this.openerService.open(isWeb ? URI.parse('https://aka.ms/vscode-web-extensions-guide') : URI.parse('https://aka.ms/vscode-remote'));
+				this.openerService.open(isWeb ? URI.parse('https://www.dardcor-code.web.id/docs/extensions/web') : URI.parse('https://www.dardcor-code.web.id/docs/remote/overview'));
 			}
 			return;
 		}
@@ -548,15 +548,6 @@ export class InstallAction extends ExtensionAction {
 
 		alert(localize('installExtensionStart', "Installing extension {0} started. An editor is now open with more details on this extension", this.extension.displayName));
 
-		/* __GDPR__
-			"extensions:action:install" : {
-				"owner": "sandy081",
-				"actionId" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" },
-				"${include}": [
-					"${GalleryExtensionTelemetryData}"
-				]
-			}
-		*/
 		this.telemetryService.publicLog('extensions:action:install', { ...this.extension.telemetryData, actionId: this.id });
 
 		const extension = await this.install(this.extension);
@@ -631,11 +622,9 @@ export class InstallAction extends ExtensionAction {
 		if (this.extension?.isWorkspaceScoped && this.extension.resourceExtension && this.contextService.isInsideWorkspace(this.extension.resourceExtension.location)) {
 			return localize('install workspace version', "Install Workspace Extension");
 		}
-		/* install pre-release version */
 		if (this.options.installPreReleaseVersion && this.extension?.hasPreReleaseVersion) {
 			return primary ? localize('install pre-release', "Install Pre-Release") : localize('install pre-release version', "Install Pre-Release Version");
 		}
-		/* install released version that has a pre release version */
 		if (this.extension?.hasPreReleaseVersion) {
 			return primary ? localize('install', "Install") : localize('install release version', "Install Release Version");
 		}
@@ -712,14 +701,12 @@ export abstract class InstallInOtherServerAction extends ExtensionAction {
 		if (this.canInstall()) {
 			const extensionInOtherServer = this.extensionsWorkbenchService.installed.filter(e => areSameExtensions(e.identifier, this.extension!.identifier) && e.server === this.server)[0];
 			if (extensionInOtherServer) {
-				// Getting installed in other server
 				if (extensionInOtherServer.state === ExtensionState.Installing && !extensionInOtherServer.local) {
 					this.enabled = true;
 					this.label = InstallInOtherServerAction.INSTALLING_LABEL;
 					this.class = InstallInOtherServerAction.InstallingClass;
 				}
 			} else {
-				// Not installed in other server
 				this.enabled = true;
 				this.label = this.getInstallLabel();
 			}
@@ -727,7 +714,6 @@ export abstract class InstallInOtherServerAction extends ExtensionAction {
 	}
 
 	protected canInstall(): boolean {
-		// Disable if extension is not installed or not an user extension
 		if (
 			!this.extension
 			|| !this.server
@@ -743,28 +729,23 @@ export abstract class InstallInOtherServerAction extends ExtensionAction {
 			return true;
 		}
 
-		// Prefers to run on UI
 		if (this.server === this.extensionManagementServerService.localExtensionManagementServer && this.extensionManifestPropertiesService.prefersExecuteOnUI(this.extension.local.manifest)) {
 			return true;
 		}
 
-		// Prefers to run on Workspace
 		if (this.server === this.extensionManagementServerService.remoteExtensionManagementServer && this.extensionManifestPropertiesService.prefersExecuteOnWorkspace(this.extension.local.manifest)) {
 			return true;
 		}
 
-		// Prefers to run on Web
 		if (this.server === this.extensionManagementServerService.webExtensionManagementServer && this.extensionManifestPropertiesService.prefersExecuteOnWeb(this.extension.local.manifest)) {
 			return true;
 		}
 
 		if (this.canInstallAnyWhere) {
-			// Can run on UI
 			if (this.server === this.extensionManagementServerService.localExtensionManagementServer && this.extensionManifestPropertiesService.canExecuteOnUI(this.extension.local.manifest)) {
 				return true;
 			}
 
-			// Can run on Workspace
 			if (this.server === this.extensionManagementServerService.remoteExtensionManagementServer && this.extensionManifestPropertiesService.canExecuteOnWorkspace(this.extension.local.manifest)) {
 				return true;
 			}
@@ -2431,7 +2412,7 @@ export abstract class AbstractConfigureRecommendedExtensionsAction extends Actio
 				resource: workspaceConfigurationFile,
 				options: {
 					selection,
-					forceReload: true // because content has changed
+					forceReload: true
 				}
 			}));
 	}
@@ -2562,7 +2543,6 @@ export class ExtensionStatusLabelAction extends Action implements IExtensionCont
 	get extension(): IExtension | null { return this._extension; }
 	set extension(extension: IExtension | null) {
 		if (!(this._extension && extension && areSameExtensions(this._extension.identifier, extension.identifier))) {
-			// Different extension. Reset
 			this.initialStatus = null;
 			this.status = null;
 			this.enablementState = null;
@@ -2745,11 +2725,6 @@ export class ExtensionStatusAction extends ExtensionAction {
 		this.recomputeStatus();
 	}
 
-	/**
-	 * Recomputes the status and returns a promise that resolves when the
-	 * computation is done. Use this when callers need to await time-sensitive
-	 * status content (e.g. the delayed auto-update message) before reading it.
-	 */
 	recomputeStatus(): Promise<void> {
 		return this.updateThrottler.queue(() => this.computeAndUpdateStatus());
 	}
@@ -2818,7 +2793,6 @@ export class ExtensionStatusAction extends ExtensionAction {
 			if (this.extensionsWorkbenchService.isAutoUpdateDelayed(this.extension)) {
 				const delay = fromNow(Date.now() - this.extensionsWorkbenchService.getAutoUpdateDelay(), false, true);
 				const updateAt = fromNow(Date.now() + this.extensionsWorkbenchService.getAutoUpdateDelayRemaining(this.extension), false, true);
-				// Do not override the higher-priority warning class with the info class.
 				this.updateStatus({ icon: infoIcon, message: new MarkdownString(localize('autoUpdateDelayed', "This extension is not updated yet because new versions are auto updated {0} after they are published. It will be auto updated {1}.", delay, updateAt)) }, !hasConsentWarning);
 			}
 		}
@@ -2838,7 +2812,6 @@ export class ExtensionStatusAction extends ExtensionAction {
 			return;
 		}
 
-		// Extension is disabled by allowed list
 		if (this.extension.enablementState === EnablementState.DisabledByAllowlist) {
 			const result = this.allowedExtensionsService.isAllowed(this.extension.local);
 			if (result !== true) {
@@ -2847,26 +2820,22 @@ export class ExtensionStatusAction extends ExtensionAction {
 			}
 		}
 
-		// Extension is disabled by environment
 		if (this.extension.enablementState === EnablementState.DisabledByEnvironment) {
 			this.updateStatus({ message: new MarkdownString(localize('disabled by environment', "This extension is disabled by the environment.")) }, true);
 			return;
 		}
 
-		// Extension is enabled by environment
 		if (this.extension.enablementState === EnablementState.EnabledByEnvironment) {
 			this.updateStatus({ message: new MarkdownString(localize('enabled by environment', "This extension is enabled because it is required in the current environment.")) }, true);
 			return;
 		}
 
-		// Extension is disabled by virtual workspace
 		if (this.extension.enablementState === EnablementState.DisabledByVirtualWorkspace) {
 			const details = getWorkspaceSupportTypeMessage(this.extension.local.manifest.capabilities?.virtualWorkspaces);
 			this.updateStatus({ icon: infoIcon, message: new MarkdownString(details ? escapeMarkdownSyntaxTokens(details) : localize('disabled because of virtual workspace', "This extension has been disabled because it does not support virtual workspaces.")) }, true);
 			return;
 		}
 
-		// Limited support in Virtual Workspace
 		if (isVirtualWorkspace(this.contextService.getWorkspace())) {
 			const virtualSupportType = this.extensionManifestPropertiesService.getExtensionVirtualWorkspaceSupportType(this.extension.local.manifest);
 			const details = getWorkspaceSupportTypeMessage(this.extension.local.manifest.capabilities?.virtualWorkspaces);
@@ -2876,16 +2845,13 @@ export class ExtensionStatusAction extends ExtensionAction {
 			}
 		}
 
-		// Unification
 		if (this.extension.enablementState === EnablementState.DisabledByUnification) {
 			this.updateStatus({ icon: infoIcon, message: new MarkdownString(localize('extension disabled because of unification', "All Dardcor AI functionality is now being served from the Dardcor AI Chat extension. To temporarily opt out of this extension unification, toggle the {0} setting.", '`chat.extensionUnification.enabled`')) }, true);
 			return;
 		}
 
 		if (!this.workspaceTrustService.isWorkspaceTrusted() &&
-			// Extension is disabled by untrusted workspace
 			(this.extension.enablementState === EnablementState.DisabledByTrustRequirement ||
-				// All disabled dependencies of the extension are disabled by untrusted workspace
 				(this.extension.enablementState === EnablementState.DisabledByExtensionDependency && this.workbenchExtensionEnablementService.getDependenciesEnablementStates(this.extension.local).every(([, enablementState]) => this.workbenchExtensionEnablementService.isEnabledEnablementState(enablementState) || enablementState === EnablementState.DisabledByTrustRequirement)))) {
 			this.enabled = true;
 			const untrustedDetails = getWorkspaceSupportTypeMessage(this.extension.local.manifest.capabilities?.untrustedWorkspaces);
@@ -2893,7 +2859,6 @@ export class ExtensionStatusAction extends ExtensionAction {
 			return;
 		}
 
-		// Limited support in Untrusted Workspace
 		if (this.workspaceTrustEnablementService.isWorkspaceTrustEnabled() && !this.workspaceTrustService.isWorkspaceTrusted()) {
 			const untrustedSupportType = this.extensionManifestPropertiesService.getExtensionUntrustedWorkspaceSupportType(this.extension.local.manifest);
 			const untrustedDetails = getWorkspaceSupportTypeMessage(this.extension.local.manifest.capabilities?.untrustedWorkspaces);
@@ -2904,31 +2869,27 @@ export class ExtensionStatusAction extends ExtensionAction {
 			}
 		}
 
-		// Extension is disabled by extension kind
 		if (this.extension.enablementState === EnablementState.DisabledByExtensionKind) {
 			if (!this.extensionsWorkbenchService.installed.some(e => areSameExtensions(e.identifier, this.extension!.identifier) && e.server !== this.extension!.server)) {
 				let message;
-				// Extension on Local Server
 				if (this.extensionManagementServerService.localExtensionManagementServer === this.extension.server) {
 					if (this.extensionManifestPropertiesService.prefersExecuteOnWorkspace(this.extension.local.manifest)) {
 						if (this.extensionManagementServerService.remoteExtensionManagementServer) {
-							message = new MarkdownString(`${localize('Install in remote server to enable', "This extension is disabled in this workspace because it is defined to run in the Remote Extension Host. Please install the extension in '{0}' to enable.", this.extensionManagementServerService.remoteExtensionManagementServer.label)} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
+							message = new MarkdownString(`${localize('Install in remote server to enable', "This extension is disabled in this workspace because it is defined to run in the Remote Extension Host. Please install the extension in '{0}' to enable.", this.extensionManagementServerService.remoteExtensionManagementServer.label)} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
 						}
 					}
 				}
-				// Extension on Remote Server
 				else if (this.extensionManagementServerService.remoteExtensionManagementServer === this.extension.server) {
 					if (this.extensionManifestPropertiesService.prefersExecuteOnUI(this.extension.local.manifest)) {
 						if (this.extensionManagementServerService.localExtensionManagementServer) {
-							message = new MarkdownString(`${localize('Install in local server to enable', "This extension is disabled in this workspace because it is defined to run in the Local Extension Host. Please install the extension locally to enable.", this.extensionManagementServerService.remoteExtensionManagementServer.label)} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
+							message = new MarkdownString(`${localize('Install in local server to enable', "This extension is disabled in this workspace because it is defined to run in the Local Extension Host. Please install the extension locally to enable.", this.extensionManagementServerService.remoteExtensionManagementServer.label)} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
 						} else if (isWeb) {
-							message = new MarkdownString(`${localize('Defined to run in desktop', "This extension is disabled because it is defined to run only in {0} for the Desktop.", this.productService.nameLong)} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
+							message = new MarkdownString(`${localize('Defined to run in desktop', "This extension is disabled because it is defined to run only in {0} for the Desktop.", this.productService.nameLong)} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
 						}
 					}
 				}
-				// Extension on Web Server
 				else if (this.extensionManagementServerService.webExtensionManagementServer === this.extension.server) {
-					message = new MarkdownString(`${localize('Cannot be enabled', "This extension is disabled because it is not supported in {0} for the Web.", this.productService.nameLong)} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
+					message = new MarkdownString(`${localize('Cannot be enabled', "This extension is disabled because it is not supported in {0} for the Web.", this.productService.nameLong)} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`);
 				}
 				if (message) {
 					this.updateStatus({ icon: warningIcon, message }, true);
@@ -2952,7 +2913,6 @@ export class ExtensionStatusAction extends ExtensionAction {
 			}
 		}
 
-		// Remote Workspace
 		if (this.extensionManagementServerService.remoteExtensionManagementServer) {
 			if (isLanguagePackExtension(this.extension.local.manifest)) {
 				if (!this.extensionsWorkbenchService.installed.some(e => areSameExtensions(e.identifier, this.extension!.identifier) && e.server !== this.extension!.server)) {
@@ -2968,27 +2928,26 @@ export class ExtensionStatusAction extends ExtensionAction {
 			const runningExtensionServer = runningExtension ? this.extensionManagementServerService.getExtensionManagementServer(toExtension(runningExtension)) : null;
 			if (this.extension.server === this.extensionManagementServerService.localExtensionManagementServer && runningExtensionServer === this.extensionManagementServerService.remoteExtensionManagementServer) {
 				if (this.extensionManifestPropertiesService.prefersExecuteOnWorkspace(this.extension.local.manifest)) {
-					this.updateStatus({ icon: infoIcon, message: new MarkdownString(`${localize('enabled remotely', "This extension is enabled in the Remote Extension Host because it prefers to run there.")} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`) }, true);
+					this.updateStatus({ icon: infoIcon, message: new MarkdownString(`${localize('enabled remotely', "This extension is enabled in the Remote Extension Host because it prefers to run there.")} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`) }, true);
 				}
 				return;
 			}
 
 			if (this.extension.server === this.extensionManagementServerService.remoteExtensionManagementServer && runningExtensionServer === this.extensionManagementServerService.localExtensionManagementServer) {
 				if (this.extensionManifestPropertiesService.prefersExecuteOnUI(this.extension.local.manifest)) {
-					this.updateStatus({ icon: infoIcon, message: new MarkdownString(`${localize('enabled locally', "This extension is enabled in the Local Extension Host because it prefers to run there.")} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`) }, true);
+					this.updateStatus({ icon: infoIcon, message: new MarkdownString(`${localize('enabled locally', "This extension is enabled in the Local Extension Host because it prefers to run there.")} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`) }, true);
 				}
 				return;
 			}
 
 			if (this.extension.server === this.extensionManagementServerService.remoteExtensionManagementServer && runningExtensionServer === this.extensionManagementServerService.webExtensionManagementServer) {
 				if (this.extensionManifestPropertiesService.canExecuteOnWeb(this.extension.local.manifest)) {
-					this.updateStatus({ icon: infoIcon, message: new MarkdownString(`${localize('enabled in web worker', "This extension is enabled in the Web Worker Extension Host because it prefers to run there.")} [${localize('learn more', "Learn More")}](https://code.visualstudio.com/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`) }, true);
+					this.updateStatus({ icon: infoIcon, message: new MarkdownString(`${localize('enabled in web worker', "This extension is enabled in the Web Worker Extension Host because it prefers to run there.")} [${localize('learn more', "Learn More")}](https://www.dardcor-code.web.id/api/advanced-topics/remote-extensions#architecture-and-extension-kinds)`) }, true);
 				}
 				return;
 			}
 		}
 
-		// Extension is disabled by its dependency
 		if (this.extension.enablementState === EnablementState.DisabledByExtensionDependency) {
 			this.updateStatus({
 				icon: warningIcon,
@@ -3112,7 +3071,6 @@ export class InstallSpecificVersionOfExtensionAction extends Action {
 		const extensionPick = await this.quickInputService.pick(this.getExtensionEntries(), { placeHolder: localize('selectExtension', "Select Extension"), matchOnDetail: true });
 		if (extensionPick && extensionPick.extension) {
 			const action = this.instantiationService.createInstance(InstallAnotherVersionAction, extensionPick.extension, true);
-			// TODO: replace with `using` once available
 			try {
 				await action.run();
 			} finally {
@@ -3124,7 +3082,6 @@ export class InstallSpecificVersionOfExtensionAction extends Action {
 
 	private isEnabled(extension: IExtension): boolean {
 		const action = this.instantiationService.createInstance(InstallAnotherVersionAction, extension, true);
-		// TODO: replace with `using` once available
 		try {
 			return action.enabled && !!extension.local && this.extensionEnablementService.isEnabled(extension.local);
 		} finally {

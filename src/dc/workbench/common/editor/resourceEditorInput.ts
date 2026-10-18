@@ -15,9 +15,6 @@ import { isConfigured } from '../../../platform/configuration/common/configurati
 import { ITextResourceConfigurationService } from '../../../editor/common/services/textResourceConfiguration.js';
 import { ICustomEditorLabelService } from '../../services/editor/common/customEditorLabelService.js';
 
-/**
- * The base class for all editor inputs that open resources.
- */
 export abstract class AbstractResourceEditorInput extends EditorInput implements EditorInputWithPreferredResource {
 
 	override get capabilities(): EditorInputCapabilities {
@@ -59,7 +56,6 @@ export abstract class AbstractResourceEditorInput extends EditorInput implements
 
 	private registerListeners(): void {
 
-		// Clear our labels on certain label related events
 		this._register(this.labelService.onDidChangeFormatters(e => this.onLabelEvent(e.scheme)));
 		this._register(this.fileService.onDidChangeFileSystemProviderRegistrations(e => this.onLabelEvent(e.scheme)));
 		this._register(this.fileService.onDidChangeFileSystemProviderCapabilities(e => this.onLabelEvent(e.scheme)));
@@ -75,7 +71,6 @@ export abstract class AbstractResourceEditorInput extends EditorInput implements
 
 	private updateLabel(): void {
 
-		// Clear any cached labels from before
 		this._name = undefined;
 		this._shortDescription = undefined;
 		this._mediumDescription = undefined;
@@ -84,7 +79,6 @@ export abstract class AbstractResourceEditorInput extends EditorInput implements
 		this._mediumTitle = undefined;
 		this._longTitle = undefined;
 
-		// Trigger recompute of label
 		this._onDidChangeLabel.fire();
 	}
 
@@ -189,20 +183,16 @@ export abstract class AbstractResourceEditorInput extends EditorInput implements
 
 	protected ensureLimits(options?: IFileLimitedEditorInputOptions): IFileReadLimits | undefined {
 		if (options?.limits) {
-			return options.limits; // respect passed in limits if any
+			return options.limits;
 		}
 
-		// We want to determine the large file configuration based on the best defaults
-		// for the resource but also respecting user settings. We only apply user settings
-		// if explicitly configured by the user. Otherwise we pick the best limit for the
-		// resource scheme.
 
 		const defaultSizeLimit = getLargeFileConfirmationLimit(this.resource);
 		let configuredSizeLimit: number | undefined;
 
 		const configuredSizeLimitMb = this.textResourceConfigurationService.inspect<number>(this.resource, null, 'workbench.editorLargeFileConfirmation');
 		if (isConfigured(configuredSizeLimitMb)) {
-			configuredSizeLimit = configuredSizeLimitMb.value * ByteSize.MB; // normalize to MB
+			configuredSizeLimit = configuredSizeLimitMb.value * ByteSize.MB;
 		}
 
 		return {
