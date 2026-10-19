@@ -21,8 +21,9 @@ const ghApiHeaders: Record<string, string> = {
 	'User-Agent': 'VSCode Build',
 };
 
-if (process.env.GITHUB_TOKEN) {
-	ghApiHeaders.Authorization = 'Basic ' + Buffer.from(process.env.GITHUB_TOKEN).toString('base64');
+const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+if (token) {
+	ghApiHeaders.Authorization = 'Bearer ' + token;
 }
 
 const ghDownloadHeaders = {
@@ -69,15 +70,40 @@ function getVSCodeSysrootChecksum(expectedName: string) {
 async function fetchUrl(options: IFetchOptions, retries = 10, retryDelay = 1000): Promise<undefined> {
 	try {
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 30 * 1000);
+		const timeout = setTimeout(() => controller.abort(), 60 * 1000);
 		const version = '20260212-405735';
 		try {
-			const response = await fetch(`https://api.github.com/repos/Microsoft/vscode-linux-build-agent/releases/tags/v${version}`, {
-				headers: ghApiHeaders,
-				signal: controller.signal
-			});
-			if (response.ok && (response.status >= 200 && response.status < 300)) {
-				console.log(`Fetch completed: Status ${response.status}.`);
+			let assetContents: Buffer | undefined;
+
+			// 1. Try direct asset download first to avoid GitHub API rate limits
+			const directUrl = `https://github.com/Microsoft/vscode-linux-build-agent/releases/download/v${version}/${options.assetName}`;
+			console.log(`Attempting direct asset download from ${directUrl}...`);
+			try {
+				const directResponse = await fetch(directUrl, {
+					headers: { 'User-Agent': 'VSCode Build' },
+					redirect: 'follow',
+					signal: controller.signal
+				});
+				if (directResponse.ok && directResponse.status >= 200 && directResponse.status < 300) {
+					assetContents = Buffer.from(await directResponse.arrayBuffer());
+					console.log(`Direct download completed: Status ${directResponse.status}, bytes: ${assetContents.byteLength}`);
+				} else {
+					console.warn(`Direct download returned status ${directResponse.status}, falling back to API...`);
+				}
+			} catch (directErr) {
+				console.warn(`Direct download attempt failed: ${directErr}, falling back to API...`);
+			}
+
+			// 2. If direct download did not succeed, fall back to GitHub API
+			if (!assetContents) {
+				console.log(`Fetching asset metadata from GitHub API for release v${version}...`);
+				const response = await fetch(`https://api.github.com/repos/Microsoft/vscode-linux-build-agent/releases/tags/v${version}`, {
+					headers: ghApiHeaders,
+					signal: controller.signal
+				});
+				if (!response.ok || response.status < 200 || response.status >= 300) {
+					throw new Error(`Request https://api.github.com failed with status code: ${response.status}`);
+				}
 				const contents = Buffer.from(await response.arrayBuffer());
 				const asset = JSON.parse(contents.toString()).assets.find((a: { name: string }) => a.name === options.assetName);
 				if (!asset) {
@@ -85,26 +111,26 @@ async function fetchUrl(options: IFetchOptions, retries = 10, retryDelay = 1000)
 				}
 				console.log(`Found asset ${options.assetName} @ ${asset.url}.`);
 				const assetResponse = await fetch(asset.url, {
-					headers: ghDownloadHeaders
+					headers: ghDownloadHeaders,
+					signal: controller.signal
 				});
-				if (assetResponse.ok && (assetResponse.status >= 200 && assetResponse.status < 300)) {
-					const assetContents = Buffer.from(await assetResponse.arrayBuffer());
-					console.log(`Fetched response body buffer: ${(assetContents as Buffer).byteLength} bytes`);
-					if (options.checksumSha256) {
-						const actualSHA256Checksum = createHash('sha256').update(assetContents).digest('hex');
-						if (actualSHA256Checksum !== options.checksumSha256) {
-							throw new Error(`Checksum mismatch for ${asset.url} (expected ${options.checksumSha256}, actual ${actualSHA256Checksum}))`);
-						}
-					}
-					console.log(`Verified SHA256 checksums match for ${asset.url}`);
-					const tarCommand = `tar -xz -C ${options.dest}`;
-					execSync(tarCommand, { input: assetContents });
-					console.log(`Fetch complete!`);
-					return;
+				if (!assetResponse.ok || assetResponse.status < 200 || assetResponse.status >= 300) {
+					throw new Error(`Request ${asset.url} failed with status code: ${assetResponse.status}`);
 				}
-				throw new Error(`Request ${asset.url} failed with status code: ${assetResponse.status}`);
+				assetContents = Buffer.from(await assetResponse.arrayBuffer());
 			}
-			throw new Error(`Request https://api.github.com failed with status code: ${response.status}`);
+
+			if (options.checksumSha256) {
+				const actualSHA256Checksum = createHash('sha256').update(assetContents).digest('hex');
+				if (actualSHA256Checksum !== options.checksumSha256) {
+					throw new Error(`Checksum mismatch for ${options.assetName} (expected ${options.checksumSha256}, actual ${actualSHA256Checksum})`);
+				}
+			}
+			console.log(`Verified SHA256 checksums match for ${options.assetName}`);
+			const tarCommand = `tar -xz -C ${options.dest}`;
+			execSync(tarCommand, { input: assetContents });
+			console.log(`Fetch complete!`);
+			return;
 		} finally {
 			clearTimeout(timeout);
 		}

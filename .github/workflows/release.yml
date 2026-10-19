@@ -18,6 +18,7 @@ env:
   RELEASE_TAG: ${{ github.ref_name }}
   VSCODE_SKIP_NODE_VERSION_CHECK: '1'
   VSCODE_SKIP_PREINSTALL_CHECK: '1'
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build-windows:
