@@ -310,7 +310,7 @@ export class ChatRequestTelemetry {
 			requestType,
 			requestId: request.id,
 			agent: detectedAgent?.id ?? this.opts.agent?.id ?? 'dardcor.default',
-			agentExtensionId: detectedAgent?.extensionId.value ?? this.opts.agent?.extensionId?.value ?? 'dardcor.dardcor-ai',
+			agentExtensionId: detectedAgent?.extensionId.value ?? this.opts.agent?.extensionId?.value ?? 'dardcor.dardcor',
 			slashCommand: this.opts.agentSlashCommandPart ? this.opts.agentSlashCommandPart.command.name : this.opts.commandPart?.slashCommand.command,
 			chatSessionId: chatSessionResourceToId(this.opts.sessionResource),
 			enableCommandDetection: this.opts.enableCommandDetection,

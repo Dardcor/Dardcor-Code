@@ -237,7 +237,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.claudeAgent.enabled.policy',
-						value: nls.localize('chat.agentHost.claudeAgent.enabled.policy', "Enable Claude Agent sessions in VS Code. Start and resume agentic coding sessions powered by Anthropic Claude Agent SDK directly in the editor. Uses your existing Copilot subscription."),
+						value: nls.localize('chat.agentHost.claudeAgent.enabled.policy', "Enable Claude Agent sessions in Dardcor Code. Start and resume agentic coding sessions powered by Anthropic Claude Agent SDK directly in the editor. Uses your existing Dardcor subscription."),
 					}
 				}
 			},
@@ -265,7 +265,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.codexAgent.enabled.policy',
-						value: nls.localize('chat.agentHost.codexAgent.enabled.policy', "Enable Codex Agent sessions in VS Code. Start and resume agentic coding sessions powered by OpenAI Codex. Usage can be routed through GitHub Copilot or authenticated directly with an OpenAI account."),
+						value: nls.localize('chat.agentHost.codexAgent.enabled.policy', "Enable Codex Agent sessions in Dardcor Code. Start and resume agentic coding sessions powered by OpenAI Codex. Usage can be routed through Dardcor or authenticated directly with an OpenAI account."),
 					}
 				}
 			},
@@ -361,7 +361,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.otlpProtocol.policy',
-						value: nls.localize('chat.agentHost.otel.otlpProtocol.policy', "Controls the enterprise-managed OTLP wire protocol (protobuf vs JSON) for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.otlpProtocol.policy', "Controls the enterprise-managed OTLP wire protocol (protobuf vs JSON) for Dardcor OpenTelemetry export."),
 					}
 				},
 			},
@@ -383,7 +383,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.agentHost.otel.otlpEndpoint.policy',
-						value: nls.localize('chat.agentHost.otel.otlpEndpoint.policy', "Controls the enterprise-managed OTLP collector endpoint for Copilot OpenTelemetry export."),
+						value: nls.localize('chat.agentHost.otel.otlpEndpoint.policy', "Controls the enterprise-managed OTLP collector endpoint for Dardcor OpenTelemetry export."),
 					}
 				},
 			},

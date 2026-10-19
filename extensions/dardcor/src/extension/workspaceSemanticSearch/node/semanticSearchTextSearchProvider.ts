@@ -63,7 +63,7 @@ export interface IRankResult {
 
 export class SemanticSearchTextSearchProvider extends Disposable implements vscode.AITextSearchProvider {
 	private _endpoint: IChatEndpoint | undefined = undefined;
-	public readonly name: string = 'Dardcor AI';
+	public readonly name: string = 'Dardcor';
 	public static feedBackSentKey = 'github.dardcor.search.feedback.sent';
 	public static latestQuery: string | undefined = undefined;
 	public static feedBackTelemetry: Partial<ISearchFeedbackTelemetry> = {};

@@ -18,28 +18,16 @@ export namespace MCP {
 		| JSONRPCResponse
 		| JSONRPCError;
 
-	/** @internal */
 	export const LATEST_PROTOCOL_VERSION = "2025-11-25";
-	/** @internal */
 	export const JSONRPC_VERSION = "2.0";
 
 	export type ProgressToken = string | number;
 
 	export type Cursor = string;
 
-	/**
-	 * Common params for any task-augmented request.
-	 *
-	 * @internal
-	 */
 	export interface TaskAugmentedRequestParams extends RequestParams {
 		task?: TaskMetadata;
 	}
-	/**
-	 * Common params for any request.
-	 *
-	 * @internal
-	 */
 	export interface RequestParams {
 		_meta?: {
 			progressToken?: ProgressToken;
@@ -47,19 +35,16 @@ export namespace MCP {
 		};
 	}
 
-	/** @internal */
 	export interface Request {
 		method: string;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		params?: { [key: string]: any };
 	}
 
-	/** @internal */
 	export interface NotificationParams {
 		_meta?: { [key: string]: unknown };
 	}
 
-	/** @internal */
 	export interface Notification {
 		method: string;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,7 +85,6 @@ export namespace MCP {
 	export const INVALID_PARAMS = -32602;
 	export const INTERNAL_ERROR = -32603;
 
-	/** @internal */
 	export const URL_ELICITATION_REQUIRED = -32042;
 
 	export interface JSONRPCError {
@@ -109,11 +93,6 @@ export namespace MCP {
 		error: Error;
 	}
 
-	/**
-	 * An error response that indicates that the server requires the client to provide additional information via an elicitation request.
-	 *
-	 * @internal
-	 */
 	export interface URLElicitationRequiredError
 		extends Omit<JSONRPCError, "error"> {
 		error: Error & {
@@ -222,20 +201,10 @@ export namespace MCP {
 		theme?: "light" | "dark";
 	}
 
-	/**
-	 * Base interface to add `icons` property.
-	 *
-	 * @internal
-	 */
 	export interface Icons {
 		icons?: Icon[];
 	}
 
-	/**
-	 * Base interface for metadata with name (identifier) and title (display name) properties.
-	 *
-	 * @internal
-	 */
 	export interface BaseMetadata {
 		name: string;
 
@@ -268,21 +237,14 @@ export namespace MCP {
 		params: ProgressNotificationParams;
 	}
 
-	/**
-	 * Common parameters for paginated requests.
-	 *
-	 * @internal
-	 */
 	export interface PaginatedRequestParams extends RequestParams {
 		cursor?: Cursor;
 	}
 
-	/** @internal */
 	export interface PaginatedRequest extends JSONRPCRequest {
 		params?: PaginatedRequestParams;
 	}
 
-	/** @internal */
 	export interface PaginatedResult extends Result {
 		nextCursor?: Cursor;
 	}
@@ -303,11 +265,6 @@ export namespace MCP {
 		resourceTemplates: ResourceTemplate[];
 	}
 
-	/**
-	 * Common parameters when working with resources.
-	 *
-	 * @internal
-	 */
 	export interface ResourceRequestParams extends RequestParams {
 		uri: string;
 	}
@@ -377,11 +334,6 @@ export namespace MCP {
 		_meta?: { [key: string]: unknown };
 	}
 
-	/**
-	 * The contents of a specific resource or sub-resource.
-	 *
-	 * @internal
-	 */
 	export interface ResourceContents {
 		uri: string;
 		mimeType?: string;
@@ -969,7 +921,6 @@ export namespace MCP {
 		};
 	}
 
-	/** @internal */
 	export type ClientRequest =
 		| PingRequest
 		| InitializeRequest
@@ -989,7 +940,6 @@ export namespace MCP {
 		| ListTasksRequest
 		| CancelTaskRequest;
 
-	/** @internal */
 	export type ClientNotification =
 		| CancelledNotification
 		| ProgressNotification
@@ -997,7 +947,6 @@ export namespace MCP {
 		| RootsListChangedNotification
 		| TaskStatusNotification;
 
-	/** @internal */
 	export type ClientResult =
 		| EmptyResult
 		| CreateMessageResult
@@ -1008,7 +957,6 @@ export namespace MCP {
 		| ListTasksResult
 		| CancelTaskResult;
 
-	/** @internal */
 	export type ServerRequest =
 		| PingRequest
 		| CreateMessageRequest
@@ -1019,7 +967,6 @@ export namespace MCP {
 		| ListTasksRequest
 		| CancelTaskRequest;
 
-	/** @internal */
 	export type ServerNotification =
 		| CancelledNotification
 		| ProgressNotification
@@ -1031,7 +978,6 @@ export namespace MCP {
 		| ElicitationCompleteNotification
 		| TaskStatusNotification;
 
-	/** @internal */
 	export type ServerResult =
 		| EmptyResult
 		| InitializeResult

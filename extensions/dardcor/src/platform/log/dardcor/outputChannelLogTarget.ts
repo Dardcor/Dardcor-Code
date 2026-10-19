@@ -8,7 +8,7 @@ import { ILogTarget } from '../common/logService';
 
 export let outputChannel: OutputChannel;
 
-export const OutputChannelName = 'Dardcor AI Chat';
+export const OutputChannelName = 'Dardcor Chat';
 
 export class NewOutputChannelLogTarget implements ILogTarget {
 

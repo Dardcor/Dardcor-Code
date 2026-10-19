@@ -25,12 +25,6 @@ export function hasDeferredTool(
 	return !!availableTools?.some(tool => !toolDeferralService.isNonDeferredTool(tool.name));
 }
 
-/**
- * Condensed tool search instructions shared across model prompts.
- * Renders deferred-tool search *guidance* when the endpoint supports tool
- * search and at least one deferred tool is available. The list itself is
- * rendered by `DeferredToolListReminder` inside the global agent context.
- */
 export class ToolSearchToolPromptOptimized extends PromptElement<ToolSearchToolPromptProps> {
 	constructor(
 		props: PromptElementProps<ToolSearchToolPromptProps>,

@@ -174,7 +174,7 @@ export class ChatDebugHomeView extends Disposable {
 				} else if (getChatSessionType(sessionResource) === 'copilotcli') {
 					const pathId = sessionResource.path.replace(/^\//, '').split('-')[0];
 					const shortId = pathId || sessionResource.authority || sessionResource.toString();
-					sessionTitle = localize('chatDebug.copilotCliSessionWithId', "Dardcor AI CLI: {0}", shortId);
+					sessionTitle = localize('chatDebug.copilotCliSessionWithId', "Dardcor CLI: {0}", shortId);
 				} else {
 					sessionTitle = localize('chatDebug.newSession', "New Chat");
 				}

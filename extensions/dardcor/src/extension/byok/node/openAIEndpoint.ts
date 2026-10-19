@@ -123,7 +123,7 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		this._customHeaders = this._sanitizeCustomHeaders(_modelMetadata.requestHeaders);
 	}
 
-	public readonly ownsAuthorization = true;
+	public override readonly ownsAuthorization = true;
 
 	protected override getCompletionsCallback(): RawMessageConversionCallback {
 		const supportsThinking = !!this.modelMetadata.capabilities.supports.thinking;

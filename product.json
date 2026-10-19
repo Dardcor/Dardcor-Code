@@ -64,7 +64,7 @@
 	"defaultChatAgent": {
 		"extensionId": "github.dardcor-chat",
 		"chatExtensionId": "github.dardcor-chat",
-		"chatExtensionOutputId": "dardcor.dardcor-ai.Dardcor Code.log",
+		"chatExtensionOutputId": "dardcor.dardcor.Dardcor Code.log",
 		"chatExtensionOutputExtensionStateCommand": "dardcor.debug.extensionState",
 		"documentationUrl": "https://github.com/dardcor/dardcor-code",
 		"termsStatementUrl": "https://github.com/dardcor/dardcor-code",
@@ -112,18 +112,18 @@
 	"trustedExtensionAuthAccess": {
 		"github": [
 			"github.dardcor-chat",
-			"dardcor.dardcor-ai"
+			"dardcor.dardcor"
 		],
 		"github-enterprise": [
 			"github.dardcor-chat",
-			"dardcor.dardcor-ai"
+			"dardcor.dardcor"
 		]
 	},
 	"extensionUntrustedWorkspaceSupport": {
 		"github.dardcor-chat": {
 			"default": true
 		},
-		"dardcor.dardcor-ai": {
+		"dardcor.dardcor": {
 			"default": true
 		}
 	},
@@ -203,7 +203,7 @@
 		}
 	],
 	"builtInExtensionsEnabledWithAutoUpdates": [
-		"dardcor.dardcor-ai"
+		"dardcor.dardcor"
 	],
 	"voiceWsUrl": "",
 	"extensionRecommendations": {

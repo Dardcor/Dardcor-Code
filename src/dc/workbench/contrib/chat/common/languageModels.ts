@@ -43,7 +43,7 @@ import { ChatAgentLocation } from './constants.js';
 import { ILanguageModelsProviderGroup, ILanguageModelsConfigurationService } from './languageModelsConfiguration.js';
 import { formatDardcorRouterError } from './participants/dardcorRouterError.js';
 
-const _LM_ROUTER_PORT = 25128;
+const _LM_ROUTER_PORT = (typeof process !== 'undefined' && process.env?.DARDCOR_PORT) ? Number(process.env.DARDCOR_PORT) : 25128;
 const _LM_ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
 const _LM_ROUTER_AUTH = { 'Authorization': 'Bearer sk-dardcor-local-key' };
 
@@ -51,9 +51,9 @@ async function fetchRouterLM(path: string, init?: RequestInit, retries = 8, time
 	let lastErr: unknown;
 	for (let attempt = 0; attempt < retries; attempt++) {
 		for (const host of _LM_ROUTER_HOSTS) {
+			let timeoutId: any;
 			try {
 				let signal = init?.signal;
-				let timeoutId: any;
 				if (!signal && typeof AbortSignal !== 'undefined' && typeof (AbortSignal as any).timeout === 'function') {
 					signal = (AbortSignal as any).timeout(timeoutMs);
 				} else if (!signal) {
@@ -65,6 +65,7 @@ async function fetchRouterLM(path: string, init?: RequestInit, retries = 8, time
 				if (timeoutId) clearTimeout(timeoutId);
 				return res;
 			} catch (err) {
+				if (timeoutId) clearTimeout(timeoutId);
 				lastErr = err;
 			}
 		}
@@ -904,7 +905,7 @@ const languageModelChatProviderType = {
 		},
 		managementCommand: {
 			type: 'string',
-			description: localize('vscode.extension.contributes.languageModels.managementCommand', "A command to manage the language model chat provider, e.g. 'Manage Dardcor AI models'. This is used in the chat model picker. If not provided, a gear icon is not rendered during vendor selection."),
+			description: localize('vscode.extension.contributes.languageModels.managementCommand', "A command to manage the language model chat provider, e.g. 'Manage Dardcor models'. This is used in the chat model picker. If not provided, a gear icon is not rendered during vendor selection."),
 			deprecated: true,
 			deprecationMessage: localize('vscode.extension.contributes.languageModels.managementCommand.deprecated', "The managementCommand property is deprecated and will be removed in a future release. Use the new configuration property instead.")
 		},

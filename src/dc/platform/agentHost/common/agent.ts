@@ -196,7 +196,7 @@ export interface AuthenticateResult {
 
 export const GITHUB_COPILOT_PROTECTED_RESOURCE: ProtectedResourceMetadata = {
 	resource: 'https://api.github.com',
-	resource_name: 'GitHub Copilot',
+	resource_name: 'GitHub',
 	authorization_servers: ['https://github.com/login/oauth'],
 	scopes_supported: ['read:user', 'user:email'],
 	required: true,

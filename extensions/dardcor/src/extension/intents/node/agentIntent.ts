@@ -80,26 +80,6 @@ function isResponsesCompactionContextManagementEnabled(endpoint: IChatEndpoint, 
 		&& !modelsWithoutResponsesContextManagement.has(endpoint.family);
 }
 
-/**
- * Applies the user's "Context Size" model-picker selection to the endpoint used
- * for the agent's model requests.
- *
- * The picker offers two tiers — the model's default context max and its full
- * native window (see `getContextSizeOptions`). For server-managed context (the
- * Responses-API compaction path) the request endpoint's `modelMaxPromptTokens`
- * is what drives the `compact_threshold` sent to the server. If the default
- * tier is not propagated to the request endpoint, the server compacts against
- * the model's full window and the stateful conversation grows far past the
- * user's selection — billing them for the larger context. Mirrors the override
- * applied on the `vscode.lm` path in `languageModelAccess.ts`.
- *
- * Only clamps when the selection is strictly smaller than the model window so
- * the full tier ("Longer sessions") stays uncompacted.
- *
- * When no explicit selection is present, falls back to the default context-max tier, unless the tiers cost the same and `chat.preferLongContext.enabled` is set, in which case the full native window is used.
- *
- * @internal - exported for testing
- */
 export function applyContextSizeOverride(endpoint: IChatEndpoint, request: vscode.ChatRequest, preferLongContext: boolean = false): IChatEndpoint {
 	const contextSize = request.modelConfiguration?.contextSize;
 	const hasLongContextSurcharge = !!endpoint.tokenPricing?.longContext;
@@ -113,15 +93,6 @@ export function applyContextSizeOverride(endpoint: IChatEndpoint, request: vscod
 	return endpoint;
 }
 
-/**
- * Returns true when the user explicitly referenced the todo tool (e.g. typed
- * `#todo` in their message) or a custom agent configuration includes it as a
- * tool reference. Checking `request.toolReferences` is a stronger signal than
- * `request.tools` because core tools always appear as enabled in the default
- * tool picker state, which would prevent the experiment from taking effect.
- *
- * @internal - exported for testing
- */
 export function isTodoToolExplicitlyEnabled(request: vscode.ChatRequest): boolean {
 	const todoReferenceName = 'todo';
 	return request.toolReferences.some(ref =>
@@ -130,12 +101,6 @@ export function isTodoToolExplicitlyEnabled(request: vscode.ChatRequest): boolea
 	);
 }
 
-/**
- * Returns true when the background todo agent should manage todos instead of
- * exposing the regular todo tool to the main agent.
- *
- * @internal - exported for testing
- */
 export function isBackgroundTodoAgentEnabled(
 	endpoint: IChatEndpoint,
 	configurationService: IConfigurationService,
@@ -155,27 +120,6 @@ export function isBackgroundTodoAgentEnabled(
 		&& !isTodoToolExplicitlyEnabled(request);
 }
 
-/**
- * Resolve the configured summarization threshold into an absolute token count.
- *
- * The setting accepts two interchangeable units so users can express the
- * compaction trigger however is most natural:
- *
- *  - **Ratio** (`0 < value <= 1`): a fraction of the model's context window,
- *    e.g. `0.8` means "compact at 80% of the window". This is resolved against
- *    `effectiveMaxTokens` so it automatically tracks model/context-size changes.
- *  - **Absolute tokens** (`value >= 100`): a fixed token budget, e.g. `60000`.
- *
- * Values in the ambiguous `(1, 100)` gap (too large to be a sensible ratio, too
- * small to be a useful token budget) are rejected so a typo like `80` — which a
- * user likely meant as "80%" — fails loudly instead of silently compacting after
- * 80 tokens.
- *
- * Returns `undefined` when unset (or non-positive), meaning "use the model's full
- * context window".
- *
- * @internal - exported for testing
- */
 export function resolveSummarizeThresholdTokens(value: number | undefined, effectiveMaxTokens: number, settingId: string): number | undefined {
 	if (typeof value !== 'number' || value <= 0) {
 		return undefined;

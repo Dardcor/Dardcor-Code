@@ -10,7 +10,7 @@ const proxyClientMaxBodySize = process.env.DARDCORROUTER_PROXY_CLIENT_MAX_BODY_S
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
-  serverExternalPackages: ["open", "playwright"],
+  serverExternalPackages: ["open"],
   turbopack: {
     root: tracingRoot
   },

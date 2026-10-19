@@ -271,33 +271,26 @@ export class ChatMcpAppModel extends Disposable {
 
 				window.parent = wrap(window.parent);
 
-				// Scroll boundary detection: bubble wheel events to parent when at scroll boundaries
 				const shouldBubbleScroll = (event) => {
-					// First check element-level scrolling (for elements with overflow: auto/scroll)
 					for (let node = event.target; node; node = node.parentNode) {
 						if (!(node instanceof Element)) {
 							continue;
 						}
 
-						// Skip HTML and BODY - we check document-level scroll separately
 						if (node === document.documentElement || node === document.body) {
 							continue;
 						}
 
-						// Check if the element can actually scroll
 						const overflow = window.getComputedStyle(node).overflowY;
 						if (overflow === 'hidden' || overflow === 'visible') {
 							continue;
 						}
 
-						// Scroll up: if there's content above (scrollTop > 0), don't bubble
 						if (event.deltaY < 0 && node.scrollTop > 0) {
 							return false;
 						}
 
-						// Scroll down: if there's content below, don't bubble
 						if (event.deltaY > 0 && node.scrollTop + node.clientHeight < node.scrollHeight) {
-							// Account for rounding: scrollTop isn't rounded but scrollHeight/clientHeight are
 							if (node.scrollHeight - node.scrollTop - node.clientHeight < 2) {
 								continue;
 							}
@@ -305,7 +298,6 @@ export class ChatMcpAppModel extends Disposable {
 						}
 					}
 
-					// Check document-level scrolling (works even with overflow: visible on html/body)
 					const docEl = document.documentElement;
 					const scrollTop = window.scrollY || docEl.scrollTop || document.body.scrollTop || 0;
 					const scrollHeight = Math.max(docEl.scrollHeight, document.body.scrollHeight);
@@ -313,7 +305,6 @@ export class ChatMcpAppModel extends Disposable {
 					const scrollableDistance = scrollHeight - clientHeight;
 
 					if (scrollableDistance > 2) {
-						// Document is scrollable
 						if (event.deltaY < 0 && scrollTop > 0) {
 							return false;
 						}

@@ -78,7 +78,7 @@ export type CapturedTelemetry<Event> = {
 };
 
 export async function collectCapturedTelemetry(capiClientService: ICAPIClientService, fetcherService: IFetcherService): Promise<CapturedTelemetry<EventData | ExceptionData>[]> {
-	const url = capiClientService.dardcorTelemetryURL;
+	const url = (capiClientService as any).dardcorTelemetryURL;
 	const response = await fetcherService.fetch(url, { callSite: 'test-telemetry-capture' });
 	const messages = ((await response.json()).messages as CapturedTelemetry<EventData | ExceptionData>[]) ?? [];
 

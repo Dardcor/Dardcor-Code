@@ -14,6 +14,7 @@ import { ILogService } from '../../log/common/logService';
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { getDardcorRouterApiKey, getDardcorRouterBaseUrl } from './dardcorRouter';
 import { getModelCapabilityOverride } from '../common/chatModelCapabilities';
+import { TokenizerType } from '../../../util/common/tokenizer';
 import { IChatModelInformation, ICompletionModelInformation, IEmbeddingModelInformation, IModelAPIResponse, isChatModelInformation, isCompletionModelInformation, isEmbeddingModelInformation } from '../common/endpointProvider';
 
 function positiveFiniteNumber(...values: unknown[]): number | undefined {
@@ -206,7 +207,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 				capabilities: {
 					type: 'embeddings',
 					family: matchingModel.id,
-					tokenizer: 'o200k_base',
+					tokenizer: TokenizerType.O200K,
 					limits: {
 						max_inputs: positiveFiniteNumber(matchingModel.max_inputs, matchingModel.capabilities?.max_inputs) ?? 100
 					}

@@ -99,7 +99,7 @@ User Settings:
 			const loadSystemCertificatesFromNode = this.configurationService.getNonExtensionConfig<boolean>('http.systemCertificatesNode');
 			const osCertificates = proxyAgent?.loadSystemCertificates ? await loadSystemCertificates(proxyAgent.loadSystemCertificates, loadSystemCertificatesFromNode, this.logService) : undefined;
 			const routerBaseUrl = getDardcorRouterBaseUrl();
-			const urls = [
+			const urls: Array<{ url: string; expectedContent: string; headers: Record<string, string> }> = [
 				{
 					url: `${routerBaseUrl}/v1/models`,
 					expectedContent: '"data"',
@@ -696,7 +696,7 @@ class NetworkStatus extends Disposable {
 	constructor(private readonly _fetcherService: IFetcherService, private readonly _configurationService: IConfigurationService, private readonly _experimentationService: IExperimentationService) {
 		super();
 		this._statusBarItem = this._register(vscode.window.createStatusBarItem('dardcor.networkStatus', vscode.StatusBarAlignment.Right, -1000));
-		this._statusBarItem.name = 'Dardcor AI Network Status';
+		this._statusBarItem.name = 'Dardcor Network Status';
 		this._register(_configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ConfigKey.TeamInternal.DebugShowNetworkStatus.fullyQualifiedId)) {
 				this._update();

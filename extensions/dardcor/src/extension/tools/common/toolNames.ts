@@ -223,6 +223,7 @@ export const toolCategories: Record<ToolName, ToolCategory> = {
 	[ToolName.CoreSendToTerminal]: ToolCategory.Core,
 	[ToolName.CoreKillTerminal]: ToolCategory.Core,
 	[ToolName.CoreManageTodoList]: ToolCategory.Core,
+	[ToolName.TodoWrite]: ToolCategory.Core,
 	[ToolName.MultiReplaceString]: ToolCategory.Core,
 	[ToolName.FindFiles]: ToolCategory.Core,
 	[ToolName.CreateDirectory]: ToolCategory.Core,

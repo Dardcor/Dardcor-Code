@@ -77,7 +77,7 @@ export async function baseActivate(configuration: IExtensionActivationConfigurat
 	const result = {
 		getAPI(version: number) {
 			if (version > CopilotExtensionApi.version) {
-				throw new Error('Invalid Dardcor AI Chat extension API version. Please upgrade Dardcor AI Chat.');
+				throw new Error('Invalid Dardcor Chat extension API version. Please upgrade Dardcor Chat.');
 			}
 
 			return instantiationService.createInstance(CopilotExtensionApi);

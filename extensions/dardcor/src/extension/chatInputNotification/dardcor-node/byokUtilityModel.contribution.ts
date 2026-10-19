@@ -28,7 +28,7 @@ export class ByokUtilityModelNotificationContribution extends Disposable {
 	) {
 		super();
 
-		if (vscode.workspace.isAgentSessionsWorkspace) {
+		if ((vscode.workspace as any).isAgentSessionsWorkspace) {
 			return;
 		}
 

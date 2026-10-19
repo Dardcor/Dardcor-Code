@@ -108,7 +108,7 @@ function configureReporter(capiClientService: ICAPIClientService, envService: IE
 
 	client.context.tags[client.context.keys.sessionId] = envService.sessionId;
 
-	const telemetryURL = capiClientService.dardcorTelemetryURL;
+	const telemetryURL = (capiClientService as any).dardcorTelemetryURL;
 	if (telemetryURL && URL.canParse(telemetryURL)) {
 		client.config.endpointUrl = telemetryURL;
 	}

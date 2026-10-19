@@ -140,7 +140,7 @@ export class DardcorDebugCommandContribution extends Disposable implements vscod
 					return;
 				}
 				if (!authService.dardcorToken) {
-					await authService.getGitHubSession('any', { createIfNone: { detail: l10n.t('Sign in to use Dardcor AI debug.') } });
+					await authService.getGitHubSession('any', { createIfNone: { detail: l10n.t('Sign in to use Dardcor debug.') } });
 				}
 				const result = await factory.start(opts, cts.token);
 

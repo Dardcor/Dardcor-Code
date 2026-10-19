@@ -102,7 +102,7 @@ function parseAgentCommandExitCode(output: string): number | undefined {
 	return failure ? Number(failure[1]) : undefined;
 }
 
-const ROUTER_PORT = 25128;
+const ROUTER_PORT = (typeof process !== 'undefined' && process.env?.DARDCOR_PORT) ? Number(process.env.DARDCOR_PORT) : 25128;
 const ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
 const ROUTER_AUTH_HEADER = { 'Authorization': 'Bearer sk-dardcor-local-key' };
 
@@ -4254,9 +4254,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			let todos = [] as ReturnType<IChatTodoListService['getTodos']>;
 			try {
 				todos = todoListService?.getTodos(request.sessionResource) ?? [];
-			} catch {
-				// A missing checklist must not suppress the final status report.
-			}
+			} catch {}
 			const completedTodos = todos.filter(todo => todo.status === 'completed').length;
 			const pendingTodos = todos.filter(todo => todo.status !== 'completed');
 			const allEvidence = runState?.verificationEvidence ?? [];
@@ -4358,9 +4356,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				if (sessionPermissionLevel !== undefined) {
 					selectedPermissionLevel = sessionPermissionLevel;
 				}
-			} catch {
-				// Some non-UI or restored requests do not have a live session model.
-			}
+			} catch {}
 
 			const fullAccessRestrictedByPolicy = this.configurationService.inspect<boolean>(ChatConfiguration.GlobalAutoApprove).policyValue === false;
 			return {

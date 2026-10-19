@@ -37,15 +37,16 @@ export class LanguageModelStatsService extends Disposable implements ILanguageMo
 	}
 
 	async update(model: string, extensionId: ExtensionIdentifier, agent: string | undefined, tokenCount: number | undefined): Promise<void> {
-		await this.extensionFeaturesManagementService.getAccess(extensionId, DardcorAiUsageExtensionFeatureId);
+		await this.extensionFeaturesManagementService.getAccess(extensionId, DardcorUsageExtensionFeatureId);
 	}
 
 }
 
-export const DardcorAiUsageExtensionFeatureId = 'dardcor-ai';
+export const DardcorUsageExtensionFeatureId = 'dardcor';
+export const DardcorAiUsageExtensionFeatureId = DardcorUsageExtensionFeatureId;
 Registry.as<IExtensionFeaturesRegistry>(Extensions.ExtensionFeaturesRegistry).registerExtensionFeature({
-	id: DardcorAiUsageExtensionFeatureId,
-	label: localize('Language Models', "Dardcor AI"),
+	id: DardcorUsageExtensionFeatureId,
+	label: localize('Language Models', "Dardcor"),
 	description: localize('languageModels', "Language models usage statistics of this extension."),
 	icon: Codicon.sparkle,
 	access: {

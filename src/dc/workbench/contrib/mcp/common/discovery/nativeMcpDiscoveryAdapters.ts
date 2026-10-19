@@ -91,16 +91,16 @@ export class ClaudeDesktopMpcDiscoveryAdapter implements NativeMpcDiscoveryAdapt
 	}
 }
 
-export class CopilotMpcDiscoveryAdapter extends ClaudeDesktopMpcDiscoveryAdapter {
-	public override readonly discoverySource: ExternalDiscoverySource = ExternalDiscoverySource.Copilot;
+export class DardcorMpcDiscoveryAdapter extends ClaudeDesktopMpcDiscoveryAdapter {
+	public override readonly discoverySource: ExternalDiscoverySource = ExternalDiscoverySource.Dardcor;
 
 	constructor(remoteAuthority: string | null) {
 		super(remoteAuthority);
-		this.id = `copilot.${this.remoteAuthority}`;
+		this.id = `dardcor.${this.remoteAuthority}`;
 	}
 
-	override getFilePath({ copilotHome, homedir }: INativeMcpDiscoveryData): URI | undefined {
-		return URI.joinPath(copilotHome ?? URI.joinPath(homedir, '.copilot'), 'mcp-config.json');
+	override getFilePath({ homedir }: INativeMcpDiscoveryData): URI | undefined {
+		return URI.joinPath(homedir, '.dardcor', 'mcp.json');
 	}
 }
 

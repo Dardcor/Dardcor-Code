@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -59,10 +58,6 @@ export class Range {
 		return true;
 	}
 
-	/**
-	 * Test if `position` is in `range`. If the position is at the edges, will return false.
-	 * @internal
-	 */
 	public static strictContainsPosition(range: IRange, position: IPosition): boolean {
 		if (position.lineNumber < range.startLineNumber || position.lineNumber > range.endLineNumber) {
 			return false;

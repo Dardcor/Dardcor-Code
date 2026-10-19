@@ -10,12 +10,29 @@ import { ExtensionContributedChatEndpoint } from '../../../platform/endpoint/dar
 import { IChatEndpoint } from '../../../platform/networking/common/networking';
 import { Delayer } from '../../../util/dardcor/base/common/async';
 import { MicrotaskDelay } from '../../../util/dardcor/base/common/symbols';
+import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
+import { IAutomodeService } from '../../../platform/endpoint/node/automodeService';
+import { IConfigurationService } from '../../../platform/configuration/common/configurationService';
+import { ILogService } from '../../../platform/log/common/logService';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
 import { ProductionEndpointProvider } from './endpointProviderImpl';
 
 export class ScenarioAutomationEndpointProviderImpl extends ProductionEndpointProvider {
 	private _firstNonCopilotModelPromise: Promise<LanguageModelChat | undefined> | undefined;
 	private _invalidateDelayer: Delayer<void> | undefined;
 	private _changeListenerInstalled = false;
+
+	constructor(
+		@IAuthenticationService private readonly _authService: IAuthenticationService,
+		@IAutomodeService _autoModeService: IAutomodeService,
+		@ILogService _logService: ILogService,
+		@IConfigurationService _configService: IConfigurationService,
+		@IInstantiationService _instantiationService: IInstantiationService,
+		@ITelemetryService _telemetryService: ITelemetryService,
+	) {
+		super(_autoModeService, _logService, _configService, _instantiationService, _telemetryService);
+	}
 
 	override async getChatEndpoint(requestOrFamilyOrModel: LanguageModelChat | ChatRequest | ChatEndpointFamily): Promise<IChatEndpoint> {
 		const isProxyingCAPI = !!this._configService.getConfig(ConfigKey.Shared.DebugOverrideCAPIUrl) || !!this._configService.getConfig(ConfigKey.Shared.DebugOverrideProxyUrl);

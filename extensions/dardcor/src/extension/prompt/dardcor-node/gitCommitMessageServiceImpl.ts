@@ -68,7 +68,7 @@ export class GitCommitMessageServiceImpl implements IGitCommitMessageService {
 			return undefined;
 		}
 
-		return workspace.isAgentSessionsWorkspace
+		return (workspace as any).isAgentSessionsWorkspace
 			? this._doGenerateCommitMessage(repository, cancellationToken)
 			: window.withProgress({ location: ProgressLocation.SourceControl }, async () => {
 				return this._doGenerateCommitMessage(repository, cancellationToken);

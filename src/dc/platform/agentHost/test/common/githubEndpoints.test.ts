@@ -83,7 +83,7 @@ suite('githubEndpoints', () => {
 		}, {
 			copilot: {
 				resource: 'https://ghe.acme.com/api/v3',
-				resource_name: 'GitHub Copilot',
+				resource_name: 'GitHub',
 				authorization_servers: ['https://ghe.acme.com/login/oauth'],
 				scopes_supported: ['read:user', 'user:email'],
 				required: true,

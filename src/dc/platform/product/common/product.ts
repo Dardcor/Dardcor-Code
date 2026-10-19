@@ -62,7 +62,7 @@ else {
 				'github.dardcor-chat': {
 					default: true
 				},
-				'dardcor.dardcor-ai': {
+				'dardcor.dardcor': {
 					default: true
 				}
 			},

@@ -5,9 +5,7 @@
 
 import { Disposable } from '../../../types/src';
 import * as lsp from 'vscode-languageserver-protocol';
-/**
- * Altered to have a void return type, so eslint can flag misused promises.
- */
+
 export interface Event<T> {
 	(listener: (e: T) => void, thisArgs?: unknown, disposables?: Disposable[]): Disposable;
 }

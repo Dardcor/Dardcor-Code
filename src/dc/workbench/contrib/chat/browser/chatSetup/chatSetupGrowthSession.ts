@@ -62,8 +62,8 @@ export class GrowthSessionController extends Disposable implements IChatSessionI
 
 		return [{
 			resource: GrowthSessionController.SESSION_URI,
-			label: localize('growthSession.label', "Try Dardcor AI"),
-			description: localize('growthSession.description', "Dardcor AI is available. Try it for free."),
+			label: localize('growthSession.label', "Try Dardcor"),
+			description: localize('growthSession.description', "Dardcor is available. Try it for free."),
 			status: ChatSessionStatus.NeedsInput,
 			iconPath: Codicon.lightbulb,
 			timing: {

@@ -172,7 +172,7 @@ class ChatAgents implements IDisposable {
 
 You can also ask me questions about your editor selection by [starting an inline chat session](command:inlineChat.start).
 
-Learn more about [Dardcor AI](https://dardcor-code.web.id/docs) in [Dardcor Code](https://dardcor-code.web.id). Or explore the [Dardcor walkthrough](command:github.dardcor.open.walkthrough).`,
+Learn more about [Dardcor](https://dardcor-code.web.id/docs) in [Dardcor Code](https://dardcor-code.web.id). Or explore the [Dardcor walkthrough](command:github.dardcor.open.walkthrough).`,
 			comment: `{Locked='](command:inlineChat.start)'}`
 		});
 		const markdownString = new vscode.MarkdownString(helpPostfix);

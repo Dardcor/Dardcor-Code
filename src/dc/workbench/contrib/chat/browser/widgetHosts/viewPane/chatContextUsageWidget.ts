@@ -29,22 +29,6 @@ import { KeyCode } from '../../../../../../base/common/keyCodes.js';
 
 const $ = dom.$;
 
-/**
- * Resolves the input-token denominator used by the context-usage gauge.
- *
- * Resolution order, mirroring the request path's `applyContextSizeOverride`:
- *   1. An explicit `contextSize` in the resolved model configuration.
- *   2. The schema's default `contextSize` tier (e.g. 200K). Used when the
- *      resolved configuration is missing `contextSize` (e.g. the schema default
- *      has not loaded yet) so the gauge denominator agrees with the size the
- *      request actually uses instead of jumping to the model's full native
- *      window. See issue #320393.
- *   3. The model's full native window (`maxInputTokens`). Models without a
- *      context-size picker have no such schema property and land here, where
- *      default and max are the same value.
- *
- * @internal - exported for testing
- */
 export function resolveContextWindowInputTokens(
 	modelConfiguration: IStringDictionary<unknown> | undefined,
 	configurationSchema: ILanguageModelConfigurationSchema | undefined,
@@ -57,11 +41,6 @@ export function resolveContextWindowInputTokens(
 		?? maxInputTokens;
 }
 
-/**
- * Equality comparer for {@link IChatContextUsageData} used to suppress redundant updates.
- *
- * @internal - exported for testing
- */
 export function isSameContextUsageData(a: IChatContextUsageData | undefined, b: IChatContextUsageData | undefined): boolean {
 	if (a === b) {
 		return true;

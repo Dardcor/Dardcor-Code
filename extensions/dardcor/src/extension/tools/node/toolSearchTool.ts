@@ -9,7 +9,7 @@ import { ILogService } from '../../../platform/log/common/logService';
 import { CUSTOM_TOOL_SEARCH_NAME } from '../../../platform/networking/common/anthropic';
 import { IToolDeferralService } from '../../../platform/networking/common/toolDeferralService';
 import { LanguageModelTextPart, LanguageModelToolResult } from '../../../dardcorTypes';
-import { ICopilotModelSpecificTool, ToolRegistry } from '../common/toolsRegistry';
+import { IAgentModelSpecificTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
 import { IToolEmbeddingsComputer } from '../common/virtualTools/toolEmbeddingsComputer';
 
@@ -26,7 +26,7 @@ export interface IToolSearchCandidate {
 
 const DEFAULT_SEARCH_LIMIT = 5;
 
-export class ToolSearchTool implements ICopilotModelSpecificTool<IToolSearchParams> {
+export class ToolSearchTool implements IAgentModelSpecificTool<IToolSearchParams> {
 	constructor(
 		@IToolEmbeddingsComputer private readonly _toolEmbeddingsComputer: IToolEmbeddingsComputer,
 		@IToolsService private readonly _toolsService: IToolsService,

@@ -57,14 +57,14 @@ suite('AgentPlugin enablement', () => {
 		};
 	}
 
-	test('colliding marketplace and Copilot CLI direct installs use priority-ordered enablement', () => {
+	test('colliding marketplace and Dardcor CLI direct installs use priority-ordered enablement', () => {
 		const marketplaceUri = URI.file('/Users/test/.vscode-insiders/agent-plugins/github.com/microsoft/vscode-team-kit/model-council');
-		const copilotCliDirectUri = URI.file('/Users/test/.copilot/installed-plugins/_direct/microsoft--vscode-team-kit--model-council');
+		const dardcorCliDirectUri = URI.file('/Users/test/.dardcor/installed-plugins/_direct/microsoft--vscode-team-kit--model-council');
 		const discoveries: IDiscoveredAgentPlugins[] = [
 			{
 				priority: AgentPluginDiscoveryPriority.CopilotCli,
 				order: 3,
-				plugins: [makePlugin(copilotCliDirectUri, 'model-council')],
+				plugins: [makePlugin(dardcorCliDirectUri, 'model-council')],
 			},
 			{
 				priority: AgentPluginDiscoveryPriority.Marketplace,
@@ -77,16 +77,16 @@ suite('AgentPlugin enablement', () => {
 		const collisionGroups = observableValue('pluginCollisionGroups', getCanonicalAgentPluginCollisionGroups(discoveries));
 		const enablementModel = new AgentPluginCollisionEnablementModel(makeTestEnablementModel(), collisionGroups);
 
-		enablementModel.setEnabled(copilotCliDirectUri.toString(), ContributionEnablementState.EnabledWorkspace);
+		enablementModel.setEnabled(dardcorCliDirectUri.toString(), ContributionEnablementState.EnabledWorkspace);
 
 		assert.deepStrictEqual({
 			plugins: plugins.map(plugin => plugin.uri.toString()),
 			marketplaceInitiallyEnabled: isContributionEnabled(new AgentPluginCollisionEnablementModel(makeTestEnablementModel(), collisionGroups).readEnabled(marketplaceUri.toString())),
-			copilotCliInitiallyEnabled: isContributionEnabled(new AgentPluginCollisionEnablementModel(makeTestEnablementModel(), collisionGroups).readEnabled(copilotCliDirectUri.toString())),
+			copilotCliInitiallyEnabled: isContributionEnabled(new AgentPluginCollisionEnablementModel(makeTestEnablementModel(), collisionGroups).readEnabled(dardcorCliDirectUri.toString())),
 			marketplaceAfterEnablingCli: enablementModel.readEnabled(marketplaceUri.toString()),
-			copilotCliAfterEnablingCli: enablementModel.readEnabled(copilotCliDirectUri.toString()),
+			copilotCliAfterEnablingCli: enablementModel.readEnabled(dardcorCliDirectUri.toString()),
 		}, {
-			plugins: [copilotCliDirectUri.toString(), marketplaceUri.toString()],
+			plugins: [dardcorCliDirectUri.toString(), marketplaceUri.toString()],
 			marketplaceInitiallyEnabled: true,
 			copilotCliInitiallyEnabled: false,
 			marketplaceAfterEnablingCli: ContributionEnablementState.DisabledWorkspace,
@@ -96,7 +96,7 @@ suite('AgentPlugin enablement', () => {
 
 	test('policy-blocked duplicate does not suppress allowed duplicate', () => {
 		const marketplaceUri = URI.file('/Users/test/.vscode-insiders/agent-plugins/github.com/microsoft/vscode-team-kit/model-council');
-		const copilotCliDirectUri = URI.file('/Users/test/.copilot/installed-plugins/_direct/microsoft--vscode-team-kit--model-council');
+		const dardcorCliDirectUri = URI.file('/Users/test/.dardcor/installed-plugins/_direct/microsoft--vscode-team-kit--model-council');
 		const discoveries: IDiscoveredAgentPlugins[] = [
 			{
 				priority: AgentPluginDiscoveryPriority.Marketplace,
@@ -106,7 +106,7 @@ suite('AgentPlugin enablement', () => {
 			{
 				priority: AgentPluginDiscoveryPriority.CopilotCli,
 				order: 3,
-				plugins: [makePlugin(copilotCliDirectUri, 'model-council')],
+				plugins: [makePlugin(dardcorCliDirectUri, 'model-council')],
 			},
 		];
 
@@ -116,11 +116,11 @@ suite('AgentPlugin enablement', () => {
 		);
 		const enablementModel = new AgentPluginCollisionEnablementModel(makeTestEnablementModel(), collisionGroups);
 
-		assert.ok(isContributionEnabled(enablementModel.readEnabled(copilotCliDirectUri.toString())));
+		assert.ok(isContributionEnabled(enablementModel.readEnabled(dardcorCliDirectUri.toString())));
 	});
 
 	test('same-URI duplicates collapse before collision grouping', () => {
-		const sharedUri = URI.file('/Users/test/.copilot/installed-plugins/team/model-council');
+		const sharedUri = URI.file('/Users/test/.dardcor/installed-plugins/team/model-council');
 		const discoveries: IDiscoveredAgentPlugins[] = [
 			{
 				priority: AgentPluginDiscoveryPriority.Configured,

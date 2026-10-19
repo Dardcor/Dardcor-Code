@@ -31,8 +31,8 @@ function createModel(overrides: Partial<ILanguageModelChatMetadata> = {}): ILang
 		},
 		identifier: 'dardcor-gpt-4',
 		provider: {
-			vendor: { vendor: 'dardcor', displayName: 'Dardcor AI', isDefault: true },
-			group: { name: 'Dardcor AI' }
+			vendor: { vendor: 'dardcor', displayName: 'Dardcor', isDefault: true },
+			group: { name: 'Dardcor' }
 		},
 	} as ILanguageModel;
 }

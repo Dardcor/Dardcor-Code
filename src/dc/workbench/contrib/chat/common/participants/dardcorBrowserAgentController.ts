@@ -120,7 +120,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 	window.__dardcorCapturedLogs = state.logs;
 	window.__dardcorCapturedDialogs = state.dialogs;
 
-	// 1. Capture runtime errors & console warnings/errors
 	if (!window.__dardcorErrorHooksInstalled) {
 		window.__dardcorErrorHooksInstalled = true;
 		const pushLog = (level, msg) => {
@@ -159,7 +158,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		};
 	}
 
-	// 2. Non-blocking dialog interception fallback
 	if (!window.__dardcorDialogHooksInstalled) {
 		window.__dardcorDialogHooksInstalled = true;
 		const origAlert = window.alert;
@@ -210,7 +208,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		};
 	}
 
-	// 3. Dardcor cursor and HUD overlay (Shadow DOM)
 	let hostEl = null;
 	let shadow = null;
 	let cursorEl = null;
@@ -525,7 +522,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		if (badgeTextEl) {
 			badgeTextEl.textContent = 'Dardcor';
 		}
-		// Keep cursor visible for 6 seconds after action finishes
 		fadeTimeout = setTimeout(() => {
 			try {
 				const f = shadow && shadow.getElementById('dc-overlay-frame');
@@ -592,7 +588,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		state.cursorY = y;
 		if (!cursorEl) return;
 		cursorEl.style.transform = 'translate3d(' + Math.round(x) + 'px, ' + Math.round(y) + 'px, 0)';
-		// Flip badge to left side if cursor is near right edge of viewport
 		if (badgeEl) {
 			const vw = window.innerWidth || 1024;
 			const vh = window.innerHeight || 768;
@@ -636,7 +631,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			function step(now) {
 				const elapsed = now - startTime;
 				const t = Math.min(1, elapsed / actualDuration);
-				// Cubic ease-out with slight human-like arc
 				const ease = 1 - Math.pow(1 - t, 3);
 				const arc = Math.sin(t * Math.PI) * arcAmplitude;
 				const perpX = distance > 0 ? (-dy / distance) * arc * 0.35 : 0;
@@ -690,7 +684,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		wakeOverlay(message);
 	}
 
-	// 4. Smart Element Visibility & Multi-Strategy Resolver
 	function isElementVisible(el) {
 		if (!el || !(el instanceof Element)) return false;
 		if (el.closest('#__dardcor_ai_agent_overlay__')) return false;
@@ -733,8 +726,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			if (isUnique(selector)) return selector;
 		}
 
-		// Build a structural path instead of falling back to a broad selector such
-		// as a generic button selector, which can silently target the wrong control.
 		const path = [];
 		let current = el;
 		while (current && current instanceof Element && current !== document.documentElement) {
@@ -785,7 +776,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		].join(',');
 
 		const rawNodes = Array.from(document.querySelectorAll(candidateSelector));
-		// Also include cursor:pointer elements that look like buttons/cards
 		const allElements = document.querySelectorAll('div, span, li');
 		for (let i = 0; i < allElements.length && rawNodes.length < 220; i++) {
 			const node = allElements[i];
@@ -807,7 +797,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		for (const el of rawNodes) {
 			if (!isElementVisible(el)) continue;
 			const rect = el.getBoundingClientRect();
-			// Skip elements ridiculously far off-screen
 			if (rect.bottom < -1200 || rect.top > vh + 2800) continue;
 
 			const idNum = nextId++;
@@ -856,17 +845,13 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		const rawSelector = typeof options.selector === 'string' ? options.selector.trim() : '';
 		const rawElementId = options.elementId !== undefined && options.elementId !== null ? String(options.elementId).trim() : '';
 		const rawText = typeof options.text === 'string' ? options.text.trim() : '';
-
-		// Ensure interactive elements are indexed first
 		indexInteractiveElements();
 
-		// Strategy 0: Exact coordinates (x, y)
 		if (typeof options.x === 'number' && typeof options.y === 'number') {
 			const hit = document.elementFromPoint(options.x, options.y);
 			return { element: hit, x: options.x, y: options.y, matchedBy: 'coordinates' };
 		}
 
-		// Strategy 1: Set-of-Mark ID (elementId: "5", selector: "[5]", selector: "5")
 		const idCandidate = rawElementId.replace(/^\\[|\\]$/g, '') || (/^\\[?\\d+\\]?$/.test(rawSelector) ? rawSelector.replace(/^\\[|\\]$/g, '') : '');
 		if (idCandidate && /^\\d+$/.test(idCandidate)) {
 			const byMark = document.querySelector('[data-dardcor-id="' + idCandidate + '"]');
@@ -875,7 +860,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			}
 		}
 
-		// Direct DOM id match if elementId is non-numeric
 		if (rawElementId) {
 			const byDomId = document.getElementById(rawElementId) || document.querySelector('[data-dardcor-id="' + rawElementId.replace(/"/g, '') + '"]');
 			if (byDomId) {
@@ -883,7 +867,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			}
 		}
 
-		// Strategy 2: Playwright-style :has-text("...") or :contains("...") or text=...
 		let textQuery = rawText;
 		let baseCss = rawSelector;
 		const hasTextMatch = /^(.*?):(?:has-text|contains)\\(\\s*['"](.*?)['"]\\s*\\)$/i.exec(rawSelector);
@@ -895,7 +878,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			textQuery = rawSelector.slice(5).replace(/^['"]|['"]$/g, '').trim();
 		}
 
-		// Strategy 3: Standard CSS selector
 		if (baseCss && baseCss !== '*' && !hasTextMatch) {
 			try {
 				const nodes = Array.from(document.querySelectorAll(baseCss));
@@ -904,14 +886,12 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 					return { element: visibleNode, matchedBy: 'css:' + baseCss };
 				}
 			} catch (_) {
-				// Invalid CSS selector (e.g. plain button text passed as selector) -> fall through to semantic text search!
 				if (!textQuery) {
 					textQuery = rawSelector;
 				}
 			}
 		}
 
-		// Strategy 4: Fuzzy Semantic Text / Placeholder / Aria-Label / Label search
 		const searchPhrase = (textQuery || rawSelector || rawElementId).toLowerCase().trim();
 		if (searchPhrase) {
 			let pool = [];
@@ -946,7 +926,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 					score = 55;
 				}
 
-				// Boost interactive tags
 				const tag = el.tagName.toLowerCase();
 				if (score > 0 && ['button', 'a', 'input', 'textarea', 'select'].includes(tag)) {
 					score += 15;
@@ -958,7 +937,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 				}
 			}
 
-			// If matched a <label>, resolve its associated input if appropriate
 			if (bestEl && bestEl.tagName.toLowerCase() === 'label') {
 				const forId = bestEl.getAttribute('for');
 				if (forId) {
@@ -1008,7 +986,6 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			};
 		}
 
-		// Scroll element into viewport smoothly if needed
 		let rect = el.getBoundingClientRect();
 		const vw = window.innerWidth || 1024;
 		const vh = window.innerHeight || 768;

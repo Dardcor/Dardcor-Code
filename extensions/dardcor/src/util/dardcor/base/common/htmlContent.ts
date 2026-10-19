@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -20,7 +19,6 @@ export interface IMarkdownString {
 	readonly isTrusted?: boolean | MarkdownStringTrustedOptions;
 	readonly supportThemeIcons?: boolean;
 	readonly supportHtml?: boolean;
-	/** @internal */
 	readonly supportAlertSyntax?: boolean;
 	readonly baseUri?: UriComponents;
 	uris?: { [href: string]: UriComponents };

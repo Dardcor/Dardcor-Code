@@ -2,7 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { RequestMetadata, RequestType } from '@vscode/copilot-api';
+import { RequestMetadata } from '@vscode/copilot-api';
 import { OpenAI, Raw } from '@vscode/prompt-tsx';
 import type { CancellationToken } from 'vscode';
 import { ITokenizer, TokenizerType } from '../../../util/common/tokenizer';
@@ -36,6 +36,7 @@ import { normalizeTokenPrices } from '../../../extension/conversation/common/lan
 import { createMessagesRequestBody, processResponseFromMessagesEndpoint } from './messagesApi';
 import { createResponsesRequestBody, getResponsesApiCompactionThreshold, processResponseFromChatEndpoint } from './responsesApi';
 import { filterHistoryImages } from './imageLimits';
+import { getDardcorRouterBaseUrl } from './dardcorRouter';
 
 type KimiToolCallIdStyle = 'function-indexed' | 'name-indexed';
 
@@ -280,7 +281,7 @@ export class ChatEndpoint implements IChatEndpoint {
 		if (typeof this.modelMetadata.urlOrRequestMetadata === 'string') {
 			return this.modelMetadata.urlOrRequestMetadata;
 		}
-		return 'http://127.0.0.1:25128/v1/chat/completions';
+		return `${getDardcorRouterBaseUrl()}/v1/chat/completions`;
 	}
 
 	protected get useResponsesApi(): boolean {

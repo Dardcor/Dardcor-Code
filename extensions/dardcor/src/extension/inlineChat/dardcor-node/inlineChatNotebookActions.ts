@@ -76,7 +76,7 @@ export class NotebookExectionStatusBarItemProvider implements vscode.NotebookCel
 				return [];
 			}
 
-			const title = l10n.t('Fix using Dardcor AI');
+			const title = l10n.t('Fix using Dardcor');
 			const joinedMessage = [err.name, err.message].filter(Boolean).join(': ').replace(/\s*\(\S+,\s*line\s*\d+\)/, '');
 
 			return [

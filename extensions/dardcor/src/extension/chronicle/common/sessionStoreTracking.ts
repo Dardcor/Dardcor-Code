@@ -32,11 +32,6 @@ export function isTerminalTool(toolName: string): boolean {
 	return toolName === 'runInTerminal' || toolName === 'run_in_terminal';
 }
 
-/**
- * Extract tool arguments from an OTel span.
- * Parses the serialized JSON from gen_ai.tool.call.arguments attribute.
- * @internal Exported for testing.
- */
 export function extractToolArgs(span: ICompletedSpanData): Record<string, unknown> {
 	const serialized = span.attributes[GenAiAttr.TOOL_CALL_ARGUMENTS];
 	if (typeof serialized === 'string') {
@@ -65,12 +60,6 @@ const FILE_TRACKING_TOOLS = new Set([
 
 const GH_MCP_PREFIXES = ['mcp_github_', 'github-mcp-server-'];
 
-/**
- * Extract absolute file path from tool arguments if available.
- * Handles both CLI-style (edit/create with `path`) and VS Code-style tools
- * that use `filePath`, as well as `apply_patch` which encodes paths in the patch input.
- * @internal Exported for testing.
- */
 export function extractFilePath(toolName: string, toolArgs: unknown): string | undefined {
 	if (!FILE_TRACKING_TOOLS.has(toolName)) { return undefined; }
 	if (typeof toolArgs !== 'object' || toolArgs === null) { return undefined; }
@@ -111,11 +100,6 @@ function getNumberField(obj: unknown, field: string): number | undefined {
 	return typeof val === 'number' ? val : undefined;
 }
 
-/**
- * Extract refs from GitHub MCP server tool calls.
- * These tools use structured args with owner/repo/pullNumber/issue_number/sha etc.
- * @internal Exported for testing.
- */
 export function extractRefsFromMcpTool(
 	toolName: string,
 	toolArgs: unknown,
@@ -146,10 +130,6 @@ export function extractRefsFromMcpTool(
 	return refs;
 }
 
-/**
- * Detect git/gh commands in terminal tool arguments and extract refs from the result.
- * @internal Exported for testing.
- */
 export function extractRefsFromTerminal(
 	toolArgs: unknown,
 	resultText: string | undefined,
@@ -183,10 +163,6 @@ export function extractRefsFromTerminal(
 	return refs;
 }
 
-/**
- * Extract repository info from GitHub MCP tool args (most tools have owner + repo).
- * @internal Exported for testing.
- */
 export function extractRepoFromMcpTool(toolArgs: unknown): string | undefined {
 	const owner = getStringField(toolArgs, 'owner');
 	const repo = getStringField(toolArgs, 'repo');
@@ -235,15 +211,6 @@ export function extractPlainTextFromContent(content: string): string | undefined
 	}
 }
 
-/**
- * Extract assistant response text from the gen_ai.output.messages span attribute.
- * Handles both valid JSON and truncated JSON (where truncateForOTel cut the
- * JSON structure mid-string and appended a suffix).
- *
- * Expected format: [{"role":"assistant","parts":[{"type":"text","content":"..."}]}]
- *
- * @internal Exported for testing.
- */
 export function extractAssistantResponse(outputMessagesRaw: string | undefined): string | undefined {
 	if (!outputMessagesRaw) {
 		return undefined;

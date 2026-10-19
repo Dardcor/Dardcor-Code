@@ -233,10 +233,10 @@ export class GhostTextComputer {
 		logContext.setPrompt(PromptResponse.toString(prompt));
 
 		if (prompt.type === 'dardcorContentExclusion') {
-			logger.debug('Dardcor AI not available, due to content exclusion');
+			logger.debug('Dardcor not available, due to content exclusion');
 			return {
 				type: 'abortedBeforeIssued',
-				reason: 'Dardcor AI not available due to content exclusion',
+				reason: 'Dardcor not available due to content exclusion',
 				telemetryData: mkBasicResultTelemetry(preIssuedTelemetryDataWithExp),
 			};
 		}

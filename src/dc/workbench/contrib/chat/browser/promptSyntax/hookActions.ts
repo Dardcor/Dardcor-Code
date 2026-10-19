@@ -343,7 +343,7 @@ export async function showConfigureHooksQuickPick(
 
 						pickerItems = [];
 						if (shared.length > 0) {
-							pickerItems.push({ type: 'separator', label: localize('hookSection.default', "Local/Dardcor AI CLI Agents") });
+							pickerItems.push({ type: 'separator', label: localize('hookSection.default', "Local/Dardcor CLI Agents") });
 							pickerItems.push(...shared.map(makeItem));
 						}
 						if (vscodeOnly.length > 0) {
@@ -351,7 +351,7 @@ export async function showConfigureHooksQuickPick(
 							pickerItems.push(...vscodeOnly.map(makeItem));
 						}
 						if (copilotOnly.length > 0) {
-							pickerItems.push({ type: 'separator', label: localize('hookSection.copilotCliOnly', "Dardcor AI CLI Agents") });
+							pickerItems.push({ type: 'separator', label: localize('hookSection.copilotCliOnly', "Dardcor CLI Agents") });
 							pickerItems.push(...copilotOnly.map(makeItem));
 						}
 					}

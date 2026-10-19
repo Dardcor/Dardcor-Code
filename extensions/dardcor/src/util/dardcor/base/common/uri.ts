@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -96,19 +95,10 @@ export class URI implements UriComponents {
 
 	readonly fragment: string;
 
-	/**
-	 * @internal
-	 */
 	protected constructor(scheme: string, authority?: string, path?: string, query?: string, fragment?: string, _strict?: boolean);
 
-	/**
-	 * @internal
-	 */
 	protected constructor(components: UriComponents);
 
-	/**
-	 * @internal
-	 */
 	protected constructor(schemeOrData: string | UriComponents, authority?: string, path?: string, query?: string, fragment?: string, _strict: boolean = false) {
 
 		if (typeof schemeOrData === 'object') {

@@ -57,7 +57,7 @@ export class GetNewWorkspaceTool implements IAgentTool<INewWorkspaceToolParams> 
 		if (this._shouldPromptWorkspaceOpen) {
 			const confirmationMessages = {
 				title: l10n.t`Open an empty folder to continue`,
-				message: l10n.t`Dardcor AI requires an empty folder as a workspace to continue workspace creation.`
+				message: l10n.t`Dardcor requires an empty folder as a workspace to continue workspace creation.`
 			};
 
 			return {

@@ -34,7 +34,7 @@
 		"src/extension/test/node/fixtures/**/*",
 		"src/extension/prompts/node/test/fixtures/**/*",
 		"src/extension/typescriptContext/serverPlugin/fixtures/**",
-		"src/extension/completions-core/vscode-node/extension/src/dardcorPanel/webView/suggestionsPanelWebview.ts",
+		"src/extension/completions-core/dardcor-node/extension/src/dardcorPanel/webView/suggestionsPanelWebview.ts",
 		"test/aml/out"
 	]
 }

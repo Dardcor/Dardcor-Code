@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 
 export interface IToolEnablementState {
 	enabledToolSets: ReadonlySet<string>;
@@ -215,7 +219,7 @@ export class ToolsListWidget extends Disposable {
 		DOM.append(DOM.append(this._header, $('.section-title-row')), $('h2.section-title')).textContent = localize('toolsListTitle', "Tools");
 
 		const description = DOM.append(this._header, $('p.section-title-description'));
-		DOM.append(description, $('span.section-title-description-text')).textContent = localize('toolsListSubtitle', "Enable or disable the tools available to chat. Disabled tools are not advertised to the agent. Tools other than Dardcor AI CLI run on the client and require it to be connected.");
+		DOM.append(description, $('span.section-title-description-text')).textContent = localize('toolsListSubtitle', "Enable or disable the tools available to chat. Disabled tools are not advertised to the agent. Tools other than Dardcor CLI run on the client and require it to be connected.");
 		description.appendChild(document.createTextNode(' '));
 
 		const learnMore = DOM.append(description, $('a.section-title-link')) as HTMLAnchorElement;

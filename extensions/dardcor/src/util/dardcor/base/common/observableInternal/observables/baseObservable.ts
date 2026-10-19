@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -14,10 +13,6 @@ import type { keepObserved, recomputeInitiallyAndOnChange } from '../utils/utils
 import { derivedOpts } from './derived';
 
 let _derived: typeof derivedOpts;
-/**
- * @internal
- * This is to allow splitting files.
-*/
 export function _setDerivedOpts(derived: typeof _derived) {
 	_derived = derived;
 }

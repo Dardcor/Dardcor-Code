@@ -588,7 +588,7 @@ export class StopListeningAction extends Action2 {
 				when: AnyScopedVoiceChatInProgress
 			},
 			icon: spinningLoading,
-			precondition: GlobalVoiceChatInProgress, // need global context here because of `f1: true`
+			precondition: GlobalVoiceChatInProgress,
 			menu: primaryVoiceActionMenu(AnyScopedVoiceChatInProgress, SegmentedVoiceInputModePillInactive)
 		});
 	}
@@ -911,7 +911,7 @@ export class StopReadAloud extends Action2 {
 			title: localize2('workbench.action.speech.stopReadAloud', "Stop Reading Aloud"),
 			f1: true,
 			category: CHAT_CATEGORY,
-			precondition: GlobalTextToSpeechInProgress, // need global context here because of `f1: true`
+			precondition: GlobalTextToSpeechInProgress,
 			keybinding: {
 				weight: KeybindingWeight.WorkbenchContrib + 100,
 				primary: KeyCode.Escape,

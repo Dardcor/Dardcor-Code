@@ -205,7 +205,7 @@ class WindowKindFilterProvider implements IExperimentationFilterProvider {
 	getFilters(): Map<string, string> {
 		const filters = new Map<string, string>();
 
-		const windowKind = vscode.workspace.isAgentSessionsWorkspace ? 'agents' : 'editor';
+		const windowKind = (vscode.workspace as any).isAgentSessionsWorkspace ? 'agents' : 'editor';
 		filters.set('X-VSCode-WindowKind', windowKind);
 
 		this._logService.trace(`[WindowKindFilterProvider]::getFilters Filters: ${JSON.stringify(Array.from(filters.entries()))}`);

@@ -90,7 +90,7 @@ export class TestsIntent implements IIntent {
 		}
 
 		if (await this.ignoreService.isIgnored(documentContext.document.uri)) {
-			throw new Error('Dardcor AI is disabled for this file.');
+			throw new Error('Dardcor is disabled for this file.');
 		}
 
 		const location = invocationContext.location;

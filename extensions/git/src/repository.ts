@@ -1442,7 +1442,7 @@ export class Repository implements Disposable {
 		commands.executeCommand('_aiEdits.clearAiContributions', resources);
 	}
 
-	private static readonly AI_CO_AUTHOR_TRAILER = 'Co-authored-by: Dardcor AI <dardcor-ai@dardcor.com>';
+	private static readonly AI_CO_AUTHOR_TRAILER = 'Co-authored-by: Dardcor <dardcor@dardcor.com>';
 
 	private async appendAICoAuthorTrailer(
 		message: string | undefined,

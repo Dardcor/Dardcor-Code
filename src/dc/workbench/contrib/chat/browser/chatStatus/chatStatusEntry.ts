@@ -21,7 +21,7 @@ function dardcorRouterHtml(): string {
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://127.0.0.1:25128; style-src 'unsafe-inline';">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://127.0.0.1:25128 http://localhost:25128; style-src 'unsafe-inline';">
 	<style>
 		html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; overflow: hidden; background: #09090b; }
 	</style>

@@ -267,7 +267,6 @@ export interface IChatResponseModel {
 	readonly completedAt?: number;
 	readonly completionTimestamp?: number;
 	readonly state: ResponseModelState;
-	/** @internal */
 	readonly stateT: ResponseModelStateT;
 	readonly confirmationAdjustedTimestamp: IObservable<number>;
 	readonly isComplete: boolean;
@@ -2256,9 +2255,6 @@ export class ChatModel extends Disposable implements IChatModel {
 		this._onDidChangePendingRequests.fire();
 	}
 
-	/**
-	 * @internal Used by ChatService to atomically replace the pending request queue.
-	 */
 	replacePendingRequests(requests: readonly IChatPendingRequest[]): void {
 		if (this._pendingRequests.length === requests.length && requests.every((request, index) => this._pendingRequests[index] === request)) {
 			return;
@@ -2268,10 +2264,6 @@ export class ChatModel extends Disposable implements IChatModel {
 		this._onDidChangePendingRequests.fire();
 	}
 
-	/**
-	 * @internal Used by ChatService to add a request to the queue.
-	 * Steering messages are placed before queued messages.
-	 */
 	addPendingRequest(request: ChatRequestModel, kind: ChatRequestQueueKind, sendOptions: IChatSendRequestOptions): IChatPendingRequest {
 		const pendingRequest: IChatPendingRequest = {
 			request,
@@ -2297,9 +2289,6 @@ export class ChatModel extends Disposable implements IChatModel {
 		return pendingRequest;
 	}
 
-	/**
-	 * @internal Used by ChatService to remove a pending request
-	 */
 	removePendingRequest(id: string): void {
 		const index = this._pendingRequests.findIndex(r => r.request.id === id);
 		if (index !== -1) {
@@ -2308,9 +2297,6 @@ export class ChatModel extends Disposable implements IChatModel {
 		}
 	}
 
-	/**
-	 * @internal Used by ChatService to dequeue the next pending request
-	 */
 	dequeuePendingRequest(): IChatPendingRequest | undefined {
 		const request = this._pendingRequests.shift();
 		if (request) {
@@ -2319,10 +2305,6 @@ export class ChatModel extends Disposable implements IChatModel {
 		return request;
 	}
 
-	/**
-	 * @internal Used by ChatService to dequeue all consecutive steering requests at the front of the queue.
-	 * Returns an empty array if the first pending request is not a steering request.
-	 */
 	dequeueAllSteeringRequests(): IChatPendingRequest[] {
 		const steeringRequests: IChatPendingRequest[] = [];
 		while (this._pendingRequests.at(0)?.kind === ChatRequestQueueKind.Steering) {
@@ -2334,9 +2316,6 @@ export class ChatModel extends Disposable implements IChatModel {
 		return steeringRequests;
 	}
 
-	/**
-	 * @internal Used by ChatService to clear all pending requests
-	 */
 	clearPendingRequests(): void {
 		if (this._pendingRequests.length > 0) {
 			this._pendingRequests.length = 0;

@@ -59,7 +59,6 @@ export class DardcorStatusBarPickMenu {
 			this.newOpenLogsItem(),
 			this.newSeparator(),
 			this.newDocsItem(),
-			//this.newForumItem(),
 		];
 	}
 
@@ -112,11 +111,11 @@ export class DardcorStatusBarPickMenu {
 				}
 				break;
 			case 'Inactive':
-				statusText = this.extensionStatusService.message || l10n.t('Dardcor AI is currently inactive');
+				statusText = this.extensionStatusService.message || l10n.t('Dardcor is currently inactive');
 				statusIcon = Icon.Blocked;
 				break;
 			default:
-				statusText = this.extensionStatusService.message || l10n.t('Dardcor AI has encountered an error');
+				statusText = this.extensionStatusService.message || l10n.t('Dardcor has encountered an error');
 				statusIcon = Icon.NotConnected;
 				break;
 		}
@@ -140,7 +139,7 @@ export class DardcorStatusBarPickMenu {
 
 	private newSettingsItem() {
 		return this.newCommandItem(l10n.t('$(settings-gear) Edit Settings...'), 'workbench.action.openSettings', [
-			'Dardcor AI',
+			'Dardcor',
 		]);
 	}
 
@@ -154,7 +153,7 @@ export class DardcorStatusBarPickMenu {
 
 	private newDocsItem() {
 		return this.newCommandItem(
-			l10n.t('$(remote-explorer-documentation) View Dardcor AI Documentation...'),
+			l10n.t('$(remote-explorer-documentation) View Dardcor Documentation...'),
 			CMDOpenDocumentationClient
 		);
 	}

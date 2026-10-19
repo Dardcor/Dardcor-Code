@@ -176,7 +176,7 @@ export async function enumerateAgentHostLogSources(
 		if (copilotLogsDir) {
 			sources.push({
 				id: 'cliLog',
-				label: localize('agentHostLogs.cliLog', "Dardcor AI CLI Logs"),
+				label: localize('agentHostLogs.cliLog', "Dardcor CLI Logs"),
 				kind: AgentHostLogSourceKind.CliLog,
 				isRemote: !isLocal,
 				cliLogs: { dir: copilotLogsDir, rawSessionId },

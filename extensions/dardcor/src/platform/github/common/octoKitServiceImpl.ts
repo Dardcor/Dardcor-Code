@@ -278,7 +278,7 @@ export class OctoKitService extends BaseOctoKitService implements IOctoKitServic
 				type: RequestType.CopilotCustomAgents,
 				owner,
 				repo,
-				target: options?.target,
+				target: options?.target === 'github-dardcor' ? 'github-copilot' : options?.target,
 				exclude_invalid_config: options?.excludeInvalidConfig,
 				dedupe: options?.dedupe,
 				include_sources: options?.includeSources

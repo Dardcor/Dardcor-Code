@@ -127,7 +127,7 @@ export class VSCodeEditorInfo implements ICompletionsEditorAndPluginInfo {
 		};
 	}
 	getEditorPluginInfo() {
-		return { name: 'dardcor-chat', readableName: 'Dardcor AI for Dardcor Code', version: packageJson.version };
+		return { name: 'dardcor-chat', readableName: 'Dardcor for Dardcor Code', version: packageJson.version };
 	}
 	getRelatedPluginInfo() {
 

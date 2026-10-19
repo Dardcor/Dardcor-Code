@@ -133,7 +133,7 @@ import { isAskQuestionsToolInvocation, isMcpToolInvocation } from './chatContent
 
 const $ = dom.$;
 
-const DARDCOR_USERNAME = 'Dardcor AI';
+const DARDCOR_USERNAME = 'Dardcor';
 const WORKING_CAUGHT_UP_DEBOUNCE_MS = 750;
 const DEFAULT_CHAT_ITEM_HORIZONTAL_PADDING = 40;
 

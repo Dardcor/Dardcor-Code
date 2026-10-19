@@ -45,8 +45,8 @@ export interface ISurveyDefinition {
 
 export const CopilotPMFSurvey: ISurveyDefinition = {
 	id: 'copilot-pmf',
-	title: localize('survey.copilotPmf.title', "Help Us Improve Dardcor AI"),
-	description: localize('survey.copilotPmf.description', "This short survey helps us understand how well Dardcor AI fits into your workflow."),
+	title: localize('survey.copilotPmf.title', "Help Us Improve Dardcor"),
+	description: localize('survey.copilotPmf.description', "This short survey helps us understand how well Dardcor fits into your workflow."),
 	questions: [
 		{
 			type: SurveyQuestionType.Segment,
@@ -54,7 +54,7 @@ export const CopilotPMFSurvey: ISurveyDefinition = {
 			required: true,
 			telemetryKey: 'score',
 			asMeasurement: true,
-			label: localize('survey.copilotPmf.q1', "How disappointed would you be if you could no longer use Dardcor AI?"),
+			label: localize('survey.copilotPmf.q1', "How disappointed would you be if you could no longer use Dardcor?"),
 			options: [
 				{ id: 'not-at-all', label: localize('survey.copilotPmf.q1.notAtAll', "Not at all") },
 				{ id: 'slightly', label: localize('survey.copilotPmf.q1.slightly', "Slightly") },
@@ -67,7 +67,7 @@ export const CopilotPMFSurvey: ISurveyDefinition = {
 			type: SurveyQuestionType.Radio,
 			id: 'primary-benefit',
 			telemetryKey: 'primaryBenefit',
-			label: localize('survey.copilotPmf.q2', "What has Dardcor AI helped you with most recently?"),
+			label: localize('survey.copilotPmf.q2', "What has Dardcor helped you with most recently?"),
 			columns: 2,
 			shuffleOptions: true,
 			options: [

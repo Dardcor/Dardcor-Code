@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import path from 'path';
+import fs from 'fs';
 import esbuild, { type Plugin } from 'esbuild';
 import { run } from '../esbuild-webview-common.mts';
 
@@ -66,14 +67,12 @@ await Promise.all([
 		outdir: path.join(rootDir, 'markdown-preview-out'),
 		additionalOptions: mermaidMarkdownBuildOptions,
 	}, process.argv),
-	run({
-		entryPoints: {
-			'index': path.join(previewSrcDir, 'notebook', 'index.ts'),
-		},
-		srcDir: previewSrcDir,
-		outdir: path.join(rootDir, 'notebook-out'),
-		additionalOptions: {
-			...mermaidMarkdownBuildOptions,
-		},
-	}, process.argv),
 ]);
+
+// Write lightweight forwarding stub for notebook-out so it shares the ~18MB mermaid bundle from markdown-preview-out
+const notebookOutDir = path.join(rootDir, 'notebook-out');
+fs.mkdirSync(notebookOutDir, { recursive: true });
+fs.writeFileSync(
+	path.join(notebookOutDir, 'index.js'),
+	'export * from "../markdown-preview-out/index.js";\n'
+);

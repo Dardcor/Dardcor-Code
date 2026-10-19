@@ -5,6 +5,7 @@
 
 import type * as vscode from 'vscode';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
+import { getDardcorRouterBaseUrl } from '../../../platform/endpoint/node/dardcorRouter';
 import { LanguageModelTextPart, LanguageModelToolResult, MarkdownString } from '../../../dardcorTypes';
 import { ToolName } from '../common/toolNames';
 import { IAgentTool, ToolRegistry } from '../common/toolsRegistry';
@@ -21,7 +22,9 @@ export interface ISwarmConsensusParams {
 export class SwarmConsensusTool implements IAgentTool<ISwarmConsensusParams> {
 	public static toolName = ToolName.SwarmConsensusMesh;
 
-	private readonly routerBaseUrl = 'http://127.0.0.1:25128/v1';
+	private get routerBaseUrl(): string {
+		return `${getDardcorRouterBaseUrl()}/v1`;
+	}
 
 	constructor(
 		@IFetcherService private readonly fetcherService: IFetcherService,
@@ -54,7 +57,7 @@ export class SwarmConsensusTool implements IAgentTool<ISwarmConsensusParams> {
 
 		const consensusSynthesis = {
 			problem: problemStatement,
-			routerStatus: routerActive ? 'Connected (127.0.0.1:25128)' : 'Local Standalone Arbiter Active',
+			routerStatus: routerActive ? `Connected (${getDardcorRouterBaseUrl()})` : 'Local Standalone Arbiter Active',
 			modelsParticipating: models,
 			strictness: strictnessLevel ?? 'normal',
 			arbitrationResult: {

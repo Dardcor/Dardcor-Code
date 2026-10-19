@@ -148,13 +148,6 @@ export interface CustomAgentListOptions {
 	includeSources?: ('repo' | 'org' | 'enterprise')[];
 }
 
-export interface CustomAgentListOptions {
-	target?: 'github-dardcor' | 'vscode';
-	excludeInvalidConfig?: boolean;
-	dedupe?: boolean;
-	includeSources?: ('repo' | 'org' | 'enterprise')[];
-}
-
 export interface CustomAgentDetails extends CustomAgentListItem {
 	prompt: string;
 }

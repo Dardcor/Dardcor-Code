@@ -109,13 +109,15 @@ export class SearchSubagentToolCallingLoop extends ToolCallingLoop<ISearchSubage
 					?? (modelName
 						? await this.endpointProvider.getChatEndpoint(modelName)
 						: await this.endpointProvider.getChatEndpoint('dardcor-utility-small'));
-				if (dedicatedEndpoint.supportsToolCalls) {
+				if (dedicatedEndpoint && typeof dedicatedEndpoint !== 'string' && dedicatedEndpoint.supportsToolCalls) {
 					if (dedicatedEndpoint.family === SEARCH_AGENT_FAMILY && dedicatedEndpoint instanceof ChatEndpoint) {
 						return this.instantiationService.createInstance(SearchAgentChatEndpoint, dedicatedEndpoint.modelMetadata);
 					}
 					return dedicatedEndpoint;
 				}
-				this._logService.warn(`Search subagent Router model '${dedicatedEndpoint.model}' does not support tool calls; using the main agent model.`);
+				if (dedicatedEndpoint && typeof dedicatedEndpoint !== 'string') {
+					this._logService.warn(`Search subagent Router model '${dedicatedEndpoint.model}' does not support tool calls; using the main agent model.`);
+				}
 			} catch (error) {
 				const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
 				this._logService.warn(`Failed to resolve the configured search subagent Router model; using the main agent model: ${message}`);

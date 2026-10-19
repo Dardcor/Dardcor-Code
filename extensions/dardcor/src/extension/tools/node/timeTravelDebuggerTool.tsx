@@ -45,7 +45,6 @@ export class TimeTravelDebuggerTool implements IAgentTool<ITimeTravelDebuggerPar
 				}
 
 				try {
-					// DAP request to get threads
 					const threadsResponse = await activeSession.customRequest('threads');
 					const threads = threadsResponse?.threads ?? [];
 					const sessionInfo = {

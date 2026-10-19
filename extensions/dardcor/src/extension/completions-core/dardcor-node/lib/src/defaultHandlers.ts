@@ -28,7 +28,7 @@ export function handleException(accessor: ServicesAccessor, err: unknown, origin
 		} else if (error.code === 'EMFILE' || error.code === 'ENFILE') {
 			statusReporter.setWarning('Too many open files');
 		} else if (error.code === 'DardcorPromptLoadFailure') {
-			statusReporter.setWarning('Corrupted Dardcor AI installation');
+			statusReporter.setWarning('Corrupted Dardcor installation');
 		} else if (`${error.code}`.startsWith('DardcorPromptWorkerExit')) {
 			statusReporter.setWarning('Worker unexpectedly exited');
 		} else if (error.syscall === 'uv_cwd' && error.code === 'ENOENT') {

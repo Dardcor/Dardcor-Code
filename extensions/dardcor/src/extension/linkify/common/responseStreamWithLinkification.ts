@@ -182,6 +182,11 @@ export class ResponseStreamWithLinkification implements FinalizableChatResponseS
 		return this;
 	}
 
+	voiceProgress(id: any, value: string): ChatResponseStream {
+		this.enqueue(() => (this._progress as any).voiceProgress?.(id, value), false);
+		return this;
+	}
+
 
 	private sequencer: Promise<unknown> = Promise.resolve();
 

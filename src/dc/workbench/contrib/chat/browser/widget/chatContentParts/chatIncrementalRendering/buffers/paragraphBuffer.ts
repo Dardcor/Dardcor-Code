@@ -7,18 +7,6 @@ import { IIncrementalRenderingBuffer } from './buffer.js';
 
 const MAX_BUFFERED_CHARS = 4000;
 
-/**
- * Finds the last `\n\n` block boundary that is NOT inside an open
- * fenced code block. This prevents splitting a render in the middle
- * of a code fence, which would cause the code block element to update
- * in place (same DOM index) without triggering a new-child animation.
- *
- * The scan counts backtick-fence openings/closings from the start of
- * the string. A `\n\n` is only a valid boundary when the fence depth
- * is 0 (i.e. outside any code block).
- *
- * @internal Exported for testing.
- */
 export function lastBlockBoundary(text: string): number {
 	let lastValid = -1;
 	let inFence = false;

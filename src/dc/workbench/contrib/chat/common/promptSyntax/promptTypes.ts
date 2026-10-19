@@ -110,9 +110,9 @@ export function getSourceDescription(source: PromptFileSource): string | undefin
 		case PromptFileSource.AgentsPersonal:
 			return localize('source.agentsPersonal', "Global");
 		case PromptFileSource.GitHubWorkspace:
-			return localize('source.githubWorkspace', "Workspace (only used by Dardcor AI agents)");
+			return localize('source.githubWorkspace', "Workspace (only used by Dardcor agents)");
 		case PromptFileSource.CopilotPersonal:
-			return localize('source.copilotPersonal', "Global (only used by Dardcor AI agents)");
+			return localize('source.copilotPersonal', "Global (only used by Dardcor agents)");
 		case PromptFileSource.ClaudeWorkspace:
 			return localize('source.claudeWorkspace', "Workspace (only used by Claude agents)");
 		case PromptFileSource.ClaudeWorkspaceLocal:

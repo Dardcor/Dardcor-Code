@@ -82,7 +82,7 @@ export class GitHubPullRequestProviders implements Disposable {
 			if (!this.titleAndDescriptionProvider) {
 				this.titleAndDescriptionProvider = this.disposables.add(this.instantiationService.createInstance(GitHubPullRequestTitleAndDescriptionGenerator));
 			}
-			this.disposables.add(this.gitHubExtensionApi.registerTitleAndDescriptionProvider(l10n.t('Generate with Dardcor AI'), this.titleAndDescriptionProvider));
+			this.disposables.add(this.gitHubExtensionApi.registerTitleAndDescriptionProvider(l10n.t('Generate with Dardcor'), this.titleAndDescriptionProvider));
 			this.logService.info('Successfully registered GitHub PR title and description provider.');
 		} catch (e) {
 		}
@@ -111,7 +111,7 @@ export class GitHubPullRequestProviders implements Disposable {
 			if (!this.reviewerCommentsProvider) {
 				this.reviewerCommentsProvider = this.instantiationService.createInstance(GitHubPullRequestReviewerCommentsProvider);
 			}
-			this.reviewerCommentsRegistration = this.gitHubExtensionApi.registerReviewerCommentsProvider(l10n.t('Dardcor AI'), this.reviewerCommentsProvider);
+			this.reviewerCommentsRegistration = this.gitHubExtensionApi.registerReviewerCommentsProvider(l10n.t('Dardcor'), this.reviewerCommentsProvider);
 			this.disposables.add(this.reviewerCommentsRegistration);
 			this.logService.info('Successfully registered GitHub PR reviewer comments provider.');
 		} catch (e) {

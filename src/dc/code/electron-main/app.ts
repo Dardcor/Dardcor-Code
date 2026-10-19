@@ -608,20 +608,26 @@ export class CodeApplication extends Disposable {
 			if (dardcorRouterProcess && !dardcorRouterProcess.killed) {
 				return;
 			}
-			const isPortListening = await new Promise<boolean>(resolve => {
-				const socket = createConnection({ port: 25128, host: '127.0.0.1' }, () => {
+			const routerPort = Number(process.env.DARDCOR_PORT) || 25128;
+			const checkPort = (port: number, timeoutMs = 600) => new Promise<boolean>(resolve => {
+				const socket = createConnection({ port, host: '127.0.0.1' }, () => {
 					socket.end();
 					resolve(true);
 				});
 				socket.on('error', () => resolve(false));
-				socket.setTimeout(400, () => {
+				socket.setTimeout(timeoutMs, () => {
 					socket.destroy();
 					resolve(false);
 				});
 			});
+			let isPortListening = await checkPort(routerPort, 600);
+			if (!isPortListening) {
+				await new Promise(r => setTimeout(r, 200));
+				isPortListening = await checkPort(routerPort, 1000);
+			}
 
 			if (isPortListening) {
-				this.logService.info('[Dardcor Router] Server is already listening on port 25128.');
+				this.logService.info(`[Dardcor Router] Server is already listening on port ${routerPort}.`);
 				return;
 			}
 
@@ -799,7 +805,13 @@ export class CodeApplication extends Disposable {
 		app.on('will-quit', () => {
 			isAppQuitting = true;
 			if (dardcorRouterProcess) {
-				dardcorRouterProcess.kill();
+				try {
+					if (isWindows && dardcorRouterProcess.pid) {
+						execFileSync('taskkill', ['/F', '/T', '/PID', String(dardcorRouterProcess.pid)], { stdio: 'ignore' });
+					} else {
+						dardcorRouterProcess.kill();
+					}
+				} catch { }
 				dardcorRouterProcess = null;
 			}
 		});

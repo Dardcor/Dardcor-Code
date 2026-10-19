@@ -571,10 +571,10 @@ export abstract class FolderRepositoryManager extends Disposable implements IFol
 
 		const isDelegation = !sessionId;
 		const title = isDelegation
-			? l10n.t('Delegate to Dardcor AI CLI')
+			? l10n.t('Delegate to Dardcor CLI')
 			: l10n.t('Uncommitted Changes');
 		const message = isDelegation
-			? l10n.t('Dardcor AI CLI will work in an isolated worktree to implement your requested changes.')
+			? l10n.t('Dardcor CLI will work in an isolated worktree to implement your requested changes.')
 			+ '\n\n'
 			+ l10n.t('The selected repository has uncommitted changes. Should these changes be included in the new worktree?')
 			: l10n.t('The selected repository has uncommitted changes. Should these changes be included in the new worktree?');

@@ -42,7 +42,10 @@ if (fs.existsSync(path.join(routerDir, 'package.json'))) {
 		try {
 			routerRequire.resolve(dependency);
 			return false;
-		} catch {
+		} catch (err) {
+			if (err && err.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
+				return false;
+			}
 			return true;
 		}
 	});

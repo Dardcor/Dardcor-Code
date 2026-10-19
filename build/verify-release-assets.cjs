@@ -38,7 +38,7 @@ function verifyReleaseAssets(directory, version) {
 		'updater.json'
 	]);
 	for (const fileName of [...expected].filter(name => name !== 'updater.json')) {
-		expected.add(`${fileName}.sha256`);
+		expected.add(`${fileName}.sig`);
 	}
 
 	const actual = new Set(fs.readdirSync(dir).filter(fileName => fs.statSync(path.join(dir, fileName)).isFile()));
@@ -56,11 +56,12 @@ function verifyReleaseAssets(directory, version) {
 		if (fs.statSync(filePath).size === 0) {
 			throw new Error(`Release asset is empty: ${fileName}`);
 		}
-		if (fileName.endsWith('.sha256')) {
-			const assetPath = filePath.slice(0, -'.sha256'.length);
+		if (fileName.endsWith('.sig') || fileName.endsWith('.sha256')) {
+			const ext = fileName.endsWith('.sig') ? '.sig' : '.sha256';
+			const assetPath = filePath.slice(0, -ext.length);
 			const storedHash = fs.readFileSync(filePath, 'utf8').trim().toLowerCase();
 			if (!/^[a-f0-9]{64}$/.test(storedHash) || storedHash !== sha256(assetPath)) {
-				throw new Error(`SHA-256 checksum mismatch: ${fileName}`);
+				throw new Error(`Checksum/signature mismatch: ${fileName}`);
 			}
 		}
 	}

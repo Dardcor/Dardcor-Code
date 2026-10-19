@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -67,9 +66,6 @@ export class LineRange {
 		return new LineRange(startLineNumber, endLineNumberExclusive);
 	}
 
-	/**
-	 * @internal
-	 */
 	public static deserialize(lineRange: ISerializedLineRange): LineRange {
 		return new LineRange(lineRange[0], lineRange[1]);
 	}
@@ -170,17 +166,10 @@ export class LineRange {
 		}
 	}
 
-	/**
-	 * @internal
-	 */
 	public serialize(): ISerializedLineRange {
 		return [this.startLineNumber, this.endLineNumberExclusive];
 	}
 
-	/**
-	 * Converts this 1-based line range to a 0-based offset range (subtracts 1!).
-	 * @internal
-	 */
 	public toOffsetRange(): OffsetRange {
 		return new OffsetRange(this.startLineNumber - 1, this.endLineNumberExclusive - 1);
 	}

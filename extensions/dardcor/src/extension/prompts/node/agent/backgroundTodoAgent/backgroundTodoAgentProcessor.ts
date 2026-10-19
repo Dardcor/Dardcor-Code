@@ -416,24 +416,6 @@ export function getSessionResource(promptContext: IBuildPromptContext): string |
 	return undefined;
 }
 
-/**
- * Owns the progressive back-off that decides how many substantive tool
- * rounds must accumulate before the next background pass fires.
- *
- * The wait grows along two independent axes, both measured in substantive
- * tool rounds and both advancing by the same configurable step:
- *
- *  - Turn length: every time the threshold is hit (a pass fires) the wait
- *    grows by one step, so the longer a turn runs the less often we run.
- *  - No-ops: consecutive passes that produce no useful todo update add
- *    further backoff on top, which is cleared once a pass succeeds.
- *
- * The combined wait is capped at a configurable maximum.
- *
- *   threshold = min(initial + (passes + consecutiveNoops) * step, max)
- *
- * @internal - exported for testing
- */
 export class BackOffTracker {
 
 	private static readonly DEFAULT_INITIAL_THRESHOLD = 3;

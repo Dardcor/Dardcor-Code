@@ -43,7 +43,7 @@ export function collectCompletionDiagnostics(accessor: ServicesAccessor, telemet
 	return {
 		sections: [
 			{
-				name: 'Dardcor AI Extension',
+				name: 'Dardcor Extension',
 				items: {
 					Version: BuildInfo.getVersion(),
 					Editor: getEditorDisplayVersion(accessor),

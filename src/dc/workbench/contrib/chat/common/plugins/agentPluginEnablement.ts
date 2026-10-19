@@ -23,7 +23,7 @@ interface IAgentPluginCandidate {
 	readonly canonicalKey: string;
 }
 
-const COPILOT_CLI_INSTALL_PATH_FRAGMENT = '/.copilot/installed-plugins/';
+const DARDCOR_CLI_INSTALL_PATH_FRAGMENT = '/.dardcor/installed-plugins/';
 
 export class AgentPluginCollisionEnablementModel extends CollisionEnablementModel {
 	constructor(base: IEnablementModel, collisionGroups: IObservable<ReadonlyMap<string, readonly string[]>>) {
@@ -124,7 +124,7 @@ function getUniqueAgentPluginCandidates(discoveries: readonly IDiscoveredAgentPl
 
 function getCanonicalPluginIdentity(plugin: IAgentPlugin): string {
 	return getMarketplaceCanonicalIdentity(plugin.fromMarketplace)
-		?? getCopilotCliInstallCanonicalIdentity(plugin)
+		?? getDardcorCliInstallCanonicalIdentity(plugin)
 		?? `uri:${plugin.uri.toString()}`;
 }
 
@@ -161,17 +161,17 @@ function getMarketplaceCanonicalIdentity(plugin: IMarketplacePlugin | undefined)
 	}
 }
 
-function getCopilotCliInstallCanonicalIdentity(plugin: IAgentPlugin): string | undefined {
+function getDardcorCliInstallCanonicalIdentity(plugin: IAgentPlugin): string | undefined {
 	if (plugin.uri.scheme !== 'file') {
 		return undefined;
 	}
 
-	const idx = plugin.uri.path.indexOf(COPILOT_CLI_INSTALL_PATH_FRAGMENT);
+	const idx = plugin.uri.path.indexOf(DARDCOR_CLI_INSTALL_PATH_FRAGMENT);
 	if (idx === -1) {
 		return undefined;
 	}
 
-	const segments = plugin.uri.path.slice(idx + COPILOT_CLI_INSTALL_PATH_FRAGMENT.length).split('/').filter(s => s.length > 0);
+	const segments = plugin.uri.path.slice(idx + DARDCOR_CLI_INSTALL_PATH_FRAGMENT.length).split('/').filter(s => s.length > 0);
 	if (segments.length !== 2) {
 		return undefined;
 	}
@@ -179,7 +179,7 @@ function getCopilotCliInstallCanonicalIdentity(plugin: IAgentPlugin): string | u
 	const [bucket, installName] = segments;
 	const normalizedName = normalizePluginIdentitySegment(plugin.label || installName);
 	if (bucket !== '_direct') {
-		return `copilot-cli-marketplace:${normalizePluginIdentitySegment(bucket)}|${normalizedName}`;
+		return `dardcor-cli-marketplace:${normalizePluginIdentitySegment(bucket)}|${normalizedName}`;
 	}
 
 	const match = /^(?<owner>.+)--(?<repo>.+)--(?<plugin>.+)$/.exec(installName);
@@ -215,11 +215,11 @@ function getPolicyIdentity(plugin: IAgentPlugin): IPolicyIdentity | undefined {
 	if (plugin.uri.scheme !== 'file') {
 		return undefined;
 	}
-	const idx = plugin.uri.path.indexOf(COPILOT_CLI_INSTALL_PATH_FRAGMENT);
+	const idx = plugin.uri.path.indexOf(DARDCOR_CLI_INSTALL_PATH_FRAGMENT);
 	if (idx === -1) {
 		return undefined;
 	}
-	const segments = plugin.uri.path.slice(idx + COPILOT_CLI_INSTALL_PATH_FRAGMENT.length).split('/').filter(s => s.length > 0);
+	const segments = plugin.uri.path.slice(idx + DARDCOR_CLI_INSTALL_PATH_FRAGMENT.length).split('/').filter(s => s.length > 0);
 	if (segments.length !== 2) {
 		return undefined;
 	}

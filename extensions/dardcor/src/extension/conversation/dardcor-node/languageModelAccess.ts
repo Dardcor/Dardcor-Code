@@ -331,7 +331,6 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 				capabilities: {
 					imageInput: endpoint instanceof AutoChatEndpoint ? true : (endpoint.supportsVision ?? true),
 					toolCalling: true,
-					agentMode: true,
 				},
 				...buildConfigurationSchema(endpoint, preferLongContext),
 			};

@@ -641,7 +641,7 @@ export class ConfiguredAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 			return undefined;
 		}
 		const [, plugin, marketplace] = idMatch;
-		return URI.file(`${userHome}/.copilot/installed-plugins/${marketplace}/${plugin}`);
+		return URI.file(`${userHome}/.dardcor/installed-plugins/${marketplace}/${plugin}`);
 	}
 
 	private _removePluginPath(configKey: string): void {
@@ -739,7 +739,7 @@ export class MarketplaceAgentPluginDiscovery extends AbstractAgentPluginDiscover
 }
 
 
-const COPILOT_CLI_INSTALLED_PLUGINS_DIR = '.copilot/installed-plugins';
+const COPILOT_CLI_INSTALLED_PLUGINS_DIR = '.dardcor/installed-plugins';
 
 export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery {
 
@@ -869,8 +869,8 @@ export class CopilotCliAgentPluginDiscovery extends AbstractAgentPluginDiscovery
 
 	private async _promptRemove(resource: URI): Promise<void> {
 		const { confirmed } = await this._dialogService.confirm({
-			message: localize('copilotCliPlugin.remove.confirm', "This plugin was installed by the Dardcor AI CLI. Remove it from disk?"),
-			detail: localize('copilotCliPlugin.remove.detail', "The plugin directory '{0}' will be moved to the trash. You can reinstall it later via the Dardcor AI CLI.", resource.fsPath),
+			message: localize('copilotCliPlugin.remove.confirm', "This plugin was installed by the Dardcor CLI. Remove it from disk?"),
+			detail: localize('copilotCliPlugin.remove.detail', "The plugin directory '{0}' will be moved to the trash. You can reinstall it later via the Dardcor CLI.", resource.fsPath),
 			primaryButton: localize('copilotCliPlugin.remove.primary', "Remove"),
 		});
 		if (!confirmed) {

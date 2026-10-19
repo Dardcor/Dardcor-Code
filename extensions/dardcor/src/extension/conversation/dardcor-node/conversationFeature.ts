@@ -209,7 +209,7 @@ export class ConversationFeature implements IExtensionContribution {
 		const disposables = new DisposableStore();
 
 		[
-			vscode.commands.registerCommand('github.dardcor.interactiveSession.feedback', () => vscode.commands.executeCommand('github.dardcor.report', 'Dardcor AI chat feedback')),
+			vscode.commands.registerCommand('github.dardcor.interactiveSession.feedback', () => vscode.commands.executeCommand('github.dardcor.report', 'Dardcor chat feedback')),
 			vscode.commands.registerCommand('github.dardcor.chat.compact', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '/compact', preserveInput: true })),
 			vscode.commands.registerCommand('github.dardcor.terminal.explainTerminalLastCommand', async () => this.triggerTerminalChat({ query: `/${TerminalExplainIntent.intentName} #terminalLastCommand` })),
 			vscode.commands.registerCommand('github.dardcor.terminal.fixTerminalLastCommand', async () => generateTerminalFixes(this.instantiationService)),
@@ -336,11 +336,11 @@ export class ConversationFeature implements IExtensionContribution {
 					return [
 						{
 							command: 'github.dardcor.terminal.fixTerminalLastCommand',
-							title: vscode.l10n.t('Fix using Dardcor AI')
+							title: vscode.l10n.t('Fix using Dardcor')
 						},
 						{
 							command: 'github.dardcor.terminal.explainTerminalLastCommand',
-							title: vscode.l10n.t('Explain using Dardcor AI')
+							title: vscode.l10n.t('Explain using Dardcor')
 						}
 					];
 				}

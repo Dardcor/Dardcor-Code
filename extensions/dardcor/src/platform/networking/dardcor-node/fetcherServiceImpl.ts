@@ -117,7 +117,7 @@ export class FetcherService extends Disposable implements IFetcherService {
 		}
 
 		const nodeFetcher = new NodeFetcher(envService, reportEvent);
-		if (useNodeFetcher || (!(useElectronFetcher && electronFetcher) && !useNodeFetchFetcher)) { // Node https used when none is configured. (historical)
+		if (useNodeFetcher || (!(useElectronFetcher && electronFetcher) && !useNodeFetchFetcher)) {
 			this._logService.info(`Using the Node fetcher.`);
 			fetchers.unshift(nodeFetcher);
 		} else {

@@ -54,7 +54,7 @@ export class ChatSessionWorktreeService extends Disposable implements IChatSessi
 		}
 
 		return new Promise<ChatSessionWorktreeProperties | undefined>((resolve) => {
-			stream.progress(l10n.t('Creating isolated worktree for Dardcor AI CLI session...'), async progress => {
+			stream.progress(l10n.t('Creating isolated worktree for Dardcor CLI session...'), async progress => {
 				const result = await this._createWorktree(repositoryPath, progress, baseBranch, branchName);
 				resolve(result);
 				if (result) {
@@ -338,7 +338,7 @@ export class ChatSessionWorktreeService extends Disposable implements IChatSessi
 			}
 
 			if (worktreeProperties.version === 2 && worktreeProperties.autoCommit === true) {
-				const properties = vscode.workspace.isAgentSessionsWorkspace
+				const properties = (vscode.workspace as any).isAgentSessionsWorkspace
 					? await this._getWorktreeChanges(sessionId, worktreeProperties)
 					: await this._getWorktreeChangesFromCommits(worktreeProperties);
 
@@ -742,10 +742,10 @@ export class ChatSessionWorktreeService extends Disposable implements IChatSessi
 	private _toChatSessionChangedFile2(sessionId: string, change: ChatSessionWorktreeFile, worktreeProperties: ChatSessionWorktreeProperties): vscode.ChatSessionChangedFile {
 		let originalFileRef: string, modifiedFileRef: string | undefined;
 		if (worktreeProperties.version === 2) {
-			originalFileRef = vscode.workspace.isAgentSessionsWorkspace
+			originalFileRef = (vscode.workspace as any).isAgentSessionsWorkspace
 				? worktreeProperties.mergeBaseCommit ?? worktreeProperties.baseCommit
 				: worktreeProperties.baseCommit;
-			modifiedFileRef = vscode.workspace.isAgentSessionsWorkspace
+			modifiedFileRef = (vscode.workspace as any).isAgentSessionsWorkspace
 				? undefined
 				: worktreeProperties.branchName;
 		} else {

@@ -1175,7 +1175,7 @@ export function registerChatActions() {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.manageSettings',
-				title: localize2('manageChat', "Manage Dardcor AI Settings"),
+				title: localize2('manageChat', "Manage Dardcor Settings"),
 				category: CHAT_CATEGORY,
 				f1: true,
 				precondition: ContextKeyExpr.and(
@@ -1209,7 +1209,7 @@ export function registerChatActions() {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.showExtensionsUsingCopilot',
-				title: localize2('showCopilotUsageExtensions', "Show Extensions using Dardcor AI"),
+				title: localize2('showCopilotUsageExtensions', "Show Extensions using Dardcor"),
 				f1: true,
 				category: EXTENSIONS_CATEGORY,
 				precondition: ChatContextKeys.enabled
@@ -1252,7 +1252,7 @@ export function registerChatActions() {
 		constructor() {
 			super({
 				id: OPEN_CHAT_QUOTA_EXCEEDED_DIALOG,
-				title: localize('upgradeChat', "Upgrade Dardcor AI Plan")
+				title: localize('upgradeChat', "Upgrade Dardcor Plan")
 			});
 		}
 
@@ -1280,18 +1280,18 @@ export function registerChatActions() {
 			}
 
 			const free = chatEntitlementService.entitlement === ChatEntitlement.Free;
-			const upgradeToPro = free ? localize('upgradeToPro', "Upgrade to Dardcor AI Pro for:\n- Unlimited inline suggestions\n- Unlimited chat messages\n- Access to premium models") : undefined;
+			const upgradeToPro = free ? localize('upgradeToPro', "Upgrade to Dardcor Pro for:\n- Unlimited inline suggestions\n- Unlimited chat messages\n- Access to premium models") : undefined;
 
 			await dialogService.prompt({
 				type: 'none',
-				message: localize('copilotQuotaReached', "Dardcor AI Quota Reached"),
+				message: localize('copilotQuotaReached', "Dardcor Quota Reached"),
 				cancelButton: {
 					label: localize('dismiss', "Dismiss"),
 					run: () => { }
 				},
 				buttons: [
 					{
-						label: free ? localize('upgradePro', "Upgrade to Dardcor AI Pro") : localize('upgradePlan', "Upgrade Dardcor AI Plan"),
+						label: free ? localize('upgradePro', "Upgrade to Dardcor Pro") : localize('upgradePlan', "Upgrade Dardcor Plan"),
 						run: () => {
 							const commandId = 'workbench.action.chat.upgradePlan';
 							telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: commandId, from: 'chat-dialog' });

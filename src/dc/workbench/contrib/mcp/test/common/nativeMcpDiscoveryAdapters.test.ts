@@ -76,26 +76,18 @@ suite('MCP Discovery - nativeMcpDiscoveryAdapters', () => {
 		]);
 	});
 
-	test('watches the Copilot user MCP configuration', () => {
+	test('watches the Dardcor user MCP configuration', () => {
 		assert.deepStrictEqual(readNativeDiscoveryPaths({
-			[ExternalDiscoverySource.Copilot]: true,
-		}), ['/home/test/.copilot/mcp-config.json']);
+			[ExternalDiscoverySource.Dardcor]: true,
+		}), ['/home/test/.dardcor/mcp.json']);
 	});
 
-	test('does not watch the Copilot user MCP configuration by default', () => {
+	test('does not watch the Dardcor user MCP configuration by default', () => {
 		assert.deepStrictEqual(readNativeDiscoveryPaths({}), []);
 	});
 
-	test('watches the configured Copilot home instead of the default', () => {
-		assert.deepStrictEqual(readNativeDiscoveryPaths({
-			[ExternalDiscoverySource.Copilot]: true,
-		}, {
-			copilotHome: URI.file('/custom/copilot'),
-		}), ['/custom/copilot/mcp-config.json']);
-	});
-
-	test('parses the Copilot user MCP configuration schema', async () => {
-		const definitions = await claudeConfigToServerDefinition('copilot', VSBuffer.fromString(JSON.stringify({
+	test('parses the Dardcor user MCP configuration schema', async () => {
+		const definitions = await claudeConfigToServerDefinition('dardcor', VSBuffer.fromString(JSON.stringify({
 			mcpServers: {
 				'local-server': {
 					type: 'local',

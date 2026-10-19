@@ -76,7 +76,7 @@ jobs:
             $assetPath = Join-Path 'win_assets' "Dardcor-Code_$($env:RELEASE_VERSION)_$arch-setup.exe"
             Copy-Item -LiteralPath $setupFiles[0].FullName -Destination $assetPath
             $hash = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
-            [IO.File]::WriteAllText("$assetPath.sha256", $hash)
+            [IO.File]::WriteAllText("$assetPath.sig", $hash)
           }
 
       - name: Upload Windows packages
@@ -149,7 +149,7 @@ jobs:
             cp "${rpm_source[0]}" "linux_assets/Dardcor-Code_${RELEASE_VERSION}_${rpm_arch}.rpm"
             tar -czf "linux_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.tar.gz" -C "$app_dir" .
             for asset in linux_assets/*; do
-              case "$asset" in *"_${arch}.tar.gz"|*"_${package_arch}.deb"|*"_${rpm_arch}.rpm") sha256sum "$asset" | awk '{print $1}' > "$asset.sha256" ;; esac
+              case "$asset" in *"_${arch}.tar.gz"|*"_${package_arch}.deb"|*"_${rpm_arch}.rpm") sha256sum "$asset" | awk '{print $1}' > "$asset.sig" ;; esac
             done
           done
 
@@ -234,8 +234,8 @@ jobs:
             zip="mac_assets/Dardcor-Code_${RELEASE_VERSION}_${arch}.zip"
             create_dmg "$app" "$dmg"
             ditto -c -k --sequesterRsrc --keepParent "$app" "$zip"
-            shasum -a 256 "$dmg" | awk '{print $1}' > "$dmg.sha256"
-            shasum -a 256 "$zip" | awk '{print $1}' > "$zip.sha256"
+            shasum -a 256 "$dmg" | awk '{print $1}' > "$dmg.sig"
+            shasum -a 256 "$zip" | awk '{print $1}' > "$zip.sig"
           done
 
       - name: Upload macOS packages

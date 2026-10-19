@@ -1,8 +1,8 @@
-/* eslint-disable header/header */
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+/* eslint-disable header/header */
 
 import type { CancellationToken, Command, Disposable, Event, ProviderResult, Uri } from 'vscode';
 export type { ProviderResult } from 'vscode';

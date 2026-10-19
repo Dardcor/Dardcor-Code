@@ -2,7 +2,7 @@
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-//** @jsxRuntime automatic */
+/** @jsxRuntime automatic */
 /** @jsxImportSource ../../../../prompt/jsx-runtime */
 
 import { PromptElementProps, PromptSnapshotNode } from '../../../../prompt/src/components/components';

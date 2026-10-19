@@ -567,7 +567,7 @@ export class ChatQuotaNotificationContribution extends Disposable implements IWo
 			telemetryId: 'managedPlanBlocked',
 			severity: ChatInputNotificationSeverity.Info,
 			message: localize('quota.blocked.managed.title', "Usage Blocked"),
-			description: localize('quota.blocked.managed', "Your organization or enterprise has exceeded its Dardcor AI budget. Contact your admin to resume usage."),
+			description: localize('quota.blocked.managed', "Your organization or enterprise has exceeded its Dardcor budget. Contact your admin to resume usage."),
 			actions: [],
 			dismissible: true,
 			autoDismissOnMessage: true,

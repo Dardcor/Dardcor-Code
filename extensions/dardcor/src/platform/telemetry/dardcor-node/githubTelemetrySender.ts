@@ -152,7 +152,7 @@ function createGitHubTelemetryReporter(
 		}
 	};
 
-	const telemetryURL = capiClientService.dardcorTelemetryURL;
+	const telemetryURL = (capiClientService as any).dardcorTelemetryURL;
 	if (telemetryURL && URL.canParse(telemetryURL)) {
 		appInsightsOptions.endpointUrl = telemetryURL;
 	}

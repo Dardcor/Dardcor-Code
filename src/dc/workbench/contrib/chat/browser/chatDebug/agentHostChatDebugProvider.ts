@@ -1167,7 +1167,7 @@ function lastIndexOfNewline(buffer: VSBuffer): number {
 }
 
 function fallbackSessionTitle(sessionId: string): string {
-	return localize('agentHost.debug.untitledSession', "Dardcor AI CLI Session {0}", sessionId.slice(0, 8));
+	return localize('agentHost.debug.untitledSession', "Dardcor CLI Session {0}", sessionId.slice(0, 8));
 }
 
 function extractSessionTitle(text: string): string | undefined {

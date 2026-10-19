@@ -729,13 +729,13 @@ function bundleDardcorRouterTask(platform: string, destinationFolderName: string
 				for (const entry of entries) {
 					const fullPath = path.join(dir, entry.name);
 					if (entry.isDirectory()) {
-						if (entry.name === '.git' || entry.name === 'test' || entry.name === 'tests') {
+						if (entry.name === '.git' || entry.name === 'test' || entry.name === 'tests' || entry.name === '@img' || entry.name === 'sharp' || entry.name === 'playwright') {
 							fs.rmSync(fullPath, { recursive: true, force: true });
 						} else {
 							walkAndPrune(fullPath);
 						}
 					} else if (entry.isFile()) {
-						if (entry.name.endsWith('.map') || (entry.name.endsWith('.md') && entry.name !== 'README.md')) {
+						if (entry.name.endsWith('.map') || entry.name.endsWith('.pdb') || entry.name.endsWith('.nft.json') || entry.name.endsWith('.body') || (entry.name.endsWith('.md') && entry.name !== 'README.md')) {
 							fs.rmSync(fullPath, { force: true });
 						}
 					}
@@ -844,6 +844,39 @@ function pruneNonTargetPrebuildsTask(platform: string, arch: string, destination
 			};
 
 			pruneForeignNativeModules(unpackedDir);
+		}
+
+		const pruneUselessFiles = (dir: string) => {
+			if (!fs.existsSync(dir)) return;
+			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+				const fullPath = path.join(dir, entry.name);
+				if (entry.isDirectory()) {
+					pruneUselessFiles(fullPath);
+				} else if (entry.isFile()) {
+					if (entry.name.endsWith('.pdb') || entry.name.endsWith('.map')) {
+						fs.rmSync(fullPath, { force: true });
+					}
+				}
+			}
+		};
+		pruneUselessFiles(unpackedDir);
+
+		const testArtifacts = [
+			'cli.js',
+			'sanity-test-extension.js',
+			'simulationMain.js',
+			'simulationWorkbench.js',
+			'test-extension.js'
+		];
+		for (const artifact of testArtifacts) {
+			const artifactPath = path.join(appBase, 'extensions', 'dardcor', 'dist', artifact);
+			if (fs.existsSync(artifactPath)) {
+				fs.rmSync(artifactPath, { force: true });
+			}
+		}
+		const distSourcemaps = path.join(appBase, 'extensions', 'dardcor', 'dist-sourcemaps');
+		if (fs.existsSync(distSourcemaps)) {
+			fs.rmSync(distSourcemaps, { recursive: true, force: true });
 		}
 	};
 }

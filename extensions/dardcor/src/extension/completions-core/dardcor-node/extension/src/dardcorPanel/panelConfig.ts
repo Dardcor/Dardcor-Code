@@ -8,8 +8,8 @@ import { DardcorPanelVisible } from '../constants';
 import { PanelConfig } from '../panelShared/basePanelTypes';
 
 export const dardcorPanelConfig: PanelConfig = {
-	panelTitle: 'Dardcor AI Suggestions',
-	webviewId: 'Dardcor AI Suggestions',
+	panelTitle: 'Dardcor Suggestions',
+	webviewId: 'Dardcor Suggestions',
 	webviewScriptName: 'suggestionsPanelWebview.js',
 	contextVariable: DardcorPanelVisible,
 	commands: {
