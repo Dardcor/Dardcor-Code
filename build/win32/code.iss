@@ -1783,6 +1783,40 @@ begin
 end;
 #endif
 
+procedure ApplyAppDirPermissions();
+var
+  ResultCode: Integer;
+  Permissions: string;
+begin
+  Permissions := '/grant:r "*S-1-5-18:(OI)(CI)F" /grant:r "*S-1-5-32-544:(OI)(CI)F" /grant:r "*S-1-5-11:(OI)(CI)RX" /grant:r "*S-1-5-32-545:(OI)(CI)RX" /grant:r "*S-1-15-2-2:(OI)(CI)RX"';
+
+  #if "user" == InstallTarget
+    Permissions := Permissions + Format(' /grant:r "*S-1-3-0:(OI)(CI)F" /grant:r "%s:(OI)(CI)F"', [GetUserNameString()]);
+  #endif
+
+  if not Exec(ExpandConstant('{sys}\icacls.exe'), ExpandConstant('"{app}" /inheritancelevel:r ') + Permissions, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then begin
+    RaiseException('Unable to start icacls.exe while applying the application directory permissions.');
+  end;
+  if ResultCode <> 0 then begin
+    RaiseException(Format('Unable to apply the application directory permissions. icacls.exe returned %d.', [ResultCode]));
+  end;
+end;
+
+procedure NormalizeAppDirPermissions();
+var
+  ResultCode: Integer;
+begin
+  Log('Resetting the application directory ACL tree before applying the supported install permissions.');
+  if not Exec(ExpandConstant('{sys}\icacls.exe'), ExpandConstant('"{app}" /reset /T /C /Q'), '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then begin
+    RaiseException('Unable to start icacls.exe while securing the application directory.');
+  end;
+  if ResultCode <> 0 then begin
+    RaiseException(Format('Unable to reset the application directory ACL tree. icacls.exe returned %d.', [ResultCode]));
+  end;
+
+  ApplyAppDirPermissions();
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   UpdateResultCode: Integer;
@@ -1848,6 +1882,10 @@ begin
         Exec(ExpandConstant('{app}\{#VersionedResourcesFolder}\tools\inno_updater.exe'), ExpandConstant('"--gc" "{app}\{#ExeBasename}.exe" "{#VersionedResourcesFolder}" "{#ExeBasename}.exe"'), '', SW_SHOW, ewWaitUntilTerminated, UpdateResultCode);
         Log('inno_updater completed gc successfully');
       end;
+    end;
+
+    if not IsBackgroundUpdate() then begin
+      NormalizeAppDirPermissions();
     end;
 
     if ShouldRestartTunnelService then
@@ -1946,15 +1984,6 @@ end;
 // https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/icacls
 // https://docs.microsoft.com/en-US/windows/security/identity-protection/access-control/security-identifiers
 procedure DisableAppDirInheritance();
-var
-  ResultCode: Integer;
-  Permissions: string;
 begin
-  Permissions := '/grant:r "*S-1-5-18:(OI)(CI)F" /grant:r "*S-1-5-32-544:(OI)(CI)F" /grant:r "*S-1-5-11:(OI)(CI)RX" /grant:r "*S-1-5-32-545:(OI)(CI)RX" /grant:r "*S-1-15-2-2:(OI)(CI)RX"';
-
-  #if "user" == InstallTarget
-    Permissions := Permissions + Format(' /grant:r "*S-1-3-0:(OI)(CI)F" /grant:r "%s:(OI)(CI)F"', [GetUserNameString()]);
-  #endif
-
-  Exec(ExpandConstant('{sys}\icacls.exe'), ExpandConstant('"{app}" /inheritancelevel:r ') + Permissions, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  ApplyAppDirPermissions();
 end;

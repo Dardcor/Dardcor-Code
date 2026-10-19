@@ -234,6 +234,5 @@
 	"version": "1.132.0",
 	"dardcorVersion": "1.0.0",
 	"updateUrl": "https://github.com/Dardcor/Dardcor-Code/releases/latest/download/updater.json",
-	"win32AppUserModelId": "Dardcor.DardcorCode",
-	"win32VersionedUpdate": true
+	"win32AppUserModelId": "Dardcor.DardcorCode"
 }

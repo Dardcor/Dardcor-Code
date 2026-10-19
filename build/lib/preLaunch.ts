@@ -2,15 +2,35 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
+import * as util from './util.ts';
+import { getVersion } from './getVersion.ts';
+import { ensureWindowsElectronPermissions } from './windowsElectronPermissions.ts';
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const rootDir = path.resolve(import.meta.dirname, '..', '..');
 
 function runProcess(command: string, args: ReadonlyArray<string> = []) {
 	return new Promise<void>((resolve, reject) => {
-		const child = spawn(command, args, { cwd: rootDir, stdio: 'inherit', env: process.env, shell: process.platform === 'win32' });
-		child.on('exit', err => !err ? resolve() : process.exit(err ?? 1));
-		child.on('error', reject);
+		const npmExecPath = process.env['npm_execpath'];
+		const canRunNpmCliDirectly = command === npm && !!npmExecPath && path.isAbsolute(npmExecPath);
+		const executable = canRunNpmCliDirectly ? process.execPath : command;
+		const executableArgs = canRunNpmCliDirectly ? [npmExecPath, ...args] : args;
+		const child = spawn(executable, executableArgs, {
+			cwd: rootDir,
+			stdio: 'inherit',
+			env: process.env,
+			shell: process.platform === 'win32' && !canRunNpmCliDirectly
+		});
+		child.once('error', error => reject(new Error(`Failed to start ${command}: ${error.message}`, { cause: error })));
+		child.once('exit', (code, signal) => {
+			if (code === 0) {
+				resolve();
+				return;
+			}
+
+			const result = signal ? `signal ${signal}` : `exit code ${code ?? 'unknown'}`;
+			reject(new Error(`${command} ${args.join(' ')} failed with ${result}.`));
+		});
 	});
 }
 
@@ -38,10 +58,32 @@ async function getElectron() {
 
 async function isExpectedElectronInstalled(): Promise<boolean> {
 	try {
-		const { getElectronVersion } = await import('./util.ts');
-		const { electronVersion } = getElectronVersion();
-		const installedVersion = (await fs.readFile(path.join(rootDir, '.build', 'electron', 'version'), 'utf8')).trim().replace(/^v/, '');
-		return installedVersion === electronVersion;
+		const { electronVersion } = util.getElectronVersion();
+		const product = JSON.parse(await fs.readFile(path.join(rootDir, 'product.json'), 'utf8')) as { nameShort: string; win32VersionedUpdate?: boolean };
+		const commit = getVersion(rootDir);
+		if (process.platform === 'win32' && product.win32VersionedUpdate && !commit) {
+			return false;
+		}
+
+		const resourcesFolder = commit ? util.getVersionedResourcesFolder(process.platform, commit) : '';
+		const electronRoot = path.join(rootDir, '.build', 'electron');
+		const resourceRoot = path.join(electronRoot, resourcesFolder);
+		const installedVersion = (await fs.readFile(path.join(resourceRoot, 'version'), 'utf8')).trim().replace(/^v/, '');
+		if (installedVersion !== electronVersion) {
+			return false;
+		}
+
+		if (process.platform === 'win32') {
+			const requiredFiles = [
+				path.join(electronRoot, `${product.nameShort}.exe`),
+				path.join(resourceRoot, 'icudtl.dat'),
+				path.join(resourceRoot, 'resources.pak')
+			];
+			const fileStats = await Promise.all(requiredFiles.map(file => fs.stat(file)));
+			return fileStats.every(stat => stat.isFile() && stat.size > 0);
+		}
+
+		return true;
 	} catch {
 		return false;
 	}
@@ -89,6 +131,7 @@ async function ensureCompiled() {
 async function main() {
 	await ensureNodeModules();
 	await getElectron();
+	await ensureWindowsElectronPermissions(path.join(rootDir, '.build', 'electron'));
 	await ensureCompiled();
 
 	const { getBuiltInExtensions } = await import('./builtInExtensions.ts');

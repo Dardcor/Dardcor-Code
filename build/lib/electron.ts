@@ -11,6 +11,7 @@ import { filter, jsonEditor } from './gulp/facade.ts';
 import * as util from './util.ts';
 import { getVersion } from './getVersion.ts';
 import { downloadFeedPackage } from './azureFeed.ts';
+import { ensureWindowsElectronPermissions } from './windowsElectronPermissions.ts';
 import electron from '@vscode/gulp-electron';
 
 type DarwinDocumentSuffix = 'document' | 'script' | 'file' | 'source code';
@@ -87,6 +88,24 @@ function feedPackageName(fileName: string): string | undefined {
 	}
 	return fileName.replace(/\.zip$/, '');
 }
+
+function readElectronChecksums(checksumFile: string): Record<string, string> {
+	const checksums: Record<string, string> = Object.create(null);
+	for (const line of fs.readFileSync(checksumFile, 'utf8').split(/\r?\n/)) {
+		const match = /^([a-f0-9]{64})\s+\*?(.+?)\s*$/i.exec(line.trim());
+		if (match) {
+			checksums[match[2]] = match[1].toLowerCase();
+		}
+	}
+
+	if (Object.keys(checksums).length === 0) {
+		throw new Error(`No valid Electron artifact checksums were found in ${checksumFile}.`);
+	}
+
+	return checksums;
+}
+
+const electronChecksums = readElectronChecksums(path.join(root, 'build', 'checksums', 'electron.txt'));
 
 const electronAssetResolver = electronFeed
 	? async ({ fileName }: { url: string; fileName: string }): Promise<Response> => {
@@ -201,39 +220,171 @@ export const config = {
 	winIcon: path.join(root, 'public/dardcor-code.ico'),
 	token: process.env['GITHUB_TOKEN'],
 	repo: electronAssetResolver,
+	checksums: electronChecksums,
 	validateChecksum: true,
 	checksumFile: path.join(root, 'build', 'checksums', 'electron.txt'),
 	createVersionedResources: useVersionedUpdate,
 	productVersionString: versionedResourcesFolder,
 };
 
-function getElectron(arch: string): () => NodeJS.ReadWriteStream {
-	return () => {
-		const electronOpts = {
-			...config,
-			platform: process.platform,
-			arch: arch === 'armhf' ? 'arm' : arch,
-			ffmpegChromium: false,
-			keepDefaultApp: true
+type ElectronBuildStreams = {
+	completionStream: NodeJS.ReadWriteStream;
+	streams: NodeJS.ReadWriteStream[];
+};
+
+function getElectron(arch: string, destinationPath: string): ElectronBuildStreams {
+	const electronOpts = {
+		...config,
+		platform: process.platform,
+		arch: arch === 'armhf' ? 'arm' : arch,
+		ffmpegChromium: false,
+		keepDefaultApp: true
+	};
+
+	const packageStream = vfs.src('package.json');
+	const renamedPackageStream = packageStream.pipe(jsonEditor({ name: product.nameShort }));
+	const electronStream = renamedPackageStream.pipe(electron(electronOpts));
+	const filteredElectronStream = electronStream.pipe(filter(['**', '!**/app/package.json']));
+	const destinationStream = filteredElectronStream.pipe(vfs.dest(destinationPath));
+
+	return {
+		completionStream: destinationStream,
+		streams: [packageStream, renamedPackageStream, electronStream, filteredElectronStream, destinationStream]
+	};
+}
+
+function waitForStreamCompletion(streams: readonly NodeJS.ReadWriteStream[]): Promise<void> {
+	const completionStream = streams[streams.length - 1];
+	if (!completionStream) {
+		return Promise.reject(new Error('Electron build pipeline has no completion stream.'));
+	}
+
+	return new Promise<void>((resolve, reject) => {
+		let settled = false;
+		const cleanup = () => {
+			for (const stream of streams) {
+				stream.removeListener('error', onError);
+			}
+			completionStream.removeListener('end', onEnd);
+		};
+		const onError = (error: Error) => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			cleanup();
+			for (const stream of streams) {
+				const destroyable = stream as NodeJS.ReadWriteStream & { destroy?: () => void };
+				if (typeof destroyable.destroy === 'function') {
+					destroyable.on('error', () => undefined);
+					destroyable.destroy();
+				}
+			}
+			reject(error instanceof Error ? error : new Error(String(error)));
+		};
+		const onEnd = () => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			cleanup();
+			resolve();
 		};
 
-		return vfs.src('package.json')
-			.pipe(jsonEditor({ name: product.nameShort }))
-			.pipe(electron(electronOpts))
-			.pipe(filter(['**', '!**/app/package.json']))
-			.pipe(vfs.dest('.build/electron'));
-	};
+		for (const stream of streams) {
+			stream.once('error', onError);
+		}
+		completionStream.once('end', onEnd);
+	});
+}
+
+async function pathExists(target: string): Promise<boolean> {
+	try {
+		await fs.promises.stat(target);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function validateElectronOutput(destinationPath: string): Promise<void> {
+	const versionRoot = path.join(destinationPath, versionedResourcesFolder);
+	const versionFile = path.join(versionRoot, 'version');
+	const installedVersion = (await fs.promises.readFile(versionFile, 'utf8')).trim().replace(/^v/, '');
+	if (installedVersion !== electronVersion) {
+		throw new Error(`Electron output version mismatch: expected ${electronVersion}, received ${installedVersion || 'empty'}.`);
+	}
+
+	if (process.platform === 'win32') {
+		const requiredFiles = [
+			path.join(destinationPath, `${product.nameShort}.exe`),
+			path.join(versionRoot, 'icudtl.dat'),
+			path.join(versionRoot, 'resources.pak')
+		];
+		for (const file of requiredFiles) {
+			const stat = await fs.promises.stat(file);
+			if (!stat.isFile() || stat.size === 0) {
+				throw new Error(`Electron output is incomplete: ${file} is missing or empty.`);
+			}
+		}
+	}
+}
+
+async function promoteElectronOutput(stagingPath: string, electronPath: string, backupPath: string): Promise<void> {
+	const hasPreviousOutput = await pathExists(electronPath);
+	if (hasPreviousOutput) {
+		await fs.promises.rename(electronPath, backupPath);
+	}
+
+	try {
+		await fs.promises.rename(stagingPath, electronPath);
+	} catch (error) {
+		if (hasPreviousOutput) {
+			try {
+				await fs.promises.rename(backupPath, electronPath);
+			} catch (restoreError) {
+				throw new Error(`Electron replacement failed and the previous runtime could not be restored from ${backupPath}.`, { cause: restoreError });
+			}
+		}
+		throw error;
+	}
+
+	if (hasPreviousOutput) {
+		try {
+			await fs.promises.rm(backupPath, { recursive: true, force: true });
+		} catch (error) {
+			console.warn(`[electron] The new runtime is ready, but the old backup could not be removed: ${backupPath}`, error);
+		}
+	}
 }
 
 async function main(arch: string = process.arch): Promise<void> {
 	const electronPath = path.join(root, '.build', 'electron');
-	await util.rimraf(electronPath)();
-	await util.streamToPromise(getElectron(arch)());
+	const buildRoot = path.dirname(electronPath);
+	const uniqueSuffix = `${process.pid}-${Date.now()}`;
+	const stagingPath = path.join(buildRoot, `.electron-staging-${uniqueSuffix}`);
+	const backupPath = path.join(buildRoot, `.electron-backup-${uniqueSuffix}`);
+	await fs.promises.mkdir(buildRoot, { recursive: true });
+
+	try {
+		const streams = getElectron(arch, stagingPath);
+		await waitForStreamCompletion(streams.streams);
+		await validateElectronOutput(stagingPath);
+		await ensureWindowsElectronPermissions(stagingPath);
+		await promoteElectronOutput(stagingPath, electronPath, backupPath);
+	} catch (error) {
+		try {
+			await fs.promises.rm(stagingPath, { recursive: true, force: true });
+		} catch (cleanupError) {
+			console.warn(`[electron] Could not remove incomplete staging runtime: ${stagingPath}`, cleanupError);
+		}
+		throw new Error(`Failed to prepare Electron ${electronVersion} for ${process.platform}-${arch}; any previous runtime was preserved.`, { cause: error });
+	}
 }
 
 if (import.meta.main) {
 	main(process.argv[2]).catch(err => {
 		console.error(err);
-		process.exit(1);
+		process.exitCode = 1;
 	});
 }

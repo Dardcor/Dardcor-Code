@@ -804,6 +804,47 @@ function pruneNonTargetPrebuildsTask(platform: string, arch: string, destination
 				}
 			} catch { }
 		}
+
+		if (platform === 'win32') {
+			const expectedMachine = arch === 'x64' ? 0x8664 : arch === 'arm64' ? 0xaa64 : undefined;
+			if (expectedMachine === undefined) {
+				throw new Error(`Unsupported Windows native module architecture: ${arch}`);
+			}
+
+			const pruneForeignNativeModules = (dir: string) => {
+				for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+					const fullPath = path.join(dir, entry.name);
+					if (entry.isDirectory()) {
+						pruneForeignNativeModules(fullPath);
+						continue;
+					}
+					if (!entry.isFile() || !entry.name.endsWith('.node')) {
+						continue;
+					}
+
+					const image = fs.readFileSync(fullPath);
+					if (image.length < 2 || image.readUInt16LE(0) !== 0x5a4d) {
+						fs.rmSync(fullPath, { force: true });
+						continue;
+					}
+
+					if (image.length < 0x40) {
+						throw new Error(`Invalid Windows native module: ${fullPath}`);
+					}
+
+					const peOffset = image.readUInt32LE(0x3c);
+					if (peOffset < 0x40 || peOffset + 6 > image.length || image.readUInt32LE(peOffset) !== 0x00004550) {
+						throw new Error(`Invalid Windows native module: ${fullPath}`);
+					}
+
+					if (image.readUInt16LE(peOffset + 4) !== expectedMachine) {
+						fs.rmSync(fullPath, { force: true });
+					}
+				}
+			};
+
+			pruneForeignNativeModules(unpackedDir);
+		}
 	};
 }
 
