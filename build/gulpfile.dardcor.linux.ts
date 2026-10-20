@@ -223,8 +223,8 @@ function buildRpmPackage(arch: string) {
 
 	return async () => {
 		await exec(`mkdir -p ${destination}`);
-		await exec(`HOME="$(pwd)/${destination}" rpmbuild -bb ${rpmBuildPath}/SPECS/${product.applicationName}.spec --target=${rpmArch}`);
-		await exec(`cp "${rpmOut}/$(ls ${rpmOut})" ${destination}/`);
+		await exec(`HOME="$(pwd)/${destination}" rpmbuild --define "_buildsubdir %{nil}" -bb ${rpmBuildPath}/SPECS/${product.applicationName}.spec --target=${rpmArch}`);
+		await exec(`cp "${rpmOut}"/*.rpm "${destination}/"`);
 	};
 }
 
