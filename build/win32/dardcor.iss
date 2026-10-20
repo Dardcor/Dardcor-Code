@@ -42,6 +42,8 @@ ShowLanguageDialog=auto
 ArchitecturesAllowed={#ArchitecturesAllowed}
 ArchitecturesInstallIn64BitMode={#ArchitecturesInstallIn64BitMode}
 WizardStyle=modern
+WizardResizable=yes
+WizardSizePercent=115,115
 
 // We've seen an uptick on broken installations from updates which were unable
 // to shutdown VS Code. We rely on the fact that the update signals
@@ -1319,6 +1321,13 @@ Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\
 Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#ApplicationName}.exe"; ValueType: none; ValueName: "Path"; Flags: deletevalue
 
 [Code]
+procedure InitializeWizard();
+begin
+  WizardForm.TasksList.Anchors := [akLeft, akTop, akRight, akBottom];
+  WizardForm.TasksList.Width := WizardForm.SelectTasksPage.ClientWidth - WizardForm.TasksList.Left - ScaleX(15);
+  WizardForm.TasksList.Height := WizardForm.SelectTasksPage.ClientHeight - WizardForm.TasksList.Top - ScaleY(10);
+end;
+
 function IsBackgroundUpdate(): Boolean;
 begin
   Result := ExpandConstant('{param:update|false}') <> 'false';
@@ -1345,7 +1354,7 @@ begin
 
   #if "user" == InstallTarget
     if not WizardSilent() and IsAdmin() then begin
-      if MsgBox('This User Installer is not meant to be run as an Administrator. If you would like to install VS Code for all users in this system, download the System Installer instead from https://dardcor-code.web.id/. Are you sure you want to continue?', mbError, MB_OKCANCEL) = IDCANCEL then begin
+      if MsgBox('This User Installer is not meant to be run as an Administrator. If you would like to install {#NameLong} for all users in this system, download the System Installer instead from https://dardcor-code.web.id/. Are you sure you want to continue?', mbError, MB_OKCANCEL) = IDCANCEL then begin
         Result := False;
       end;
     end;

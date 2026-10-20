@@ -229,9 +229,9 @@ export class UpdateTooltip extends Disposable {
 				this.renderMessage(
 					localize(
 						'updateTooltip.disabledRunningAsAdmin',
-						"Updates are not available when running a user install of {0} as administrator.",
+						"Automatic updates are paused while running as administrator to protect user file permissions. Run normally to receive background updates.",
 						this.productService.nameShort),
-					Codicon.warning);
+					Codicon.info);
 				break;
 			default:
 				this.renderMessage(localize('updateTooltip.disabledGeneric', "Updates are disabled."), Codicon.warning);
