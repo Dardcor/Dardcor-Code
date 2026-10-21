@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -207,6 +211,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         "codebuddy-intl",
         "qoder",
         "grok-cli",
+        "glm",
         "opencode",
       ];
       if (deviceCodeProviders.includes(provider)) {
@@ -246,6 +251,8 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
             }
           : (provider === "kimi" || provider === "kimi-coding")
           ? { _kimiDeviceId: data._kimiDeviceId }
+          : provider === "glm"
+          ? { _zcodePollToken: data._zcodePollToken }
           : null;
         startPolling(
           data.device_code,

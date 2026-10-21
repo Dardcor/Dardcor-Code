@@ -46,9 +46,12 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
         pickedId = pickProxyPoolId(poolIds, strategy, providerId);
       }
       const resolvedProxy = await resolveConnectionProxyConfig({ proxyPoolId: pickedId || "" });
+      const freeConnId = `free:${providerId}`;
+      const providerDisplay = FREE_PROVIDERS[providerId]?.name || `${providerId} Free`;
       return {
-        id: "noauth",
-        connectionName: "Public",
+        id: freeConnId,
+        connectionId: freeConnId,
+        connectionName: providerDisplay,
         isActive: true,
         accessToken: "public",
         providerSpecificData: {
@@ -67,11 +70,13 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     if (connections.length === 0) {
       if (providerId === "opencode") {
         const envToken = process.env.OPENCODE_ACCESS_TOKEN || process.env.OPENCODE_API_KEY;
+        const ocConnId = envToken ? "env:opencode" : "free:opencode";
         return {
-          id: envToken ? "env" : "public",
+          id: ocConnId,
+          connectionId: ocConnId,
           connectionName: envToken ? "Environment Token" : "OpenCode Free",
           isActive: true,
-          accessToken: envToken || null,
+          accessToken: envToken || "public",
           providerSpecificData: {},
         };
       }
@@ -232,6 +237,13 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     ({ shouldFallback, cooldownMs, newBackoffLevel } = checkFallbackError(status, errorText, backoffLevel));
   }
   if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
+
+  const isNetworkConnectTimeout = status === 502 && typeof errorText === "string" && (
+    errorText.includes("fetch connect timeout") || errorText.includes("network")
+  );
+  if (provider === "opencode" && isNetworkConnectTimeout) {
+    return { shouldFallback: false, cooldownMs: 0 };
+  }
 
   const isCreditError = status === 402 || (typeof errorText === "string" && (
     errorText.includes("insufficient_credits") ||

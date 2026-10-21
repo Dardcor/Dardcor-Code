@@ -191,8 +191,12 @@ export class AskQuestionsTool extends Disposable implements IToolImpl {
 		}
 
 		const resolveId = invocation.chatStreamToolCallId ?? invocation.callId;
-		if (request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot || this.configService.getValue<boolean>(ChatConfiguration.AutoReply)) {
-			const reason = request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot ? 'Autopilot mode' : 'Auto-reply enabled';
+		const isAutoMode = request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot
+			|| this.configService.getValue<boolean>(ChatConfiguration.AutoReply);
+		if (isAutoMode) {
+			const reason = request.modeInfo?.permissionLevel === ChatPermissionLevel.Autopilot
+				? 'Autopilot mode'
+				: 'Auto-reply enabled';
 			this.logService.info(`[AskQuestionsTool] ${reason}: auto-responding to questions`);
 			const { carousel, idToHeaderMap } = this.toQuestionCarousel(questions, resolveId);
 			carousel.terminalId = this.extractTerminalId(request);

@@ -9,6 +9,16 @@ function isLLMProvider(id) {
   if (!p?.serviceKinds) return true;
   return p.serviceKinds.includes("llm");
 }
+
+const CORE_ROUTER_PROVIDERS = [
+  { provider: "opencode", name: "OpenCode Free" },
+  { provider: "antigravity", name: "AntiGravity" },
+  { provider: "cursor", name: "Cursor" },
+  { provider: "gemini-cli", name: "Gemini CLI" },
+  { provider: "codex", name: "OpenAI Codex" },
+  { provider: "minimax-code", name: "MiniMax Code" },
+  { provider: "github", name: "GitHub Copilot" },
+];
 import Badge from "./Badge";
 import Card from "./Card";
 import OverviewCards from "@/app/(dashboard)/dashboard/usage/components/OverviewCards";
@@ -212,7 +222,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   const period = periodProp ?? periodLocal;
   const setPeriod = setPeriodProp ?? setPeriodLocal;
 
-  useEffect(() => {
+  const refreshProviders = useCallback((currentStats = null) => {
     Promise.all([
       fetch("/api/providers").then((r) => r.ok ? r.json() : null),
       fetch("/api/provider-nodes").then((r) => r.ok ? r.json() : null),
@@ -220,26 +230,74 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       .then(([d, nodesData]) => {
         const nodeNameMap = {};
         for (const node of (nodesData?.nodes || [])) {
-          nodeNameMap[node.id] = node.name;
+          if (node.id) nodeNameMap[node.id] = node.name;
         }
         const seen = new Set();
-        const unique = (d?.connections || []).filter((c) => {
-          if (c.isActive === false) return false;
-          if (!isLLMProvider(c.provider)) return false;
-          if (seen.has(c.provider)) return false;
+        const result = [];
+
+        // 1. Configured DB connections
+        for (const c of (d?.connections || [])) {
+          if (c.isActive === false) continue;
+          if (!isLLMProvider(c.provider)) continue;
+          if (seen.has(c.provider)) continue;
           seen.add(c.provider);
-          return true;
-        }).map((c) => ({
-          ...c,
-          nodeName: nodeNameMap[c.provider] || null,
-        }));
-        const noAuthProviders = Object.values(FREE_PROVIDERS)
-          .filter((p) => p.noAuth && !seen.has(p.id) && isLLMProvider(p.id))
-          .map((p) => ({ provider: p.id, name: p.name }));
-        setProviders([...unique, ...noAuthProviders]);
+          result.push({
+            ...c,
+            nodeName: nodeNameMap[c.provider] || null,
+          });
+        }
+
+        // 2. Nodes from provider-nodes
+        for (const node of (nodesData?.nodes || [])) {
+          if (!seen.has(node.id) && isLLMProvider(node.id)) {
+            seen.add(node.id);
+            result.push({
+              provider: node.id,
+              name: node.name || node.id,
+              nodeName: node.name || null,
+            });
+          }
+        }
+
+        // 3. Historical providers from usage stats
+        const activeStats = currentStats || stats;
+        if (activeStats?.byProvider) {
+          for (const pid of Object.keys(activeStats.byProvider)) {
+            if (!seen.has(pid) && isLLMProvider(pid)) {
+              seen.add(pid);
+              result.push({ provider: pid, name: AI_PROVIDERS[pid]?.name || pid });
+            }
+          }
+        }
+
+        // 4. Default noAuth providers
+        for (const p of Object.values(FREE_PROVIDERS)) {
+          if (p.noAuth && !seen.has(p.id) && isLLMProvider(p.id)) {
+            seen.add(p.id);
+            result.push({ provider: p.id, name: p.name });
+          }
+        }
+
+        // 5. Core router baseline providers (always ensure topology has representative providers)
+        for (const cp of CORE_ROUTER_PROVIDERS) {
+          if (!seen.has(cp.provider) && isLLMProvider(cp.provider)) {
+            seen.add(cp.provider);
+            result.push(cp);
+          }
+        }
+
+        setProviders(result);
       })
       .catch(() => {});
-  }, []);
+  }, [stats]);
+
+  useEffect(() => {
+    refreshProviders();
+    const interval = setInterval(() => {
+      refreshProviders();
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [refreshProviders]);
 
   useEffect(() => {
     if (isInitialLoad.current) {
@@ -255,6 +313,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         if (data) {
           hasLoadedStats.current = true;
           setStats((prev) => ({ ...prev, ...data }));
+          refreshProviders(data);
         }
       })
       .catch(() => {})
@@ -262,7 +321,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         setLoading(false);
         setFetching(false);
       });
-  }, [period]);
+  }, [period, refreshProviders]);
 
   useEffect(() => {
     const es = new EventSource("/api/usage/stream");
@@ -271,16 +330,18 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       try {
         const data = JSON.parse(e.data);
         setStats((prev) => {
-          if (!prev) return prev;
+          if (!prev) return data;
           return {
             ...prev,
-            activeRequests: data.activeRequests,
-            recentRequests: data.recentRequests,
-            errorProvider: data.errorProvider,
-            pending: data.pending,
+            ...data,
+            activeRequests: data.activeRequests || [],
+            recentRequests: data.recentRequests || [],
+            errorProvider: data.errorProvider || "",
+            pending: data.pending || {},
           };
         });
-        if (hasLoadedStats.current) setLoading(false);
+        hasLoadedStats.current = true;
+        setLoading(false);
       } catch (err) {
         console.error("[SSE CLIENT] parse error:", err);
       }

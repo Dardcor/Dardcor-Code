@@ -1324,8 +1324,23 @@ Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\
 procedure InitializeWizard();
 begin
   WizardForm.TasksList.Anchors := [akLeft, akTop, akRight, akBottom];
+  WizardForm.TasksList.Offset := ScaleX(14);
+  WizardForm.TasksList.MinItemHeight := ScaleY(24);
+  WizardForm.TasksList.WantTabs := True;
+  WizardForm.TasksList.Left := WizardForm.SelectTasksLabel.Left;
   WizardForm.TasksList.Width := WizardForm.SelectTasksPage.ClientWidth - WizardForm.TasksList.Left - ScaleX(15);
   WizardForm.TasksList.Height := WizardForm.SelectTasksPage.ClientHeight - WizardForm.TasksList.Top - ScaleY(10);
+
+  WizardForm.SelectTasksLabel.Anchors := [akLeft, akTop, akRight];
+  WizardForm.SelectTasksLabel.Width := WizardForm.SelectTasksPage.ClientWidth - WizardForm.SelectTasksLabel.Left - ScaleX(15);
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpSelectTasks then begin
+    WizardForm.TasksList.Offset := ScaleX(14);
+    WizardForm.TasksList.MinItemHeight := ScaleY(24);
+  end;
 end;
 
 function IsBackgroundUpdate(): Boolean;

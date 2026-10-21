@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
 import "open-sse/index.js";
 
 import { generatePKCE } from "../utils/pkce.js";
@@ -26,6 +31,7 @@ import windsurf from "./windsurf.js";
 import zed from "./zed.js";
 import opencode from "./opencode.js";
 import github from "./github.js";
+import glm from "./glm.js";
 
 const PROVIDERS = {
   claude,
@@ -51,6 +57,7 @@ const PROVIDERS = {
   windsurf,
   zed,
   opencode,
+  glm,
 };
 
 export { PROVIDERS };

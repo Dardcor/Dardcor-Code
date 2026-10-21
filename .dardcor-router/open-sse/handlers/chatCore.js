@@ -43,7 +43,7 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, signal }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   const sessionSeed = (() => {
@@ -247,6 +247,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const msgCount = translatedBody.messages?.length || translatedBody.input?.length || translatedBody.contents?.length || translatedBody.request?.contents?.length || 0;
   log?.debug?.("REQUEST", `${provider.toUpperCase()} | ${model} | ${msgCount} msgs`);
 
+  if (signal?.aborted) {
+    trackPendingRequest(model, provider, connectionId, false);
+    return createErrorResult(499, "Request aborted by client");
+  }
+
   const streamController = createStreamController({
     onDisconnect: (reason) => {
       trackPendingRequest(model, provider, connectionId, false);
@@ -255,6 +260,18 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     onError: () => trackPendingRequest(model, provider, connectionId, false),
     log, provider, model, reqTag
   });
+
+  if (signal) {
+    if (signal.aborted) {
+      streamController.handleDisconnect("client_aborted");
+      streamController.abort();
+    } else {
+      signal.addEventListener("abort", () => {
+        streamController.handleDisconnect("client_aborted");
+        streamController.abort();
+      }, { once: true });
+    }
+  }
 
   const proxyOptions = {
     connectionProxyEnabled: credentials?.providerSpecificData?.connectionProxyEnabled === true,

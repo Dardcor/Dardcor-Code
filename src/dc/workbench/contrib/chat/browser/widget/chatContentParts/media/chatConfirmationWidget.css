@@ -19,6 +19,9 @@
 .chat-confirmation-widget-message {
 	-webkit-user-select: text;
 	user-select: text;
+	overflow-wrap: break-word;
+	word-break: normal;
+	white-space: pre-wrap;
 }
 
 .chat-confirmation-widget-container .chat-confirmation-widget .chat-confirmation-widget-title {

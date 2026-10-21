@@ -9,6 +9,7 @@ import { IEnvService } from '../../../../platform/env/common/envService';
 
 export const validLocales = [
 	'auto',
+	'id',
 	'en',
 	'fr',
 	'it',

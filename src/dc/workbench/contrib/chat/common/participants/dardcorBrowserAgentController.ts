@@ -61,6 +61,7 @@ async function isBrowserViewSharedWithAgent(view: BrowserEditorInput): Promise<b
 
 export interface IDardcorInteractiveElement {
 	dardcorId: number;
+	ref?: string;
 	tag: string;
 	type?: string;
 	role?: string;
@@ -169,7 +170,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			state.dialogs.push('[alert] ' + msg);
 			try {
 				if (window.__dardcorBrowserAgentRuntime) {
-					window.__dardcorBrowserAgentRuntime.showToast('🔔 Alert: ' + msg.slice(0, 80));
+					window.__dardcorBrowserAgentRuntime.showToast('Alert: ' + msg.slice(0, 80));
 				}
 			} catch (_) {
 				return origAlert.call(window, message);
@@ -182,7 +183,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			state.dialogs.push('[confirm -> ' + (accept ? 'OK' : 'Cancel') + '] ' + msg);
 			try {
 				if (window.__dardcorBrowserAgentRuntime) {
-					window.__dardcorBrowserAgentRuntime.showToast('🔔 Confirm (' + (accept ? 'Accepted' : 'Cancelled') + '): ' + msg.slice(0, 60));
+					window.__dardcorBrowserAgentRuntime.showToast('Confirm (' + (accept ? 'Accepted' : 'Cancelled') + '): ' + msg.slice(0, 60));
 				}
 			} catch (_) {
 				return origConfirm.call(window, message);
@@ -199,7 +200,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			state.dialogs.push('[prompt -> ' + (accept ? val : 'null') + '] ' + msg);
 			try {
 				if (window.__dardcorBrowserAgentRuntime) {
-					window.__dardcorBrowserAgentRuntime.showToast('🔔 Prompt: ' + msg.slice(0, 60));
+					window.__dardcorBrowserAgentRuntime.showToast('Prompt: ' + msg.slice(0, 60));
 				}
 			} catch (_) {
 				return origPrompt.call(window, message, defaultVal);
@@ -622,13 +623,24 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			return;
 		}
 
-		const actualDuration = Math.min(520, Math.max(180, durationMs));
+		const actualDuration = Math.min(520, Math.max(160, durationMs));
 		const arcAmplitude = Math.min(42, distance * 0.12);
 		const startTime = performance.now();
 		let lastTrailTime = 0;
 
 		await new Promise((resolve) => {
+			let settled = false;
+			const finish = () => {
+				if (settled) return;
+				settled = true;
+				setCursorPosition(targetX, targetY);
+				resolve();
+			};
+
+			const maxTimer = setTimeout(finish, actualDuration + 90);
+
 			function step(now) {
+				if (settled) return;
 				const elapsed = now - startTime;
 				const t = Math.min(1, elapsed / actualDuration);
 				const ease = 1 - Math.pow(1 - t, 3);
@@ -646,13 +658,27 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 				}
 
 				if (t < 1) {
-					requestAnimationFrame(step);
+					if (typeof requestAnimationFrame === 'function') {
+						requestAnimationFrame(step);
+						setTimeout(() => {
+							if (!settled && performance.now() - now > 45) {
+								step(performance.now());
+							}
+						}, 32);
+					} else {
+						setTimeout(() => step(performance.now()), 16);
+					}
 				} else {
-					setCursorPosition(targetX, targetY);
-					resolve();
+					clearTimeout(maxTimer);
+					finish();
 				}
 			}
-			requestAnimationFrame(step);
+
+			if (typeof requestAnimationFrame === 'function') {
+				requestAnimationFrame(step);
+			} else {
+				step(performance.now());
+			}
 		});
 	}
 
@@ -676,7 +702,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 			typingBubbleEl.textContent = '';
 			return;
 		}
-		typingBubbleEl.textContent = '⌨️ "' + text.slice(-36) + '"';
+		typingBubbleEl.textContent = '"' + text.slice(-36) + '"';
 		typingBubbleEl.classList.add('visible');
 	}
 
@@ -801,6 +827,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 
 			const idNum = nextId++;
 			el.setAttribute('data-dardcor-id', String(idNum));
+			el.setAttribute('data-dardcor-ref', 'e' + idNum);
 
 			const tag = el.tagName.toLowerCase();
 			const type = el.getAttribute('type') || undefined;
@@ -815,6 +842,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 
 			results.push({
 				dardcorId: idNum,
+				ref: '@e' + idNum,
 				tag,
 				type,
 				role,
@@ -840,25 +868,60 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		return results;
 	}
 
+	function extractDardcorRefId(input) {
+		if (input === undefined || input === null) return null;
+		const str = String(input).trim();
+		if (!str) return null;
+
+		// 1. Plain numeric or bracketed numeric: "1", "[1]", "#1"
+		const numMatch = /^\[?\s*#?(\d+)\s*\]?$/.exec(str);
+		if (numMatch) return numMatch[1];
+
+		// 2. Vercel agent-browser style refs: "@e1", "e1", "@1", "[@e1]", "[e1]"
+		const eRefMatch = /^\[?\s*@?e(\d+)\s*\]?$/i.exec(str);
+		if (eRefMatch) return eRefMatch[1];
+
+		const atRefMatch = /^\[?\s*@(\d+)\s*\]?$/.exec(str);
+		if (atRefMatch) return atRefMatch[1];
+
+		// 3. Attribute-like syntax: "[ref=@e1]", "[ref=e1]", "ref=@e1", "ref=e1"
+		const attrMatch = /^\[?\s*ref\s*=\s*['"]?@?e?(\d+)['"]?\s*\]?$/i.exec(str);
+		if (attrMatch) return attrMatch[1];
+
+		// 4. dardcor attribute syntax: '[data-dardcor-id="1"]'
+		const dardcorAttrMatch = /^\[?\s*data-dardcor-id\s*=\s*['"]?(\d+)['"]?\s*\]?$/i.exec(str);
+		if (dardcorAttrMatch) return dardcorAttrMatch[1];
+
+		return null;
+	}
+
 	function resolveTargetElement(options) {
 		options = options || {};
 		const rawSelector = typeof options.selector === 'string' ? options.selector.trim() : '';
-		const rawElementId = options.elementId !== undefined && options.elementId !== null ? String(options.elementId).trim() : '';
+		const rawElementId = options.elementId !== undefined && options.elementId !== null
+			? String(options.elementId).trim()
+			: (options.ref !== undefined && options.ref !== null ? String(options.ref).trim() : '');
 		const rawText = typeof options.text === 'string' ? options.text.trim() : '';
-		indexInteractiveElements();
 
 		if (typeof options.x === 'number' && typeof options.y === 'number') {
 			const hit = document.elementFromPoint(options.x, options.y);
 			return { element: hit, x: options.x, y: options.y, matchedBy: 'coordinates' };
 		}
 
-		const idCandidate = rawElementId.replace(/^\\[|\\]$/g, '') || (/^\\[?\\d+\\]?$/.test(rawSelector) ? rawSelector.replace(/^\\[|\\]$/g, '') : '');
-		if (idCandidate && /^\\d+$/.test(idCandidate)) {
-			const byMark = document.querySelector('[data-dardcor-id="' + idCandidate + '"]');
+		// Fast-path: Check for ref (@e1, e1, [ref=@e1], [1], 1)
+		const refId = extractDardcorRefId(rawElementId) || extractDardcorRefId(rawSelector);
+		if (refId) {
+			let byMark = document.querySelector('[data-dardcor-id="' + refId + '"]');
+			if (!byMark) {
+				indexInteractiveElements();
+				byMark = document.querySelector('[data-dardcor-id="' + refId + '"]');
+			}
 			if (byMark) {
-				return { element: byMark, matchedBy: 'data-dardcor-id=' + idCandidate };
+				return { element: byMark, matchedBy: 'data-dardcor-id=' + refId + ' (ref: @e' + refId + ')' };
 			}
 		}
+
+		indexInteractiveElements();
 
 		if (rawElementId) {
 			const byDomId = document.getElementById(rawElementId) || document.querySelector('[data-dardcor-id="' + rawElementId.replace(/"/g, '') + '"]');
@@ -992,7 +1055,7 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		if (rect.top < 20 || rect.bottom > vh - 20 || rect.left < 10 || rect.right > vw - 10) {
 			try {
 				el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
-				await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+				await new Promise(resolve => setTimeout(resolve, 30));
 				rect = el.getBoundingClientRect();
 			} catch (_) {}
 		}
@@ -1093,18 +1156,38 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		setNativeElementValue,
 		collectPageSnapshot
 	};
-	if (!window.__dardcorAgentPointerSyncInstalled) {
-		window.__dardcorAgentPointerSyncInstalled = true;
-		window.addEventListener('pointermove', event => {
-			const runtime = window.__dardcorBrowserAgentRuntime;
-			if (runtime) runtime.setCursorPosition(event.clientX, event.clientY);
-		}, { capture: true, passive: true });
-	}
 
 	ensureOverlay();
 	return true;
 })();
 `;
+
+export function extractDardcorRefId(input: string | number | undefined | null): string | null {
+	if (input === undefined || input === null) return null;
+	const str = String(input).trim();
+	if (!str) return null;
+
+	// 1. Pure numbers: "1", 1, "[1]"
+	const numMatch = /^\[?\s*(\d+)\s*\]?$/.exec(str);
+	if (numMatch) return numMatch[1];
+
+	// 2. Vercel agent-browser style refs: "@e1", "e1", "@1", "[@e1]", "[e1]"
+	const eRefMatch = /^\[?\s*@?e(\d+)\s*\]?$/i.exec(str);
+	if (eRefMatch) return eRefMatch[1];
+
+	const atRefMatch = /^\[?\s*@(\d+)\s*\]?$/.exec(str);
+	if (atRefMatch) return atRefMatch[1];
+
+	// 3. Attribute-like syntax: "[ref=@e1]", "[ref=e1]", "ref=@e1", "ref=e1"
+	const attrMatch = /^\[?\s*ref\s*=\s*['"]?@?e?(\d+)['"]?\s*\]?$/i.exec(str);
+	if (attrMatch) return attrMatch[1];
+
+	// 4. dardcor attribute syntax: '[data-dardcor-id="1"]'
+	const dardcorAttrMatch = /^\[?\s*data-dardcor-id\s*=\s*['"]?(\d+)['"]?\s*\]?$/i.exec(str);
+	if (dardcorAttrMatch) return dardcorAttrMatch[1];
+
+	return null;
+}
 
 export class DardcorBrowserAgentController {
 
@@ -1229,15 +1312,30 @@ export class DardcorBrowserAgentController {
 		if (!await playwright.isPageTracked(view.id)) {
 			throw new Error(`Integrated browser page ${view.id} could not be registered with Playwright.`);
 		}
-		const ready = await raceCancellationError(playwright.waitForPageReady(sessionId, view.id, 15000), token);
+		const ready = await raceCancellationError(playwright.waitForPageReady(sessionId, view.id, 10000), token);
 		const evaluate = async <R = any>(expression: string, _timeoutMs = 10000): Promise<R> => {
-			const result = await raceCancellationError(
-				playwright.invokeFunctionRaw<R>(sessionId, view.id,
-				'async (page, source) => { const normalized = source.trim().replace(/;\\s*$/, ""); const evaluator = new Function("return (" + normalized + ")")(); return page.evaluate(evaluator); }',
-				expression),
-				token,
-			);
-			return result;
+			try {
+				const result = await raceCancellationError(
+					playwright.invokeFunctionRaw<R>(sessionId, view.id,
+					'async (page, source) => { const normalized = source.trim().replace(/;\\s*$/, ""); const evaluator = new Function("return (" + normalized + ")")(); return page.evaluate(evaluator); }',
+					expression),
+					token,
+				);
+				return result;
+			} catch (err: any) {
+				const msg = String(err?.message || err);
+				if (msg.includes('Execution context was destroyed') || msg.includes('Cannot find context')) {
+					await new Promise(r => setTimeout(r, 60));
+					await playwright.invokeFunctionRaw(sessionId, view.id, 'async (page, src) => page.evaluate(src)', DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT).catch(() => undefined);
+					return raceCancellationError(
+						playwright.invokeFunctionRaw<R>(sessionId, view.id,
+						'async (page, source) => { const normalized = source.trim().replace(/;\\s*$/, ""); const evaluator = new Function("return (" + normalized + ")")(); return page.evaluate(evaluator); }',
+						expression),
+						token,
+					);
+				}
+				throw err;
+			}
 		};
 		const sendPageCommand = async (method: string, params?: Record<string, unknown>): Promise<any> => {
 			switch (method) {
@@ -1249,12 +1347,21 @@ export class DardcorBrowserAgentController {
 				case 'Page.handleJavaScriptDialog':
 					return playwright.replyToDialog(sessionId, view.id, params?.accept !== false, typeof params?.promptText === 'string' ? params.promptText : undefined);
 				default:
-					throw new Error(`Unsupported browser agent command: ${method}`);
+					return {};
 			}
 		};
 
-		await evaluate(DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT);
-		await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('🌐 Browser page ready: ' + document.title)`);
+		try {
+			await playwright.invokeFunctionRaw(
+				sessionId,
+				view.id,
+				'async (page, script) => { try { await page.addInitScript(script); } catch (_) {} return true; }',
+				DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT
+			);
+		} catch (_) {}
+
+		await evaluate(DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT).catch(() => undefined);
+		await evaluate(`window.__dardcorBrowserAgentRuntime?.wakeOverlay('Browser page ready: ' + document.title)`).catch(() => undefined);
 		if (!ready.url) {
 			throw new Error(`Playwright page ${view.id} reported readiness without a URL.`);
 		}
@@ -1263,37 +1370,24 @@ export class DardcorBrowserAgentController {
 
 	public static async waitTillHTMLStable(
 		evaluate: <R = any>(expression: string, timeoutMs?: number) => Promise<R>,
-		maxWaitMs = 3200
+		maxWaitMs = 1500
 	): Promise<boolean> {
-		const pollInterval = 220;
+		const pollInterval = 100;
 		const startTime = Date.now();
-		let lastSize = 0;
-		let stableCount = 0;
 		let documentReady = false;
-		let documentStable = false;
 		let lastError: unknown;
 
 		while (Date.now() - startTime < maxWaitMs) {
 			try {
-				const status = await evaluate<{ readyState: string; size: number }>(`
+				const status = await evaluate<{ readyState: string }>(`
 					(() => ({
-						readyState: document.readyState,
-						size: document.documentElement ? document.documentElement.innerHTML.length : 0
+						readyState: document.readyState
 					}))()
-				`, 2500);
+				`, 2000);
 
-				if (status && status.readyState !== 'loading' && status.size > 0) {
+				if (status && status.readyState !== 'loading') {
 					documentReady = true;
-					if (status.size > 0 && Math.abs(status.size - lastSize) < 25) {
-						stableCount++;
-						if (stableCount >= 2) {
-						documentStable = true;
-							break;
-						}
-					} else {
-						stableCount = 0;
-					}
-					lastSize = status.size;
+					break;
 				}
 			} catch (error) {
 				if (isCancellationError(error)) {
@@ -1303,13 +1397,14 @@ export class DardcorBrowserAgentController {
 			}
 			await new Promise(r => setTimeout(r, Math.min(pollInterval, Math.max(0, maxWaitMs - (Date.now() - startTime)))));
 		}
+
 		if (!documentReady) {
 			const detail = lastError instanceof Error ? ` ${lastError.message}` : '';
 			throw new Error(`Integrated browser document did not become ready within ${maxWaitMs} ms.${detail}`);
 		}
 
-		await evaluate(DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT);
-		return documentStable;
+		await evaluate(DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT).catch(() => undefined);
+		return documentReady;
 	}
 
 	public static formatPageSnapshot(snapshot: IDardcorPageSnapshot, actionSummary?: string, nativeConsoleLogs?: string): string {
@@ -1337,18 +1432,34 @@ export class DardcorBrowserAgentController {
 			lines.push(snapshot.headings.map(h => `- ${h}`).join('\n'));
 		}
 
-		lines.push(`\n#### Interactive Elements (Use \`elementId: "N"\`, \`selector\`, \`text\`, or \`x, y\` to interact)`);
+		lines.push(`\n#### Interactive Elements (Target using ref e.g. "@e1" or elementId: "1" or elementId: "@e1"):`);
 		if (!snapshot.interactiveElements || snapshot.interactiveElements.length === 0) {
 			lines.push(`*(No interactive elements detected on this page)*`);
 		} else {
 			const elemLines = snapshot.interactiveElements.slice(0, 85).map(el => {
-				const typePart = el.type ? ` type="${el.type}"` : '';
-				const rolePart = el.role ? ` role="${el.role}"` : '';
-				const valPart = el.value ? ` value="${el.value}"` : '';
-				const phPart = el.placeholder ? ` placeholder="${el.placeholder}"` : '';
-				const hrefPart = el.href ? ` href="${el.href.slice(0, 60)}"` : '';
-				const stateTag = el.disabled ? ' [disabled]' : (el.inViewport ? ' [in-viewport]' : ' [scroll-to-view]');
-				return `[${el.dardcorId}] <${el.tag}${typePart}${rolePart}${phPart}${valPart}${hrefPart}> "${el.text}" (selector: \`${el.selector}\`) @ (${el.x}, ${el.y})${stateTag}`;
+				const refTag = `[ref=@e${el.dardcorId}]`;
+				const typePart = el.type && !(el.tag === 'button' && el.type === 'button') && !(el.tag === 'input' && el.type === 'text')
+					? ` type="${el.type}"`
+					: '';
+				const rolePart = el.role && el.role !== el.tag && !(el.tag === 'a' && el.role === 'link') && !(el.tag === 'button' && el.role === 'button')
+					? ` role="${el.role}"`
+					: '';
+				const phPart = el.placeholder ? ` placeholder="${el.placeholder.slice(0, 40)}"` : '';
+				const valPart = el.value ? ` value="${el.value.slice(0, 40)}"` : '';
+				const hrefPart = el.href ? ` href="${el.href.slice(0, 50)}"` : '';
+				const textPart = el.text ? ` "${el.text}"` : (phPart || valPart ? '' : ' ""');
+
+				const states: string[] = [];
+				if (el.disabled) states.push('[disabled]');
+				if (el.checked === 'true') states.push('[checked]');
+				if (el.selected === 'true') states.push('[selected]');
+				if (el.expanded === 'true') states.push('[expanded]');
+				else if (el.expanded === 'false') states.push('[collapsed]');
+				if (el.pressed === 'true') states.push('[pressed]');
+				states.push(el.inViewport ? '[in-viewport]' : '[scroll-to-view]');
+				const stateTag = ' ' + states.join(' ');
+
+				return `- ${refTag} <${el.tag}${typePart}${rolePart}${phPart}${valPart}${hrefPart}>${textPart} (selector: \`${el.selector}\`) @ (${el.x}, ${el.y})${stateTag}`;
 			});
 			lines.push(elemLines.join('\n'));
 			if (snapshot.interactiveElements.length > 85) {
@@ -1417,7 +1528,6 @@ export class DardcorBrowserAgentController {
 		if (!await playwright.isPageTracked(view.id)) {
 			throw new Error(`Integrated browser page ${view.id} is not tracked by Playwright.`);
 		}
-		await playwright.waitForPageReady(sessionId, view.id, 15000);
 		return playwright.invokeFunctionRaw<T>(sessionId, view.id, fnDef, ...args);
 	}
 
@@ -1495,23 +1605,20 @@ export class DardcorBrowserAgentController {
 			}
 			setStage('attaching the browser page to Playwright');
 			await playwrightService.startTrackingPage(view.id);
-			setStage('waiting for Playwright to confirm page readiness');
-			const ready = await raceCancellationError(playwrightService.waitForPageReady(sessionId, view.id, 15000), token);
-			assertNetworkTargetAllowed(ready.url);
 
 			return await DardcorBrowserAgentController.withPageCDPSession(services, view, async ({ model, evaluate }) => {
 				setStage('waiting for the initial page render to stabilize');
-				await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 4000);
+				await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1200);
 				setStage('capturing the initial browser snapshot and diagnostics');
-				await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('🌐 Loaded ' + document.title)`);
-				const currentUrl = await evaluate<string>('location.href');
+				await evaluate(`window.__dardcorBrowserAgentRuntime?.wakeOverlay('Loaded ' + document.title)`).catch(() => undefined);
+				const currentUrl = await evaluate<string>('location.href').catch(() => targetUrl);
 				assertNetworkTargetAllowed(currentUrl);
 				const snapshot = await evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
 				const consoleLogs = await DardcorBrowserAgentController.captureBrowserDiagnostics(playwrightService, view, sessionId, model);
 				return {
 					output: DardcorBrowserAgentController.formatPageSnapshot(
 						snapshot,
-						`Successfully opened and inspected \`${ready.url}\` in the Dardcor Code Integrated Browser with the Dardcor cursor active.`,
+						`Successfully opened and inspected \`${currentUrl}\` in the Dardcor Code Integrated Browser with the Dardcor cursor active.`,
 						consoleLogs
 					)
 				};
@@ -1547,46 +1654,50 @@ export class DardcorBrowserAgentController {
 				return evaluate<IDardcorPageSnapshot>(`window.__dardcorBrowserAgentRuntime.collectPageSnapshot()`);
 			};
 			const moveCursorAndMouse = async (x: number, y: number, label: string, targetRect?: { left: number; top: number; width: number; height: number }): Promise<void> => {
-				const start = await evaluate<{ x: number; y: number }>(`(() => { const state = window.__dardcorBrowserAgentRuntime.state; return { x: Number.isFinite(state.cursorX) ? state.cursorX : Math.round(innerWidth / 2), y: Number.isFinite(state.cursorY) ? state.cursorY : Math.round(innerHeight / 2) }; })()`);
-				const startX = start?.x ?? Math.round(1024 / 2);
-				const startY = start?.y ?? Math.round(768 / 2);
-				await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay(${JSON.stringify(label)}); window.__dardcorBrowserAgentRuntime.highlightRect(${JSON.stringify(targetRect ?? null)}, ${JSON.stringify(label)});`);
-				await DardcorBrowserAgentController.invokePlaywright(
-					playwrightService,
-					view,
-					sessionId,
-					'async (page, sx, sy, tx, ty) => { const steps = 20; const dx = tx - sx; const dy = ty - sy; const distance = Math.hypot(dx, dy); const arc = Math.min(42, distance * 0.12); for (let i = 1; i <= steps; i++) { const t = i / steps; const ease = 1 - Math.pow(1 - t, 3); const bend = Math.sin(t * Math.PI) * arc; const px = distance > 0 ? (-dy / distance) * bend * 0.35 : 0; const py = distance > 0 ? (dx / distance) * bend * 0.35 : 0; const x = Math.round(sx + dx * ease + px); const y = Math.round(sy + dy * ease + py); await page.evaluate(({ x, y }) => { const runtime = window.__dardcorBrowserAgentRuntime; if (!runtime) throw new Error("Agent cursor overlay is unavailable."); runtime.setCursorPosition(x, y); runtime.spawnTrail(x, y); }, { x, y }); await page.mouse.move(x, y); await page.waitForTimeout(17); } return true; }',
-					startX,
-					startY,
-					x,
-					y
-				);
+				await evaluate(`window.__dardcorBrowserAgentRuntime?.wakeOverlay(${JSON.stringify(label)}); window.__dardcorBrowserAgentRuntime?.highlightRect(${JSON.stringify(targetRect ?? null)}, ${JSON.stringify(label)});`).catch(() => undefined);
+				await Promise.allSettled([
+					evaluate(`window.__dardcorBrowserAgentRuntime?.animateCursorTo(${x}, ${y}, ${JSON.stringify(label)}, ${JSON.stringify(targetRect ?? null)}, 260)`),
+					playwrightService.invokeFunctionRaw(
+						sessionId,
+						view.id,
+						'async (page, tx, ty) => { try { await page.mouse.move(tx, ty, { steps: 5 }); } catch (_) {} return true; }',
+						x,
+						y
+					),
+				]);
 			};
-			const getActionPoint = async (prep: any, action: 'click' | 'hover' | 'input' | 'select'): Promise<{ x: number; y: number; rect?: { left: number; top: number; width: number; height: number } }> => {
-				if (typeof prep?.selector !== 'string' || !prep.selector.trim()) {
+			const getActionPoint = async (prep: any, _action: 'click' | 'hover' | 'input' | 'select'): Promise<{ x: number; y: number; rect?: { left: number; top: number; width: number; height: number } }> => {
+				if (!prep) {
+					return { x: 512, y: 384 };
+				}
+				if (typeof prep.x === 'number' && typeof prep.y === 'number' && Number.isFinite(prep.x) && Number.isFinite(prep.y)) {
+					if (typeof prep.selector === 'string' && prep.selector.trim()) {
+						try {
+							const box = await playwrightService.invokeFunctionRaw<{ x: number; y: number; rect?: { left: number; top: number; width: number; height: number } } | null>(
+								sessionId,
+								view.id,
+								'async (page, selector) => { try { const loc = page.locator(selector).first(); if (await loc.count() > 0) { const b = await loc.boundingBox({ timeout: 1500 }); if (b && b.width > 0 && b.height > 0) return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2), rect: { left: b.x, top: b.y, width: b.width, height: b.height } }; } } catch (_) {} return null; }',
+								prep.selector
+							);
+							if (box && Number.isFinite(box.x) && Number.isFinite(box.y)) {
+								return box;
+							}
+						} catch (_) {}
+					}
 					return { x: prep.x, y: prep.y, rect: prep.rect };
 				}
-				return DardcorBrowserAgentController.invokePlaywright(
-					playwrightService,
-					view,
-					sessionId,
-				'async (page, selector, action, expectedTag, expectedLabel) => { const locator = page.locator(selector); const count = await locator.count(); if (count !== 1) throw new Error("Expected one browser target for selector, found " + count + ". Refresh the page snapshot and choose a unique target."); await locator.waitFor({ state: "visible", timeout: 8000 }); await locator.scrollIntoViewIfNeeded({ timeout: 8000 }); const actual = await locator.evaluate(element => { const tag = element.tagName.toLowerCase(); const aria = element.getAttribute("aria-label") || element.getAttribute("title") || element.getAttribute("placeholder") || element.getAttribute("alt") || ""; const inner = (element.innerText || element.textContent || "").replace(/\\s+/g, " ").trim(); const value = typeof element.value === "string" ? element.value : ""; return { tag, label: (inner || aria || value || tag).slice(0, 90) }; }); if (expectedTag && actual.tag !== expectedTag) throw new Error("The page changed while resolving the target: expected <" + expectedTag + "> but the selector now points to <" + actual.tag + ">. Refresh the page snapshot."); if (expectedLabel && actual.label !== expectedLabel) throw new Error("The page changed while resolving the target label. Refresh the page snapshot before acting."); if (action === "select" && actual.tag !== "select") throw new Error("The selected target is not a <select> element."); if (action !== "hover" && !await locator.isEnabled()) throw new Error("The selected target is disabled."); if (action === "hover") await locator.hover({ trial: true, timeout: 8000 }); else if (action !== "select") await locator.click({ trial: true, timeout: 8000 }); const box = await locator.boundingBox(); if (!box || box.width <= 0 || box.height <= 0) throw new Error("The target has no visible bounding box."); return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2), rect: { left: box.x, top: box.y, width: box.width, height: box.height } }; }',
-					prep.selector,
-					action,
-					prep.tag,
-					prep.label
-				);
+				return { x: prep.x ?? 512, y: prep.y ?? 384, rect: prep.rect };
 			};
 			const formatActionFailure = async (message: string): Promise<IDardcorBrowserAgentToolResult> => {
 				try {
 					const snapshot = await collectPageSnapshot();
 					return {
 						executionStatus: 'failed',
-						output: DardcorBrowserAgentController.formatPageSnapshot(snapshot, `❌ Browser action failed: ${message}`, await captureConsoleLogs())
+						output: DardcorBrowserAgentController.formatPageSnapshot(snapshot, `Browser action failed: ${message}`, await captureConsoleLogs())
 					};
 				} catch (snapshotError) {
 					const detail = formatAgentToolError(snapshotError);
-					return { executionStatus: 'failed', output: `❌ Browser action failed: ${message}. Current page evidence is unavailable: ${detail}` };
+					return { executionStatus: 'failed', output: `Browser action failed: ${message}. Current page evidence is unavailable: ${detail}` };
 				}
 			};
 
@@ -1596,7 +1707,7 @@ export class DardcorBrowserAgentController {
 				case 'read_browser_page':
 				case 'read_page': {
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1500);
-					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('🔍 Scanning page elements...')`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('Scanning page elements...')`);
 					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					return {
@@ -1618,14 +1729,14 @@ export class DardcorBrowserAgentController {
 
 					const targetOpts = {
 						selector: args?.selector,
-						elementId: args?.elementId ?? args?.id ?? args?.index,
+						elementId: args?.ref ?? args?.elementId ?? args?.id ?? args?.target ?? args?.index,
 						text: args?.text ?? args?.label,
 						x,
 						y
 					};
 
 					const prep = await evaluate<any>(`
-						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, '🎯 Clicking', true)
+						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, 'Targeting', true)
 					`, 12000);
 
 					if (!prep || !prep.found) {
@@ -1634,7 +1745,7 @@ export class DardcorBrowserAgentController {
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
 								fallbackSnapshot,
-								`❌ Could not find element matching ${JSON.stringify(targetOpts)}. Check the Interactive Elements list below and use \`elementId\` (e.g. "1", "2") or an exact selector.`,
+								`Could not find element matching ${JSON.stringify(targetOpts)}. Check the Interactive Elements list below and use \`elementId: "@e1"\` or \`ref: "@e1"\` or an exact selector.`,
 								consoleLogs
 							)
 						};
@@ -1645,21 +1756,22 @@ export class DardcorBrowserAgentController {
 					prep.y = actionPoint.y;
 					prep.rect = actionPoint.rect ?? prep.rect;
 
-					await moveCursorAndMouse(prep.x, prep.y, `🎯 Clicking ${prep.label}`, prep.rect);
+					await moveCursorAndMouse(prep.x, prep.y, `Clicking ${prep.label}`, prep.rect);
 					const clickCount = args?.doubleClick ? 2 : 1;
 					const button = args?.button === 'right' ? 'right' : args?.button === 'middle' ? 'middle' : 'left';
 					await performDardcorBrowserClick(playwrightService, sessionId, view.id, prep.x, prep.y, { button, clickCount, selector: prep.selector });
-					await evaluate(`window.__dardcorBrowserAgentRuntime.animatePress(${prep.x}, ${prep.y})`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime?.animatePress(${prep.x}, ${prep.y})`).catch(() => undefined);
 
-					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 2600);
+					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1000);
 					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
 					const observedChanges = getDardcorBrowserSnapshotChanges(beforeSnapshot, snapshot);
+					const refLabel = prep.dardcorId ? `[@e${prep.dardcorId}] ` : '';
 
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Clicked <${prep.tag}> "${prep.label}" at (${prep.x}, ${prep.y}) [matched via ${prep.matchedBy}]. One Playwright click was sent. Post-action evidence: ${observedChanges.join(', ') || 'no observable page or interactive-control change'}.`,
+							`Clicked ${refLabel}<${prep.tag}> "${prep.label}" at (${prep.x}, ${prep.y}) [matched via ${prep.matchedBy}]. One Playwright click was sent. Post-action evidence: ${observedChanges.join(', ') || 'no observable page or interactive-control change'}.`,
 							consoleLogs
 						)
 					};
@@ -1673,14 +1785,14 @@ export class DardcorBrowserAgentController {
 
 					const targetOpts = {
 						selector: args?.selector,
-						elementId: args?.elementId ?? args?.id ?? args?.index,
+						elementId: args?.ref ?? args?.elementId ?? args?.id ?? args?.target ?? args?.index,
 						text: args?.label ?? args?.placeholder
 					};
 
 					let prep: any;
 					if (targetOpts.selector || targetOpts.elementId || targetOpts.text) {
 						prep = await evaluate<any>(`
-							window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, '⌨️ Typing into', true)
+							window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, 'Typing into', true)
 						`, 12000);
 					} else {
 						prep = await evaluate<any>(`
@@ -1689,11 +1801,11 @@ export class DardcorBrowserAgentController {
 								if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
 									return window.__dardcorBrowserAgentRuntime.prepareElementForInteraction({
 										elementId: active.getAttribute('data-dardcor-id') || active.id || 'input'
-									}, '⌨️ Typing into', true);
+									}, 'Typing into', true);
 								}
 								return window.__dardcorBrowserAgentRuntime.prepareElementForInteraction({
 									selector: 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, [contenteditable="true"]'
-								}, '⌨️ Typing into', true);
+								}, 'Typing into', true);
 							})()
 						`, 12000);
 					}
@@ -1704,7 +1816,7 @@ export class DardcorBrowserAgentController {
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
 								fallbackSnapshot,
-								`❌ Could not find input field matching ${JSON.stringify(targetOpts)}. Specify \`elementId\` or \`selector\` from the Interactive Elements list below.`,
+								`Could not find input field matching ${JSON.stringify(targetOpts)}. Specify \`elementId: "@e1"\` or \`ref: "@e1"\` or \`selector\` from the Interactive Elements list below.`,
 								consoleLogs
 							)
 						};
@@ -1714,12 +1826,38 @@ export class DardcorBrowserAgentController {
 					prep.y = actionPoint.y;
 					prep.rect = actionPoint.rect ?? prep.rect;
 
-					await moveCursorAndMouse(prep.x, prep.y, `⌨️ Typing into ${prep.label}`, prep.rect);
+					await moveCursorAndMouse(prep.x, prep.y, `Typing into ${prep.label}`, prep.rect);
 					await DardcorBrowserAgentController.invokePlaywright(
 						playwrightService,
 						view,
 						sessionId,
-						'async (page, selector, x, y, value, clear, submit) => { if (selector) { const locator = page.locator(selector); const count = await locator.count(); if (count !== 1) throw new Error("Expected one input target for selector, found " + count + ". Refresh the page snapshot and choose a unique target."); await locator.click({ timeout: 8000 }); } else { await page.mouse.click(x, y); } if (clear) await page.keyboard.press("ControlOrMeta+A"); await page.keyboard.type(value); if (submit) await page.keyboard.press("Enter"); return true; }',
+						`async (page, selector, x, y, value, clear, submit) => {
+							let focused = false;
+							if (selector) {
+								try {
+									const loc = page.locator(selector).first();
+									if (await loc.count() > 0) {
+										await loc.click({ timeout: 3000, force: true });
+										focused = true;
+									}
+								} catch (_) {}
+							}
+							if (!focused && typeof x === 'number' && typeof y === 'number') {
+								try {
+									await page.mouse.click(x, y);
+									focused = true;
+								} catch (_) {}
+							}
+							if (clear) {
+								await page.keyboard.press("ControlOrMeta+A");
+								await page.keyboard.press("Backspace");
+							}
+							await page.keyboard.type(value, { delay: 10 });
+							if (submit) {
+								await page.keyboard.press("Enter");
+							}
+							return true;
+						}`,
 						prep.selector ?? '',
 						prep.x,
 						prep.y,
@@ -1727,16 +1865,17 @@ export class DardcorBrowserAgentController {
 						clearFirst,
 						pressEnter
 					);
-					await evaluate(`window.__dardcorBrowserAgentRuntime.animatePress(${prep.x}, ${prep.y})`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime?.animatePress(${prep.x}, ${prep.y})`).catch(() => undefined);
 
-					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, pressEnter ? 3000 : 1200);
+					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, pressEnter ? 1200 : 600);
 					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
+					const refLabel = prep.dardcorId ? `[@e${prep.dardcorId}] ` : '';
 
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Typed \`"${textToType}"\` into <${prep.tag}> "${prep.label}"${pressEnter ? ' and pressed Enter' : ''}.`,
+							`Typed \`"${textToType}"\` into ${refLabel}<${prep.tag}> "${prep.label}"${pressEnter ? ' and pressed Enter' : ''}.`,
 							consoleLogs
 						)
 					};
@@ -1747,11 +1886,11 @@ export class DardcorBrowserAgentController {
 					const direction = String(args?.direction || 'down').toLowerCase();
 					const amount = typeof args?.amount === 'number' ? args.amount : 550;
 					const selector = args?.selector;
-					const elementId = args?.elementId;
+					const elementId = args?.ref ?? args?.elementId ?? args?.id;
 
 					if (selector || elementId) {
 						const prep = await evaluate<any>(`
-							window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify({ selector, elementId })}, '🖱️ Scrolled to')
+							window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify({ selector, elementId })}, 'Scrolled to')
 						`);
 						if (prep?.found) {
 							await DardcorBrowserAgentController.invokePlaywright(
@@ -1768,14 +1907,14 @@ export class DardcorBrowserAgentController {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
 								snapshot,
 								prep?.found
-									? `✅ Scrolled to element <${prep.tag}> "${prep.label}".`
-									: `⚠️ Could not find element ${selector || elementId} to scroll to.`,
+									? `Scrolled to element <${prep.tag}> "${prep.label}".`
+									: `Could not find element ${selector || elementId} to scroll to.`,
 								consoleLogs
 							)
 						};
 					}
 
-					await evaluate(`window.__dardcorBrowserAgentRuntime.animateCursorTo(Math.round(innerWidth / 2), Math.round(innerHeight / 2), ${JSON.stringify(`🖱️ Scrolling ${direction}`)})`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime.animateCursorTo(Math.round(innerWidth / 2), Math.round(innerHeight / 2), ${JSON.stringify(`Scrolling ${direction}`)})`);
 					await DardcorBrowserAgentController.invokePlaywright(
 						playwrightService,
 						view,
@@ -1792,7 +1931,7 @@ export class DardcorBrowserAgentController {
 						executionStatus: 'succeeded',
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Scrolled browser page **${direction}** (${amount}px). Current scroll Y=${snapshot.scrollY}/${snapshot.scrollHeight}px.`,
+							`Scrolled browser page **${direction}** (${amount}px). Current scroll Y=${snapshot.scrollY}/${snapshot.scrollHeight}px.`,
 							consoleLogs
 						)
 					};
@@ -1802,14 +1941,14 @@ export class DardcorBrowserAgentController {
 				case 'hover_browser': {
 					const targetOpts = {
 						selector: args?.selector,
-						elementId: args?.elementId ?? args?.id,
+						elementId: args?.ref ?? args?.elementId ?? args?.id ?? args?.target,
 						text: args?.text,
 						x: args?.x,
 						y: args?.y
 					};
 
 					const prep = await evaluate<any>(`
-						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, '✨ Hovering', true)
+						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, 'Hovering', true)
 					`, 10000);
 
 					if (!prep || !prep.found) {
@@ -1818,7 +1957,7 @@ export class DardcorBrowserAgentController {
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
 								fallbackSnapshot,
-								`❌ Could not find element to hover matching ${JSON.stringify(targetOpts)}.`,
+								`Could not find element to hover matching ${JSON.stringify(targetOpts)}.`,
 								consoleLogs
 							)
 						};
@@ -1828,15 +1967,17 @@ export class DardcorBrowserAgentController {
 					prep.y = actionPoint.y;
 					prep.rect = actionPoint.rect ?? prep.rect;
 
-					await moveCursorAndMouse(prep.x, prep.y, '✨ Hovering', prep.rect);
+					await moveCursorAndMouse(prep.x, prep.y, 'Hovering', prep.rect);
 
 					await new Promise(r => setTimeout(r, 300));
 					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
+					const refLabel = prep.dardcorId ? `[@e${prep.dardcorId}] ` : '';
+
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Hovered Dardcor cursor over <${prep.tag}> "${prep.label}" at (${prep.x}, ${prep.y}).`,
+							`Hovered Dardcor cursor over ${refLabel}<${prep.tag}> "${prep.label}" at (${prep.x}, ${prep.y}).`,
 							consoleLogs
 						)
 					};
@@ -1844,7 +1985,7 @@ export class DardcorBrowserAgentController {
 
 				case 'press_key': {
 					const key = String(args?.key || 'Enter');
-					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay(${JSON.stringify(`⌨️ Key: ${key}`)})`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay(${JSON.stringify(`Key: ${key}`)})`);
 					await DardcorBrowserAgentController.invokePlaywright(
 						playwrightService,
 						view,
@@ -1859,7 +2000,7 @@ export class DardcorBrowserAgentController {
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Pressed keyboard key \`${key}\`.`,
+							`Pressed keyboard key \`${key}\`.`,
 							consoleLogs
 						)
 					};
@@ -1868,12 +2009,12 @@ export class DardcorBrowserAgentController {
 				case 'select_option': {
 					const targetOpts = {
 						selector: args?.selector,
-						elementId: args?.elementId ?? args?.id,
+						elementId: args?.ref ?? args?.elementId ?? args?.id ?? args?.target,
 						text: args?.label
 					};
 
 					const prep = await evaluate<any>(`
-						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, '📋 Selecting option in', true)
+						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, 'Selecting option in', true)
 					`, 10000);
 
 					if (!prep || !prep.found) {
@@ -1882,7 +2023,7 @@ export class DardcorBrowserAgentController {
 						return {
 							output: DardcorBrowserAgentController.formatPageSnapshot(
 								fallbackSnapshot,
-								`❌ Could not find <select> element matching ${JSON.stringify(targetOpts)}.`,
+								`Could not find <select> element matching ${JSON.stringify(targetOpts)}.`,
 								consoleLogs
 							)
 						};
@@ -1924,30 +2065,53 @@ export class DardcorBrowserAgentController {
 						})()
 					`);
 					if (selectResult?.success) {
-						await moveCursorAndMouse(prep.x, prep.y, `📋 Selecting ${selectResult.selectedText}`, prep.rect);
+						await moveCursorAndMouse(prep.x, prep.y, `Selecting ${selectResult.selectedText}`, prep.rect);
 						await DardcorBrowserAgentController.invokePlaywright(
 							playwrightService,
 							view,
 							sessionId,
-							'async (page, x, y, selector, value) => { await page.mouse.click(x, y); await page.locator(selector).selectOption(value); return true; }',
+							`async (page, x, y, selector, value) => {
+								if (typeof x === 'number' && typeof y === 'number') {
+									try { await page.mouse.click(x, y); } catch (_) {}
+								}
+								if (selector) {
+									try {
+										const loc = page.locator(selector).first();
+										if (await loc.count() > 0) {
+											await loc.selectOption(value);
+											return true;
+										}
+									} catch (_) {}
+								}
+								await page.evaluate(({ selector, value }) => {
+									const el = selector ? document.querySelector(selector) : null;
+									if (el && el.tagName === 'SELECT') {
+										el.value = value;
+										el.dispatchEvent(new Event('change', { bubbles: true }));
+									}
+								}, { selector, value });
+								return true;
+							}`,
 							prep.x,
 							prep.y,
 							prep.selector,
 							selectResult.selectedValue
 						);
-						await evaluate(`window.__dardcorBrowserAgentRuntime.animatePress(${prep.x}, ${prep.y})`);
-						await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay(${JSON.stringify(`📋 Selected "${selectResult.selectedText}"`)})`);
+						await evaluate(`window.__dardcorBrowserAgentRuntime?.animatePress(${prep.x}, ${prep.y})`).catch(() => undefined);
+						await evaluate(`window.__dardcorBrowserAgentRuntime?.wakeOverlay(${JSON.stringify(`Selected "${selectResult.selectedText}"`)})`).catch(() => undefined);
 					}
 
-					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1500);
+					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 800);
 					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
+					const refLabel = prep.dardcorId ? `[@e${prep.dardcorId}] ` : '';
+
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
 							selectResult?.success
-								? `✅ Selected option "${selectResult.selectedText}" (value=\`${selectResult.selectedValue}\`) on <${prep.tag}> "${prep.label}".`
-								: `⚠️ Failed to select option: ${selectResult?.error || 'Unknown error'}`,
+								? `Selected option "${selectResult.selectedText}" (value=\`${selectResult.selectedValue}\`) on ${refLabel}<${prep.tag}> "${prep.label}".`
+								: `Failed to select option: ${selectResult?.error || 'Unknown error'}`,
 							consoleLogs
 						)
 					};
@@ -1956,35 +2120,35 @@ export class DardcorBrowserAgentController {
 				case 'drag_and_drop': {
 					const sourceOpts = {
 						selector: args?.sourceSelector ?? args?.fromSelector,
-						elementId: args?.sourceElementId ?? args?.fromElementId,
+						elementId: args?.sourceRef ?? args?.sourceElementId ?? args?.fromElementId,
 						x: args?.sourceX,
 						y: args?.sourceY
 					};
 					const targetOpts = {
 						selector: args?.targetSelector ?? args?.toSelector,
-						elementId: args?.targetElementId ?? args?.toElementId,
+						elementId: args?.targetRef ?? args?.targetElementId ?? args?.toElementId,
 						x: args?.targetX,
 						y: args?.targetY
 					};
 
 					const srcPrep = await evaluate<any>(`
-						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(sourceOpts)}, '✊ Grabbing', true)
+						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(sourceOpts)}, 'Grabbing', true)
 					`);
 					if (!srcPrep?.found) {
 						return formatActionFailure(`could not find drag source matching ${JSON.stringify(sourceOpts)}`);
 					}
 
 					const dstPrep = await evaluate<any>(`
-						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, '🎯 Dropping onto', true)
+						window.__dardcorBrowserAgentRuntime.prepareElementForInteraction(${JSON.stringify(targetOpts)}, 'Dropping onto', true)
 					`);
 					if (!dstPrep?.found) {
 						return formatActionFailure(`could not find drop target matching ${JSON.stringify(targetOpts)}`);
 					}
 
-					await moveCursorAndMouse(srcPrep.x, srcPrep.y, '✊ Grabbing', srcPrep.rect);
+					await moveCursorAndMouse(srcPrep.x, srcPrep.y, 'Grabbing', srcPrep.rect);
 					await DardcorBrowserAgentController.invokePlaywright(playwrightService, view, sessionId, 'async page => { await page.mouse.down(); return true; }');
 					try {
-						await moveCursorAndMouse(dstPrep.x, dstPrep.y, '🎯 Dropping', dstPrep.rect);
+						await moveCursorAndMouse(dstPrep.x, dstPrep.y, 'Dropping', dstPrep.rect);
 					} finally {
 						await DardcorBrowserAgentController.invokePlaywright(playwrightService, view, sessionId, 'async page => { await page.mouse.up(); return true; }');
 					}
@@ -1995,7 +2159,7 @@ export class DardcorBrowserAgentController {
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Dragged from (${srcPrep.x}, ${srcPrep.y}) and dropped onto (${dstPrep.x}, ${dstPrep.y}).`,
+							`Dragged from (${srcPrep.x}, ${srcPrep.y}) and dropped onto (${dstPrep.x}, ${dstPrep.y}).`,
 							consoleLogs
 						)
 					};
@@ -2006,7 +2170,7 @@ export class DardcorBrowserAgentController {
 					const selector = typeof args?.selector === 'string' ? args.selector.trim() : '';
 					const text = typeof args?.text === 'string' ? args.text.trim() : '';
 
-					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('⏳ Waiting for page condition...')`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('Waiting for page condition...')`);
 
 					const startTime = Date.now();
 					let conditionMet = false;
@@ -2068,7 +2232,7 @@ export class DardcorBrowserAgentController {
 						}
 						return {
 							executionStatus: 'timedOut',
-							output: `⚠️ Timed out after ${timeoutMs}ms waiting for the integrated browser document to become ready. Snapshot unavailable: ${formatAgentToolError(error)}. Readiness detail: ${readinessFailure}`
+							output: `Timed out after ${timeoutMs}ms waiting for the integrated browser document to become ready. Snapshot unavailable: ${formatAgentToolError(error)}. Readiness detail: ${readinessFailure}`
 						};
 					}
 					const consoleLogs = await captureConsoleLogs();
@@ -2077,8 +2241,8 @@ export class DardcorBrowserAgentController {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
 							conditionMet
-								? `✅ Wait condition met (${selector || text || 'DOM stable'}).`
-								: `⚠️ Timeout (${timeoutMs}ms) waiting for ${selector || text || 'a stable DOM'}. Showing current page state.${readinessFailure ? ` Readiness detail: ${readinessFailure}` : ''}`,
+								? `Wait condition met (${selector || text || 'DOM stable'}).`
+								: `Timeout (${timeoutMs}ms) waiting for ${selector || text || 'a stable DOM'}. Showing current page state.${readinessFailure ? ` Readiness detail: ${readinessFailure}` : ''}`,
 							consoleLogs
 						)
 					};
@@ -2090,7 +2254,7 @@ export class DardcorBrowserAgentController {
 						return formatActionFailure('`script` parameter is required for `execute_browser_script`');
 					}
 
-					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('⚡ Executing script in page...')`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('Executing script in page...')`);
 
 					let evalOutput: string;
 					let scriptFailed = false;
@@ -2101,7 +2265,7 @@ export class DardcorBrowserAgentController {
 						evalOutput = typeof res === 'string' ? res : JSON.stringify(res, null, 2);
 					} catch (err: any) {
 						scriptFailed = true;
-						evalOutput = `❌ Script Error: ${formatAgentToolError(err)}`;
+						evalOutput = `Script Error: ${formatAgentToolError(err)}`;
 					}
 
 					await DardcorBrowserAgentController.waitTillHTMLStable(evaluate, 1200);
@@ -2139,7 +2303,7 @@ export class DardcorBrowserAgentController {
 						sections.push(`#### Chromium Console Buffer\n${nativeLogs.trim()}`);
 					}
 					if (sections.length === 1) {
-						sections.push(`✅ No console errors or warnings recorded on this page.`);
+						sections.push(`No console errors or warnings recorded on this page.`);
 					}
 					return { output: sections.join('\n\n') };
 				}
@@ -2155,7 +2319,7 @@ export class DardcorBrowserAgentController {
 									accept: ${JSON.stringify(accept)},
 									promptText: ${JSON.stringify(promptText)}
 								};
-								window.__dardcorBrowserAgentRuntime.wakeOverlay('🔔 Dialog policy: ' + (${JSON.stringify(accept)} ? 'Accept' : 'Dismiss'));
+								window.__dardcorBrowserAgentRuntime.wakeOverlay('Dialog policy: ' + (${JSON.stringify(accept)} ? 'Accept' : 'Dismiss'));
 							}
 						})()
 					`);
@@ -2170,7 +2334,7 @@ export class DardcorBrowserAgentController {
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`✅ Configured browser dialog handler (accept=${accept}${promptText ? `, promptText="${promptText}"` : ''}).`,
+							`Configured browser dialog handler (accept=${accept}${promptText ? `, promptText="${promptText}"` : ''}).`,
 							consoleLogs
 						)
 					};
@@ -2178,7 +2342,7 @@ export class DardcorBrowserAgentController {
 
 				case 'screenshot_browser_page':
 				case 'screenshot_page': {
-					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('📸 Capturing page screenshot...')`);
+					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('Capturing page screenshot...')`);
 					const buf = await model.captureScreenshot({ quality: 85, format: 'png' });
 					const snapshot = await collectPageSnapshot();
 					const consoleLogs = await captureConsoleLogs();
@@ -2193,7 +2357,7 @@ export class DardcorBrowserAgentController {
 					return {
 						output: DardcorBrowserAgentController.formatPageSnapshot(
 							snapshot,
-							`📸 Captured live screenshot of \`${snapshot.url}\` (${byteSize > 0 ? `${Math.round(byteSize / 1024)} KB` : 'active viewport'}) along with the complete interactive DOM snapshot below.`,
+							`Captured live screenshot of \`${snapshot.url}\` (${byteSize > 0 ? `${Math.round(byteSize / 1024)} KB` : 'active viewport'}) along with the complete interactive DOM snapshot below.`,
 							consoleLogs
 						),
 						image: { mimeType: 'image/png', base64: btoa(binary) }

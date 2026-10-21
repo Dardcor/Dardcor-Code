@@ -40,7 +40,7 @@ import type { IToolData } from '../tools/languageModelToolsService.js';
 import type { IArtifactRuleOverrides, IChatArtifact } from '../tools/chatArtifactsService.js';
 import { IChatArtifactsService } from '../tools/chatArtifactsServiceId.js';
 import { TerminalToolId } from '../tools/terminalToolIds.js';
-import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel } from '../constants.js';
+import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, isAutoApproveLevel } from '../constants.js';
 import { ILanguageModelsService } from '../languageModels.js';
 import { ChatPerfMark, markChat } from '../chatPerf.js';
 import { IMarkerService, MarkerSeverity } from '../../../../../platform/markers/common/markers.js';
@@ -51,9 +51,9 @@ import { TerminalCapability } from '../../../../../platform/terminal/common/capa
 import { ITaskService } from '../../../tasks/common/taskService.js';
 import { IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
 import { linesDiffComputers } from '../../../../../editor/common/diff/linesDiffComputers.js';
-import { IChatTodoListService } from '../tools/chatTodoListService.js';
+import { type IChatTodo, IChatTodoListService } from '../tools/chatTodoListService.js';
 import { createChatAgentRunState, IChatAgentRunState, IChatAgentRunStateService, updateChatAgentRunState } from '../tools/agentRunStateService.js';
-import { commandApprovalKey, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorAutonomousTask, isDardcorBrowserTest, isDardcorContinuation, isDardcorLowRiskCommand, parseDardcorAgentToolArguments, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction } from './dardcorAgentRunPolicy.js';
+import { commandApprovalKey, compactDardcorAgentMessages, DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS, detectDardcorLanguage, formatDardcorVerificationLabel, getDardcorAutonomousMomentumDirective, getDardcorAutonomousSelfCorrectionDirective, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorLanguageName, getDardcorLocaleStrings, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorAutonomousTask, isDardcorBrowserTest, isDardcorContinuation, isDardcorLowRiskCommand, parseDardcorAgentToolArguments, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction } from './dardcorAgentRunPolicy.js';
 import { DardcorAgentToolRuntime, formatAgentToolError, isAgentToolExecutionStatus } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
 import type { AgentToolExecutionStatus, AgentToolRisk, AgentToolSource } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
 
@@ -142,24 +142,44 @@ export const DARDCOR_PROVIDER_ALIAS_MAP: Record<string, string> = {
 async function fetchRouter(path: string, init?: RequestInit, retries = 8, timeoutMs = 30000): Promise<Response> {
 	let lastErr: unknown;
 	for (let attempt = 0; attempt < retries; attempt++) {
+		if (init?.signal?.aborted) {
+			throw new Error('Request aborted');
+		}
 		for (const host of ROUTER_HOSTS) {
+			if (init?.signal?.aborted) {
+				throw new Error('Request aborted');
+			}
 			const url = `http://${host}:${ROUTER_PORT}${path}`;
 			let timeoutId: any;
 			try {
 				let signal = init?.signal;
-				if (!signal && timeoutMs > 0) {
+				if (timeoutMs > 0) {
 					const controller = new AbortController();
 					timeoutId = setTimeout(() => {
 						try { controller.abort(); } catch { }
 					}, timeoutMs);
-					signal = controller.signal;
+					if (init?.signal) {
+						if (typeof (AbortSignal as any).any === 'function') {
+							signal = (AbortSignal as any).any([init.signal, controller.signal]);
+						} else {
+							init.signal.addEventListener('abort', () => {
+								try { controller.abort(); } catch { }
+							}, { once: true });
+							signal = controller.signal;
+						}
+					} else {
+						signal = controller.signal;
+					}
 				}
 				const res = await fetch(url, { ...init, signal });
 				if (timeoutId) clearTimeout(timeoutId);
 				return res;
-			} catch (err) {
+			} catch (err: any) {
 				if (timeoutId) clearTimeout(timeoutId);
 				lastErr = err;
+				if (init?.signal?.aborted || err?.name === 'AbortError') {
+					throw err;
+				}
 			}
 		}
 		if (attempt < retries - 1) {
@@ -1001,7 +1021,8 @@ export const DARDCOR_AGENT_TOOLS = [
 			parameters: {
 				type: 'object',
 				properties: {
-					elementId: { type: 'string', description: 'Set-of-Mark numeric ID from read_browser_page (e.g. "3" for [3]) or DOM id' },
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref from read_browser_page (e.g. "@e1", "@e2"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e1") or Set-of-Mark numeric ID from read_browser_page (e.g. "3" for [3]) or DOM id' },
 					selector: { type: 'string', description: 'CSS selector (e.g. "button.add-to-cart", "#submit") or visible button/link text (e.g. "Tambah ke Keranjang", "Beli Sekarang")' },
 					text: { type: 'string', description: 'Visible text, aria-label, or placeholder of the element to click' },
 					x: { type: 'number', description: 'Optional exact viewport X coordinate to click' },
@@ -1021,7 +1042,8 @@ export const DARDCOR_AGENT_TOOLS = [
 				type: 'object',
 				properties: {
 					text: { type: 'string', description: 'The text string to type into the field' },
-					elementId: { type: 'string', description: 'Set-of-Mark numeric ID from read_browser_page (e.g. "2" for [2]) or DOM id' },
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref from read_browser_page (e.g. "@e1", "@e2"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e2") or Set-of-Mark numeric ID from read_browser_page (e.g. "2" for [2]) or DOM id' },
 					selector: { type: 'string', description: 'CSS selector or placeholder/label text of the input field (e.g. "input[name=q]", "Cari produk...")' },
 					clearFirst: { type: 'boolean', description: 'Whether to clear existing input value before typing (default: true)' },
 					pressEnter: { type: 'boolean', description: 'Whether to press the Enter key after typing to submit search/form (default: false)' },
@@ -1042,7 +1064,8 @@ export const DARDCOR_AGENT_TOOLS = [
 					direction: { type: 'string', enum: ['down', 'up', 'top', 'bottom', 'left', 'right'], description: 'Scroll direction (default: "down")' },
 					amount: { type: 'number', description: 'Scroll distance in pixels (default: 550)' },
 					selector: { type: 'string', description: 'Optional CSS selector or text of an element to scroll into view' },
-					elementId: { type: 'string', description: 'Optional Set-of-Mark numeric ID of an element to scroll into view' },
+					ref: { type: 'string', description: 'Optional accessibility tree ref (e.g. "@e1") of an element to scroll into view' },
+					elementId: { type: 'string', description: 'Optional deterministic ref (e.g. "@e1") or numeric ID of an element to scroll into view' },
 					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
 				}
 			}
@@ -1056,7 +1079,8 @@ export const DARDCOR_AGENT_TOOLS = [
 			parameters: {
 				type: 'object',
 				properties: {
-					elementId: { type: 'string', description: 'Set-of-Mark numeric ID from read_browser_page (e.g. "5")' },
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref from read_browser_page (e.g. "@e1", "@e5"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e5") or numeric ID from read_browser_page (e.g. "5")' },
 					selector: { type: 'string', description: 'CSS selector or visible text of the element to hover' },
 					text: { type: 'string', description: 'Visible text of the element to hover' },
 					x: { type: 'number', description: 'Optional viewport X coordinate' },
@@ -1089,7 +1113,8 @@ export const DARDCOR_AGENT_TOOLS = [
 			parameters: {
 				type: 'object',
 				properties: {
-					elementId: { type: 'string', description: 'Set-of-Mark numeric ID of the <select> element' },
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref of the <select> element (e.g. "@e6"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e6") or numeric ID of the <select> element' },
 					selector: { type: 'string', description: 'CSS selector or label of the <select> element' },
 					value: { type: 'string', description: 'Option value or visible text to select' },
 					optionText: { type: 'string', description: 'Visible text of the option to select' },
@@ -1107,9 +1132,11 @@ export const DARDCOR_AGENT_TOOLS = [
 			parameters: {
 				type: 'object',
 				properties: {
-					sourceElementId: { type: 'string', description: 'Set-of-Mark ID of the element to drag' },
+					sourceRef: { type: 'string', description: 'Source element ref from snapshot (e.g. "@e1") to drag' },
+					sourceElementId: { type: 'string', description: 'Source element ref (e.g. "@e1") or Set-of-Mark ID to drag' },
 					sourceSelector: { type: 'string', description: 'CSS selector or text of the element to drag' },
-					targetElementId: { type: 'string', description: 'Set-of-Mark ID of the drop target element' },
+					targetRef: { type: 'string', description: 'Target element ref from snapshot (e.g. "@e2") to drop onto' },
+					targetElementId: { type: 'string', description: 'Target element ref (e.g. "@e2") or Set-of-Mark ID to drop onto' },
 					targetSelector: { type: 'string', description: 'CSS selector or text of the drop target element' },
 					sourceX: { type: 'number', description: 'Optional starting X coordinate' },
 					sourceY: { type: 'number', description: 'Optional starting Y coordinate' },
@@ -1235,16 +1262,162 @@ const DARDCOR_BROWSER_VERIFICATION_TOOL_NAMES = new Set([
 	'screenshot_browser_page', 'screenshot_page',
 ]);
 
-export function buildDardcorSystemPrompt(snapshot: IWorkspaceSnapshot): string {
+export interface IDardcorSystemPromptOptions {
+	readonly userPrompt?: string;
+	readonly permissionLevel?: string;
+	readonly activeSkills?: readonly { name: string; description?: string; body: string }[];
+	readonly todos?: readonly IChatTodo[];
+}
+
+export function buildDardcorSystemPrompt(snapshot: IWorkspaceSnapshot, options?: IDardcorSystemPromptOptions): string {
+	const lang = detectDardcorLanguage(options?.userPrompt);
+	const langName = getDardcorLanguageName(lang);
+	const isFullAccess = options?.permissionLevel === 'autoApprove';
+
 	const browserContextLine = snapshot.openBrowserPages && snapshot.openBrowserPages.length > 0
 		? `\n- Active Integrated Browser Tabs:\n${snapshot.openBrowserPages.map((p, i) => `  [${i + 1}] ${p}`).join('\n')}`
 		: '\n- Active Integrated Browser Tabs: None currently open (use `open_browser_page` to launch one)';
 
-	return `You are Dardcor Code, an elite, state-of-the-art AI Software Engineer built directly into the Dardcor Code Editor.
-Always identify yourself as Dardcor Code when asked who you are, what model or AI you are, or your identity. You were created by Dardcor.
-Never state that you are Provider, OpenAI, Anthropic, Claude, or any third-party model.
-Assist developers with coding, debugging, architecture, refactoring, and software development with precision, depth, and proactivity.
-Language Detection & Multilingual Support: Automatically detect the user's language and respond fluently and naturally in the exact same language (e.g. Bahasa Indonesia if the user speaks Indonesian, English if in English, Japanese if in Japanese, etc.). Never force English when the user communicates in another language. Technical code syntax, file paths, and identifiers should remain in their standard technical format, while greetings, explanations, reasoning, and summaries must match the user's detected language.
+	// Dynamic Language & Identity Persona
+	let personaBlock: string;
+	if (lang === 'id') {
+		personaBlock = `=== IDENTITAS DAN PERAN UTAMA ===
+Anda adalah Dardcor Code, AI Software Engineer elit kelas dunia yang terintegrasi langsung di dalam Dardcor Code Editor.
+Dibuat dan dikembangkan secara eksklusif oleh Dardcor Corporation.
+Selalu identifikasi diri Anda secara tegas sebagai Dardcor Code.
+JANGAN PERNAH menyatakan diri Anda sebagai Provider, OpenAI, Anthropic, Claude, atau model pihak ketiga manapun.
+Bantu pengembang dengan keahlian mendalam dalam pemrograman, debugging, arsitektur sistem, refactoring, dan pengujian software otomatis.
+
+=== PENYESUAIAN BAHASA OTOMATIS (MULTILINGUAL SYNCHRONIZATION) ===
+Bahasa Pengguna Terdeteksi: ${langName} (Bahasa Indonesia).
+WAJIB: Anda HARUS berpikir, menjelaskan konsep, menulis reasoning, merespons, dan mengisi SEMUA argumen alat yang berhadapan dengan pengguna ('explanation', 'goal', 'title', 'summary', 'description', 'taskLabel') dalam BAHASA INDONESIA secara alami, profesional, dan fasih.
+Jangan pernah beralih ke bahasa Inggris kecuali diminta secara eksplisit atau untuk kode program, path file, dan sintaksis teknis standar.`;
+	} else if (lang === 'ja') {
+		personaBlock = `=== アイデンティティとコアロール ===
+あなたはDardcor Codeです。Dardcor Code Editorに直接組み込まれた世界最高峰のAIソフトウェアエンジニアです。
+Dardcor Corporationによって開発されました。
+自己紹介やモデルを問われた際は、常にDardcor Codeと名乗ってください。
+Provider、OpenAI、Anthropic、Claudeなどのサードパーティモデルであると名乗ることは絶対に避けてください。
+
+=== 自動言語検出と完全多言語同期 ===
+検出されたユーザー言語：${langName}。
+必須指令：思考プロセス、概念説明、質問、およびツールのユーザー向け引数（'explanation', 'goal', 'title', 'summary', 'description', 'taskLabel' など）は、すべて自然で流暢な日本語で作成してください。コード構文やファイルパス以外の回答で英語を強制しないでください。`;
+	} else if (lang === 'zh') {
+		personaBlock = `=== 身份与核心定位 ===
+您是 Dardcor Code，深度集成于 Dardcor Code 编辑器中的世界顶级 AI 软件工程师。
+由 Dardcor Corporation 研发。
+当被问及身份、模型或背景时，必须明确表明您是 Dardcor Code。
+严禁声称自己是 Provider、OpenAI、Anthropic、Claude 或任何第三方模型。
+
+=== 全球多语言自动同步 ===
+检测到的用户语言：${langName}。
+强制规则：您必须全程使用中文进行思考、分析、解答，并确保所有面向用户的工具参数（如 'explanation', 'goal', 'title', 'summary', 'description', 'taskLabel'）均使用纯正地道的中文。除标准代码语法、文件路径和技术专有名词外，严禁混杂英文描述。`;
+	} else if (lang === 'es') {
+		personaBlock = `=== IDENTIDAD Y ROL PRINCIPAL ===
+Eres Dardcor Code, un ingeniero de software de IA de élite integrado directamente en el editor Dardcor Code.
+Desarrollado exclusivamente por Dardcor Corporation.
+Identifícate siempre claramente como Dardcor Code.
+NUNCA afirmes ser Provider, OpenAI, Anthropic, Claude ni ningún modelo de terceros.
+
+=== DETECCIÓN DINÁMICA DE IDIOMA Y PARIDAD MULTILINGÜE ===
+Idioma del usuario detectado: ${langName}.
+OBLIGATORIO: Debes razonar, explicar y formular todos los argumentos descriptivos de herramientas ('explanation', 'goal', 'title', 'summary', 'description', 'taskLabel') y respuestas en ESPAÑOL de manera natural y precisa.`;
+	} else {
+		personaBlock = `=== IDENTITY AND CORE ROLE ===
+You are Dardcor Code, an elite, state-of-the-art AI Software Engineer built directly into the Dardcor Code Editor.
+Created exclusively by Dardcor Corporation.
+Always identify yourself as Dardcor Code when asked about your identity or model.
+Never claim to be Provider, OpenAI, Anthropic, Claude, or any third-party model.
+Assist developers with coding, debugging, architecture, refactoring, and software development with precision and depth.
+
+=== UNIVERSAL DYNAMIC LANGUAGE ADAPTATION ===
+Detected User Language: ${langName}.
+MANDATORY DIRECTIVE: Automatically synchronize with the developer's language (${langName}). You MUST construct all reasoning, greetings, explanations, and user-facing tool arguments ('explanation', 'goal', 'title', 'summary', 'description', 'taskLabel') naturally and fluently in ${langName}. Keep technical code syntax, file paths, and identifiers in standard syntax.`;
+	}
+
+	// Dynamic Workspace & Stack Intelligence
+	let stackSpecialization = '';
+	const combinedStackInfo = `${snapshot.techStack} ${snapshot.projectName} ${snapshot.fileTree}`.toLowerCase();
+
+	if (/laravel|artisan|composer\.json|blade|\.blade\.php/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Laravel & PHP]
+  * Follow Laravel idiomatic conventions and MVC structure.
+  * Execute artisan commands via 'run_command' (e.g. \`php artisan migrate\`, \`php artisan route:list\`, \`php artisan test\`).
+  * Verify frontend assets via Vite (\`npm run build\`).
+  * Never invent non-standard directories outside the Laravel directory structure.`;
+	}
+	if (/next(?:\.js)?|react|tailwind|jsx|tsx/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: React / Next.js]
+  * Respect App Router or Pages Router conventions.
+  * Explicitly add \`"use client"\` at the top of client components that consume React hooks, event listeners, or browser APIs.
+  * Leverage modern Tailwind CSS utility classes and ensure responsive layouts.
+  * Verify compile-time type safety with TypeScript and 'npm run build'.`;
+	}
+	if (/vue|nuxt/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Vue / Nuxt]
+  * Use Single File Components with \`<script setup lang="ts">\` and Composition API.
+  * Use Pinia for state management and Vue Router for navigation.`;
+	}
+	if (/python|django|fastapi|flask/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Python]
+  * Adhere to PEP 8 standards and modern type annotations.
+  * Run test suites with pytest via 'run_command'.`;
+	}
+	if (/rust|cargo/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Rust]
+  * Adhere to idiomatic Rust ownership and Result/Option error handling.
+  * Validate compilation with \`cargo check\` and run test suites with \`cargo test\`.`;
+	}
+
+	// Dynamic Autonomy Protocol
+	let autonomyProtocol: string;
+	if (isFullAccess) {
+		autonomyProtocol = `=== AUTONOMOUS FULL ACCESS MODE (HIGH VELOCITY & SELF-HEALING) ===
+The user has enabled Full Access (Autonomous Mode).
+1. End-to-End Autonomous Ownership: Implement all necessary components, pages, routes, logic, and tests from start to finish without pausing for trivial acknowledgments.
+2. In-Loop Self-Healing: If a tool encounters an error, rejection, or unexpected output, DO NOT stop or ask the user to intervene. Analyze the failure cause, adjust your approach, and immediately execute the corrective tool call.
+3. Checklist Momentum: Maintain and advance the checklist with 'manage_todo_list'. Turn after turn, continue calling action tools consecutively until every single item is verified and complete.
+4. Zero Conversational Stalling: NEVER emit transitional text alone (e.g. "I will now edit file X") without executing the relevant tool in the same turn.`;
+	} else {
+		autonomyProtocol = `=== GOVERNED EXECUTION MODE ===
+Tool execution adheres to active session access policy:
+- Inspection and read-only queries proceed with high efficiency.
+- File modifications, terminal commands, and browser actions follow standard user confirmation rules.`;
+	}
+
+	// Antigravity Final Report Schema in Detected Language
+	let finalReportSchema: string;
+	if (lang === 'id') {
+		finalReportSchema = `4. PROTOKOL LAPORAN SINTESIS AKHIR ANTIGRAVITY:
+   Ketika semua pekerjaan dan verifikasi selesai, ringkasan akhir dalam 'task_completed' (dan respons penutup) WAJIB menyajikan laporan terstruktur gaya Antigravity dalam Bahasa Indonesia:
+   - **Ringkasan Eksekutif**: Penjelasan ringkas hasil akhir, masalah inti yang diselesaikan, dan status aplikasi saat ini.
+   - **Perubahan Kunci & Arsitektur**: Daftar file yang dibuat atau diubah beserta alasan teknisnya.
+   - **Bukti Verifikasi & Jaminan Kualitas**: Bukti nyata — hasil perintah pengujian/build terminal beserta kode keluar (exit code), status diagnostik via get_diagnostics, dan verifikasi interaksi browser (tanpa error konsol).
+   - **Panduan Menjalankan & Menguji**: Langkah-langkah perintah shell konkret bagi pengembang untuk menjalankan atau menguji aplikasi secara lokal.`;
+	} else if (lang === 'ja') {
+		finalReportSchema = `4. ANTIGRAVITY 最終統合レポートプロトコル:
+   すべての実装と検証が完了した際、'task_completed' の要約および最終回答において、日本語でAntigravityスタイルの構造化レポートを作成してください：
+   - **エグゼクティブサマリー**: タスクの成果、解決された問題、現在のシステム状態の要約。
+   - **主な変更点とアーキテクチャ**: 作成または変更されたファイルの一覧と技術的理由。
+   - **検証証拠と品質保証**: 実際のターミナルテスト・ビルドコマンドの実行結果と終了コード、get_diagnostics の状態、ブラウザ検証結果。
+   - **実行およびテスト手順**: ローカルでソリューションを起動・テストするための具体的なシェルコマンド。`;
+	} else if (lang === 'zh') {
+		finalReportSchema = `4. ANTIGRAVITY 最终综合报告协议:
+   当所有实现与验证彻底完成时，'task_completed' 总结及最终回复必须输出 Antigravity 风格的中文结构化综合报告：
+   - **执行摘要**：清晰陈述任务成果、核心解决的问题及当前应用状态。
+   - **核心变更与架构**：创建或修改的文件清单及其技术实现依据。
+   - **验证证据与质量保证**：真实的终端测试/构建命令输出及退出代码、get_diagnostics 诊断状态、浏览器交互验证结果。
+   - **本地运行与测试指南**：供开发者在本地启动和测试该方案的具体命令行指令。`;
+	} else {
+		finalReportSchema = `4. ANTIGRAVITY FINAL SYNTHESIS REPORT PROTOCOL:
+   When all work and verification are complete, the final summary in 'task_completed' (and your concluding response) MUST deliver an Antigravity-style structured synthesis report in ${langName}:
+   - **Executive Summary**: Crisp statement of task outcome, core problems resolved, and current application state.
+   - **Key Changes & Architecture**: Bulleted summary of files created or modified with concise technical rationale.
+   - **Verification Evidence & Quality Assurance**: Concrete proof of verification — actual terminal test/build commands with exit codes, compiler diagnostics status via get_diagnostics, and browser interaction verification results.
+   - **How to Run & Test**: Explicit step-by-step shell commands for the developer to launch, test, or verify the solution locally.`;
+	}
+
+	return `${personaBlock}
 
 === ACTIVE WORKSPACE PROJECT CONTEXT ===
 ${snapshot.hasWorkspace ? `
@@ -1255,13 +1428,13 @@ ${snapshot.hasWorkspace ? `
 ${snapshot.activeFileExcerpt ? `\n--- Excerpt of Active File (${snapshot.activeFile}) ---\n${snapshot.activeFileExcerpt}\n--- End Excerpt ---\n` : ''}
 - Project Structure & Files:
 ${snapshot.fileTree || 'No files found'}
+${stackSpecialization ? `\n--- Dynamic Architecture Intelligence ---${stackSpecialization}` : ''}
 ` : `- No folder is currently open in the workspace.${browserContextLine}`}
 
-=== AUTONOMOUS AGENTIC CAPABILITIES ===
-You have built-in workspace, terminal, network, and integrated-browser tools. Tool availability is not authorization: the active session access level and organization policy are enforced before each action.
-- **Ask for approval**: read-only inspection may proceed; actions that change files, run terminal commands, access the network, or interact with a website require an explicit one-time approval.
-- **Approve for me**: only a strict allowlist of safe inspection and read-only commands proceeds automatically. File changes, side-effecting terminal actions, network access, browser interactions, and uncertain or unrecognized actions require approval.
-- **Full access**: the user has explicitly approved agent actions without per-action prompts; managed organization policy can still restrict this level. This permission does not change task continuation or verification requirements.
+${autonomyProtocol}
+
+=== STRICT TOOL DEFINITIONS & INTEGRITY (EXACTLY 30 TOOLS) ===
+NEVER hallucinate or invoke non-existent tools such as 'bash', 'probe', 'sh', 'cmd', 'terminal', 'exec', or 'str_replace_editor'. To run shell commands, ALWAYS use 'run_command'. To read or inspect files, use 'read_file', 'grep_search', or 'find_files'.
 1. read_file(filePath, startLine, endLine): Read file contents with line numbers.
 2. write_file(filePath, content): Create new files or overwrite existing files.
 3. edit_file(filePath, searchContent, replaceContent): Replace specific code snippets in files.
@@ -1277,82 +1450,47 @@ You have built-in workspace, terminal, network, and integrated-browser tools. To
 13. manage_todo_list(todoList): Manage and track task checklist (not-started, in-progress, completed).
 14. fetch_web_page(url): Fetch web page content or API documentation.
 15. open_browser_page(url, forceNew): Open or focus a URL in the Dardcor Code Integrated Browser with the Dardcor cursor and return its interactive DOM snapshot.
-16. read_browser_page(pageId): Scan the active browser tab, indexing all interactive elements with Set-of-Mark IDs [1..N], visible text, scroll state, and console errors.
+16. read_browser_page(pageId): Scan the active browser tab, indexing all interactive elements with Vercel-style refs (@e1, @e2, ...) and Set-of-Mark IDs [1..N], visible text, scroll state, and console errors.
 17. navigate_browser(url, pageId): Navigate the active browser tab to a new URL and return the new DOM snapshot.
-18. click_element(elementId, selector, text, x, y, doubleClick): Move the Dardcor cursor to a unique button, link, tab, or coordinate and click it with Playwright.
-19. type_in_page(text, elementId, selector, clearFirst, pressEnter): Move the Dardcor cursor to an input/textarea, type with Playwright, and optionally press Enter.
-20. scroll_browser_page(direction, amount, selector, elementId): Scroll the browser page (down/up/top/bottom) or scroll to a specific element.
-21. hover_element(elementId, selector, text, x, y): Move the Dardcor cursor over an element to trigger hover menus or tooltips.
+18. click_element(ref, elementId, selector, text, x, y, doubleClick): Move the Dardcor cursor to a target button, link, or tab using its Vercel-style ref (e.g. ref: "@e1" or elementId: "@e1" or "1"), selector, or coordinates and click it with Playwright.
+19. type_in_page(text, ref, elementId, selector, clearFirst, pressEnter): Move the Dardcor cursor to an input/textarea using its Vercel-style ref (e.g. ref: "@e2" or elementId: "@e2" or "2"), type with Playwright, and optionally press Enter.
+20. scroll_browser_page(direction, amount, selector, ref, elementId): Scroll the browser page (down/up/top/bottom) or scroll directly to an element using its Vercel-style ref (e.g. ref: "@e1").
+21. hover_element(ref, elementId, selector, text, x, y): Move the Dardcor cursor over an element using its Vercel-style ref (e.g. ref: "@e1" or "1") to trigger hover menus or tooltips.
 22. press_key(key): Press keyboard keys ("Enter", "Escape", "Tab", "ArrowDown", "Backspace", etc.) in the browser.
-23. select_option(elementId, selector, value, optionText, index): Select an option from a <select> dropdown in the browser.
-24. drag_and_drop(sourceElementId, sourceSelector, targetElementId, targetSelector): Drag and drop elements in the browser with the Dardcor cursor.
+23. select_option(ref, elementId, selector, value, optionText, index): Select an option from a <select> dropdown in the browser using its Vercel-style ref (e.g. ref: "@e6").
+24. drag_and_drop(sourceRef, sourceElementId, targetRef, targetElementId): Drag and drop elements in the browser using Vercel-style refs (e.g. sourceRef: "@e1", targetRef: "@e2").
 25. wait_for_browser(selector, text, timeoutMs): Wait for an element, text, or DOM stability in the browser.
 26. execute_browser_script(script): Execute custom JavaScript inside the active browser page and inspect the returned result.
 27. get_browser_console_logs(pageId): Read console logs, warnings, and runtime JavaScript errors from the browser page.
 28. handle_browser_dialog(accept, promptText): Accept or dismiss browser alert/confirm/prompt dialogs.
 29. screenshot_browser_page(pageId): Capture a live screenshot and full DOM snapshot of the active browser page.
-30. task_completed(summary, verificationSteps, filesChanged): Request completion review. This is only a proposal; runtime checks require completed checklist items and recorded verification evidence.
+30. task_completed(summary, verificationSteps, filesChanged): Request completion review with an Antigravity-style final synthesis report in the user's language. Runtime checks require completed checklist items and verified evidence.
 
-TOOL CALLING FORMAT:
-You can call tools via native tool calling, or if using text formatting:
-\`\`\`json:tool
-{
-  "name": "tool_name",
-  "arguments": { ... }
-}
-\`\`\`
-or
-<tool_call>
-{
-  "name": "tool_name",
-  "arguments": { ... }
-}
-</tool_call>
-
-CRITICAL DIRECTIVES:
-1. Language matching: Automatically detect the language used by the user and respond in that exact same language across all messages, explanations, questions, and summaries.
-2. When asked who you are, greetings, or general questions:
-   Respond directly, politely, and warmly in clean Markdown in the user's detected language WITHOUT calling any tools.
-   State clearly that you are Dardcor Code, mention the detected active project (${snapshot.projectName}) and its tech stack (${snapshot.techStack}).
-3. Only use tools when the user specifically asks you to inspect, search, read, modify, or create files, run commands, or interact with the browser.
-4. AUTONOMOUS TASK CONTINUATION & COMPLETION:
-   - When tasked with building, creating, continuing, completing, fixing, or modifying code (e.g. creating a website, application, Next.js project, views, components, or fixing bugs):
-     * You MUST implement the entire project completely from start to finish.
-     * Do NOT stop after only creating root configuration files (like package.json, tsconfig.json, tailwind.config.js).
-     * You MUST proceed to implement all necessary source code files in "src/" or "app/" (such as pages, layouts, views, components, styles, utilities).
-     * Continue calling tools consecutively turn after turn until all required files are written and the application is fully functional.
-     * NEVER stop midway or output transitional conversational text alone (e.g. "Now I will create view X") without immediately calling the tool to create that file in the same turn.
-     * Write full, complete, production-ready code with no placeholders.
-     * Use get_diagnostics to verify there are no syntax or type errors after making major changes.
-     * When all implementation steps and verification are done, call "task_completed" and provide a clear, concise user-facing conclusion in its summary field using the user's language. State what changed and the actual result; do not claim unverified work. The runtime will append checklist and verification evidence to the final report.
-5. When modifying files, apply edits accurately and ensure consistency across the project.
-6. Terminal command execution:
+=== RUNTIME ENVIRONMENT & EXECUTION RULES ===
+1. Terminal command execution:
    - The workspace terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
-   ${isWindows ? '- On Windows: use valid PowerShell syntax. Chain commands with semicolons (;), NEVER use "&&" or "cmd /c". NEVER use Unix bash heredocs (<< EOF). Standard commands like "npm run build", "npm run dev", "node script.js", "git status" work directly.' : '- On POSIX systems: use standard bash/zsh syntax.'}
-7. SUPER-INTELLIGENT AUTONOMOUS BROWSER AGENT & LIVE VISUAL CURSOR PROTOCOL:
-   - You control a real integrated Chromium browser with the **Dardcor cursor**. Browser actions must target unique locators, wait for Playwright actionability, and inspect the returned post-action DOM snapshot.
-   - **Observe First**: If a browser tab is already open (listed under Active Integrated Browser Tabs), call \`read_browser_page\` first to get the Set-of-Mark interactive element map (\`[1]..[N]\`), or call \`open_browser_page\` if no tab is open or a new URL is requested.
-   - **Act with Precision**: Use \`click_element\` (passing \`elementId: "N"\`, \`selector\`, or visible \`text\`), \`type_in_page\` (with \`pressEnter: true\` for search boxes/forms), \`scroll_browser_page\` (to inspect content below the fold), \`select_option\`, \`hover_element\`, or \`press_key\`.
-   - **Verify & Self-Heal**: Every browser action automatically returns the updated Interactive DOM Snapshot and Console Diagnostics. Always inspect the returned snapshot to verify whether navigation, modal opening, cart update, or form submission succeeded. If any runtime/console error or broken UI behavior is detected, proactively inspect and fix the project source code and re-verify in the browser!
-   - Browser verification must use the visible integrated Browser Editor and its Playwright-backed tools. Do not replace a failed browser interaction with HTTP requests, curl, or terminal output and call that a website interaction test. If the tab, cursor, Playwright attachment, action, or post-action snapshot fails, stop that browser verification, report the exact blocker, and leave the task blocked with a concrete retry step.
-8. CLEAN WORKSPACE DIRECTIVE:
+   ${isWindows ? `- On Windows:
+     * The integrated terminal executes Windows PowerShell.
+     * ZERO FALSE BLOCKERS POLICY: Windows PowerShell fully supports Node.js, npm, pnpm, yarn, Git, PHP, Composer, Python, Cargo, Docker, and developer CLIs.
+     * Use valid PowerShell syntax: chain commands with semicolons (;), NEVER use "&&" or "cmd /c". NEVER use Unix bash heredocs (<< EOF). Set environment variables via \`$env:KEY="value"\` if needed.
+     * Standard developer commands ("npm run build", "npm test", "php artisan test", "git status") execute directly. An exit code of 0 indicates success.` : `- On POSIX systems: use standard bash/zsh syntax.`}
+2. Super-Intelligent Chromium Browser & Visual Cursor Protocol:
+   - You control a real integrated Chromium browser with the Dardcor cursor.
+   - Always prioritize targeting interactive elements using Vercel-style element references (e.g. \`ref: "@e1"\` or \`elementId: "@e1"\`) from the snapshot.
+   - Inspect post-action DOM snapshots and console diagnostics. Fix any runtime UI issues proactively.
+3. Clean Workspace Directive:
    - NEVER create a ".vscode" or ".dardcor-code" folder, and NEVER create any "tasks.json" file in the user's project.
    - Keep the project directory completely clean, containing ONLY genuine application files and code.
-   - When running builds, installers, package managers, development servers, or background services (such as composer, npm, php artisan, vite, next, cargo, docker), ALWAYS execute them directly via the integrated terminal using "run_command".
-9. COMPLETION GATE:
-   - For every coding, implementation, debugging, or testing request, create and maintain a complete checklist with manage_todo_list before substantial changes.
-   - A plain-text answer, promise, or task_completed call does not prove the work is complete. Finish every checklist item and run relevant verification; report the actual command/results.
-   - If a tool, provider, browser, or verification fails, explain the failure and leave the task paused/blocked with the next concrete step. Never describe unfinished work as finished.
-   - For browser testing, use the integrated Browser Editor. The visible cursor animation must accompany the real Playwright action; inspect the returned post-action DOM snapshot and surface browser/tool errors.
-`;
+${finalReportSchema}`;
 }
 
-export const DARDCOR_SYSTEM_PROMPT = `You are Dardcor Code, an advanced AI programming assistant developed by Dardcor for the Dardcor Code Editor.
-Always identify yourself as Dardcor Code when asked who you are, what model or AI you are, or your identity. You were created by Dardcor.
-Never state that you are Provider, or any other third-party model.
-Assist developers with coding, debugging, architecture, refactoring, and software development with precision and depth.
-Automatically detect the user's language and respond fluently and naturally in the exact same language (e.g. Bahasa Indonesia, English, Japanese, etc.) for all outputs, explanations, reasoning, and summaries. Never respond in English when the user communicates in Indonesian or another language unless explicitly requested.
-Never create any .vscode folder or tasks.json files. Keep the user workspace completely clean.`;
+export const DARDCOR_SYSTEM_PROMPT = buildDardcorSystemPrompt({
+	hasWorkspace: false,
+	projectName: 'General',
+	rootPath: '',
+	techStack: 'General Software Engineering',
+	fileTree: ''
+});
 
 export function extractAgentFilePath(args: any): string | undefined {
 	if (!args) {
@@ -1505,7 +1643,7 @@ export class DardcorThinkingStreamParser {
 
 	public static readonly ANY_TAG_SEARCH = /<(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>|<\/(?:think|thinking|thought|reasoning|antThinking)\s*>|◁\/?think▷|<\|(?:begin|end)_of_thought\|>|\[\/?THINK\]|<\/?(?:tool_call|function_call|tool|function|parameter|param|arg)(?:[=\s][^>]*)?>|\[\/?(?:TOOL_CALL|FUNCTION_CALL)\]|```(?:tool_call|json:tool)/gi;
 
-	public static readonly FULL_THINK_BLOCK_REGEX = /<(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>[\s\S]*?<\/(?:think|thinking|thought|reasoning|antThinking)\s*>|◁think▷[\s\S]*?◁\/think▷|<\|begin_of_thought\|>[\s\S]*?<\|end_of_thought\|>|\[THINK\][\s\S]*?\[\/THINK\]/gi;
+	public static readonly FULL_THINK_BLOCK_REGEX = /<(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>[\s\S]*?(?:<\/(?:think|thinking|thought|reasoning|antThinking)\s*>|$)|◁think▷[\s\S]*?(?:◁\/think▷|$)|<\|begin_of_thought\|>[\s\S]*?(?:<\|end_of_thought\|>|$)|(?:\[THINK\]|Thinking Process:?)[\s\S]*?(?:\[\/THINK\]|$)/gi;
 	public static readonly FULL_TOOL_BLOCK_REGEX = /<(?:tool_call|function_call|tool)(?:\s+[^>]*)?>[\s\S]*?(?:<\/(?:tool_call|function_call|tool)>|$)|<(?:function)(?:[=\s][^>]*)?>[\s\S]*?(?:<\/(?:function)>|$)|\[(?:TOOL_CALL|FUNCTION_CALL)\][\s\S]*?(?:\[\/(?:TOOL_CALL|FUNCTION_CALL)\]|$)|```(?:tool_call|json:tool)[\s\S]*?(?:```|$)/gi;
 
 	public static readonly OPEN_TAG_REGEX = DardcorThinkingStreamParser.OPEN_THINK_REGEX;
@@ -2114,14 +2252,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					});
 					for (const child of sorted) {
 						if (ignoreDirs.has(child.name)) {
-							if (child.isDirectory) treeLines.push(`${prefix}📁 ${child.name}/`);
+							if (child.isDirectory) treeLines.push(`${prefix}${child.name}/`);
 							continue;
 						}
 						if (child.isDirectory) {
-							treeLines.push(`${prefix}📁 ${child.name}/`);
+							treeLines.push(`${prefix}${child.name}/`);
 							await scan(child.resource, prefix + '  ', depth + 1);
 						} else {
-							treeLines.push(`${prefix}📄 ${child.name}`);
+							treeLines.push(`${prefix}${child.name}`);
 						}
 						if (treeLines.length > 70) break;
 					}
@@ -2247,7 +2385,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					formattedInput: 'Killing active terminal instance'
 				};
 			}
-			case 'manage_todo_list': {
+			case 'manage_todo_list':
+			case 'todo':
+			case 'todo_list':
+			case 'update_todo_list':
+			case 'dardcor_internal_todo': {
 				const list = Array.isArray(args?.todoList) ? args.todoList : [];
 				return {
 					invocationMessage: `Updating task checklist (${list.length} items)`,
@@ -2426,7 +2568,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			case 'click_element':
 			case 'click_browser': {
-				const target = args?.text || args?.selector || (args?.elementId ? `[${args.elementId}]` : '') || (args?.x !== undefined ? `(${args.x}, ${args.y})` : 'element');
+				const target = args?.ref || args?.text || args?.selector || (args?.elementId ? `[${args.elementId}]` : '') || (args?.x !== undefined ? `(${args.x}, ${args.y})` : 'element');
 				return {
 					invocationMessage: `Moving Dardcor cursor & clicking \`${target}\``,
 					pastTenseMessage: `Clicked \`${target}\` on browser page`,
@@ -2435,7 +2577,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			case 'type_in_page':
 			case 'type_browser': {
-				const target = args?.selector || (args?.elementId ? `[${args.elementId}]` : 'input');
+				const target = args?.ref || args?.selector || (args?.elementId ? `[${args.elementId}]` : 'input');
 				return {
 					invocationMessage: `Typing \`"${args?.text || ''}"\` into \`${target}\``,
 					pastTenseMessage: `Typed \`"${args?.text || ''}"\` into \`${target}\``,
@@ -2444,8 +2586,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			case 'scroll_browser_page':
 			case 'scroll_page': {
-				const desc = args?.selector || args?.elementId
-					? `to \`${args.selector || `[${args.elementId}]`}\``
+				const desc = args?.selector || args?.ref || args?.elementId
+					? `to \`${args.selector || args.ref || `[${args.elementId}]`}\``
 					: `${args?.direction || 'down'} (${args?.amount || 550}px)`;
 				return {
 					invocationMessage: `Scrolling browser page ${desc}`,
@@ -2523,10 +2665,16 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				};
 			}
 			default: {
+				let formattedInput = typeof args === 'string' ? args : JSON.stringify(args ?? {}, null, 2);
+				if (typeof args === 'string') {
+					try {
+						formattedInput = JSON.stringify(JSON.parse(args), null, 2);
+					} catch {}
+				}
 				return {
 					invocationMessage: `Executing ${toolName}`,
 					pastTenseMessage: `Executed ${toolName}`,
-					formattedInput: typeof args === 'string' ? args : JSON.stringify(args ?? {}, null, 2)
+					formattedInput
 				};
 			}
 		}
@@ -2940,7 +3088,15 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								outputMsg = `Development server launched in terminal panel.\nCommand: ${cmdTrim}\nInitial Output:\n${cleanOutput || 'Server process started in active terminal.'}`;
 							} else if (termService.createTerminal) {
 								const isWin = isWindows;
-								const effectiveCmd = isWin ? cmdTrim.replace(/\s*&&\s*/g, ' ; ') : cmdTrim;
+								let effectiveCmd = cmdTrim;
+								if (isWin) {
+									effectiveCmd = effectiveCmd
+										.replace(/\s*&&\s*/g, ' ; ')
+										.replace(/\s*2>\s*\/dev\/null/g, ' 2>$null')
+										.replace(/\s*>\s*\/dev\/null/g, ' >$null')
+										.replace(/\bwhich\s+([a-zA-Z0-9_\-\.]+)/g, '(Get-Command $1 -ErrorAction SilentlyContinue).Path')
+										.replace(/\bls\s+\/app\b/g, 'Get-ChildItem -ErrorAction SilentlyContinue');
+								}
 								const executable = isWin ? 'powershell.exe' : '/bin/sh';
 								const shellArgs = isWin ? ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', cmdTrim];
 								const term = await termService.createTerminal({
@@ -2978,7 +3134,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 												launchError = code.message || JSON.stringify(code);
 												exitCode = code.code ?? -1;
 											}
-											cleanup();
+											// Buffer flush delay: allow ConPTY and IPC pipe to flush final data chunks
+											setTimeout(cleanup, 250);
 										});
 									}
 									timer = setTimeout(() => {
@@ -3012,7 +3169,9 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								} else if (exitCode !== undefined && exitCode !== 0) {
 									outputMsg = `Command failed with exit code ${exitCode}.\nOutput:\n${cleanOutput || '(no output)'}`;
 								} else if (exitCode === 0) {
-									outputMsg = `${cleanOutput || 'Command executed successfully.'}\n[Command result: exit code 0]`;
+									outputMsg = cleanOutput
+										? `${cleanOutput}\n\n[Command executed successfully with exit code 0]`
+										: `[Command executed successfully with exit code 0 (no output produced)]`;
 								} else {
 									outputMsg = cleanOutput || `Command completed.`;
 								}
@@ -3143,7 +3302,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						const icon = item.status === 'completed' ? '[x]' : item.status === 'in-progress' ? '[~]' : '[ ]';
 						return `${icon} ${item.id}. ${item.title} (${item.status})`;
 					}).join('\n');
-					return { output: `Todo checklist updated:\n${rendered}` };
+					const activeItem = list.find(item => item.status === 'in-progress') ?? list.find(item => item.status === 'not-started');
+					const directive = activeItem
+						? `\n\n[SYSTEM DIRECTIVE]: Immediately proceed with the active task #${activeItem.id}: "${activeItem.title}". Call the relevant concrete action tool (e.g. read_file, edit_file, run_command) now without yielding or asking permission.`
+						: '\n\n[SYSTEM DIRECTIVE]: All checklist items appear completed. Run comprehensive verification tests before calling task_completed.';
+					return { output: `Todo checklist updated:\n${rendered}${directive}` };
 				} catch (e: any) {
 					return { output: `Error updating todo list: ${formatAgentToolError(e)}` };
 				}
@@ -3814,7 +3977,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		}
 
 
-		const tagRegex = /<(?:tool_call|function_call|tool)>\s*([\s\S]*?)(?:\s*<\/(?:tool_call|function_call|tool)>|$)/gi;
+		const tagRegex = /<(?:tool_call|function_call|tool|invoke)>\s*([\s\S]*?)(?:\s*<\/(?:tool_call|function_call|tool|invoke)>|$)/gi;
 		while ((match = tagRegex.exec(text)) !== null) {
 			const body = match[1].trim();
 			try {
@@ -3835,13 +3998,23 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 			} catch { }
 
-
 			const xmlCalls = this._parseXmlFunctionCalls(body);
 			for (const xc of xmlCalls) {
 				calls.push(xc);
 			}
 		}
 
+		const actionRegex = /(?:Action|Tool):\s*([a-zA-Z0-9_\-]+)\s*(?:\r?\n)+(?:Action Input|Tool Input|Arguments|Input):\s*(\{[\s\S]*?\})/gi;
+		let actionMatch: RegExpExecArray | null;
+		while ((actionMatch = actionRegex.exec(text)) !== null) {
+			const name = actionMatch[1].trim();
+			try {
+				const args = JSON.parse(actionMatch[2].trim());
+				if (!calls.some(c => c.name === name && JSON.stringify(c.args) === JSON.stringify(args))) {
+					calls.push({ name, args });
+				}
+			} catch {}
+		}
 
 		const directXmlCalls = this._parseXmlFunctionCalls(text);
 		for (const xc of directXmlCalls) {
@@ -3857,7 +4030,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		const calls: Array<{ name: string; args: any }> = [];
 		if (!text) return calls;
 
-		const funcRegex = /<(?:function|function_call|tool)(?:[=\s]+(?:name=)?["']?([a-zA-Z0-9_\-\.]+)["']?|\s+[^>]*?name=["']([a-zA-Z0-9_\-\.]+)["'])[^>]*>([\s\S]*?)(?:<\/(?:function|function_call|tool)>|$)/gi;
+		const funcRegex = /<(?:function|function_call|tool|invoke)(?:[=\s]+(?:name=)?["']?([a-zA-Z0-9_\-\.]+)["']?|\s+[^>]*?name=["']([a-zA-Z0-9_\-\.]+)["'])[^>]*>([\s\S]*?)(?:<\/(?:function|function_call|tool|invoke)>|$)/gi;
 		let match: RegExpExecArray | null;
 		while ((match = funcRegex.exec(text)) !== null) {
 			const name = match[1] || match[2];
@@ -4050,8 +4223,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		let activeTaskPrompt = '';
 		let browserVerificationOnly = false;
 		let consecutiveToolFailures = 0;
+		let autonomousRecoveryAttempts = 0;
+		const MAX_AUTONOMOUS_RECOVERY_ATTEMPTS = 3;
 		let acceptedTaskCompletion = false;
 		let proposedCompletionSummary: string | undefined;
+		let finalSynthesisTurnPending = false;
+		let finalSynthesisCompleted = false;
 		const successfulTaskActions = new Map<string, number>();
 		const taskChangedFiles = new Set<string>();
 		let taskConclusionEmitted = false;
@@ -4139,17 +4316,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			if (['run_command', 'run_in_terminal', 'create_and_run_task', 'run_task', 'get_task_output'].includes(toolName)) {
 				const verificationStatus = getDardcorVerificationCommandStatus(command, output);
-				if (verificationStatus === 'passed' && !failed) {
-					addEvidence(`Verification command succeeded: ${command}`);
-					verificationFailures = verificationFailures.filter(item => !item.startsWith(`Verification command: ${command} `));
-					verificationPending = verificationPending.filter(item => !item.startsWith(`Verification command: ${command} `));
-				} else if (verificationStatus === 'failed' || (verificationStatus === 'passed' && failed)) {
-					verificationFailures = verificationFailures.filter(item => !item.startsWith(`Verification command: ${command} `));
-					verificationPending = verificationPending.filter(item => !item.startsWith(`Verification command: ${command} `));
-					verificationFailures.push(`Verification command: ${command} did not succeed.`);
-				} else if (verificationStatus === 'inconclusive') {
-					verificationPending = verificationPending.filter(item => !item.startsWith(`Verification command: ${command} `));
-					verificationPending.push(`Verification command: ${command} has no confirmed completion status.`);
+				const verificationLabel = formatDardcorVerificationLabel(command);
+				if (verificationLabel) {
+					if (verificationStatus === 'passed' && !failed) {
+						addEvidence(`Verification check passed: ${verificationLabel}`);
+						verificationFailures = verificationFailures.filter(item => !item.includes(verificationLabel));
+						verificationPending = verificationPending.filter(item => !item.includes(verificationLabel));
+					} else if (verificationStatus === 'failed' || (verificationStatus === 'passed' && failed)) {
+						verificationFailures = verificationFailures.filter(item => !item.includes(verificationLabel));
+						verificationPending = verificationPending.filter(item => !item.includes(verificationLabel));
+						verificationFailures.push(`Verification check failed: ${verificationLabel}`);
+					} else if (verificationStatus === 'inconclusive') {
+						verificationPending = verificationPending.filter(item => !item.includes(verificationLabel));
+						verificationPending.push(`Verification awaiting confirmation: ${verificationLabel}`);
+					}
 				}
 			}
 			const browserTool = ['open_browser_page', 'read_browser_page', 'read_page', 'navigate_browser', 'navigate_page', 'click_element', 'type_in_page', 'scroll_browser_page', 'hover_element', 'press_key', 'select_option', 'drag_and_drop', 'wait_for_browser', 'execute_browser_script', 'get_browser_console_logs', 'handle_browser_dialog', 'screenshot_browser_page', 'screenshot_page'].includes(toolName);
@@ -4193,7 +4373,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const actionFailurePrefix = `Browser action (${pageUrl?.[1] ?? pageUrl?.[2] ?? 'current page'}):`;
 				verificationFailures = verificationFailures.filter(item => !item.startsWith(actionFailurePrefix));
 				verificationFailures.push(`${actionFailurePrefix} one click was sent, but the post-action snapshot showed no observable URL, title, or visible text change.`);
-			} else if (browserAction && !failed && output.includes('### Active Browser Page Snapshot') && /✅/.test(output)) {
+			} else if (browserAction && !failed && output.includes('### Active Browser Page Snapshot') && (/\b(?:Clicked|Typed|Scrolled|Hovered|Pressed|Selected|Dragged|Wait condition met|Configured browser|Captured live)\b/i.test(output) || /✅/.test(output))) {
 				browserActions++;
 				addEvidence(`Integrated browser ${toolName} succeeded and returned a post-action DOM snapshot.`);
 				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
@@ -4246,77 +4426,128 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			taskConclusionEmitted = true;
 			const status = runState?.status ?? 'blocked';
-			const statusLabel = status === 'completed' && acceptedTaskCompletion
-				? 'Complete'
-				: token.isCancellationRequested || status === 'paused' || status === 'cancelled'
-					? 'Paused'
-					: 'Blocked';
+			if (status === 'completed' && acceptedTaskCompletion && finalSynthesisCompleted) {
+				return;
+			}
+			const isComplete = status === 'completed' && acceptedTaskCompletion;
+			const isCancelled = token.isCancellationRequested || status === 'cancelled';
+			const isPaused = !isComplete && (isCancelled || status === 'paused');
+
 			let todos = [] as ReturnType<IChatTodoListService['getTodos']>;
 			try {
 				todos = todoListService?.getTodos(request.sessionResource) ?? [];
 			} catch {}
 			const completedTodos = todos.filter(todo => todo.status === 'completed').length;
 			const pendingTodos = todos.filter(todo => todo.status !== 'completed');
+
 			const allEvidence = runState?.verificationEvidence ?? [];
 			const evidence = allEvidence.filter(item => item.workspaceRevision === runState?.workspaceRevision);
-			const staleEvidence = allEvidence.filter(item => item.workspaceRevision !== runState?.workspaceRevision);
 			const failures = runState?.verificationFailures ?? [];
 			const pendingVerification = runState?.verificationPending ?? [];
-			const lines = [
-				'\n\n### Task summary',
-				`**Status:** ${statusLabel}`,
-			];
-			if (status === 'completed' && acceptedTaskCompletion && proposedCompletionSummary?.trim()) {
-				lines.push('', `**Work completed:** ${proposedCompletionSummary.trim().slice(0, 1800)}`);
-			}
-			lines.push('', status === 'completed' && acceptedTaskCompletion ? '**Recorded activity:**' : '**Work completed so far:**');
-			if (successfulTaskActions.size > 0) {
-				for (const [label, count] of successfulTaskActions) {
-					lines.push(`- ${label}: ${count} successful action(s)`);
+
+			const lang = detectDardcorLanguage(activeTaskPrompt);
+			const i18n = getDardcorLocaleStrings(lang);
+
+			let workspaceFolders: string[] = [];
+			try {
+				this.instantiationService.invokeFunction(accessor => {
+					const wsService = accessor.get(IWorkspaceContextService);
+					workspaceFolders = wsService.getWorkspace().folders.map(f => f.uri.fsPath);
+				});
+			} catch { }
+
+			const formatFilePath = (filePath: string): string => {
+				for (const folder of workspaceFolders) {
+					if (filePath.toLowerCase().startsWith(folder.toLowerCase())) {
+						const rel = filePath.slice(folder.length).replace(/^[\\/]+/, '').replace(/\\/g, '/');
+						return rel || filePath;
+					}
 				}
-			} else {
-				lines.push('- No successful tool actions were recorded.');
+				const tempDir = (typeof process !== 'undefined' && (process.env.TEMP || process.env.TMP)) || '';
+				if (tempDir && filePath.toLowerCase().startsWith(tempDir.toLowerCase())) {
+					const base = filePath.slice(tempDir.length).replace(/^[\\/]+/, '');
+					return `temp/${base}`;
+				}
+				return filePath.replace(/\\/g, '/');
+			};
+
+			const lines: string[] = [];
+			const title = isComplete
+				? i18n.taskSummaryComplete
+				: isPaused
+					? i18n.taskSummaryPaused
+					: i18n.taskSummaryBlocked;
+
+			lines.push(`\n\n### ${title}`);
+
+			if (isComplete && proposedCompletionSummary?.trim()) {
+				lines.push('', proposedCompletionSummary.trim().slice(0, 1800));
 			}
+
 			if (taskChangedFiles.size > 0) {
-				const fileList = [...taskChangedFiles];
-				lines.push('', `**Changed files (${fileList.length}):** ${fileList.slice(0, 12).map(file => `\`${file}\``).join(', ')}${fileList.length > 12 ? `, and ${fileList.length - 12} more` : ''}`);
+				const fileList = [...taskChangedFiles].map(formatFilePath);
+				lines.push('', `**${i18n.changedFiles} (${fileList.length}):** ${fileList.slice(0, 10).map(file => `\`${file}\``).join(', ')}${fileList.length > 10 ? `, +${fileList.length - 10} more` : ''}`);
 			}
+
 			if (todos.length > 0) {
-				lines.push('', `**Checklist:** ${completedTodos}/${todos.length} complete`);
+				lines.push('', `**${i18n.checklist}:** ${completedTodos}/${todos.length} ${i18n.complete}`);
 			}
+
 			if (evidence.length > 0) {
-				lines.push('', '**Verification evidence:**');
-				for (const item of evidence.slice(-6)) {
-					lines.push(`- ${item.message.replace(/[\r\n\t]+/g, ' ').slice(0, 320)}`);
+				lines.push('', `**${i18n.verificationEvidence}:**`);
+				for (const item of evidence.slice(-4)) {
+					const cleanMsg = item.message.replace(/[\r\n\t]+/g, ' ').trim();
+					lines.push(`- ${cleanMsg}`);
 				}
-			} else {
-				lines.push('', '**Verification:** No verification evidence has been recorded.');
 			}
-			if (staleEvidence.length > 0) {
-				lines.push('', `**Previous verification:** ${staleEvidence.length} item(s) are stale after a later workspace change and must be rerun.`);
-			}
+
 			if (failures.length > 0) {
-				lines.push('', '**Verification issues:**');
-				for (const item of failures.slice(0, 5)) {
-					lines.push(`- ${item.replace(/[\r\n\t]+/g, ' ').slice(0, 320)}`);
+				lines.push('', `**${i18n.verificationIssues}:**`);
+				for (const item of failures.slice(0, 3)) {
+					const cleanMsg = item.replace(/[\r\n\t]+/g, ' ').trim();
+					lines.push(`- ${cleanMsg}`);
 				}
 			}
+
 			if (pendingVerification.length > 0) {
-				lines.push('', '**Verification pending:**');
-				for (const item of pendingVerification.slice(0, 5)) {
-					lines.push(`- ${item.replace(/[\r\n\t]+/g, ' ').slice(0, 320)}`);
+				lines.push('', `**${i18n.verificationPending}:**`);
+				for (const item of pendingVerification.slice(0, 3)) {
+					const cleanMsg = item.replace(/[\r\n\t]+/g, ' ').trim();
+					lines.push(`- ${cleanMsg}`);
 				}
 			}
-			if (status !== 'completed' || !acceptedTaskCompletion) {
-				const blocker = runState?.lastError?.replace(/[\r\n\t]+/g, ' ').slice(0, 500);
-				lines.push('', `**Next step:** ${pendingTodos[0]?.title ?? runState?.nextStep ?? blocker ?? 'Resume from the checkpoint and verify the remaining items.'}`);
-				if (blocker && blocker !== runState?.nextStep) {
-					lines.push(`**Why work stopped:** ${blocker}`);
+
+			if (!isComplete) {
+				const nextItem = pendingTodos[0]?.title ?? runState?.nextStep ?? i18n.resumeDefault;
+				lines.push('', `**${i18n.nextStep}:** ${nextItem}`);
+
+				const blocker = runState?.lastError?.replace(/[\r\n\t]+/g, ' ').trim();
+				if (blocker && blocker !== runState?.nextStep && blocker !== nextItem) {
+					lines.push(`**${i18n.reason}:** ${blocker}`);
 				}
-			} else {
-				lines.push('', '**Remaining work:** None; the agent completion checks passed.');
+				const isFullAccess = isFullAccessActive();
+				const hasIncompleteChecklist = pendingTodos.length > 0;
+				if (isPaused && isFullAccess && !token.isCancellationRequested && hasIncompleteChecklist) {
+					lines.push('', `> **${i18n.autoContinueActive}**`);
+				} else {
+					lines.push('', `> ${i18n.sendContinueToResume}`);
+				}
 			}
+
 			progress([{ kind: 'markdownContent', content: new MarkdownString(`${lines.join('\n')}\n\n`) }]);
+
+			if (!isComplete && isPaused && isFullAccessActive() && !token.isCancellationRequested && pendingTodos.length > 0) {
+				setTimeout(() => {
+					try {
+						this.instantiationService.invokeFunction(accessor => {
+							const chatService = accessor.get(IChatService);
+							chatService.sendRequest(request.sessionResource, 'continue');
+						});
+					} catch (err) {
+						console.warn('[streamDardcorRouter] Auto-continue dispatch failed:', err);
+					}
+				}, 1200);
+			}
 		};
 		const noteToolFailure = (output: string, executionStatus?: AgentToolExecutionStatus): boolean => {
 			if (!taskIsTracked || token.isCancellationRequested) {
@@ -4363,6 +4594,10 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				permissionLevel: getDardcorEffectivePermissionLevel(selectedPermissionLevel, fullAccessRestrictedByPolicy) as ChatPermissionLevel | undefined,
 				fullAccessRestricted: fullAccessRestrictedByPolicy && selectedPermissionLevel === ChatPermissionLevel.AutoApprove,
 			};
+		};
+		const isFullAccessActive = (): boolean => {
+			const perm = getEffectiveRouterPermission();
+			return isAutoApproveLevel(perm.permissionLevel);
 		};
 		const formatApprovalDetails = (details: string): string => {
 			const longestBacktickRun = Math.max(0, ...Array.from(details.matchAll(/`+/g), match => match[0].length));
@@ -4623,7 +4858,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const details = result.details && typeof result.details === 'object' ? result.details as Record<string, unknown> : {};
 				return { ...details, output: result.output, executionStatus: result.status };
 			};
-			let systemPrompt = buildDardcorSystemPrompt(snapshot);
+			let systemPrompt = buildDardcorSystemPrompt(snapshot, {
+				userPrompt: activeTaskPrompt,
+				permissionLevel: getEffectiveRouterPermission().permissionLevel,
+				activeSkills,
+				todos: todoListService?.getTodos(request.sessionResource)
+			});
 
 			if (activeSkills.length > 0) {
 				let skillDirectives = `\n\n=== ACTIVATED SKILLS & SPECIALIZED DIRECTIVES ===\n` +
@@ -4659,7 +4899,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 			}
 
-			const messages: any[] = [
+			let messages: any[] = [
 				{ role: 'system', content: systemPrompt }
 			];
 			let dynamicFallbackToolsAdded = false;
@@ -4682,21 +4922,32 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 				if (h.response) {
 					let respText = '';
+					let hasContent = false;
 					for (const r of h.response as any[]) {
 						if (!r) continue;
 						if (typeof r === 'object') {
 							if (r.content && typeof r.content === 'object' && typeof r.content.value === 'string') {
 								respText += r.content.value;
+								hasContent = true;
 							} else if (typeof r.content === 'string') {
 								respText += r.content;
+								hasContent = true;
 							} else if (r.kind === 'thinking' && typeof r.value === 'string') {
-								if (!respText) respText += r.value;
+								if (!hasContent) {
+									respText += r.value;
+								}
 							}
 						}
 					}
 					respText = respText.replace(/\*\(No response content returned by model[^\)]*\)\*/g, '').trim();
 					if (respText) {
-						messages.push({ role: 'assistant', content: respText });
+						let cleanText = DardcorThinkingStreamParser.sanitizeText(respText);
+						if (!cleanText && !hasContent) {
+							cleanText = '[Turn was stopped by user during reasoning]';
+						}
+						if (cleanText) {
+							messages.push({ role: 'assistant', content: cleanText });
+						}
 					}
 				}
 			}
@@ -4732,7 +4983,10 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			if (taskIsTracked) {
 				if (canResume && previousState) {
-					runState = previousState;
+					runState = {
+						...previousState,
+						verificationPending: []
+					};
 					saveRunState({ status: 'working', stalledTurns: 0, lastError: undefined, taskPrompt: activeTaskPrompt, nextStep: previousState.nextStep || 'Review the checklist and continue from its first incomplete item.' });
 					const pendingTodos = todoListService?.getTodos(request.sessionResource) ?? [];
 					messages.push({
@@ -4746,10 +5000,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 			}
 
+			const isClarificationQuestion = /^(?:bentar|sebentar|tunggu|wait|hold on|apa itu|kenapa|mengapa|sedang apa|sedang download apa|sedang unduh apa|what are you|what is|why are you)\b/i.test(trimmedPrompt);
 			if (isContinuation) {
 				messages.push({
 					role: 'user',
 					content: `${trimmedPrompt}\n\n[System Directive]: The user is asking you to continue the task. Review your previous work and the workspace state, and proceed immediately with the next steps using tools or provide the complete continuation.`
+				});
+			} else if (isClarificationQuestion && previousState && ['paused', 'blocked', 'working'].includes(previousState.status)) {
+				const lang = detectDardcorLanguage(trimmedPrompt);
+				const directive = lang === 'id'
+					? `[System Directive]: Pengguna menjeda tugas sebelumnya untuk mengajukan pertanyaan klarifikasi ("${trimmedPrompt}"). Jawab pertanyaan pengguna secara langsung, ramah, dan jelas tanpa menjalankan tools yang berat atau melanjutkan download/modifikasi sebelum pengguna secara spesifik menginstruksikannya.`
+					: `[System Directive]: The user paused the previous task to ask a clarification question ("${trimmedPrompt}"). Answer the user's question directly, concisely, and warmly without executing heavy tools, background downloads, or workspace modifications until the user explicitly directs you to proceed.`;
+				messages.push({
+					role: 'user',
+					content: `${trimmedPrompt}\n\n${directive}`
 				});
 			} else {
 				messages.push({ role: 'user', content: trimmedPrompt });
@@ -4864,13 +5128,26 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const MAX_CONSECUTIVE_TEXT_TURNS = 5;
 			const MAX_STREAM_RETRIES = 5;
 
+			if (taskIsTracked && JSON.stringify(messages).length >= DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS) {
+				const initialCompaction = compactDardcorAgentMessages(messages);
+				if (initialCompaction.compactedItemsCount > 0) {
+					messages = initialCompaction.messages;
+				}
+			}
+
 			while (true) {
 				if (taskIsTracked) {
-					const contextChars = JSON.stringify(messages).length;
+					let contextChars = JSON.stringify(messages).length;
+					if (contextChars >= DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS) {
+						const compaction = compactDardcorAgentMessages(messages);
+						if (compaction.compactedItemsCount > 0) {
+							messages = compaction.messages;
+							contextChars = compaction.compactedChars;
+						}
+					}
 					const guardReason = getDardcorRunGuardReason(contextChars);
 					if (guardReason) {
 						saveRunState({ status: 'paused', lastError: guardReason, nextStep: 'Resume this task after reviewing the saved checklist and first unfinished item.' });
-						progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: paused** — ${guardReason} ${checkpointPersisted ? 'The checkpoint and next step are saved' : 'Checkpoint storage is unavailable'}; send “continue” to resume.\n\n`) }]);
 						break;
 					}
 				}
@@ -4889,11 +5166,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					stream: true,
 					max_tokens: 16384
 				};
-				if (supportsNativeTools) {
+				if (supportsNativeTools && !finalSynthesisTurnPending) {
 					payload.tools = browserVerificationOnly
 						? routerToolDefinitions.filter(tool => DARDCOR_BROWSER_VERIFICATION_TOOL_NAMES.has(tool.function.name))
 						: routerToolDefinitions;
-					payload.tool_choice = browserVerificationOnly ? 'required' : 'auto';
+					payload.tool_choice = (browserVerificationOnly || (taskIsTracked && consecutiveTextTurns > 0)) ? 'required' : 'auto';
 				}
 
 				let streamedAssistantText = '';
@@ -4911,6 +5188,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					streamAttempt++;
 					if (token.isCancellationRequested) break;
 
+					const turnAbortController = new AbortController();
+					const turnAbortListener = token.onCancellationRequested(() => {
+						try { turnAbortController.abort(); } catch { }
+					});
+
 					streamedAssistantText = '';
 					streamedReasoningText = '';
 					rawAssistantText = '';
@@ -4923,7 +5205,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						res = await fetchRouter('/v1/chat/completions', {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
-							body: JSON.stringify(payload)
+							body: JSON.stringify(payload),
+							signal: turnAbortController.signal
 						}, 3, 60000);
 					} catch (fetchErr: any) {
 						lastStreamError = fetchErr;
@@ -4931,7 +5214,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							const backoffMs = Math.min(1000 * Math.pow(2, streamAttempt - 1), 6000);
 							progress([{
 								kind: 'markdownContent',
-								content: new MarkdownString(`\n\n> ⚠️ *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+								content: new MarkdownString(`\n\n> *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
 							}]);
 							await new Promise(r => setTimeout(r, backoffMs));
 							continue;
@@ -4952,7 +5235,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								res = await fetchRouter('/v1/chat/completions', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
-									body: JSON.stringify(payload)
+									body: JSON.stringify(payload),
+									signal: turnAbortController.signal
 								}, 3, 60000);
 								responseErrorText = undefined;
 							} catch (retryError) {
@@ -4970,7 +5254,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								res = await fetchRouter('/v1/chat/completions', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
-									body: JSON.stringify(payload)
+									body: JSON.stringify(payload),
+									signal: turnAbortController.signal
 								}, 3, 60000);
 								responseErrorText = undefined;
 							} catch (retryError) {
@@ -4989,7 +5274,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							const backoffMs = Math.min(2000 * Math.pow(2, streamAttempt - 1), 8000);
 							progress([{
 								kind: 'markdownContent',
-								content: new MarkdownString(`\n\n> ⚠️ *Model gateway returned HTTP ${res.status}. Retrying... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+								content: new MarkdownString(`\n\n> *Model gateway returned HTTP ${res.status}. Retrying... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
 							}]);
 							await new Promise(r => setTimeout(r, backoffMs));
 							continue;
@@ -5023,9 +5308,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						},
 						onMarkdownContent: (chunk: string) => {
 							streamedAssistantText += chunk;
-							if (!taskIsTracked) {
-								progress([{ kind: 'markdownContent', content: new MarkdownString(chunk) }]);
-							}
+							progress([{ kind: 'markdownContent', content: new MarkdownString(chunk) }]);
 						},
 						onRetroactiveReclassify: (leakedMarkdown: string) => {
 							if (streamedAssistantText.length > 0) {
@@ -5037,6 +5320,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					});
 
 					const cancelListener = token.onCancellationRequested(() => {
+						try { turnAbortController.abort(); } catch { }
 						try { reader.cancel(); } catch { }
 					});
 
@@ -5045,7 +5329,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							const timer = setTimeout(() => {
 								try { r.cancel(); } catch { }
 								reject(new Error('Stream idle timeout'));
-							}, 180000);
+							}, 45000);
 							r.read().then(
 								readVal => { clearTimeout(timer); resolve(readVal); },
 								err => { clearTimeout(timer); reject(err); }
@@ -5159,13 +5443,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								const backoffMs = Math.min(1000 * Math.pow(2, streamAttempt - 1), 6000);
 								progress([{
 									kind: 'markdownContent',
-									content: new MarkdownString(`\n\n> ⚠️ *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+									content: new MarkdownString(`\n\n> *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
 								}]);
 								await new Promise(r => setTimeout(r, backoffMs));
 							}
 						}
 					} finally {
 						cancelListener.dispose();
+						turnAbortListener.dispose();
 						try { reader.cancel(); } catch { }
 					}
 				}
@@ -5279,12 +5564,10 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					} else {
 						const cleanAnswer = DardcorThinkingStreamParser.sanitizeText(this._extractResponseFromReasoning(streamedReasoningText));
 						streamedAssistantText = cleanAnswer;
-						if (!taskIsTracked) {
-							progress([{
-								kind: 'markdownContent',
-								content: new MarkdownString(cleanAnswer)
-							}]);
-						}
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString(cleanAnswer)
+						}]);
 					}
 				}
 
@@ -5310,6 +5593,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				consecutiveEmptyTurns = 0;
 
 				if (nativeToolCalls.length > 0) {
+					if (finalSynthesisTurnPending) {
+						finalSynthesisCompleted = true;
+						finalSynthesisTurnPending = false;
+						saveRunState({ status: 'completed', stalledTurns: 0, lastError: undefined });
+						break;
+					}
 					consecutiveTextTurns = 0;
 					const isTaskCompleted = nativeToolCalls.some(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
 					let completionRejectedReason: string | undefined;
@@ -5361,8 +5650,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 						recordToolEvidence(tc.name, parsedArgs, toolResult.output, toolResult.externalEdit, toolResult.executionStatus);
 						if (noteToolFailure(toolResult.output, toolResult.executionStatus)) {
-							toolRunBlocked = true;
-							saveRunState({ status: 'blocked', lastError: toolResult.output.slice(0, 500) });
+							if (isFullAccessActive() && autonomousRecoveryAttempts < MAX_AUTONOMOUS_RECOVERY_ATTEMPTS) {
+								autonomousRecoveryAttempts++;
+								consecutiveToolFailures = 0;
+								toolRunBlocked = false;
+								const errorPreview = toolResult.output.replace(/[\r\n\t]+/g, ' ').slice(0, 300);
+								const userLang = detectDardcorLanguage(activeTaskPrompt);
+								messages.push({
+									role: 'user',
+									content: getDardcorAutonomousSelfCorrectionDirective(userLang, errorPreview)
+								});
+							} else {
+								toolRunBlocked = true;
+								saveRunState({ status: 'blocked', lastError: toolResult.output.slice(0, 500) });
+							}
 						}
 
 						if (chatEditingService) {
@@ -5459,13 +5760,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 
 					if (toolRunBlocked) {
-						const lastFailure = runState?.lastError?.replace(/[\r\n\t]+/g, ' ').slice(0, 320);
-						progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: blocked** — three consecutive tool actions failed.${lastFailure ? ` Last error: ${lastFailure}.` : ''} The checkpoint and checklist are saved; send “continue” after correcting the cause.\n\n`) }]);
+						saveRunState({ status: 'blocked' });
 						break;
 					}
 					if (toolRunInterrupted) {
 						saveRunState({ status: 'paused', lastError: 'Run cancelled while a tool action was in progress; inspect that action before retrying.' });
-						progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: paused** — cancelled during a tool action. ${checkpointPersisted ? 'The checkpoint is saved' : 'Checkpoint storage is unavailable'}; inspect the action result before sending “continue”.\n\n`) }]);
 						break;
 					}
 
@@ -5491,7 +5790,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							saveRunState({ stalledTurns, lastError: reason, nextStep });
 							if (stalledTurns >= 3) {
 								saveRunState({ status: 'blocked' });
-								progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: blocked** — ${reason} ${checkpointPersisted ? 'Checkpoint, checklist and evidence are saved' : 'Checkpoint storage is unavailable'}; send “continue” after addressing this blocker.\n\n`) }]);
 								break;
 							}
 							messages.push({ role: 'user', content: browserVerificationOnly
@@ -5523,12 +5821,27 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 						if (taskIsTracked && acceptedTaskCompletion) {
 							saveRunState({ status: 'completed', stalledTurns: 0, lastError: undefined });
+							if (!finalSynthesisCompleted && !finalSynthesisTurnPending) {
+								finalSynthesisTurnPending = true;
+								consecutiveTextTurns = 0;
+								messages.push({
+									role: 'user',
+									content: '[Final Summary Mandate]: The task completion verification has PASSED all quality gates, compiler diagnostics, and workspace checks. Now output your final, comprehensive concluding response directly to the user in the user’s detected language (e.g. Indonesian). Structure your response clearly with: 1) Executive Summary of accomplishments and resolved issues, 2) Complete list of files created or modified with their specific roles, 3) Verification evidence (terminal tests, compiler diagnostics showing 0 errors, live browser verification), 4) Clear, step-by-step instructions for the user on how to run, test, and use the project. Do not call any further tools; output only your polished final Markdown report.'
+								});
+								continue;
+							}
 						}
 						break;
 					}
 
 					continue;
 				} else if (textToolCalls.length > 0) {
+					if (finalSynthesisTurnPending) {
+						finalSynthesisCompleted = true;
+						finalSynthesisTurnPending = false;
+						saveRunState({ status: 'completed', stalledTurns: 0, lastError: undefined });
+						break;
+					}
 					consecutiveTextTurns = 0;
 					const isTaskCompleted = textToolCalls.some(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
 					let completionRejectedReason: string | undefined;
@@ -5573,8 +5886,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 						recordToolEvidence(tc.name, toolArgs, toolResult.output, toolResult.externalEdit, toolResult.executionStatus);
 						if (noteToolFailure(toolResult.output, toolResult.executionStatus)) {
-							toolRunBlocked = true;
-							saveRunState({ status: 'blocked', lastError: toolResult.output.slice(0, 500) });
+							if (isFullAccessActive() && autonomousRecoveryAttempts < MAX_AUTONOMOUS_RECOVERY_ATTEMPTS) {
+								autonomousRecoveryAttempts++;
+								consecutiveToolFailures = 0;
+								toolRunBlocked = false;
+								const errorPreview = toolResult.output.replace(/[\r\n\t]+/g, ' ').slice(0, 300);
+								const userLang = detectDardcorLanguage(activeTaskPrompt);
+								messages.push({
+									role: 'user',
+									content: getDardcorAutonomousSelfCorrectionDirective(userLang, errorPreview)
+								});
+							} else {
+								toolRunBlocked = true;
+								saveRunState({ status: 'blocked', lastError: toolResult.output.slice(0, 500) });
+							}
 						}
 
 						if (chatEditingService) {
@@ -5656,13 +5981,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 
 					if (toolRunBlocked) {
-						const lastFailure = runState?.lastError?.replace(/[\r\n\t]+/g, ' ').slice(0, 320);
-						progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: blocked** — three consecutive tool actions failed.${lastFailure ? ` Last error: ${lastFailure}.` : ''} The checkpoint and checklist are saved; send “continue” after correcting the cause.\n\n`) }]);
+						saveRunState({ status: 'blocked' });
 						break;
 					}
 					if (toolRunInterrupted) {
 						saveRunState({ status: 'paused', lastError: 'Run cancelled while a tool action was in progress; inspect that action before retrying.' });
-						progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: paused** — cancelled during a tool action. ${checkpointPersisted ? 'The checkpoint is saved' : 'Checkpoint storage is unavailable'}; inspect the action result before sending “continue”.\n\n`) }]);
 						break;
 					}
 
@@ -5688,7 +6011,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							saveRunState({ stalledTurns, lastError: reason, nextStep });
 							if (stalledTurns >= 3) {
 								saveRunState({ status: 'blocked' });
-								progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: blocked** — ${reason} ${checkpointPersisted ? 'Checkpoint, checklist and evidence are saved' : 'Checkpoint storage is unavailable'}; send “continue” after addressing this blocker.\n\n`) }]);
 								break;
 							}
 							messages.push({ role: 'user', content: browserVerificationOnly
@@ -5720,6 +6042,15 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						}
 						if (taskIsTracked && acceptedTaskCompletion) {
 							saveRunState({ status: 'completed', stalledTurns: 0, lastError: undefined });
+							if (!finalSynthesisCompleted && !finalSynthesisTurnPending) {
+								finalSynthesisTurnPending = true;
+								consecutiveTextTurns = 0;
+								messages.push({
+									role: 'user',
+									content: '[Final Summary Mandate]: The task completion verification has PASSED all quality gates, compiler diagnostics, and workspace checks. Now output your final, comprehensive concluding response directly to the user in the user’s detected language (e.g. Indonesian). Structure your response clearly with: 1) Executive Summary of accomplishments and resolved issues, 2) Complete list of files created or modified with their specific roles, 3) Verification evidence (terminal tests, compiler diagnostics showing 0 errors, live browser verification), 4) Clear, step-by-step instructions for the user on how to run, test, and use the project. Do not call any further tools; output only your polished final Markdown report.'
+								});
+								continue;
+							}
 						}
 						break;
 					}
@@ -5728,6 +6059,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 
 				if (taskIsTracked) {
+					if (finalSynthesisTurnPending) {
+						finalSynthesisCompleted = true;
+						finalSynthesisTurnPending = false;
+						messages.push({ role: 'assistant', content: streamedAssistantText });
+						saveRunState({ status: 'completed', stalledTurns: 0, lastError: undefined });
+						break;
+					}
 					consecutiveTextTurns++;
 					const textTurnLimit = browserVerificationOnly ? 2 : MAX_CONSECUTIVE_TEXT_TURNS;
 					if (getDardcorPlainTextTurnDecision(taskIsTracked, consecutiveTextTurns, textTurnLimit) === 'continue' && !token.isCancellationRequested) {
@@ -5741,7 +6079,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							role: 'user',
 							content: browserVerificationOnly
 								? `[Runtime Browser Gate]: No browser tool call was produced. Use an enabled integrated Browser Editor tool now. Do not use terminal or HTTP as a substitute for live page evidence.`
-								: `[Agent Workflow Guard]: The task is still ${currentRunState?.status ?? 'working'} and is not complete. Your last response had no valid action tool call, so it did not change the project or satisfy any checklist item. Checklist=${JSON.stringify(todoSnapshot)}. Current verification evidence=${currentVerificationEvidence}. Immediately call manage_todo_list if the checklist is missing, then take one concrete action with the available tools. Do not output a completion claim.`
+								: `[Agent Workflow Guard]: The task is still ${currentRunState?.status ?? 'working'} and is not complete. Your last response contained conversational text without an action tool call. You MUST immediately take action by invoking one of the available tools (e.g. write_file, edit_file, run_command, or manage_todo_list). Checklist=${JSON.stringify(todoSnapshot)}. Current verification evidence=${currentVerificationEvidence}. Do NOT output conversational apologies or planning text in user chat without calling a tool; invoke an action tool call NOW.`
 						});
 						continue;
 					}
@@ -5749,7 +6087,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						? 'The user cancelled the run before all checklist items and verification were complete.'
 						: `The model returned ${consecutiveTextTurns} consecutive responses without a valid action tool call.`;
 					saveRunState({ status: token.isCancellationRequested ? 'paused' : 'blocked', lastError: reason });
-					progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: ${token.isCancellationRequested ? 'paused' : 'blocked'}** — ${reason} ${checkpointPersisted ? 'The checkpoint is saved.' : 'Checkpoint storage is unavailable.'} Send “continue” to resume after resolving the issue.\n\n`) }]);
 					break;
 				}
 
@@ -5767,6 +6104,25 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					continue;
 				}
 
+				if (isFullAccessActive() && taskIsTracked && !acceptedTaskCompletion && !token.isCancellationRequested) {
+					const allTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+					const incomplete = allTodos.filter(t => t.status !== 'completed');
+					if (incomplete.length > 0) {
+						consecutiveTextTurns = 0;
+						const nextItem = incomplete[0];
+						messages.push({
+							role: 'assistant',
+							content: streamedAssistantText || 'Continuing task execution...'
+						});
+						const userLang = detectDardcorLanguage(activeTaskPrompt);
+						messages.push({
+							role: 'user',
+							content: getDardcorAutonomousMomentumDirective(userLang, allTodos.length - incomplete.length, allTodos.length, nextItem)
+						});
+						continue;
+					}
+				}
+
 				break;
 			}
 
@@ -5775,7 +6131,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					? 'The user cancelled the run before the completion gate passed.'
 					: runState.lastError || 'The agent stopped before the completion gate passed.';
 				saveRunState({ status: 'paused', lastError: reason, nextStep: runState.nextStep || 'Resume from the first incomplete checklist item.' });
-				progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n> **Agent task: paused** — ${reason} ${checkpointPersisted ? 'The checkpoint is saved' : 'Checkpoint storage is unavailable'}; send “continue” to resume.\n\n`) }]);
 			}
 
 			return {};

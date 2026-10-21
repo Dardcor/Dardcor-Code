@@ -9,14 +9,14 @@ import { ContextKeyExpression } from '../../../../../../platform/contextkey/comm
 import { ExtensionIdentifier } from '../../../../../../platform/extensions/common/extensions.js';
 import { MockContextKeyService } from '../../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { DardcorAgentToolRuntime } from '../../../../../../platform/agentHost/common/agentToolRuntime.js';
-import { ChatAgentService, IChatAgentData, IChatAgentImplementation, DARDCOR_AGENT_TOOLS, isAgentFilePathOutsideWorkspace, resolveAgentFileReadTarget, isDardcorMaxTokensCompatibilityError, isDardcorNativeToolCompatibilityError, isDardcorRouterStreamTerminal, normalizeDardcorRouterModelCapabilities, shouldAttachDardcorBrowserScreenshot } from '../../../common/participants/chatAgents.js';
+import { ChatAgentService, IChatAgentData, IChatAgentImplementation, DARDCOR_AGENT_TOOLS, isAgentFilePathOutsideWorkspace, resolveAgentFileReadTarget, isDardcorMaxTokensCompatibilityError, isDardcorNativeToolCompatibilityError, isDardcorRouterStreamTerminal, normalizeDardcorRouterModelCapabilities, shouldAttachDardcorBrowserScreenshot, buildDardcorSystemPrompt, DardcorThinkingStreamParser } from '../../../common/participants/chatAgents.js';
 import { TestConfigurationService } from '../../../../../../platform/configuration/test/common/testConfigurationService.js';
 import { TestInstantiationService } from '../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { createChatAgentRunState, migrateChatAgentRunState, updateChatAgentRunState } from '../../../common/tools/agentRunStateService.js';
-import { getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorBrowserTest, isDardcorLowRiskCommand, isDardcorWebImplementationTask, parseDardcorAgentToolArguments, requiresDardcorCommandConfirmation, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction } from '../../../common/participants/dardcorAgentRunPolicy.js';
+import { compactDardcorAgentMessages, formatDardcorVerificationLabel, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorBrowserTest, isDardcorExploratoryCommand, isDardcorLowRiskCommand, isDardcorWebImplementationTask, parseDardcorAgentToolArguments, requiresDardcorCommandConfirmation, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction, detectDardcorLanguage, getDardcorLocaleStrings, getDardcorAutonomousMomentumDirective, getDardcorAutonomousSelfCorrectionDirective, type DardcorSupportedLanguage } from '../../../common/participants/dardcorAgentRunPolicy.js';
 import { getDardcorBrowserSnapshotChanges, performDardcorBrowserClick } from '../../../common/participants/dardcorBrowserActions.js';
 import { attachPlaywrightPageToGroups, IPlaywrightService, isBrowserDocumentReadyState, matchPlaywrightTargetToView } from '../../../../../../platform/browserView/common/playwrightService.js';
-import { DardcorBrowserAgentController } from '../../../common/participants/dardcorBrowserAgentController.js';
+import { DardcorBrowserAgentController, extractDardcorRefId } from '../../../common/participants/dardcorBrowserAgentController.js';
 import { URI } from '../../../../../../base/common/uri.js';
 
 const testAgentId = 'testAgent';
@@ -558,13 +558,43 @@ suite('Dardcor autonomous task policy', () => {
 		assert.strictEqual(requiresDardcorToolConfirmation('click_element', { elementId: '1' }, 'assisted'), true);
 		assert.strictEqual(requiresDardcorToolConfirmation('edit_file', { filePath: 'src/app.ts' }, 'autopilot'), true);
 		assert.strictEqual(requiresDardcorToolConfirmation('fetch_web_page', { url: 'https://example.com' }, 'assisted'), true);
-		assert.strictEqual(requiresDardcorToolConfirmation('unrecognized_tool', {}, 'autoApprove'), true);
+		assert.strictEqual(requiresDardcorToolConfirmation('unrecognized_tool', {}, 'autoApprove'), false);
+		assert.strictEqual(requiresDardcorToolConfirmation('unrecognized_tool', {}, 'default'), true);
 		assert.strictEqual(getDardcorEffectivePermissionLevel('autoApprove', true), 'default');
 		assert.strictEqual(getDardcorEffectivePermissionLevel('assisted', true), 'assisted');
 		assert.strictEqual(getDardcorEffectivePermissionLevel('autopilot', false), 'default');
 		assert.match(summarizeDardcorToolAction('write_file', { filePath: 'src/app.ts', content: 'export const answer = 42;' }), /content: export const answer = 42/);
 		assert.match(getDardcorRunGuardReason(750_000) ?? '', /context budget/);
 		assert.strictEqual(getDardcorRunGuardReason(5000), undefined);
+
+		// Verification command sanitization and exploratory recognition tests
+		assert.strictEqual(isDardcorExploratoryCommand('Get-ChildItem public/icons | Select-Object Name'), true);
+		assert.strictEqual(isDardcorExploratoryCommand('ls public/icons; echo "=== JS/CSS ==="; ls resources/js resources/css'), true);
+		assert.strictEqual(isDardcorExploratoryCommand('Get-Content resources/views/layouts/header.blade.php'), true);
+		assert.strictEqual(formatDardcorVerificationLabel('ls public/icons; echo "=== JS/CSS ==="'), '');
+		assert.strictEqual(formatDardcorVerificationLabel('php storage/framework/check-env.php; php artisan test 2>&1 | Select-Object -Last 14'), 'PHP Artisan Unit & Feature Tests');
+		assert.strictEqual(formatDardcorVerificationLabel('Get-Content resources/views/layouts/header.blade.php; echo "=== ICONS ==="; Test-Path public/icons/icon-192.png; Get-ChildItem public/icons'), 'Verify public icon assets');
+		assert.strictEqual(formatDardcorVerificationLabel('npm test -- --watch=false'), 'NPM Test Suite');
+		assert.strictEqual(formatDardcorVerificationLabel('cargo test --lib'), 'Cargo Test Suite');
+
+		// In-flight context compaction tests
+		const largeOutput = 'A'.repeat(150_000);
+		const testMessages = [
+			{ role: 'system', content: 'You are an agent' },
+			{ role: 'user', content: 'Do task' },
+			{ role: 'assistant', tool_calls: [{ id: '1', function: { name: 'read_file', arguments: '{}' } }] },
+			{ role: 'tool', content: largeOutput + '\n[Command result: exit code 0]' },
+			{ role: 'assistant', tool_calls: [{ id: '2', function: { name: 'run_command', arguments: '{}' } }] },
+			{ role: 'tool', content: largeOutput + '\n[Command result: exit code 0]' },
+			{ role: 'assistant', content: 'Recent turn assistant' },
+			{ role: 'user', content: 'Recent turn user' }
+		];
+		const compactionResult = compactDardcorAgentMessages(testMessages, 50_000, 1);
+		assert.ok(compactionResult.compactedChars < compactionResult.originalChars, 'Compacted characters should be significantly smaller');
+		assert.ok(compactionResult.compactedItemsCount > 0, 'Items should be compacted');
+		assert.ok(JSON.stringify(compactionResult.messages).length < 200_000, 'Total JSON size should be drastically reduced');
+		assert.strictEqual(compactionResult.messages[6].content, 'Recent turn assistant', 'Recent turns must be preserved without alteration');
+		assert.ok(compactionResult.messages[3].content.includes('[Command result: exit code 0]'), 'Exit code markers must be preserved in compacted output');
 	});
 
 	test('sends one real Playwright click and propagates browser failures', async () => {
@@ -649,6 +679,31 @@ suite('Dardcor autonomous task policy', () => {
 		assert.strictEqual(isDardcorRouterStreamTerminal(undefined), false);
 	});
 
+	test('normalizes Vercel agent-browser style refs and variations with extractDardcorRefId', () => {
+		assert.strictEqual(extractDardcorRefId('@e1'), '1');
+		assert.strictEqual(extractDardcorRefId('e1'), '1');
+		assert.strictEqual(extractDardcorRefId('@1'), '1');
+		assert.strictEqual(extractDardcorRefId('1'), '1');
+		assert.strictEqual(extractDardcorRefId(1), '1');
+		assert.strictEqual(extractDardcorRefId('[@e42]'), '42');
+		assert.strictEqual(extractDardcorRefId('[ref=@e7]'), '7');
+		assert.strictEqual(extractDardcorRefId('ref="e8"'), '8');
+		assert.strictEqual(extractDardcorRefId('[data-dardcor-id="99"]'), '99');
+		assert.strictEqual(extractDardcorRefId(''), null);
+		assert.strictEqual(extractDardcorRefId(undefined), null);
+		assert.strictEqual(extractDardcorRefId(null), null);
+		assert.strictEqual(extractDardcorRefId('button.btn-primary'), null);
+	});
+
+	test('includes ref parameter in browser router tools for Vercel deterministic targeting', () => {
+		const browserToolNames = ['click_element', 'type_in_page', 'scroll_browser_page', 'hover_element', 'select_option'];
+		for (const toolName of browserToolNames) {
+			const tool = DARDCOR_AGENT_TOOLS.find(t => t.function.name === toolName);
+			assert.ok(tool, `Tool ${toolName} must exist`);
+			assert.ok((tool.function.parameters as any)?.properties?.ref, `Tool ${toolName} must have a 'ref' property`);
+		}
+	});
+
 	test('requires a ready browser document and surfaces readiness failures', async () => {
 		assert.strictEqual(isBrowserDocumentReadyState('loading'), false);
 		assert.strictEqual(isBrowserDocumentReadyState('interactive'), true);
@@ -656,5 +711,131 @@ suite('Dardcor autonomous task policy', () => {
 		await assert.rejects(() => DardcorBrowserAgentController.waitTillHTMLStable(async () => {
 			throw new Error('Playwright page is closed.');
 		}, 1), /did not become ready.*Playwright page is closed/i);
+	});
+test('automatically detects all world languages and provides zero-emoji localized text', () => {
+		const testCases: [string, DardcorSupportedLanguage][] = [
+			['tolong buatkan website marketplace baru', 'id'],
+			['please implement authentication with jwt', 'en'],
+			['このバグを修正してテストを実行してください', 'ja'],
+			['请在项目中添加购物车功能并测试', 'zh'],
+			['이 문제를 해결하고 테스트를 실행해 주세요', 'ko'],
+			['por favor arregla este error en el controlador', 'es'],
+			['veuillez corriger cette fonction et exécuter les tests', 'fr'],
+			['bitte beheben Sie diesen Fehler in der Datenbank', 'de'],
+			['por favor corrija este erro no arquivo', 'pt'],
+			['пожалуйста исправьте эту ошибку и запустите тесты', 'ru'],
+			['per favore correggi questo bug nel file', 'it'],
+			['يرجى إصلاح هذا الخطأ وتشغيل الاختبارات', 'ar'],
+			['alstublieft herstel deze fout in het bestand', 'nl'],
+			['lütfen bu hatayı düzeltin ve testleri çalıştırın', 'tr'],
+			['làm ơn sửa lỗi này trong tập tin', 'vi'],
+		];
+
+		const emojiRegex = /[\uD83C-\uDBFF\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|[\u2700-\u27BF]/;
+
+		for (const [prompt, expectedLang] of testCases) {
+			const detected = detectDardcorLanguage(prompt);
+			assert.strictEqual(detected, expectedLang, `Expected ${expectedLang} for prompt: "${prompt}"`);
+
+			const strings = getDardcorLocaleStrings(detected);
+			assert.ok(strings.taskSummaryComplete.length > 0);
+			assert.ok(strings.taskSummaryPaused.length > 0);
+			assert.ok(strings.autoContinueActive.length > 0);
+			assert.ok(strings.sendContinueToResume.length > 0);
+
+			for (const [key, val] of Object.entries(strings)) {
+				assert.strictEqual(
+					emojiRegex.test(val),
+					false,
+					`Locale string '${key}' for language '${detected}' must contain zero emojis/stickers. Found: "${val}"`
+				);
+			}
+
+			const selfCorrection = getDardcorAutonomousSelfCorrectionDirective(detected, 'Command failed: exit 1');
+			assert.strictEqual(emojiRegex.test(selfCorrection), false);
+			assert.ok(selfCorrection.length > 20);
+
+			const momentum = getDardcorAutonomousMomentumDirective(detected, 2, 6, { id: 3, title: 'Implement views' });
+			assert.strictEqual(emojiRegex.test(momentum), false);
+			assert.ok(momentum.includes('3'));
+			assert.ok(momentum.includes('Implement views'));
+		}
+	});
+
+	test('dynamically generates multilingual system prompt with stack specialization and autonomy protocol', () => {
+		const emojiRegex = /[\uD83C-\uDBFF\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|[\u2700-\u27BF]/;
+
+		// 1. Indonesian dynamic prompt with Laravel specialization and Full Access
+		const indonesianPrompt = buildDardcorSystemPrompt({
+			hasWorkspace: true,
+			projectName: 'Arul Store',
+			rootPath: 'C:/projects/ArulStore',
+			techStack: 'PHP, Laravel 11, Blade, Vite, Tailwind CSS',
+			fileTree: 'app/\nresources/views/\ncomposer.json'
+		}, {
+			userPrompt: 'tolong lanjutkan pekerjaan nomer 2',
+			permissionLevel: 'autoApprove'
+		});
+
+		assert.ok(indonesianPrompt.includes('IDENTITAS DAN PERAN UTAMA'));
+		assert.ok(indonesianPrompt.includes('Bahasa Indonesia'));
+		assert.ok(indonesianPrompt.includes('Laravel & PHP'));
+		assert.ok(indonesianPrompt.includes('AUTONOMOUS FULL ACCESS MODE'));
+		assert.ok(indonesianPrompt.includes('PROTOKOL LAPORAN SINTESIS AKHIR ANTIGRAVITY'));
+		assert.strictEqual(emojiRegex.test(indonesianPrompt), false, 'System prompt must not contain emojis');
+
+		// 2. Japanese dynamic prompt with React/Next.js specialization
+		const japanesePrompt = buildDardcorSystemPrompt({
+			hasWorkspace: true,
+			projectName: 'WebShop',
+			rootPath: '/home/user/webshop',
+			techStack: 'TypeScript, Next.js, React, Tailwind CSS',
+			fileTree: 'app/page.tsx\npackage.json'
+		}, {
+			userPrompt: 'カート機能を追加してください',
+			permissionLevel: 'default'
+		});
+
+		assert.ok(japanesePrompt.includes('アイデンティティとコアロール'));
+		assert.ok(japanesePrompt.includes('日本語'));
+		assert.ok(japanesePrompt.includes('React / Next.js'));
+		assert.ok(japanesePrompt.includes('ANTIGRAVITY 最終統合レポートプロトコル'));
+		assert.strictEqual(emojiRegex.test(japanesePrompt), false, 'Japanese prompt must not contain emojis');
+
+		// 3. English prompt
+		const englishPrompt = buildDardcorSystemPrompt({
+			hasWorkspace: true,
+			projectName: 'RustCLI',
+			rootPath: '/home/user/cli',
+			techStack: 'Rust, Cargo',
+			fileTree: 'Cargo.toml\nsrc/main.rs'
+		}, {
+			userPrompt: 'Fix the borrow checker error in main',
+			permissionLevel: 'autoApprove'
+		});
+
+		assert.ok(englishPrompt.includes('IDENTITY AND CORE ROLE'));
+		assert.ok(englishPrompt.includes('Rust'));
+		assert.ok(englishPrompt.includes('AUTONOMOUS FULL ACCESS MODE'));
+		assert.strictEqual(emojiRegex.test(englishPrompt), false, 'English prompt must not contain emojis');
+	});
+
+	test('sanitizes interrupted turns and handles clarification questions cleanly', () => {
+		// 1. DardcorThinkingStreamParser sanitizes interrupted thinking blocks
+		const rawInterruptedThinking = '<think>\nI should consider alternative downloads.\nAlternative: use a partial download...';
+		const sanitized = DardcorThinkingStreamParser.sanitizeText(rawInterruptedThinking);
+		assert.strictEqual(sanitized, '', 'Incomplete thinking block with no assistant text must sanitize to empty');
+
+		// 2. Completed text with reasoning tags stripped cleanly
+		const mixedText = '<think>Deliberating something</think>Here is the direct answer to your question.';
+		const sanitizedMixed = DardcorThinkingStreamParser.sanitizeText(mixedText);
+		assert.strictEqual(sanitizedMixed, 'Here is the direct answer to your question.');
+
+		// 3. Clarification questions pattern matches user interrupts
+		const clarifPattern = /^(?:bentar|sebentar|tunggu|wait|hold on|apa itu|kenapa|mengapa|sedang apa|sedang download apa|sedang unduh apa|what are you|what is|why are you)\b/i;
+		assert.ok(clarifPattern.test('bentar saya ingin tanya dulu, anda sedang mendownload apa itu sampai 1gb+ ?'));
+		assert.ok(clarifPattern.test('wait, what are you downloading?'));
+		assert.ok(clarifPattern.test('tunggu sebentar'));
+		assert.strictEqual(clarifPattern.test('tolong lanjutkan pekerjaan'), false);
 	});
 });

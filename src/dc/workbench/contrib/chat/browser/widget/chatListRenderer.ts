@@ -7,7 +7,7 @@ import * as dom from '../../../../../base/browser/dom.js';
 import { renderFormattedText } from '../../../../../base/browser/formattedTextRenderer.js';
 import { StandardKeyboardEvent } from '../../../../../base/browser/keyboardEvent.js';
 import { IActionViewItemOptions } from '../../../../../base/browser/ui/actionbar/actionViewItems.js';
-import { alert } from '../../../../../base/browser/ui/aria/aria.js';
+import { alert, status } from '../../../../../base/browser/ui/aria/aria.js';
 import { getDefaultHoverDelegate } from '../../../../../base/browser/ui/hover/hoverDelegateFactory.js';
 import { IManagedHover } from '../../../../../base/browser/ui/hover/hover.js';
 import { CachedListVirtualDelegate, IListElementRenderDetails } from '../../../../../base/browser/ui/list/list.js';
@@ -125,6 +125,7 @@ import { autorun, observableValue } from '../../../../../base/common/observable.
 import { basename, isEqual } from '../../../../../base/common/resources.js';
 import { IAccessibilityService } from '../../../../../platform/accessibility/common/accessibility.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
+import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
 import { ChatHookContentPart } from './chatContentParts/chatHookContentPart.js';
 import { ChatPendingDragController } from './chatPendingDragAndDrop.js';
 import { HookType } from '../../common/promptSyntax/hookTypes.js';
@@ -166,6 +167,7 @@ export interface IChatListItemTemplate {
 	readonly value: HTMLElement;
 	stickyScrollSource?: HTMLElement;
 	readonly requestTimestampContainer: HTMLElement;
+	readonly requestActionsContainer: HTMLElement;
 	readonly contextKeyService: IContextKeyService;
 	readonly instantiationService: IInstantiationService;
 	readonly templateDisposables: IDisposable;
@@ -582,6 +584,7 @@ const mostRecentResponseClassName = 'chat-most-recent-response';
 export function shouldHideChatUserIdentity(username: string, sessionResource: URI, isResponse: boolean, isSystemInitiatedRequest: boolean): boolean {
 	const sessionType = getChatSessionType(sessionResource);
 	return username === DARDCOR_USERNAME ||
+		username === 'GitHub Copilot' ||
 		username === 'Dardcor Code' ||
 		username.toLowerCase() === 'dardcor code' ||
 		username.toLowerCase().includes('dardcor') ||
@@ -590,7 +593,8 @@ export function shouldHideChatUserIdentity(username: string, sessionResource: UR
 }
 
 function isAgentHostCopilotSessionType(sessionType: string): boolean {
-	return parseRemoteAgentHostSessionTypeAuthority(sessionType, SessionType.CopilotCLI) !== undefined;
+	return sessionType === 'agent-host-copilotcli' ||
+		parseRemoteAgentHostSessionTypeAuthority(sessionType, SessionType.CopilotCLI) !== undefined;
 }
 
 function upvoteAnimationSettingToEnum(value: string | undefined): ClickAnimation | undefined {
@@ -694,6 +698,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		@IAccessibilitySignalService private readonly accessibilitySignalService: IAccessibilitySignalService,
 		@IAccessibilityService private readonly accessibilityService: IAccessibilityService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
+		@IClipboardService private readonly clipboardService: IClipboardService,
 	) {
 		super();
 
@@ -1053,6 +1058,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		dom.append(detailContainer, $('span.chat-animated-ellipsis'));
 		const value = dom.append(valueParent, $('.value'));
 		const requestTimestampContainer = dom.append(valueParent, $('.chat-request-timestamp-container'));
+		const requestActionsContainer = dom.append(valueParent, $('.chat-request-actions-container'));
 		const elementDisposables = templateDisposables.add(new DisposableStore());
 		const completedResponseDisclosureDisposables = templateDisposables.add(new DisposableStore());
 		const responseTokenStatsHover = templateDisposables.add(new MutableDisposable<IManagedHover>());
@@ -1130,7 +1136,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		}));
 		const connectionObserver = document.createElement('connection-observer') as dom.ConnectionObserverElement;
 		dom.append(container, connectionObserver);
-		const template: IChatListItemTemplate = { header, avatarContainer, requestHover, username, detail, value, requestTimestampContainer, rowContainer, elementDisposables, templateDisposables, contextKeyService, instantiationService: scopedInstantiationService, agentHover, titleToolbar, footerToolbar, footerToolbarContainer, footerDetailsContainer, disabledOverlay, checkpointToolbar, checkpointRestoreToolbar, checkpointContainer, checkpointRestoreContainer, completedResponseDisclosureDisposables, responseTokenStatsHover, feedbackSurveyWidget };
+		const template: IChatListItemTemplate = { header, avatarContainer, requestHover, username, detail, value, requestTimestampContainer, requestActionsContainer, rowContainer, elementDisposables, templateDisposables, contextKeyService, instantiationService: scopedInstantiationService, agentHover, titleToolbar, footerToolbar, footerToolbarContainer, footerDetailsContainer, disabledOverlay, checkpointToolbar, checkpointRestoreToolbar, checkpointContainer, checkpointRestoreContainer, completedResponseDisclosureDisposables, responseTokenStatsHover, feedbackSurveyWidget };
 		this.templateDataByRow.set(rowContainer, template);
 
 		templateDisposables.add(this._onDidUpdateViewModel.event(() => {
@@ -1149,8 +1155,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			}
 
 			if (disabledOverlay.classList.contains('disabled')) {
-				e.preventDefault();
-				e.stopPropagation();
+				e?.preventDefault();
+				e?.stopPropagation();
 				this._onDidFocusOutside.fire();
 			}
 		}));
@@ -1385,6 +1391,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		this.hoverHidden(templateData.requestHover);
 		dom.clearNode(templateData.detail);
 		dom.clearNode(templateData.requestTimestampContainer);
+		dom.clearNode(templateData.requestActionsContainer);
+		templateData.requestActionsContainer.classList.add('hidden');
 		if (isResponseVM(element)) {
 			this.renderDetail(element, templateData);
 		}
@@ -1453,8 +1461,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.elementDisposables.add(dom.addStandardDisposableListener(templateData.rowContainer, dom.EventType.CLICK, (e) => {
 			const current = templateData.currentElement;
 			if (current && this.viewModel?.editing && current.id !== this.viewModel.editing.id) {
-				e.stopPropagation();
-				e.preventDefault();
+				e?.stopPropagation();
+				e?.preventDefault();
 				this._onDidFocusOutside.fire();
 			}
 		}));
@@ -1623,6 +1631,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		templateData.rowContainer.classList.toggle('chat-response-loading', (isResponseVM(element) && !element.isComplete));
 
 		this.finalizeCompletedResponseParts(element, templateData);
+		templateData.requestActionsContainer.classList.add('hidden');
+		dom.clearNode(templateData.requestActionsContainer);
 
 		const content: IChatRendererContent[] = [];
 		const isFiltered = !!element.errorDetails?.responseIsFiltered;
@@ -2046,8 +2056,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 						return;
 					}
 
-					e.preventDefault();
-					e.stopPropagation();
+					e?.preventDefault();
+					e?.stopPropagation();
 					this._onDidClickRequest.fire(templateData);
 				}));
 				store.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), container, localize('requestMarkdownPartTitle', "Click to Edit"), { trapFocus: true }));
@@ -2135,6 +2145,62 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		const stickyScrollSourcePart = parts.find(part => part.domNode === templateData.stickyScrollSource);
 		if (stickyScrollSourcePart?.addDisposable && templateData.stickyScrollSource?.classList.contains('clickable')) {
 			stickyScrollSourcePart.addDisposable(this.registerSynchronizedRequestBubbleHover(element.id, templateData, templateData.stickyScrollSource));
+		}
+
+		dom.clearNode(templateData.requestActionsContainer);
+		if (!isStickyScrollRow && !element.isSystemInitiated) {
+			templateData.requestActionsContainer.classList.remove('hidden');
+			const copyBtn = dom.append(templateData.requestActionsContainer, dom.$('a.chat-request-copy-button', {
+				'role': 'button',
+				'aria-label': localize('interactive.copyItem.ariaLabel', "Copy"),
+				'title': localize('interactive.copyItem.ariaLabel', "Copy"),
+				'tabindex': '0',
+			}));
+			const iconContainer = dom.append(copyBtn, dom.$('.chat-copy-action-icons'));
+			const copyIcon = dom.append(iconContainer, dom.$('.chat-copy-action-icon.chat-copy-action-icon-copy'));
+			copyIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.copy));
+			copyIcon.setAttribute('aria-hidden', 'true');
+
+			const copiedIcon = dom.append(iconContainer, dom.$('.chat-copy-action-icon.chat-copy-action-icon-copied'));
+			copiedIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.check));
+			copiedIcon.setAttribute('aria-hidden', 'true');
+
+			let copyResetTimer: any;
+			const onTriggerCopy = async (e?: { preventDefault(): void; stopPropagation(): void }) => {
+				e?.preventDefault();
+				e?.stopPropagation();
+				const textToCopy = element.messageText || (typeof element.message === 'string' ? element.message : (element.message as any)?.text || '');
+				if (textToCopy && this.clipboardService) {
+					await this.clipboardService.writeText(textToCopy);
+					copyBtn.classList.add('copied');
+					copyBtn.title = localize('interactive.copyItem.copied', "Copied");
+					copyBtn.setAttribute('aria-label', localize('interactive.copyItem.copiedAriaLabel', "Copied"));
+					status(localize('interactive.copyItem.status', "Copied to clipboard"));
+
+					if (copyResetTimer) {
+						clearTimeout(copyResetTimer);
+					}
+					copyResetTimer = setTimeout(() => {
+						copyBtn.classList.remove('copied');
+						copyBtn.title = localize('interactive.copyItem.ariaLabel', "Copy");
+						copyBtn.setAttribute('aria-label', localize('interactive.copyItem.ariaLabel', "Copy"));
+					}, 1200);
+				}
+			};
+
+			templateData.elementDisposables.add(dom.addDisposableListener(copyBtn, dom.EventType.CLICK, onTriggerCopy));
+			templateData.elementDisposables.add(dom.addStandardDisposableListener(copyBtn, dom.EventType.KEY_DOWN, (e) => {
+				if (e.keyCode === KeyCode.Enter || e.keyCode === KeyCode.Space) {
+					onTriggerCopy(e);
+				}
+			}));
+			templateData.elementDisposables.add(toDisposable(() => {
+				if (copyResetTimer) {
+					clearTimeout(copyResetTimer);
+				}
+			}));
+		} else {
+			templateData.requestActionsContainer.classList.add('hidden');
 		}
 
 		if (!isStickyScrollRow && !element.pendingKind && !element.confirmation && this.rendererOptions.renderStyle !== 'minimal' && templateData.value.childElementCount > 0) {
@@ -4183,8 +4249,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 						}
 					}
 
-					e.preventDefault();
-					e.stopPropagation();
+					e?.preventDefault();
+					e?.stopPropagation();
 					this._onDidClickRequest.fire(templateData);
 				}));
 				markdownPart.addDisposable(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), markdownPart.domNode, localize('requestMarkdownPartTitle', "Click to Edit"), { trapFocus: true }));

@@ -8,6 +8,7 @@ import { resolveSessionId } from "../utils/sessionManager.js";
 import { isMuseSparkModel } from "../providers/models/helpers.js";
 import { applyFingerprintTools } from "../utils/opencodeFingerprint.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
+import { opencodeEgressMesh, buildCloakedHeaders } from "../services/opencodeEgressMesh.js";
 import {
   normalizeResponsesInput,
   clampResponsesCallId,
@@ -26,7 +27,7 @@ export const OPENCODE_REQUEST_RE = /^msg_[0-9a-f]{12}[0-9A-Za-z]{14}$/;
 const BASE62_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 function hasValidOpencodeVersion(ua) {
-  const m = String(ua || "").match(/opencode\/(\d+)\.(\d+)(?:\.(\d+))?/i);
+  const m = String(ua || "").match(/opencode\/(?:stable\/)?(\d+)\.(\d+)(?:\.(\d+))?/i);
   if (!m) return false;
   const major = parseInt(m[1], 10);
   const minor = parseInt(m[2], 10);
@@ -140,20 +141,73 @@ const stableSessionCleanup = setInterval(() => {
 }, MEMORY_CONFIG.sessionCleanupIntervalMs);
 if (stableSessionCleanup.unref) stableSessionCleanup.unref();
 
-function identityKey(credentials) {
-  const connectionId = credentials?.connectionId || credentials?.id;
+function firstUserText(body) {
+  try {
+    if (!body || typeof body !== "object") return "";
+    const arr = Array.isArray(body.messages)
+      ? body.messages
+      : Array.isArray(body.input)
+        ? body.input
+        : null;
+    if (!arr) return "";
+    for (const msg of arr) {
+      if (msg?.role === "user") {
+        const content = msg.content;
+        if (typeof content === "string" && content.trim()) return content.trim().slice(0, 300);
+        if (Array.isArray(content)) {
+          const text = content
+            .map((part) => (typeof part === "string" ? part : part?.text || part?.input_text || ""))
+            .join(" ")
+            .trim();
+          if (text) return text.slice(0, 300);
+        }
+      }
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function identityKey(credentials, body = null) {
+  const connectionId = credentials?.connectionId || credentials?.id || credentials?.threadId || credentials?._chatThreadId;
   if (connectionId) return `opencode:conn:${String(connectionId).slice(0, 128)}`;
   const raw = credentials?.rawHeaders || {};
+  const threadHeader = raw["x-session-id"] || raw["x-thread-id"] || raw["x-conversation-id"] || raw["x-request-id"];
+  if (threadHeader) {
+    const digest = crypto.createHash("sha256").update(String(threadHeader)).digest("hex").slice(0, 32);
+    return `opencode:thread:${digest}`;
+  }
   const auth = raw.authorization || raw.Authorization || raw["x-api-key"] || raw["X-Api-Key"] || "";
   if (auth) {
     const digest = crypto.createHash("sha256").update(String(auth)).digest("hex").slice(0, 32);
     return `opencode:auth:${digest}`;
   }
+  if (body) {
+    const seed = firstUserText(body);
+    if (seed) {
+      const digest = crypto.createHash("sha256").update(seed).digest("hex").slice(0, 32);
+      return `opencode:seed:${digest}`;
+    }
+  }
   return "opencode:default";
 }
 
-export function stableSessionId(credentials) {
-  const key = identityKey(credentials);
+export function evictOpencodeSession(credentials, body = null) {
+  const key = identityKey(credentials, body);
+  stableOpencodeSessions.delete(key);
+}
+
+export function setOpencodeSession(credentials, sessionId, body = null) {
+  const key = identityKey(credentials, body);
+  if (stableOpencodeSessions.size >= MAX_STABLE_SESSIONS) {
+    stableOpencodeSessions.delete(stableOpencodeSessions.keys().next().value);
+  }
+  stableOpencodeSessions.set(key, { sessionId, lastUsed: Date.now() });
+}
+
+export function stableSessionId(credentials, body = null) {
+  const key = identityKey(credentials, body);
   const existing = stableOpencodeSessions.get(key);
   if (existing) {
     existing.lastUsed = Date.now();
@@ -304,7 +358,7 @@ function resolveOpencodeSession(body, credentials, providerSessionId, clientTool
     if (viaManager) return translateSessionId(viaManager, clientTool);
   }
 
-  return stableSessionId(credentials);
+  return stableSessionId(credentials, body);
 }
 
 function resolveOpencodeRequestId(body, credentials, sessionId) {
@@ -448,26 +502,125 @@ export class OpenCodeExecutor extends BaseExecutor {
   }
 
   async execute(args) {
+    let activeEgress = opencodeEgressMesh.selectEgressRoute();
+    let proxyOptions = args.proxyOptions || activeEgress.proxyOptions;
+
     const creds = this.prepareRequestCredentials(args);
-    const result = await super.execute({ ...args, credentials: creds });
+    let result = null;
+    let initialError = null;
+
+    try {
+      result = await super.execute({ ...args, credentials: creds, proxyOptions });
+    } catch (err) {
+      initialError = err;
+      const isConnectTimeout = err.message?.includes("connect timeout") || err.name === "AbortError";
+      if (!isConnectTimeout || args?.isRetry || args?.signal?.aborted) {
+        throw err;
+      }
+      result = { _networkError: err, response: { status: 502 } };
+    }
+
     if ((result?.response?.status === 401 || result?.response?.status === 402 || result?.response?.status === 403) && creds.accessToken && creds.accessToken !== "public") {
       const publicCreds = { ...creds, accessToken: "public" };
-      const fallbackResult = await super.execute({ ...args, credentials: publicCreds });
-      if (fallbackResult?.response?.status < 400) {
-        return fallbackResult;
-      }
+      try {
+        const fallbackResult = await super.execute({ ...args, credentials: publicCreds, proxyOptions });
+        if (fallbackResult?.response?.status < 400) {
+          return fallbackResult;
+        }
+      } catch {}
     }
-    if ((result?.response?.status === 429 || result?.response?.status === 503) && !args?.isRetry) {
-      await new Promise(r => setTimeout(r, 600));
+
+    // Auto-Retry on network timeout, 429 (rate/quota limit), 502, 503, or 504
+    // Resilient Egress + Session Rotation while strictly preserving the user's chosen model!
+    const isEgressFail = result?._networkError ||
+      result?.response?.status === 429 ||
+      result?.response?.status === 502 ||
+      result?.response?.status === 503 ||
+      result?.response?.status === 504;
+
+    if (isEgressFail && !args?.isRetry && !args?.signal?.aborted) {
+      if (activeEgress?.routeId) {
+        opencodeEgressMesh.reportRateLimit(activeEgress.routeId);
+      }
+
+      // Evict old session so subsequent requests won't reuse a dead session
+      evictOpencodeSession(creds, args?.body);
+
+      // Generate a fresh session and assign to cache
       const freshSession = generateSessionId();
+      setOpencodeSession(creds, freshSession, args?.body);
+
+      // Rotate egress route
+      activeEgress = opencodeEgressMesh.selectEgressRoute();
+      proxyOptions = activeEgress.proxyOptions;
+
+      if (args?.signal?.aborted) {
+        if (initialError) throw initialError;
+        return result;
+      }
+      await new Promise(r => setTimeout(r, 400));
+      if (args?.signal?.aborted) {
+        if (initialError) throw initialError;
+        return result;
+      }
+
       const retryCreds = {
         ...creds,
         [SESSION_FIELD]: freshSession,
         [REQ_FIELD]: generateRequestId(),
       };
-      const retryResult = await super.execute({ ...args, credentials: retryCreds, isRetry: true });
-      if (retryResult?.response?.status && retryResult.response.status < 400) {
+
+      try {
+        const retryResult = await super.execute({
+          ...args,
+          credentials: retryCreds,
+          proxyOptions,
+          isRetry: true,
+        });
+
+        if (retryResult?.response?.status && retryResult.response.status < 400) {
+          return retryResult;
+        }
+
+        // If retry also hit 429 / 502, try a final attempt with another fresh session and rotated route
+        if (retryResult?.response?.status === 429 || retryResult?.response?.status === 502 || retryResult?.response?.status === 503) {
+          if (activeEgress?.routeId) {
+            opencodeEgressMesh.reportRateLimit(activeEgress.routeId);
+          }
+          evictOpencodeSession(creds, args?.body);
+          const secondFreshSession = generateSessionId();
+          setOpencodeSession(creds, secondFreshSession, args?.body);
+
+          activeEgress = opencodeEgressMesh.selectEgressRoute();
+          proxyOptions = activeEgress.proxyOptions;
+
+          if (args?.signal?.aborted) return retryResult;
+          await new Promise(r => setTimeout(r, 800));
+          if (args?.signal?.aborted) return retryResult;
+
+          const finalRetryCreds = {
+            ...creds,
+            [SESSION_FIELD]: secondFreshSession,
+            [REQ_FIELD]: generateRequestId(),
+          };
+
+          const finalResult = await super.execute({
+            ...args,
+            credentials: finalRetryCreds,
+            proxyOptions,
+            isRetry: true,
+          });
+
+          if (finalResult?.response?.status && finalResult.response.status < 400) {
+            return finalResult;
+          }
+          return finalResult || retryResult;
+        }
+
         return retryResult;
+      } catch (retryErr) {
+        if (initialError) throw initialError;
+        throw retryErr;
       }
     }
     return result;
@@ -503,7 +656,7 @@ export class OpenCodeExecutor extends BaseExecutor {
       process.env.OPENCODE_API_KEY ||
       "";
 
-    const headers = {
+    const baseHeaders = {
       "Content-Type": "application/json",
       "User-Agent": isOpencodeDownstream ? downstreamUa : OPENCODE_UA,
       "x-opencode-client": lower["x-opencode-client"] || "desktop",
@@ -513,9 +666,11 @@ export class OpenCodeExecutor extends BaseExecutor {
       "X-Session-Id": session,
       "x-opencode-request": requestId,
       "x-opencode-request-id": requestId,
-      "x-opencode-project": lower["x-opencode-project"] || "global",
+      "x-opencode-project": lower["x-opencode-project"] || `proj_${crypto.randomBytes(6).toString("hex")}`,
       "Accept": stream ? "text/event-stream" : "*/*",
     };
+
+    const headers = buildCloakedHeaders(baseHeaders);
 
     const orgId = credentials?.providerSpecificData?.orgId || credentials?.orgId || lower["x-opencode-org-id"];
     if (orgId) {

@@ -7,7 +7,7 @@ import { Emitter } from '../../../base/common/event.js';
 import { Disposable, DisposableMap, IDisposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { ILogService } from '../../log/common/log.js';
 import { CDPEvent, CDPTargetInfo, ICDPConnection } from '../common/cdp/types.js';
-import { BrowserView } from './browserView.js';
+import type { BrowserView } from './browserView.js';
 
 export type CDPCommandInterceptor = (method: string, params: unknown, session: ICDPConnection | undefined) => Promise<unknown> | undefined;
 

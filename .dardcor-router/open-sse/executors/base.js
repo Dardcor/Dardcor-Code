@@ -121,7 +121,8 @@ export class BaseExecutor {
       if (!retryAttemptsByUrl[urlIndex]) retryAttemptsByUrl[urlIndex] = 0;
 
       const connectCtrl = new AbortController();
-      const timeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
+      const defaultTimeout = this.provider === "opencode" ? 10000 : FETCH_CONNECT_TIMEOUT_MS;
+      const timeoutMs = this.config?.timeoutMs || defaultTimeout;
       const connectTimer = setTimeout(() => connectCtrl.abort(new Error("fetch connect timeout")), timeoutMs);
       const mergedSignal = signal ? AbortSignal.any([signal, connectCtrl.signal]) : connectCtrl.signal;
 
@@ -152,9 +153,12 @@ export class BaseExecutor {
       } catch (error) {
         clearTimeout(connectTimer);
         lastError = error;
-        const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
+        const isConnectTimeout = (connectCtrl.signal.aborted && error.name === "AbortError") || error.message?.includes("fetch connect timeout");
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
         if (error.name === "AbortError" && !isConnectTimeout) throw error;
+        if (isConnectTimeout && this.provider === "opencode") {
+          throw new Error("fetch connect timeout");
+        }
 
         if (await tryRetry(urlIndex, HTTP_STATUS.BAD_GATEWAY, `network "${error.message}"`)) { urlIndex--; continue; }
 

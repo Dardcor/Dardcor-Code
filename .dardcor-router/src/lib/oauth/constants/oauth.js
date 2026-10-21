@@ -1,5 +1,7 @@
-
-
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 
 import { platform, arch } from "os";
 import { ANTIGRAVITY_OAUTH_CLIENT, GOOGLE_OAUTH_CLIENT } from "open-sse/providers/shared.js";
@@ -149,6 +151,8 @@ export const WINDSURF_CONFIG = {
   oauthTimeoutMs: 600_000,
 };
 
+export const GLM_OAUTH_CONFIG = { ...PROVIDER_OAUTH["glm"] };
+
 export const ZED_HOSTED_CONFIG = {
   webBaseUrl: "https://zed.dev",
   cloudBaseUrl: "https://cloud.zed.dev",
@@ -181,6 +185,7 @@ export const PROVIDERS = {
   GROK_CLI: "grok-cli",
   TRAE: "trae",
   WINDSURF: "windsurf",
+  GLM: "glm",
   ZED: "zed",
   OPENCODE: "opencode",
 };

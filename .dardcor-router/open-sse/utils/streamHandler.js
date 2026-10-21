@@ -30,9 +30,13 @@ export function createStreamController({ onDisconnect, onError, log, provider, m
 
       dbg("CTRL", `${provider}/${model} | disconnect=${reason} | dur=${Date.now() - startTime}ms`);
 
-      abortTimeout = setTimeout(() => {
+      if (reason === "client_aborted" || reason === "client_closed" || reason === "cancelled") {
         abortController.abort();
-      }, 500);
+      } else {
+        abortTimeout = setTimeout(() => {
+          abortController.abort();
+        }, 500);
+      }
 
       onDisconnect?.({ reason, duration: Date.now() - startTime });
     },

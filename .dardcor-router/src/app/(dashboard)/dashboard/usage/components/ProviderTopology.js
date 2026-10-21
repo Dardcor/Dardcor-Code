@@ -254,6 +254,30 @@ TopologyEdge.propTypes = {
 const nodeTypes = { provider: ProviderNode, router: RouterNode };
 const edgeTypes = { topology: TopologyEdge };
 
+const PROVIDER_ALIAS_GROUPS = [
+  ["opencode", "oc", "opencode-free"],
+  ["opencode-zen", "ocz"],
+  ["opencode-go", "ocg"],
+  ["antigravity", "ag"],
+  ["codex", "openai", "openai-codex"],
+  ["claude", "anthropic"],
+  ["gemini", "google", "gemini-cli"],
+];
+
+function setMatchesProvider(set, providerId) {
+  if (!set || set.size === 0 || !providerId) return false;
+  const target = providerId.toLowerCase();
+  if (set.has(target)) return true;
+  for (const group of PROVIDER_ALIAS_GROUPS) {
+    if (group.includes(target)) {
+      for (const alias of group) {
+        if (set.has(alias)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function buildLayout(providers, activeSet, lastSet, errorSet) {
   const nodeW = 180;
   const nodeH = 30;
@@ -261,7 +285,21 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
   const routerH = 44;
   const nodeGap = 24;
 
-  const count = providers.length;
+  const seenIds = new Set((providers || []).map((p) => (p.provider || "").toLowerCase()));
+  const effectiveProviders = [...(providers || [])];
+  for (const set of [activeSet, lastSet, errorSet]) {
+    if (set && set.size > 0) {
+      for (const p of set) {
+        const lower = (p || "").toLowerCase();
+        if (lower && !seenIds.has(lower)) {
+          seenIds.add(lower);
+          effectiveProviders.push({ provider: lower, name: AI_PROVIDERS[lower]?.name || lower });
+        }
+      }
+    }
+  }
+
+  const count = effectiveProviders.length;
 
   const minRx = ((nodeW + nodeGap) * count) / (2 * Math.PI);
   const rx = Math.max(320, minRx);
@@ -291,11 +329,11 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
     return { stroke: "var(--color-border)", strokeWidth: 1, opacity: 0.3 };
   };
 
-  providers.forEach((p, i) => {
+  effectiveProviders.forEach((p, i) => {
     const config = getProviderConfig(p.provider);
-    const active = activeSet.has(p.provider?.toLowerCase());
-    const last = !active && lastSet.has(p.provider?.toLowerCase());
-    const error = !active && errorSet.has(p.provider?.toLowerCase());
+    const active = setMatchesProvider(activeSet, p.provider);
+    const last = !active && setMatchesProvider(lastSet, p.provider);
+    const error = !active && setMatchesProvider(errorSet, p.provider);
     const nodeId = `provider-${p.provider}`;
     const data = {
       label: (config.name !== p.provider ? config.name : null) || p.nodeName || p.name || p.provider,

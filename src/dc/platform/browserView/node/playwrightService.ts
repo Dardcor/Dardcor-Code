@@ -396,7 +396,18 @@ class PlaywrightSession extends Disposable {
 		}
 
 		try {
-			await page.waitForLoadState('domcontentloaded', { timeout: timeoutMs });
+			const quickState = await page.evaluate(() => {
+				if (document.documentElement && (document.readyState === 'interactive' || document.readyState === 'complete')) {
+					return { url: location.href, title: document.title, readyState: document.readyState };
+				}
+				return null;
+			}).catch(() => null);
+
+			if (quickState && isBrowserDocumentReadyState(quickState.readyState)) {
+				return quickState;
+			}
+
+			await page.waitForLoadState('domcontentloaded', { timeout: Math.min(timeoutMs, 6000) }).catch(() => undefined);
 			await page.waitForFunction(() => !!document.documentElement && (document.readyState === 'interactive' || document.readyState === 'complete'), undefined, { timeout: timeoutMs });
 			const state = await page.evaluate(() => ({ url: location.href, title: document.title, readyState: document.readyState }));
 			if (!isBrowserDocumentReadyState(state.readyState)) {

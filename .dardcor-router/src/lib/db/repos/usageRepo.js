@@ -147,21 +147,20 @@ async function calculateCost(provider, model, tokens) {
 
 export function trackPendingRequest(model, provider, connectionId, started, error = false) {
   const modelKey = provider ? `${model} (${provider})` : model;
-  const timerKey = `${connectionId}|${modelKey}`;
+  const effectiveConnId = connectionId || (provider ? `free:${provider.toLowerCase()}` : "anonymous");
+  const timerKey = `${effectiveConnId}|${modelKey}`;
 
   if (!pendingRequests.byModel[modelKey]) pendingRequests.byModel[modelKey] = 0;
   pendingRequests.byModel[modelKey] = Math.max(0, pendingRequests.byModel[modelKey] + (started ? 1 : -1));
   if (pendingRequests.byModel[modelKey] === 0) delete pendingRequests.byModel[modelKey];
 
-  if (connectionId) {
-    if (!pendingRequests.byAccount[connectionId]) pendingRequests.byAccount[connectionId] = {};
-    if (!pendingRequests.byAccount[connectionId][modelKey]) pendingRequests.byAccount[connectionId][modelKey] = 0;
-    pendingRequests.byAccount[connectionId][modelKey] = Math.max(0, pendingRequests.byAccount[connectionId][modelKey] + (started ? 1 : -1));
-    if (pendingRequests.byAccount[connectionId][modelKey] === 0) {
-      delete pendingRequests.byAccount[connectionId][modelKey];
-      if (Object.keys(pendingRequests.byAccount[connectionId]).length === 0) {
-        delete pendingRequests.byAccount[connectionId];
-      }
+  if (!pendingRequests.byAccount[effectiveConnId]) pendingRequests.byAccount[effectiveConnId] = {};
+  if (!pendingRequests.byAccount[effectiveConnId][modelKey]) pendingRequests.byAccount[effectiveConnId][modelKey] = 0;
+  pendingRequests.byAccount[effectiveConnId][modelKey] = Math.max(0, pendingRequests.byAccount[effectiveConnId][modelKey] + (started ? 1 : -1));
+  if (pendingRequests.byAccount[effectiveConnId][modelKey] === 0) {
+    delete pendingRequests.byAccount[effectiveConnId][modelKey];
+    if (Object.keys(pendingRequests.byAccount[effectiveConnId]).length === 0) {
+      delete pendingRequests.byAccount[effectiveConnId];
     }
   }
 
@@ -170,8 +169,8 @@ export function trackPendingRequest(model, provider, connectionId, started, erro
     pendingTimers[timerKey] = setTimeout(() => {
       delete pendingTimers[timerKey];
       if (pendingRequests.byModel[modelKey] > 0) pendingRequests.byModel[modelKey] = 0;
-      if (connectionId && pendingRequests.byAccount[connectionId]?.[modelKey] > 0) {
-        pendingRequests.byAccount[connectionId][modelKey] = 0;
+      if (pendingRequests.byAccount[effectiveConnId]?.[modelKey] > 0) {
+        pendingRequests.byAccount[effectiveConnId][modelKey] = 0;
       }
       scheduleStatsEvent("pending");
     }, PENDING_TIMEOUT_MS);
@@ -191,18 +190,40 @@ export function trackPendingRequest(model, provider, connectionId, started, erro
 export async function getActiveRequests() {
   const activeRequests = [];
   const connectionMap = await getConnectionMapCached();
+  const seenModels = new Set();
 
   for (const [connectionId, models] of Object.entries(pendingRequests.byAccount)) {
     for (const [modelKey, count] of Object.entries(models)) {
       if (count > 0) {
-        const accountName = connectionMap[connectionId] || `Account ${connectionId.slice(0, 8)}...`;
+        let accountName = connectionMap[connectionId];
+        if (!accountName) {
+          if (connectionId.startsWith("free:")) {
+            const freeName = connectionId.slice(5);
+            accountName = `${freeName.toUpperCase()} (Free)`;
+          } else {
+            accountName = `Account ${connectionId.slice(0, 8)}...`;
+          }
+        }
         const match = modelKey.match(/^(.*) \((.*)\)$/);
         activeRequests.push({
           model: match ? match[1] : modelKey,
           provider: match ? match[2] : "unknown",
           account: accountName, count,
         });
+        seenModels.add(modelKey);
       }
+    }
+  }
+
+  for (const [modelKey, count] of Object.entries(pendingRequests.byModel)) {
+    if (count > 0 && !seenModels.has(modelKey)) {
+      const match = modelKey.match(/^(.*) \((.*)\)$/);
+      activeRequests.push({
+        model: match ? match[1] : modelKey,
+        provider: match ? match[2] : "unknown",
+        account: "Direct",
+        count,
+      });
     }
   }
 

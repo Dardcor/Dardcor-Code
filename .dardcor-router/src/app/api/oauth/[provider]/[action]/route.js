@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import {
@@ -243,6 +248,7 @@ export async function GET(request, { params }) {
         "codebuddy-intl",
         "qoder",
         "grok-cli",
+        "glm",
         "opencode",
       ];
       let deviceData;
@@ -452,7 +458,7 @@ export async function POST(request, { params }) {
         return NextResponse.json({ error: "Missing device code" }, { status: 400 });
       }
 
-      const noPkceProviders = ["github", "kimi", "kimi-coding", "kilocode", "codebuddy-cn", "codebuddy-intl", "grok-cli", "opencode"];
+      const noPkceProviders = ["github", "kimi", "kimi-coding", "kilocode", "codebuddy-cn", "codebuddy-intl", "grok-cli", "glm", "opencode"];
       let result;
       if (noPkceProviders.includes(provider)) {
         result = await pollForToken(provider, deviceCode, null, extraData);

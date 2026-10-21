@@ -256,15 +256,15 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 
 	if (parsed.isInsufficientCredits) {
 		const lines: string[] = [
-			'### 💳 Insufficient Balance (*Paid Model Selected*)',
+			'### Insufficient Balance (*Paid Model Selected*)',
 			'',
-			`> 🤖 **Model:** \`${modelDisplay}\``,
-			`> 📡 **Provider:** **${providerDisplay}**`,
-			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 402 - INSUFFICIENT_CREDITS'}\``,
+			`> **Model:** \`${modelDisplay}\``,
+			`> **Provider:** **${providerDisplay}**`,
+			`> **Status:** \`${parsed.statusMessage || 'HTTP 402 - INSUFFICIENT_CREDITS'}\``,
 		];
 
 		if (parsed.currentBalance !== undefined) {
-			lines.push(`> 💰 **Current Balance:** \`$${parsed.currentBalance.toFixed(2)}\``);
+			lines.push(`> **Current Balance:** \`$${parsed.currentBalance.toFixed(2)}\``);
 		}
 
 		lines.push(
@@ -278,11 +278,11 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 
 	if (parsed.isForbiddenPlan) {
 		const lines: string[] = [
-			'### 🔒 Subscription Plan Required',
+			'### Subscription Plan Required',
 			'',
-			`> 🤖 **Model:** \`${modelDisplay}\``,
-			`> 📡 **Provider:** **${providerDisplay}**`,
-			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 403 - FORBIDDEN'}\``,
+			`> **Model:** \`${modelDisplay}\``,
+			`> **Provider:** **${providerDisplay}**`,
+			`> **Status:** \`${parsed.statusMessage || 'HTTP 403 - FORBIDDEN'}\``,
 			'',
 			'**Provider Notice:**',
 			`> *${parsed.userMessage || 'This model requires a paid plan or subscription upgrade.'}*`
@@ -292,11 +292,11 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 
 	if (parsed.isUnauthorized) {
 		const lines: string[] = [
-			'### 🔑 Authentication Error (*Re-authentication Required*)',
+			'### Authentication Error (*Re-authentication Required*)',
 			'',
-			`> 🤖 **Model:** \`${modelDisplay}\``,
-			`> 📡 **Provider:** **${providerDisplay}**`,
-			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 401 - UNAUTHORIZED'}\``,
+			`> **Model:** \`${modelDisplay}\``,
+			`> **Provider:** **${providerDisplay}**`,
+			`> **Status:** \`${parsed.statusMessage || 'HTTP 401 - UNAUTHORIZED'}\``,
 			'',
 			'**Provider Notice:**',
 			`> *${parsed.userMessage || 'Account credentials expired or invalid.'}*`
@@ -306,18 +306,18 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 
 	if (parsed.isQuotaExhausted) {
 		const lines: string[] = [
-			'### ⚠️ Token Quota Exhausted (*Rate Limit Reached*)',
+			'### Token Quota Exhausted (*Rate Limit Reached*)',
 			'',
-			`> 🤖 **Model:** \`${modelDisplay}\``,
-			`> 📡 **Provider:** **${providerDisplay}**`,
-			`> ⚡ **Status:** \`${parsed.statusMessage || 'HTTP 429 - RESOURCE_EXHAUSTED'}\``,
+			`> **Model:** \`${modelDisplay}\``,
+			`> **Provider:** **${providerDisplay}**`,
+			`> **Status:** \`${parsed.statusMessage || 'HTTP 429 - RESOURCE_EXHAUSTED'}\``,
 		];
 
 		if (parsed.resetDelay) {
-			lines.push(`> ⏳ **Reset Countdown:** \`${parsed.resetDelay}\``);
+			lines.push(`> **Reset Countdown:** \`${parsed.resetDelay}\``);
 		}
 		if (parsed.resetTimeStamp) {
-			lines.push(`> 🗓️ **Reset Time:** \`${parsed.resetTimeStamp}\``);
+			lines.push(`> **Reset Time:** \`${parsed.resetTimeStamp}\``);
 		}
 
 		lines.push(
@@ -330,10 +330,10 @@ export function formatDardcorRouterError(statusCode: number, rawError: string, f
 	}
 
 	const lines: string[] = [
-		`### ⚠️ Router Issue (${parsed.statusCode > 0 ? `HTTP ${parsed.statusCode}` : 'Connection Lost'})`,
+		`### Router Issue (${parsed.statusCode > 0 ? `HTTP ${parsed.statusCode}` : 'Connection Lost'})`,
 		'',
-		`> 🤖 **Model:** \`${modelDisplay}\``,
-		`> 📡 **Provider:** **${providerDisplay}**`,
+		`> **Model:** \`${modelDisplay}\``,
+		`> **Provider:** **${providerDisplay}**`,
 		'',
 		'**Issue Details:**',
 		`> *${parsed.userMessage}*`

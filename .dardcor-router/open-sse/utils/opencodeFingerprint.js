@@ -1,11 +1,22 @@
 
 export const OPENCODE_FINGERPRINT_TOOLS = ["bash", "glob", "grep", "read"];
 
+const CLIENT_TO_FINGERPRINT_MAP = {
+  find_files: "glob",
+  search_code: "grep",
+  grep_search: "grep",
+  read_file: "read",
+  view_file: "read",
+  run_command: "bash",
+  run_in_terminal: "bash",
+};
+
 const renamedToolNames = new WeakMap();
 
 export function fingerprintToolKey(name) {
   const lower = String(name ?? "").trim().toLowerCase();
-  return OPENCODE_FINGERPRINT_TOOLS.includes(lower) ? lower : "";
+  if (OPENCODE_FINGERPRINT_TOOLS.includes(lower)) return lower;
+  return CLIENT_TO_FINGERPRINT_MAP[lower] || "";
 }
 
 function toolNameOf(tool) {
@@ -159,14 +170,20 @@ export function applyFingerprintTools(body, flat) {
   return map;
 }
 
+let lastRecordedMap = null;
+
 export function recordRenamedToolNames(body, map) {
   if (!body || typeof body !== "object" || !map?.size) return;
   renamedToolNames.set(body, map);
+  try { body._renamedToolNames = map; } catch {}
+  lastRecordedMap = map;
 }
 
 export function takeRenamedToolNames(body) {
-  if (!body || typeof body !== "object") return null;
-  return renamedToolNames.get(body) || null;
+  if (!body || typeof body !== "object") return lastRecordedMap;
+  const found = renamedToolNames.get(body) || body._renamedToolNames || lastRecordedMap;
+  lastRecordedMap = null;
+  return found || null;
 }
 
 export function restoreToolNames(payload, map) {

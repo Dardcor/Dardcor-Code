@@ -818,7 +818,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 	}
 
 	get input(): ChatInputPart {
-		return this.viewModel?.editing && this.configurationService.getValue<string>('chat.editRequests') !== 'input' ? this.inlineInputPart : this.inputPart;
+		return this.viewModel?.editing && this.configurationService.getValue<string>('chat.editRequests') === 'inline' ? this.inlineInputPart : this.inputPart;
 	}
 
 	get inputPart(): ChatInputPart {
@@ -2001,7 +2001,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				this.input.setEditing(true, isEditingSentRequest);
 				this._onDidChangeActiveInputEditor.fire();
 			} else {
-				this.inputPart.element.classList.add('editing');
+				this.inputPart?.element?.classList.add('editing');
 			}
 			if (currentElement.modelId) {
 				void this.input.requestModelByIdentifier(currentElement.modelId);
@@ -2143,7 +2143,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			ChatContextKeys.currentlyEditing.bindTo(editedRequest.contextKeyService).set(false);
 		}
 
-		const isInput = this.configurationService.getValue<string>('chat.editRequests') === 'input';
+		const isInput = this.configurationService.getValue<string>('chat.editRequests') !== 'inline';
 
 		if (!isInput) {
 			this.inputPart?.toggleChatInputOverlay(false);
@@ -2162,7 +2162,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		}
 
 		if (isInput) {
-			this.inputPart.element.classList.remove('editing');
+			this.inputPart?.element?.classList.remove('editing');
 		}
 		this.viewModel?.setEditing(undefined);
 		this.inputPart?.setEditing(false, undefined);
@@ -2955,7 +2955,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		}
 		const isEditing = this.viewModel?.editing;
 		const submittedFromEditing = shouldUnlockChatPetRequestRevision(isEditing !== undefined, isUserQuery);
-		const isInlineEdit = isEditing && this.configurationService.getValue<string>('chat.editRequests') !== 'input';
+		const isInlineEdit = isEditing && this.configurationService.getValue<string>('chat.editRequests') === 'inline';
 		const editedModelRequestOptions = isInlineEdit ? this.getSelectedModelRequestOptions() : undefined;
 		const editedModeKind = isInlineEdit ? this.input.currentModeKind : undefined;
 		const editedModeInfo = isInlineEdit ? this.input.currentModeInfo : undefined;
@@ -2964,11 +2964,13 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		let cancelledCurrentRequest = false;
 		if (isEditing) {
 			this.inputPart?.clearToolConfirmationCarousel();
+			const editingRequestId = this.viewModel.editing?.id;
 
 			const editingPendingRequest = this.viewModel.editing!.pendingKind;
 			if (editingPendingRequest !== undefined) {
-				const editingRequestId = this.viewModel.editing!.id;
-				this.chatService.removePendingRequest(this.viewModel.sessionResource, editingRequestId);
+				if (editingRequestId) {
+					this.chatService.removePendingRequest(this.viewModel.sessionResource, editingRequestId);
+				}
 				if (!options.cancelCurrentRequest) {
 					options.queue ??= editingPendingRequest;
 				}
@@ -2986,6 +2988,16 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			if (!preserveCheckpoint) {
 				this.viewModel.model?.setCheckpoint(undefined);
 			}
+
+			if (editingRequestId && this.viewModel?.model) {
+				const requests = this.viewModel.model.getRequests();
+				const editedIndex = requests.findIndex(r => r.id === editingRequestId);
+				if (editedIndex !== -1) {
+					for (let i = requests.length - 1; i >= editedIndex; i -= 1) {
+						this.chatService.removeRequest(this.viewModel.sessionResource, requests[i].id);
+					}
+				}
+			}
 		}
 
 		const model = this.viewModel.model;
@@ -2999,7 +3011,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			await this.chatService.cancelCurrentRequestForSession(this.viewModel.sessionResource, 'acceptInput-needsInput');
 			options.queue ??= ChatRequestQueueKind.Queued;
 		}
-		if (requestInProgress && !options.cancelCurrentRequest) {
+		if (requestInProgress && !options.cancelCurrentRequest && !isEditing) {
 			options.queue ??= ChatRequestQueueKind.Queued;
 		}
 		if (!requestInProgress && !isEditing && !(await this.confirmPendingRequestsBeforeSend(model, options))) {

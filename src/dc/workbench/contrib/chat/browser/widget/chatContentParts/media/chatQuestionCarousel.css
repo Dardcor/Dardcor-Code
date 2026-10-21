@@ -389,23 +389,23 @@
 .interactive-session .chat-question-carousel-container .chat-question-description {
 	min-width: 0;
 	max-width: 100%;
-	overflow-wrap: anywhere;
-	word-break: break-word;
+	overflow-wrap: break-word;
+	word-break: normal;
 	user-select: text;
 	-webkit-user-select: text;
 }
 
 .interactive-session .chat-question-carousel-container .chat-question-detailed-message .rendered-markdown {
 	max-width: 100%;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
 }
 
 .interactive-session .chat-question-carousel-container .chat-question-detailed-message pre,
 .interactive-session .chat-question-carousel-container .chat-question-detailed-message code {
 	max-width: 100%;
 	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-	word-break: break-word;
+	overflow-wrap: break-word;
+	word-break: normal;
 }
 
 .interactive-session .chat-question-carousel-container .chat-question-carousel-message {

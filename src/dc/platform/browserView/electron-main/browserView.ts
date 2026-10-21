@@ -64,10 +64,6 @@ const DARDCOR_BOOTSTRAP_CURSOR_SCRIPT = `(() => {
 		cursor.style.transform = 'translate3d(' + Math.round(safeX) + 'px,' + Math.round(safeY) + 'px,0) translate(-2px,-2px)';
 	};
 	window.__dardcorAgentCursorMoveTo = moveTo;
-	const followPointer = event => moveTo(event.clientX, event.clientY);
-	window.__dardcorAgentCursorFollowPointer = followPointer;
-	window.addEventListener('pointermove', followPointer, { capture: true, passive: true });
-	window.addEventListener('mousemove', followPointer, { capture: true, passive: true });
 	moveTo(Math.round((window.innerWidth || 1024) * 0.5), Math.round((window.innerHeight || 768) * 0.35));
 	return true;
 })()`;

@@ -20,7 +20,7 @@ if "%VSCODE_SKIP_PRELAUNCH%"=="" (
 
 :: Run tests
 set ELECTRON_ENABLE_LOGGING=1
-%CODE% .\test\unit\electron\index.js --crash-reporter-directory=%~dp0\..\.build\crashes %*
+%CODE% .\test\unit\electron\index.js "--crash-reporter-directory=%~dp0..\.build\crashes" %*
 
 popd
 

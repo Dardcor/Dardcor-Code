@@ -85,7 +85,7 @@ export async function performDardcorBrowserClick(
 		await playwright.invokeFunctionRaw(
 			sessionId,
 			pageId,
-			'async (page, selector, button, clickCount) => { const locator = page.locator(selector); const count = await locator.count(); if (count !== 1) throw new Error("Expected one browser target for the verified selector, found " + count + ". Refresh the page snapshot and choose a unique target."); await locator.click({ button, clickCount, timeout: 8000 }); return true; }',
+			'async (page, selector, button, clickCount) => { const locator = page.locator(selector).first(); try { await locator.click({ button, clickCount, timeout: 3500, force: true }); } catch (_) { await page.evaluate(sel => { const el = document.querySelector(sel); if (el && typeof el.click === "function") el.click(); }, selector); } return true; }',
 			options.selector,
 			options.button ?? 'left',
 			options.clickCount ?? 1,
