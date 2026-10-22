@@ -237,7 +237,7 @@ jobs:
         with:
           python-version: '3.12'
           architecture: 'x64'
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0'
       - run: pip install setuptools
@@ -296,7 +296,7 @@ jobs:
         with:
           python-version: '3.12'
           architecture: 'x64'
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0'
       - run: pip install setuptools
