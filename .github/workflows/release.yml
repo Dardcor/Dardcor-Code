@@ -80,7 +80,7 @@ jobs:
           }
 
       - name: Upload Windows packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-packages
           path: win_assets/*
@@ -154,7 +154,7 @@ jobs:
           done
 
       - name: Upload Linux packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-packages
           path: linux_assets/*
@@ -239,7 +239,7 @@ jobs:
           done
 
       - name: Upload macOS packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-packages
           path: mac_assets/*
