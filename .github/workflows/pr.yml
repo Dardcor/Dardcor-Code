@@ -233,7 +233,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: 'x64'
@@ -292,7 +292,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: extensions/dardcor/.nvmrc
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: 'x64'
