@@ -1899,7 +1899,7 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
 			disallowInstall: true,
 			extension: {
 				id: this.productService.defaultChatAgent.chatExtensionId,
-				displayName: 'GitHub Copilot Chat',
+				displayName: 'Dardcor AI Chat',
 				autoMigrate: { storage: false, donotDisable: true },
 				preRelease: this.productService.quality !== 'stable'
 			}

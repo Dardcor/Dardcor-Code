@@ -23563,7 +23563,7 @@
           "name": "alpine-gh-dardcor-cli",
           "id": "ghcr.io/cirolosapio/devcontainers-features/alpine-gh-dardcor-cli",
           "version": "0.0.8",
-          "description": "Installs Github Copilot CLI on alpine",
+          "description": "Installs Dardcor AI CLI on alpine",
           "documentationURL": "https://github.com/cirolosapio/devcontainers-features/tree/main/src/alpine-gh-dardcor-cli",
           "installsAfter": [
             "ghcr.io/cirolosapio/devcontainers-features/alpine-ohmyzsh"

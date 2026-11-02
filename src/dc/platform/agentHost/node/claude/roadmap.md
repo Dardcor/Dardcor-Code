@@ -5,7 +5,7 @@
 A `ClaudeAgent` implementing `IAgent`, registered alongside the existing
 `CopilotAgent`, that uses the **Claude Agent SDK** to drive Anthropic-format
 tool-using sessions — but with all `messages` API traffic **proxied through a
-local server** that translates Anthropic requests into calls to GitHub Copilot's
+local server** that translates Anthropic requests into calls to Dardcor AI's
 CAPI via `ICopilotApiService`. Users authenticate once with their GitHub
 Copilot credentials and get Claude models without ever talking to Anthropic
 directly.
@@ -183,7 +183,7 @@ interface ICopilotApiService {
    handling (which should throw) from valid event types.
 4. **`@vscode/copilot-api` typings:** the package's `.d.ts` files use
    extensionless relative imports incompatible with `moduleResolution:
-   "nodenext"`. Ambient declarations in `src/typings/copilot-api.d.ts` are
+   "nodenext"`. Ambient declarations in `src/typings/dardcor-api.d.ts` are
    required until the package is fixed. Keep `any` out of those declarations
    (`unknown` instead).
 
@@ -2119,7 +2119,7 @@ couple-lines follow-up gated on the upstream SDK fix.
 #### Motivation
 
 Today the Claude provider is *Copilot-routed Claude*: every `/v1/messages`
-call is minted against a GitHub Copilot token, translated by
+call is minted against a Dardcor AI token, translated by
 `ClaudeProxyService`, and billed through CAPI. That is the right default
 for Copilot subscribers, but it excludes two populations:
 
@@ -2229,9 +2229,9 @@ available in native mode" decision.
    - *Proxied (today):* `authenticate()` requires the
      `GITHUB_COPILOT_PROTECTED_RESOURCE` token; without it
      `_ensureAuthenticated()` throws `AHP_AUTH_REQUIRED` and the proxy is
-     never started. `getProtectedResources()` advertises GitHub Copilot +
+     never started. `getProtectedResources()` advertises Dardcor AI +
      GitHub repo.
-   - *Native (this phase):* the GitHub Copilot token is **not** required to
+   - *Native (this phase):* the Dardcor AI token is **not** required to
      reach Anthropic. The provider must not block session creation behind a
      Copilot sign-in it will never use. Decisions:
      - `getProtectedResources()` in native mode drops

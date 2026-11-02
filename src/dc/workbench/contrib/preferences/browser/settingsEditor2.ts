@@ -660,7 +660,7 @@ export class SettingsEditor2 extends EditorPane {
 	}
 
 	private isSearchUpToDate(): boolean {
-		return !this.searchInputDelayer.isTriggered && this.renderedSearchQuery === this.searchWidget.getValue().trim();
+		return !this.searchInputDelayer.isTriggered() && this.renderedSearchQuery === this.searchWidget.getValue().trim();
 	}
 
 	focusFirstSettingFromSearch(): void {

@@ -953,7 +953,7 @@ suite('ChatListRenderer', () => {
 	suite('shouldHideChatUserIdentity', () => {
 		test('hides local Copilot and Agent Host Copilot response identity', () => {
 			assert.deepStrictEqual([
-				shouldHideChatUserIdentity('GitHub Copilot', URI.from({ scheme: 'vscode-chat-editor' }), true, false),
+				shouldHideChatUserIdentity('Dardcor AI', URI.from({ scheme: 'vscode-chat-editor' }), true, false),
 				shouldHideChatUserIdentity('Copilot', URI.from({ scheme: 'agent-host-copilotcli' }), true, false),
 				shouldHideChatUserIdentity('Copilot', URI.from({ scheme: 'agent-host-copilotcli' }), false, false),
 				shouldHideChatUserIdentity('Copilot', URI.from({ scheme: 'remote-test-authority-copilotcli' }), true, false),

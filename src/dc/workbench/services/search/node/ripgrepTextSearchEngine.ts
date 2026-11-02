@@ -20,6 +20,7 @@ import { anchorGlob, IOutputChannel, Maybe, rangeToSearchRange, searchRangeToRan
 import type { RipgrepTextSearchOptions } from '../common/searchExtTypesInternal.js';
 import { newToOldPreviewOptions } from '../common/searchExtConversionTypes.js';
 import { rgDiskPath } from '../../../../base/node/ripgrep.js';
+import { DardcorSymlinkLoopGuard } from './dardcorSymlinkGuard.js';
 
 export class RipgrepTextSearchEngine {
 

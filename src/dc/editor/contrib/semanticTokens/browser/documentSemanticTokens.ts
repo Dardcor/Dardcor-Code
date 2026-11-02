@@ -327,6 +327,10 @@ class ModelSemanticColoring extends Disposable {
 				}
 
 				const srcData = currentResponse.data;
+				if (srcData.length + deltaLength < 0) {
+					this._model.tokenization.setSemanticTokens(null, true);
+					return;
+				}
 				const destData = new Uint32Array(srcData.length + deltaLength);
 
 				let srcLastStart = srcData.length;

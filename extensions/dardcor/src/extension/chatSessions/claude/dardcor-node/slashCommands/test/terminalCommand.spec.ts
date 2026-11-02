@@ -106,7 +106,7 @@ describe('TerminalSlashCommand', () => {
 		});
 
 		it('has correct description', () => {
-			expect(terminalCommand.description).toBe('Launch Claude Code CLI using your GitHub Copilot subscription');
+			expect(terminalCommand.description).toBe('Launch Claude Code CLI using your Dardcor AI subscription');
 		});
 
 		it('has correct command ID', () => {
@@ -139,7 +139,7 @@ describe('TerminalSlashCommand', () => {
 
 			const createTerminalCall = testTerminalService.createTerminalSpy.mock.calls[0][0] as TerminalOptions;
 			expect(createTerminalCall.message).toContain('\x1b[0;104m');
-			expect(createTerminalCall.message).toContain('GitHub Copilot subscription');
+			expect(createTerminalCall.message).toContain('Dardcor AI subscription');
 		});
 
 		it('shows the terminal after creation', async () => {

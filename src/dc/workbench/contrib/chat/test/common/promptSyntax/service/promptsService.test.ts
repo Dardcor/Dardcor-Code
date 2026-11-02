@@ -58,7 +58,7 @@ import { MockContextKeyService } from '../../../../../../../platform/keybinding/
 import { IAgentPlugin, IAgentPluginAgent, IAgentPluginCommand, IAgentPluginHook, IAgentPluginInstruction, IAgentPluginMcpServerDefinition, IAgentPluginService, IAgentPluginSkill } from '../../../../common/plugins/agentPluginService.js';
 import { PluginFormat } from '../../../../../../../platform/agentPlugins/common/pluginParsers.js';
 import { IWorkspaceTrustManagementService } from '../../../../../../../platform/workspace/common/workspaceTrust.js';
-import { COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG } from '../../../../../../../platform/policy/common/copilotManagedSettings.js';
+import { COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG } from '../../../../../../../platform/policy/common/dardcorManagedSettings.js';
 
 class TestPromptContextKeyService extends MockContextKeyService {
 	private readonly _onDidChangeContextEmitter = new Emitter<IContextKeyChangeEvent>();
@@ -1254,11 +1254,11 @@ suite('PromptsService', () => {
 					path: `${rootFolder}/.github/agents/github-agent.agent.md`,
 					contents: [
 						'---',
-						'description: \'GitHub Copilot specialized agent.\'',
+						'description: \'Dardcor AI specialized agent.\'',
 						'target: \'github-copilot\'',
 						'tools: [ github-api, code-search ]',
 						'---',
-						'I am optimized for GitHub Copilot workflows.',
+						'I am optimized for Dardcor AI workflows.',
 					]
 				},
 				{
@@ -1288,11 +1288,11 @@ suite('PromptsService', () => {
 				{
 					id: URI.joinPath(rootFolderUri, '.github/agents/github-agent.agent.md').toString(),
 					name: 'github-agent',
-					description: 'GitHub Copilot specialized agent.',
+					description: 'Dardcor AI specialized agent.',
 					target: Target.GitHubCopilot,
 					tools: ['github-api', 'code-search'],
 					agentInstructions: {
-						content: 'I am optimized for GitHub Copilot workflows.',
+						content: 'I am optimized for Dardcor AI workflows.',
 						toolReferences: [],
 						metadata: undefined
 					},

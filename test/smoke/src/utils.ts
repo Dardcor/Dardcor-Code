@@ -176,12 +176,12 @@ export function buildCopilotChatToken(mockUrl: string): string {
 
 export function getCopilotSmokeTestEnv(mockServer?: MockLlmServer, opts?: { userDataDir?: string }): Readonly<Record<string, string | undefined>> {
 	let xdgStateHome: string | undefined;
-	let copilotHome: string | undefined;
+	let dardcorHome: string | undefined;
 	if (opts?.userDataDir) {
 		xdgStateHome = `${opts.userDataDir}-copilot-state`;
-		copilotHome = join(xdgStateHome, '.copilot');
+		dardcorHome = join(xdgStateHome, '.copilot');
 		try {
-			fs.mkdirSync(copilotHome, { recursive: true });
+			fs.mkdirSync(dardcorHome, { recursive: true });
 		} catch {
 		}
 	}
@@ -191,12 +191,12 @@ export function getCopilotSmokeTestEnv(mockServer?: MockLlmServer, opts?: { user
 		IS_SCENARIO_AUTOMATION: '1',
 		VSCODE_COPILOT_CHAT_TOKEN: mockServer ? buildCopilotChatToken(getMockLlmServerUrl(mockServer)) : undefined,
 		XDG_STATE_HOME: xdgStateHome,
-		COPILOT_HOME: copilotHome,
+		COPILOT_HOME: dardcorHome,
 	};
 }
 
-export function getCopilotRuntimeLogDir(copilotHome: string | undefined): string | undefined {
-	return copilotHome ? join(copilotHome, 'logs') : undefined;
+export function getCopilotRuntimeLogDir(dardcorHome: string | undefined): string | undefined {
+	return dardcorHome ? join(dardcorHome, 'logs') : undefined;
 }
 
 export function getRandomUserDataDir(baseUserDataDir: string): string {
@@ -310,17 +310,17 @@ export async function dumpFailureDiagnostics(
 			logger.log(`[${label}] no window* directories found under ${logsPath}`);
 		}
 		for (const w of windowDirs) {
-			const chatLogPath = join(logsPath, w, 'exthost', 'GitHub.copilot-chat', 'GitHub Copilot Chat.log');
+			const chatLogPath = join(logsPath, w, 'exthost', 'GitHub.copilot-chat', 'Dardcor AI Chat.log');
 			try {
 				const stat = await fs.promises.stat(chatLogPath);
 				const content = await fs.promises.readFile(chatLogPath, 'utf8');
 				const lines = content.split(/\r?\n/);
 				const tail = lines.slice(-80);
-				logger.log(`[${label}] --- BEGIN ${w}/GitHub Copilot Chat.log (size=${stat.size}; last ${tail.length} of ${lines.length} lines) ---`);
+				logger.log(`[${label}] --- BEGIN ${w}/Dardcor AI Chat.log (size=${stat.size}; last ${tail.length} of ${lines.length} lines) ---`);
 				for (const ln of tail) {
 					logger.log(`[${label}] | ${ln}`);
 				}
-				logger.log(`[${label}] --- END ${w}/GitHub Copilot Chat.log ---`);
+				logger.log(`[${label}] --- END ${w}/Dardcor AI Chat.log ---`);
 			} catch {
 			}
 		}

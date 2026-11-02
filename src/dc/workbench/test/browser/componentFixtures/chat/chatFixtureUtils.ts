@@ -177,7 +177,7 @@ export function registerChatFixtureServices(reg: ServiceRegistration, options: I
 	reg.define(IChatAgentService, class FixtureChatAgentService extends ChatAgentService {
 		override getDefaultAgent(): IChatAgent {
 			// eslint-disable-next-line local/code-no-dangerous-type-assertions
-			return { fullName: 'GitHub Copilot', id: 'githubCopilot' } as unknown as IChatAgent;
+			return { fullName: 'Dardcor AI', id: 'githubCopilot' } as unknown as IChatAgent;
 		}
 	});
 	reg.defineInstance(IChatAgentNameService, new class extends mock<IChatAgentNameService>() {

@@ -1,4 +1,4 @@
-import type { ManagedSettingsChannel } from './copilotManagedSettings.js';
+import type { ManagedSettingsChannel } from './dardcorManagedSettings.js';
 export const enum ManagedSettingsFreshnessState {
     NotRequired = 'notRequired',
     Pending = 'pending',

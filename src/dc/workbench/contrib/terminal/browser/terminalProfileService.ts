@@ -214,7 +214,7 @@ export class TerminalProfileService extends Disposable implements ITerminalProfi
 			this._profileProviders.set(extensionIdentifier, extMap);
 		}
 		extMap.set(id, profileProvider);
-		return toDisposable(() => this._profileProviders.delete(id));
+		return toDisposable(() => extMap?.delete(id));
 	}
 
 	async registerContributedProfile(args: IRegisterContributedProfileArgs): Promise<void> {

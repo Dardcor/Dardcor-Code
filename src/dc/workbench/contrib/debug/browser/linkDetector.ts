@@ -215,7 +215,7 @@ export class LinkDetector implements ILinkDetector {
 				const path = await this.pathService.path;
 				const fileUrl = osPath.normalize(((path.sep === osPath.posix.sep) && platform.isWindows) ? fsPath.replace(/\\/g, osPath.posix.sep) : fsPath);
 
-				const fileUri = URI.parse(fileUrl);
+				const fileUri = URI.file(fileUrl);
 				const exists = await this.fileService.exists(fileUri);
 				if (!exists) {
 					return;

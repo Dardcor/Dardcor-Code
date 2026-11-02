@@ -7,7 +7,7 @@ import * as nls from '../../../nls.js';
 import { IPolicyData } from '../../../base/common/defaultAccount.js';
 import { PolicyCategory } from '../../../base/common/policy.js';
 import { AgentHostConfigurationSyncScope, ConfigurationScope, Extensions as ConfigurationExtensions, IConfigurationPropertySchema, IConfigurationRegistry } from '../../configuration/common/configurationRegistry.js';
-import { DARDCOR_OTEL_CAPTURE_CONTENT_KEY, DARDCOR_OTEL_ENABLED_KEY, DARDCOR_OTEL_ENDPOINT_KEY, DARDCOR_OTEL_HEADERS_KEY, DARDCOR_OTEL_LOCK_CAPTURE_CONTENT_KEY, DARDCOR_OTEL_PROTOCOL_KEY, DARDCOR_OTEL_RESOURCE_ATTRIBUTES_KEY, DARDCOR_OTEL_SERVICE_NAME_KEY, managedSettingValue, thirdPartyAgentEnabledValue } from '../../policy/common/copilotManagedSettings.js';
+import { DARDCOR_OTEL_CAPTURE_CONTENT_KEY, DARDCOR_OTEL_ENABLED_KEY, DARDCOR_OTEL_ENDPOINT_KEY, DARDCOR_OTEL_HEADERS_KEY, DARDCOR_OTEL_LOCK_CAPTURE_CONTENT_KEY, DARDCOR_OTEL_PROTOCOL_KEY, DARDCOR_OTEL_RESOURCE_ATTRIBUTES_KEY, DARDCOR_OTEL_SERVICE_NAME_KEY, managedSettingValue, thirdPartyAgentEnabledValue } from '../../policy/common/dardcorManagedSettings.js';
 import product from '../../product/common/product.js';
 import { Registry } from '../../registry/common/platform.js';
 import {

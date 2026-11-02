@@ -10,7 +10,7 @@ import { ManagedSettingsData } from '../../../../base/common/policy.js';
 import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { NullLogService } from '../../../log/common/log.js';
-import { COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY, COPILOT_FORCE_REMOTE_SETTINGS_REFRESH_KEY } from '../../common/copilotManagedSettings.js';
+import { COPILOT_DISABLE_BYPASS_PERMISSIONS_MODE_KEY, COPILOT_FORCE_REMOTE_SETTINGS_REFRESH_KEY } from '../../common/dardcorManagedSettings.js';
 import { NativeManagedSettingsChannelClient } from '../../common/nativeManagedSettingsIpc.js';
 import { PolicyValue } from '../../common/policy.js';
 import { NativeManagedSettingsService, NativePolicyWatcherFactory } from '../../node/nativeManagedSettingsService.js';

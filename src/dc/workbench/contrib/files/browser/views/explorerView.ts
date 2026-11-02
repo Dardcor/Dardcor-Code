@@ -8,6 +8,7 @@ import { URI } from '../../../../../base/common/uri.js';
 import * as perf from '../../../../../base/common/performance.js';
 import { WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification } from '../../../../../base/common/actions.js';
 import { memoize } from '../../../../../base/common/decorators.js';
+import { Sequencer } from '../../../../../base/common/async.js';
 import { IFilesConfiguration, ExplorerFolderContext, FilesExplorerFocusedContext, ExplorerFocusedContext, ExplorerRootContext, ExplorerResourceReadonlyContext, ExplorerResourceCut, ExplorerResourceMoveableToTrash, ExplorerCompressedFocusContext, ExplorerCompressedFirstFocusContext, ExplorerCompressedLastFocusContext, ExplorerResourceAvailableEditorIdsContext, VIEW_ID, ExplorerResourceWritableContext, ViewHasSomeCollapsibleRootItemContext, FoldersViewVisibleContext, ExplorerResourceParentReadOnlyContext, ExplorerFindProviderActive } from '../../common/files.js';
 import { FileCopiedContext, NEW_FILE_COMMAND_ID, NEW_FOLDER_COMMAND_ID } from '../fileActions.js';
 import * as DOM from '../../../../../base/browser/dom.js';
@@ -172,6 +173,7 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 	private viewVisibleContextKey: IContextKey<boolean>;
 
 	private setTreeInputPromise: Promise<void> | undefined;
+	private readonly setTreeInputSequencer = new Sequencer();
 	private horizontalScrolling: boolean | undefined;
 
 	private dragHandler!: DelayedDragHandler;
@@ -704,12 +706,12 @@ export class ExplorerView extends ViewPane implements IExplorerView {
 	}
 
 	async setTreeInput(): Promise<void> {
+		return this.setTreeInputSequencer.queue(() => this.doSetTreeInput());
+	}
+
+	private async doSetTreeInput(): Promise<void> {
 		if (!this.isBodyVisible()) {
 			return Promise.resolve(undefined);
-		}
-
-		if (this.setTreeInputPromise) {
-			await this.setTreeInputPromise;
 		}
 
 		const initialInputSetup = !this.tree.getInput();

@@ -35,7 +35,7 @@ import { IAccessibilityService } from '../../../../platform/accessibility/common
 import { URI } from '../../../../base/common/uri.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
-import { getCopilotRootPaths } from '../../../../platform/agentHost/common/copilotHome.js';
+import { getCopilotRootPaths } from '../../../../platform/agentHost/common/dardcorHome.js';
 import { INativeWorkbenchEnvironmentService } from '../../../services/environment/electron-browser/environmentService.js';
 import { ITunnelProxyInfo } from '../../../../platform/tunnel/common/tunnelProxy.js';
 import { generateUuid } from '../../../../base/common/uuid.js';

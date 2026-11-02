@@ -101,7 +101,7 @@ interface CopilotCliDiagnostics {
 
 async function getCopilotCliDiagnostics(app: Application, mockServer?: MockLlmServer): Promise<CopilotCliDiagnostics> {
 	const logs = await app.code.driver.getLogs();
-	const copilotChatLog = findNewestLog(logs, 'GitHub Copilot Chat.log');
+	const copilotChatLog = findNewestLog(logs, 'Dardcor AI Chat.log');
 	const extensionHostLog = findNewestLog(logs, 'exthost.log');
 	const copilotChatTail = tail(copilotChatLog?.contents ?? '', 12000);
 	const extensionHostTail = tail(extensionHostLog?.contents ?? '', 16000);

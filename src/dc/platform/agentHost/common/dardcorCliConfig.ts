@@ -107,7 +107,7 @@ export function resolveModelCapabilityOverrideField<K extends keyof ICopilotCliM
 	return undefined;
 }
 
-export const copilotCliConfigSchema = createSchema({
+export const dardcorCliConfigSchema = createSchema({
 	[CopilotCliConfigKey.EnableCustomTerminalTool]: schemaProperty<boolean>({
 		type: 'boolean',
 		title: localize('agentHost.config.enableCustomTerminalTool.title', "Use Agent Host Terminal Tool"),

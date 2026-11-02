@@ -9,7 +9,7 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
-import { IManagedSettingsService } from '../../../../platform/policy/common/copilotManagedSettings.js';
+import { IManagedSettingsService } from '../../../../platform/policy/common/dardcorManagedSettings.js';
 
 export class WebAgentHostEnablementService extends AgentHostEnablementService {
 	constructor(

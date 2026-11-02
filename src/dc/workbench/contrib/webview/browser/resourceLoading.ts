@@ -104,6 +104,9 @@ export function getResourceToLoad(
 	uriIdentityService: IUriIdentityService,
 ): URI | undefined {
 	const requestUriNoQueryString = requestUri.with({ query: '' });
+	if (requestUriNoQueryString.path.split('/').some(segment => segment.endsWith(' '))) {
+		return undefined;
+	}
 	for (const root of roots) {
 		if (containsResource(root, requestUriNoQueryString, uriIdentityService)) {
 			return normalizeResourcePath(requestUri);

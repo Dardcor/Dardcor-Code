@@ -15,7 +15,7 @@ import { agentHostAuthority } from '../../../../../platform/agentHost/common/age
 import { IRemoteAgentHostService } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { ActionType, NotificationType, type ActionEnvelope, type ChatUsageAction, type INotification, type SessionCustomizationsChangedAction } from '../../../../../platform/agentHost/common/state/sessionActions.js';
 import { isDefaultChatUri, parseChatUri, readUsageInfoMeta, type Customization } from '../../../../../platform/agentHost/common/state/sessionState.js';
-import { getCopilotCliSessionRawId } from '../copilotCliEventsUri.js';
+import { getCopilotCliSessionRawId } from '../dardcorCliEventsUri.js';
 
 const USAGE_DIR = 'agentHostUsage';
 

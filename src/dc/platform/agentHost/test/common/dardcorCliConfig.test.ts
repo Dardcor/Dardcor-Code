@@ -5,10 +5,10 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { CopilotCliConfigKey, copilotCliConfigSchema, normalizeModelFamilyAlias, normalizeToolSearchDeferThreshold, resolveModelCapabilityOverrideField, type CopilotCliModelCapabilityOverrides } from '../../common/copilotCliConfig.js';
+import { CopilotCliConfigKey, dardcorCliConfigSchema, normalizeModelFamilyAlias, normalizeToolSearchDeferThreshold, resolveModelCapabilityOverrideField, type CopilotCliModelCapabilityOverrides } from '../../common/dardcorCliConfig.js';
 import { reasoningEffortLevels } from '../../common/reasoningEffort.js';
 
-suite('copilotCliConfig', () => {
+suite('dardcorCliConfig', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -27,7 +27,7 @@ suite('copilotCliConfig', () => {
 	});
 
 	test('per-model reasoning effort schema uses the canonical effort levels', () => {
-		const overrideSchema = copilotCliConfigSchema.definition[CopilotCliConfigKey.ModelCapabilityOverrides].protocol;
+		const overrideSchema = dardcorCliConfigSchema.definition[CopilotCliConfigKey.ModelCapabilityOverrides].protocol;
 		assert.deepStrictEqual(
 			overrideSchema.additionalProperties?.properties?.reasoningEffort?.enum,
 			[...reasoningEffortLevels]

@@ -13,7 +13,7 @@ import { ConfigurationTarget, IConfigurationService } from '../../../../../../pl
 import { TestInstantiationService } from '../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ILogService, NullLogService } from '../../../../../../platform/log/common/log.js';
 import { AgentHostSdkSandboxEnabledSettingId, IAgentConnection, IAgentHostService } from '../../../../../../platform/agentHost/common/agentService.js';
-import { AgentHostCustomTerminalToolEnabledSettingId } from '../../../../../../platform/agentHost/common/copilotCliConfig.js';
+import { AgentHostCustomTerminalToolEnabledSettingId } from '../../../../../../platform/agentHost/common/dardcorCliConfig.js';
 import { IAgentHostConnectionsService } from '../../../../../../platform/agentHost/common/agentHostConnectionsService.js';
 import { AgentHostConnectionsService } from '../../../../../../platform/agentHost/browser/agentHostConnectionsService.js';
 import { IRemoteAgentHostService, IRemoteAgentHostConnectionInfo } from '../../../../../../platform/agentHost/common/remoteAgentHostService.js';

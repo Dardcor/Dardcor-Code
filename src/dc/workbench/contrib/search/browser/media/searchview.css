@@ -429,3 +429,9 @@
 	user-select: none;
 	-webkit-user-select: none;
 }
+
+
+.monaco-workbench .search-container .find-filter-button:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: -1px;
+}

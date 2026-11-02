@@ -11,7 +11,7 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { NullAgentHostService } from '../../../../../platform/agentHost/browser/nullAgentHostService.js';
 import { IAgentHostEnablementService } from '../../../../../platform/agentHost/common/agentHostEnablementService.js';
 import { IAgentHostService } from '../../../../../platform/agentHost/common/agentService.js';
-import { CopilotCliVSCodeAssignmentContextKey } from '../../../../../platform/agentHost/common/copilotCliConfig.js';
+import { CopilotCliVSCodeAssignmentContextKey } from '../../../../../platform/agentHost/common/dardcorCliConfig.js';
 import { ActionType } from '../../../../../platform/agentHost/common/state/sessionActions.js';
 import { ROOT_STATE_URI } from '../../../../../platform/agentHost/common/state/sessionState.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';

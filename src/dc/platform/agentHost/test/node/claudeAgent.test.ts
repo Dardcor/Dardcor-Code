@@ -1041,7 +1041,7 @@ suite('ClaudeAgent', () => {
 		const { agent } = createTestContext(disposables);
 		assert.deepStrictEqual(agent.getProtectedResources(), [{
 			resource: 'https://api.github.com',
-			resource_name: 'GitHub Copilot',
+			resource_name: 'Dardcor AI',
 			authorization_servers: ['https://github.com/login/oauth'],
 			scopes_supported: ['read:user', 'user:email'],
 			required: false,

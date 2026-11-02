@@ -1,4 +1,4 @@
-# Contributing to GitHub Copilot Chat
+# Contributing to Dardcor AI Chat
 
 * [Creating good issues](#creating-good-issues)
   * [Look For an Existing Issue](#look-for-an-existing-issue)
@@ -195,7 +195,7 @@ For comprehensive information about the project architecture, coding standards, 
 * **Key Entry Points**: Where to make changes for specific features
 * **Development Guidelines**: Best practices for contributing to the codebase
 
-Understanding these guidelines is crucial for making effective contributions to the GitHub Copilot Chat extension.
+Understanding these guidelines is crucial for making effective contributions to the Dardcor AI Chat extension.
 
 ### Layers
 

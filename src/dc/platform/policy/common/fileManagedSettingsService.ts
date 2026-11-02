@@ -12,7 +12,7 @@ import { isObject } from '../../../base/common/types.js';
 import { URI } from '../../../base/common/uri.js';
 import { FileOperationError, FileOperationResult, IFileService } from '../../files/common/files.js';
 import { ILogService } from '../../log/common/log.js';
-import { IFileManagedSettingsService, normalizeManagedSettings, RawManagedSettingsData } from './copilotManagedSettings.js';
+import { IFileManagedSettingsService, normalizeManagedSettings, RawManagedSettingsData } from './dardcorManagedSettings.js';
 
 const MANAGED_SETTINGS_MAX_FILE_SIZE = 1024 * 1024;
 

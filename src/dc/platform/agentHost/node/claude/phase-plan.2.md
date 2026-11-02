@@ -24,7 +24,7 @@ agent roadmap.
 
 **Phase 1 (done):** `ICopilotApiService` at
 `src/vs/platform/agentHost/node/shared/copilotApiService.ts`. A
-gateway to GitHub Copilot's chat completions API ("**CAPI**") that
+gateway to Dardcor AI's chat completions API ("**CAPI**") that
 exposes:
 
 ```ts
@@ -72,7 +72,7 @@ the proxy and its DI registration in the agent host.
 
 - The SDK is hard-wired to call `https://api.anthropic.com`-shaped
   endpoints. We can't redirect at the SDK level.
-- We don't ship Anthropic API keys; we ship GitHub Copilot tokens.
+- We don't ship Anthropic API keys; we ship Dardcor AI tokens.
   The proxy authenticates via Bearer-token-with-nonce, mints CAPI
   tokens internally, and forwards.
 - All routing/translation logic stays out of the SDK subprocess.

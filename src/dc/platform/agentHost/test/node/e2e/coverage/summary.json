@@ -1180,7 +1180,7 @@
 				"percentage": 88.09
 			}
 		},
-		"src/vs/platform/agentHost/common/copilotCliConfig.ts": {
+		"src/vs/platform/agentHost/common/dardcorCliConfig.ts": {
 			"statements": {
 				"covered": 278,
 				"total": 287,
@@ -1202,7 +1202,7 @@
 				"percentage": 96.86
 			}
 		},
-		"src/vs/platform/agentHost/common/copilotConfigSlashCommands.ts": {
+		"src/vs/platform/agentHost/common/dardcorConfigSlashCommands.ts": {
 			"statements": {
 				"covered": 194,
 				"total": 261,
@@ -1224,7 +1224,7 @@
 				"percentage": 74.32
 			}
 		},
-		"src/vs/platform/agentHost/common/copilotHome.ts": {
+		"src/vs/platform/agentHost/common/dardcorHome.ts": {
 			"statements": {
 				"covered": 13,
 				"total": 18,

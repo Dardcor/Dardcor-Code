@@ -12,7 +12,7 @@ import { hasKey } from '../../../base/common/types.js';
 import { checkMcpServerAllowed, getMcpServerMatchers, IMcpServerIdentity, IMcpServerMatcher, McpServerAllowResult } from './allowedMcpServers.js';
 import { IAllowedMcpServersService, IGalleryMcpServer, IInstallableMcpServer, ILocalMcpServer, mcpAccessConfig, mcpAllowedServersConfig, mcpDeniedServersConfig, McpAccessValue } from './mcpManagement.js';
 import { McpServerType } from './mcpPlatformTypes.js';
-import { COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG } from '../../policy/common/copilotManagedSettings.js';
+import { COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG } from '../../policy/common/dardcorManagedSettings.js';
 
 export class AllowedMcpServersService extends Disposable implements IAllowedMcpServersService {
 

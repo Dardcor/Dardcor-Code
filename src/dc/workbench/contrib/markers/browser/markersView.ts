@@ -559,7 +559,10 @@ export class MarkersView extends FilterViewPane implements IMarkersView {
 		}));
 		disposables.push(toDisposable(() => this.markersModel.reset()));
 
-		this.markersModel.resourceMarkers.forEach(resourceMarker => resourceMarker.markers.forEach(marker => this.markersViewModel.add(marker)));
+		this.markersModel.resourceMarkers.forEach(resourceMarker => {
+			this.markersViewModel.remove(resourceMarker.resource);
+			resourceMarker.markers.forEach(marker => this.markersViewModel.add(marker));
+		});
 		disposables.push(this.markersViewModel.onDidChange(marker => this.onDidChangeViewState(marker)));
 		disposables.push(toDisposable(() => this.markersModel.resourceMarkers.forEach(resourceMarker => this.markersViewModel.remove(resourceMarker.resource))));
 

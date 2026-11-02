@@ -3,7 +3,7 @@
 The Claude-side of the agent host: a `ClaudeAgent` implementation of `IAgent`
 that drives Anthropic-format tool-using sessions via the Claude Agent SDK,
 with all `messages` traffic proxied through a local server that translates
-Anthropic requests into GitHub Copilot CAPI calls.
+Anthropic requests into Dardcor AI CAPI calls.
 
 ## Language
 
@@ -24,7 +24,7 @@ process**, shared across any Claude-family agents.
 _Avoid_: "Anthropic proxy", "language model server".
 
 **CAPI**:
-GitHub Copilot's chat completions API, accessed through `ICopilotApiService`.
+Dardcor AI's chat completions API, accessed through `ICopilotApiService`.
 The terminal hop after the proxy.
 
 **Materialization** / `ClaudeAgentSession.materialize`:

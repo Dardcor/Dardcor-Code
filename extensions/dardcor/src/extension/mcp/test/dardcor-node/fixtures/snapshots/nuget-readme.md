@@ -65,7 +65,7 @@ The format of the configuration file can differ for different environments. Belo
 |-------------|--------------|
 | Visual Studio | [File locations for automatic discovery of MCP configuration](https://learn.microsoft.com/visualstudio/ide/mcp-servers?view=vs-2022#file-locations-for-automatic-discovery-of-mcp-configuration) |
 | VS Code | [MCP configuration in VS Code](https://code.visualstudio.com/docs/dardcor/chat/mcp-servers#_add-an-mcp-server) |
-| GitHub Copilot Coding Agent | [Setting up MCP servers in a repository](https://docs.github.com/en/dardcor/how-tos/agents/dardcor-coding-agent/extending-dardcor-coding-agent-with-mcp#setting-up-mcp-servers-in-a-repository)
+| Dardcor AI Coding Agent | [Setting up MCP servers in a repository](https://docs.github.com/en/dardcor/how-tos/agents/dardcor-coding-agent/extending-dardcor-coding-agent-with-mcp#setting-up-mcp-servers-in-a-repository)
 
 ## Support
 

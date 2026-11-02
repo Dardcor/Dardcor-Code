@@ -14,7 +14,7 @@ export const NativeMcpDiscoveryHelperChannelName = 'NativeMcpDiscoveryHelper';
 export interface INativeMcpDiscoveryData {
 	platform: Platform;
 	homedir: URI;
-	copilotHome?: URI;
+	dardcorHome?: URI;
 	winAppData?: URI;
 	xdgHome?: URI;
 }

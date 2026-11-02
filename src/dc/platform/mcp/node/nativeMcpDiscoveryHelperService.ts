@@ -17,7 +17,7 @@ export class NativeMcpDiscoveryHelperService implements INativeMcpDiscoveryHelpe
 		return Promise.resolve({
 			platform,
 			homedir: URI.file(homedir()),
-			copilotHome: this.uriFromEnvVariable('COPILOT_HOME'),
+			dardcorHome: this.uriFromEnvVariable('COPILOT_HOME'),
 			winAppData: this.uriFromEnvVariable('APPDATA'),
 			xdgHome: this.uriFromEnvVariable('XDG_CONFIG_HOME'),
 		});

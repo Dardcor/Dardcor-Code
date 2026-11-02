@@ -12,7 +12,7 @@ import { AGENT_HOST_ENABLED_CONTEXT_KEY } from '../../common/agentHostEnablement
 import { ConfigurationTarget, IConfigurationChangeEvent, IConfigurationOverrides } from '../../../configuration/common/configuration.js';
 import { ChatAIDisabledSettingId } from '../../../chat/common/chatSettings.js';
 import { TestConfigurationService } from '../../../configuration/test/common/testConfigurationService.js';
-import { COPILOT_SANDBOX_ALLOW_BYPASS_KEY, COPILOT_SANDBOX_ENABLED_KEY, IManagedSettingsService, NullManagedSettingsService } from '../../../policy/common/copilotManagedSettings.js';
+import { COPILOT_SANDBOX_ALLOW_BYPASS_KEY, COPILOT_SANDBOX_ENABLED_KEY, IManagedSettingsService, NullManagedSettingsService } from '../../../policy/common/dardcorManagedSettings.js';
 import { MockContextKeyService } from '../../../keybinding/test/common/mockKeybindingService.js';
 
 class AgentHostTestConfigurationService extends TestConfigurationService {

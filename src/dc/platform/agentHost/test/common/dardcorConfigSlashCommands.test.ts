@@ -5,9 +5,9 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { getCopilotConfigSlashCommandItems, isCopilotConfigSlashCommand, resolveCopilotConfigSlashCommandOnSend } from '../../common/copilotConfigSlashCommands.js';
+import { getCopilotConfigSlashCommandItems, isCopilotConfigSlashCommand, resolveCopilotConfigSlashCommandOnSend } from '../../common/dardcorConfigSlashCommands.js';
 
-suite('copilotConfigSlashCommands', () => {
+suite('dardcorConfigSlashCommands', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 

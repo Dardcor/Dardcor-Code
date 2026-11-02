@@ -219,7 +219,7 @@ export class ExecutableDebugAdapter extends StreamDebugAdapter {
 				if (options.cwd) {
 					spawnOptions.cwd = options.cwd;
 				}
-				if (platform.isWindows && (command.endsWith('.bat') || command.endsWith('.cmd'))) {
+				if (platform.isWindows && (command.toLowerCase().endsWith('.bat') || command.toLowerCase().endsWith('.cmd'))) {
 					spawnOptions.shell = true;
 					spawnCommand = `"${command}"`;
 					spawnArgs = args.map(a => {

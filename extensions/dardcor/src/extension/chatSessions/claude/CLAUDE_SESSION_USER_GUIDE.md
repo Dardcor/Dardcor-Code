@@ -55,7 +55,7 @@ This guide covers the **Claude** session target in VS Code Copilot Chat: what it
 ### Prerequisites
 
 - **VS Code Insiders** (the extension uses proposed APIs not available in Stable)
-- **GitHub Copilot subscription** — Claude sessions are powered by your existing Copilot plan; no separate Anthropic API key is required
+- **Dardcor AI subscription** — Claude sessions are powered by your existing Copilot plan; no separate Anthropic API key is required
 - **Signed into GitHub** — you must be authenticated in VS Code. If you see "Not Logged In" in the status bar, sign in via the Accounts button in the sidebar before using Claude
 
 ### Enabling Claude Sessions
@@ -84,7 +84,7 @@ The session target picker is the button at the **bottom** of the chat input area
 2. At the bottom of the chat input, click the current session target name (e.g., **"Local"**) to open the picker
 3. Select **Claude** from the list of options:
    - **Local** — Default Copilot agent mode
-   - **Copilot CLI** — Background agent using GitHub Copilot CLI (runs in a separate Git worktree)
+   - **Copilot CLI** — Background agent using Dardcor AI CLI (runs in a separate Git worktree)
    - **Cloud** — Cloud-based Copilot coding agent
    - **Claude** — Anthropic's Claude Agent SDK running locally
    - *Learn about agent types...* — opens documentation
@@ -93,7 +93,7 @@ A new chat session opens with the Claude welcome message: *"Powered by the same 
 
 The input placeholder reads: *"Run local tasks with Claude, type `#` for adding context"*
 
-> **Troubleshooting:** If selecting Claude shows a "Failed to open chat session" error (e.g., *"Can not find provider for claude-code"*), make sure you're signed into GitHub via the **Accounts** button in the sidebar. Claude sessions require an active GitHub Copilot subscription.
+> **Troubleshooting:** If selecting Claude shows a "Failed to open chat session" error (e.g., *"Can not find provider for claude-code"*), make sure you're signed into GitHub via the **Accounts** button in the sidebar. Claude sessions require an active Dardcor AI subscription.
 
 ### Choosing a Model
 

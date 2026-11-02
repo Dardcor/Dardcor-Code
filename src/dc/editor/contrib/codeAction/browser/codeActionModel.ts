@@ -389,6 +389,7 @@ export class CodeActionModel extends Disposable {
 		if (this._state.type === CodeActionsState.Type.Triggered) {
 			this._state.cancel();
 		}
+		this.codeActionsDisposable.clear();
 
 		this._state = newState;
 

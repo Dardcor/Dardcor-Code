@@ -1629,6 +1629,9 @@ export class MultiEditorTabsControl extends EditorTabsControl {
 
 					tabContainer.classList.add('dirty-border-top');
 					tabContainer.style.setProperty('--tab-dirty-border-top-color', modifiedBorderColor);
+				} else {
+					tabContainer.classList.remove('dirty-border-top');
+					tabContainer.style.removeProperty('--tab-dirty-border-top-color');
 				}
 			} else {
 				tabContainer.classList.remove('dirty-border-top');

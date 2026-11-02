@@ -328,6 +328,10 @@ export class QuickInputController extends Disposable {
 			this.previousFocusElement = dom.isHTMLElement(e.relatedTarget) ? e.relatedTarget : undefined;
 		}, true));
 		this._register(focusTracker.onDidBlur(() => {
+			const activeElement = (dom.getShadowRoot(container) ?? container.ownerDocument).activeElement;
+			if (activeElement && dom.isAncestor(activeElement, container)) {
+				return;
+			}
 			if (!this.getUI().ignoreFocusOut && !this.options.ignoreFocusOut()) {
 				this.hide(QuickInputHideReason.Blur);
 			}

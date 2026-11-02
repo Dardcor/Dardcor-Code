@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
@@ -444,5 +444,11 @@
 }
 
 .modern-ui.modern-ui-connected-editor-tabs.monaco-workbench .part.editor > .content .editor-group-container > .title.tabs .tabs-container > .tab.connected-tab-upper-row.active > .tab-actions {
+	border-radius: var(--vscode-cornerRadius-small);
+}
+
+
+.modern-ui.modern-ui-connected-editor-tabs.monaco-workbench .part.editor > .content .editor-group-container > .title.tabs .tabs-container > .tab.selected.multi-selected:not(.active) > .tab-fill {
+	inset: 0 var(--vscode-spacing-size20);
 	border-radius: var(--vscode-cornerRadius-small);
 }

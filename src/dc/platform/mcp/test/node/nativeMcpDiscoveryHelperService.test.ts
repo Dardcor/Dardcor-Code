@@ -18,11 +18,11 @@ suite('NativeMcpDiscoveryHelperService', () => {
 		}).load();
 
 		assert.deepStrictEqual({
-			copilotHome: data.copilotHome?.path,
+			dardcorHome: data.dardcorHome?.path,
 			winAppData: data.winAppData?.path,
 			xdgHome: data.xdgHome?.path,
 		}, {
-			copilotHome: '/custom/copilot',
+			dardcorHome: '/custom/copilot',
 			winAppData: '/custom/app-data',
 			xdgHome: '/custom/config',
 		});

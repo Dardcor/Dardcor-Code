@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { isSafari, setFullscreen } from '../../base/browser/browser.js';
+import { PixelRatio } from '../../base/browser/pixelRatio.js';
 import { addDisposableListener, EventHelper, EventType, getWindow, getWindowById, getWindows, getWindowsCount, hasAppFocus, windowOpenNoOpener, windowOpenPopup, windowOpenWithSuccess } from '../../base/browser/dom.js';
 import { DomEmitter } from '../../base/browser/event.js';
 import { HidDeviceData, requestHidDevice, requestSerialPort, requestUsbDevice, SerialPortData, UsbDeviceData } from '../../base/browser/deviceAccess.js';
@@ -53,6 +54,7 @@ export abstract class BaseWindow extends Disposable {
 		this.enableMultiWindowAwareTimeout(targetWindow, dom);
 
 		this.registerFullScreenListeners(targetWindow.vscodeWindowId);
+		this.trackDevicePixelRatio(targetWindow);
 		this.registerContextMenuListeners(targetWindow);
 	}
 
@@ -67,6 +69,14 @@ export abstract class BaseWindow extends Disposable {
 
 			originalFocus.apply(this, [options]);
 		};
+	}
+
+	private trackDevicePixelRatio(targetWindow: CodeWindow): void {
+		const updatePixelRatio = () => {
+			targetWindow.document.documentElement.style.setProperty('--window-device-pixel-ratio', String(PixelRatio.getInstance(targetWindow).value));
+		};
+		updatePixelRatio();
+		this._register(PixelRatio.getInstance(targetWindow).onDidChange(() => updatePixelRatio()));
 	}
 
 	private onElementFocus(targetWindow: CodeWindow): void {

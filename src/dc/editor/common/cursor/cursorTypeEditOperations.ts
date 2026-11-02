@@ -7,6 +7,7 @@ import { CharCode } from '../../../base/common/charCode.js';
 import { onUnexpectedError } from '../../../base/common/errors.js';
 import * as strings from '../../../base/common/strings.js';
 import { ReplaceCommand, ReplaceCommandWithOffsetCursorState, ReplaceCommandWithoutChangingPosition, ReplaceCommandThatPreservesSelection, ReplaceOvertypeCommand, ReplaceOvertypeCommandOnCompositionEnd } from '../commands/replaceCommand.js';
+import { DardcorColumnPasteCommand } from '../commands/dardcorColumnPasteEngine.js';
 import { ShiftCommand } from '../commands/shiftCommand.js';
 import { SurroundSelectionCommand } from '../commands/surroundSelectionCommand.js';
 import { CursorConfiguration, EditOperationResult, EditOperationType, ICursorSimpleModel, isQuote } from '../cursorCommon.js';
@@ -637,8 +638,7 @@ export class PasteOperation {
 		const commands: ICommand[] = [];
 		for (let i = 0, len = selections.length; i < len; i++) {
 			const shouldOvertypeOnPaste = config.overtypeOnPaste && config.inputMode === 'overtype';
-			const ChosenReplaceCommand = shouldOvertypeOnPaste ? ReplaceOvertypeCommand : ReplaceCommand;
-			commands[i] = new ChosenReplaceCommand(selections[i], text[i]);
+			commands[i] = new DardcorColumnPasteCommand(selections[i], text[i], shouldOvertypeOnPaste);
 		}
 		return new EditOperationResult(EditOperationType.Other, commands, {
 			shouldPushStackElementBefore: true,

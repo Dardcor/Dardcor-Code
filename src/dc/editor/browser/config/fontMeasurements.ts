@@ -146,6 +146,7 @@ export class FontMeasurementsImpl extends Disposable {
 	private _actualReadFontInfo(targetWindow: Window, bareFontInfo: BareFontInfo): FontInfo {
 		const all: CharWidthRequest[] = [];
 		const monospace: CharWidthRequest[] = [];
+		const monospaceLigatures: CharWidthRequest[] = [];
 
 		const typicalHalfwidthCharacter = this._createRequest('n', CharWidthRequestType.Regular, all, monospace);
 		const typicalFullwidthCharacter = this._createRequest('\uff4d', CharWidthRequestType.Regular, all, null);
@@ -175,15 +176,32 @@ export class FontMeasurementsImpl extends Disposable {
 			this._createRequest(monospaceTestChars.charAt(i), CharWidthRequestType.Bold, all, monospace);
 		}
 
+		if (bareFontInfo.fontFeatureSettings !== EditorFontLigatures.OFF) {
+			const ligatureTestStrings = ['fi', '<=', '=>', '==='];
+			for (let i = 0, len = ligatureTestStrings.length; i < len; i++) {
+				this._createRequest(ligatureTestStrings[i], CharWidthRequestType.Regular, all, monospaceLigatures);
+				this._createRequest(ligatureTestStrings[i], CharWidthRequestType.Italic, all, monospaceLigatures);
+				this._createRequest(ligatureTestStrings[i], CharWidthRequestType.Bold, all, monospaceLigatures);
+			}
+		}
+
 		readCharWidths(targetWindow, bareFontInfo, all);
 
 		const maxDigitWidth = Math.max(digit0.width, digit1.width, digit2.width, digit3.width, digit4.width, digit5.width, digit6.width, digit7.width, digit8.width, digit9.width);
 
-		let isMonospace = (bareFontInfo.fontFeatureSettings === EditorFontLigatures.OFF);
+		let isMonospace = true;
 		const referenceWidth = monospace[0].width;
 		for (let i = 1, len = monospace.length; isMonospace && i < len; i++) {
 			const diff = referenceWidth - monospace[i].width;
 			if (diff < -0.001 || diff > 0.001) {
+				isMonospace = false;
+				break;
+			}
+		}
+		for (let i = 0, len = monospaceLigatures.length; isMonospace && i < len; i++) {
+			const expectedWidth = referenceWidth * monospaceLigatures[i].chr.length;
+			const diff = expectedWidth - monospaceLigatures[i].width;
+			if (diff < -0.005 || diff > 0.005) {
 				isMonospace = false;
 				break;
 			}

@@ -1708,8 +1708,8 @@ describe('phase commentary followed by phase final_answer', () => {
 		const accumulatedTexts: string[] = [];
 		const phases: string[] = [];
 
-		const commentaryText = 'Responding directly in commentary as requested. My name is GitHub Copilot.';
-		const finalText = 'My name is GitHub Copilot.';
+		const commentaryText = 'Responding directly in commentary as requested. My name is Dardcor AI.';
+		const finalText = 'My name is Dardcor AI.';
 
 		const events = [
 			{ type: 'response.output_item.added', output_index: 0, item: { type: 'message', role: 'assistant', content: [], phase: 'commentary', status: 'in_progress' }, sequence_number: 2 },

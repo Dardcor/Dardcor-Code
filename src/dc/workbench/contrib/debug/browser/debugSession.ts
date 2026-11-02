@@ -935,6 +935,7 @@ export class DebugSession implements IDebugSession {
 				thread.stopped = false;
 			});
 
+			this.stoppedDetails = [];
 			if (removeThreads) {
 				this.threads.clear();
 				this.threadIds = [];

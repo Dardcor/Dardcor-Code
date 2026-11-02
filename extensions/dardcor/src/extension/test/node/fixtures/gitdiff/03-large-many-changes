@@ -1,6 +1,6 @@
 {
 	"name": "copilot-chat",
-	"displayName": "GitHub Copilot Chat",
+	"displayName": "Dardcor AI Chat",
 	"description": "AI chat features powered by Copilot",
 	"version": "0.12.0",
 	"buildType": "dev",
@@ -85,7 +85,7 @@
 	"contributes": {
 		"interactiveSession": [
 			{
-				"label": "GitHub Copilot",
+				"label": "Dardcor AI",
 				"id": "copilot",
 				"icon": "",
 				"when": "!github.copilot.interactiveSession.disabled"
@@ -124,7 +124,7 @@
 				"command": "github.copilot.interactiveEditor.explain",
 				"title": "%github.copilot.command.explainThis%",
 				"enablement": "!github.copilot.interactiveSession.disabled && !editorReadonly",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 
 
@@ -133,32 +133,32 @@
 				"command": "github.copilot.interactiveEditor.generate",
 				"title": "%github.copilot.command.generateThis%",
 				"enablement": "!github.copilot.interactiveSession.disabled && !editorReadonly",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.interactiveEditor.generateDocs",
 				"title": "%github.copilot.command.generateDocs%",
 				"enablement": "!github.copilot.interactiveSession.disabled && !editorReadonly",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.interactiveEditor.generateTests",
 				"title": "%github.copilot.command.generateTests%",
 				"enablement": "!github.copilot.interactiveSession.disabled && !editorReadonly",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.interactiveEditor.fix",
 				"title": "%github.copilot.command.fixThis%",
 				"enablement": "!github.copilot.interactiveSession.disabled && !editorReadonly",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.interactiveSession.feedback",
 				"title": "%github.copilot.command.sendChatFeedback%",
 				"enablement": "github.copilot-chat.activated && !github.copilot.interactiveSession.disabled",
 				"icon": "$(feedback)",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.debug.workbenchState",
@@ -169,27 +169,27 @@
 				"command": "github.copilot.ghpr.applySuggestion",
 				"title": "%github.copilot.command.applySuggestionWithCopilot%",
 				"icon": "$(sparkle)",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.terminal.explainTerminalSelection",
 				"title": "%github.copilot.command.explainTerminalSelection%",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.terminal.explainTerminalSelectionContextMenu",
 				"title": "%github.copilot.command.explainTerminalSelectionContextMenu%",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.terminal.explainTerminalLastCommand",
 				"title": "%github.copilot.command.explainTerminalLastCommand%",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			},
 			{
 				"command": "github.copilot.terminal.suggestCommand",
 				"title": "%github.copilot.command.suggestCommand%",
-				"category": "GitHub Copilot"
+				"category": "Dardcor AI"
 			}
 		],
 		"configuration": {

@@ -690,7 +690,7 @@ suite('PromptValidator', () => {
 			const content = [
 				'---',
 				'name: "GitHub_Copilot_Custom_Agent"',
-				'description: "GitHub Copilot agent"',
+				'description: "Dardcor AI agent"',
 				'target: github-copilot',
 				`tools: ['shell', 'edit', 'search', 'custom-agent']`,
 				'mcp-servers: []',
@@ -705,7 +705,7 @@ suite('PromptValidator', () => {
 			const content = [
 				'---',
 				'name: "GitHubAgent"',
-				'description: "GitHub Copilot agent"',
+				'description: "Dardcor AI agent"',
 				'target: github-copilot',
 				'model: MAE 4.1',
 				'reasoning-effort: high',
@@ -720,7 +720,7 @@ suite('PromptValidator', () => {
 			const markers = await validate(content, PromptsType.agent);
 			const messages = markers.map(m => m.message);
 			assert.deepStrictEqual(messages, [
-				'Attribute \'handoffs\' is not supported in custom GitHub Copilot agent files. Supported: description, github, infer, mcp-servers, model, name, reasoning-effort, target, tools.',
+				'Attribute \'handoffs\' is not supported in custom Dardcor AI agent files. Supported: description, github, infer, mcp-servers, model, name, reasoning-effort, target, tools.',
 			], 'Only handoffs is unsupported for github-copilot target, model and reasoning-effort are supported');
 		});
 
@@ -728,7 +728,7 @@ suite('PromptValidator', () => {
 			const content = [
 				'---',
 				'name: "GitHubAgent"',
-				'description: "GitHub Copilot agent"',
+				'description: "Dardcor AI agent"',
 				'target: github-copilot',
 				`tools: ['shell', 'edit']`,
 				'---',
@@ -742,7 +742,7 @@ suite('PromptValidator', () => {
 			const content = [
 				'---',
 				'name: "GitHubAgent"',
-				'description: "GitHub Copilot agent"',
+				'description: "Dardcor AI agent"',
 				'target: github-copilot',
 				'argument-hint: "test hint"',
 				`tools: ['shell']`,
@@ -1049,7 +1049,7 @@ suite('PromptValidator', () => {
 			{
 				const content = [
 					'---',
-					'description: "GitHub Copilot agent"',
+					'description: "Dardcor AI agent"',
 					'target: github-copilot',
 					`tools: ['shell']`,
 					'---',
@@ -1063,7 +1063,7 @@ suite('PromptValidator', () => {
 				const content = [
 					'---',
 					'name: "GitHubAgent"',
-					'description: "GitHub Copilot agent"',
+					'description: "Dardcor AI agent"',
 					'target: github-copilot',
 					`tools: ['shell']`,
 					'---',

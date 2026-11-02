@@ -19,7 +19,7 @@ import { IProductService } from '../../../../../platform/product/common/productS
 import { ITextModelService } from '../../../../../editor/common/services/resolverService.js';
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { IPathService } from '../../../../services/path/common/pathService.js';
-import { buildLocalCopilotLogsUri, buildRemoteCopilotLogsUri, COPILOT_CLI_LOCAL_AH_SCHEME, getCopilotCliSessionRawId, parseRemoteAuthorityFromScheme, resolveEventsUri } from '../copilotCliEventsUri.js';
+import { buildLocalCopilotLogsUri, buildRemoteCopilotLogsUri, COPILOT_CLI_LOCAL_AH_SCHEME, getCopilotCliSessionRawId, parseRemoteAuthorityFromScheme, resolveEventsUri } from '../dardcorCliEventsUri.js';
 
 const WINDOW_LOG_CHANNEL_ID = 'rendererLog';
 const SHARED_PROCESS_LOG_CHANNEL_ID = 'shared';

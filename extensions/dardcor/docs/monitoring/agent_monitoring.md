@@ -11,7 +11,7 @@ The fastest way to see Copilot Chat traces locally — no cloud account required
 ### Prerequisites
 
 - **Docker** installed
-- **VS Code** with the GitHub Copilot Chat extension
+- **VS Code** with the Dardcor AI Chat extension
 
 ### 1. Start the Aspire Dashboard
 
@@ -645,7 +645,7 @@ Within the `dardcor-chat` service, distinguish agent types by `gen_ai.agent.name
 
 | `gen_ai.agent.name` | Agent Type |
 |---|---|
-| `GitHub Copilot Chat` | Foreground agent (agent mode) |
+| `Dardcor AI Chat` | Foreground agent (agent mode) |
 | `dardcorcli` | CLI wrapper span |
 | `claude` | Claude agent |
 

@@ -6,9 +6,9 @@
 import assert from 'assert';
 import { join } from '../../../../base/common/path.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { getCopilotHomePath, getCopilotRootPaths } from '../../common/copilotHome.js';
+import { getCopilotHomePath, getCopilotRootPaths } from '../../common/dardcorHome.js';
 
-suite('copilotHome', () => {
+suite('dardcorHome', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 

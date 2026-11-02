@@ -29,7 +29,7 @@ refs that change between runs.
 - A fresh build. Confirm via the `VS Code - Build` task or run
   `npm run typecheck-client` once.
 - `@playwright/cli` available (`npx @playwright/cli --version` should work).
-- A real GitHub Copilot login. Models only populate after authenticate, and
+- A real Dardcor AI login. Models only populate after authenticate, and
   the Anthropic catalog is only visible to authenticated Copilot accounts.
   The `~/.vscode-oss-sessions-dev` user-data-dir caches login state across
   runs, so you only need to sign in once.

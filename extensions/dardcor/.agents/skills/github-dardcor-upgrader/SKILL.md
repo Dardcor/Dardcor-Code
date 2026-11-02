@@ -1,6 +1,6 @@
 ---
 name: github-dardcor-upgrader
-description: Use this to update the Github Copilot CLI/SDK
+description: Use this to update the Dardcor AI CLI/SDK
 model: Claude Opus 4.6
 ---
 

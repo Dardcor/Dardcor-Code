@@ -6,14 +6,19 @@
 import * as nls from '../../../../nls.js';
 
 import { Color, RGBA } from '../../../../base/common/color.js';
-import { registerColor, transparent } from '../colorUtils.js';
+import { registerColor, transparent, withOpacity } from '../colorUtils.js';
 
-import { editorFindMatchHighlight, editorInfoBorder, editorInfoForeground, editorSelectionBackground, editorSelectionHighlight, editorWarningBorder, editorWarningForeground } from './editorColors.js';
+import { editorFindMatchHighlightBorder, editorInfoBorder, editorInfoForeground, editorSelectionBackground, editorSelectionHighlight, editorWarningBorder, editorWarningForeground, overviewRulerFindMatchForeground } from './editorColors.js';
 import { scrollbarSliderActiveBackground, scrollbarSliderBackground, scrollbarSliderHoverBackground } from './miscColors.js';
 
 
 export const minimapFindMatch = registerColor('minimap.findMatchHighlight',
-	editorFindMatchHighlight,
+	{
+		dark: withOpacity(overviewRulerFindMatchForeground, 0.8),
+		light: withOpacity(overviewRulerFindMatchForeground, 0.8),
+		hcDark: editorFindMatchHighlightBorder,
+		hcLight: editorFindMatchHighlightBorder
+	},
 	nls.localize('minimapFindMatchHighlight', 'Minimap marker color for find matches.'), true);
 
 export const minimapSelectionOccurrenceHighlight = registerColor('minimap.selectionOccurrenceHighlight',

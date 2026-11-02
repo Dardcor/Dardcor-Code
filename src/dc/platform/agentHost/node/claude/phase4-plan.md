@@ -80,7 +80,7 @@ getDescriptor(): IAgentDescriptor {
 getProtectedResources(): ProtectedResourceMetadata[] {
     return [{
         resource: 'https://api.github.com',
-        resource_name: 'GitHub Copilot',
+        resource_name: 'Dardcor AI',
         authorization_servers: ['https://github.com/login/oauth'],
         scopes_supported: ['read:user', 'user:email'],
         required: true,
@@ -168,7 +168,7 @@ function toAgentModelInfo(m: CCAModel, provider: AgentProvider): IAgentModelInfo
 }
 ```
 
-Field references (`src/typings/copilot-api.d.ts`):
+Field references (`src/typings/dardcor-api.d.ts`):
 - `vendor` → line 113
 - `supported_endpoints` → line 115 (optional, use `?.`)
 - `model_picker_enabled` → line 140

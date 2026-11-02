@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IPolicyData } from '../../../../base/common/defaultAccount.js';
-import { normalizeManagedSettings } from '../../../../platform/policy/common/copilotManagedSettings.js';
+import { normalizeManagedSettings } from '../../../../platform/policy/common/dardcorManagedSettings.js';
 
 export type IManagedMcpServerMatcher =
 	| { readonly serverName: string }

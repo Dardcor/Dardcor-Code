@@ -94,11 +94,16 @@ export class LazilyResolvedWebviewEditorInput extends WebviewInput {
 		this._resolvePromise = undefined;
 	}
 
-	@memoize
 	public override async resolve() {
 		if (!this._resolved) {
-			this._resolved = true;
-			this._resolvePromise = createCancelablePromise(token => this._webviewWorkbenchService.resolveWebview(this, token));
+			this._resolvePromise ??= createCancelablePromise(async token => {
+				try {
+					await this._webviewWorkbenchService.resolveWebview(this, token);
+					this._resolved = true;
+				} finally {
+					this._resolvePromise = undefined;
+				}
+			});
 			try {
 				await this._resolvePromise;
 			} catch (e) {

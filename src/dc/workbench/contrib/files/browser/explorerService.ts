@@ -38,6 +38,7 @@ export class ExplorerService implements IExplorerService {
 
 	private readonly disposables = new DisposableStore();
 	private editable: { stat: ExplorerItem; data: IEditableData } | undefined;
+	private pendingRefreshOnFocus = false;
 	private config: IFilesConfiguration['explorer'];
 	private cutItems: ExplorerItem[] | undefined;
 	private view: IExplorerView | undefined;
@@ -129,7 +130,11 @@ export class ExplorerService implements IExplorerService {
 
 		this.disposables.add(hostService.onDidChangeFocus(hasFocus => {
 			if (hasFocus) {
-				this.refresh(false);
+				if (this.editable) {
+					this.pendingRefreshOnFocus = true;
+				} else {
+					this.refresh(false);
+				}
 			}
 		}));
 		this.revealExcludeMatcher = new ResourceGlobMatcher(
@@ -251,8 +256,13 @@ export class ExplorerService implements IExplorerService {
 		}
 
 
-		if (!this.editable && this.fileChangeEvents.length && !this.onFileChangesScheduler.isScheduled()) {
-			this.onFileChangesScheduler.schedule();
+		if (!this.editable) {
+			if (this.pendingRefreshOnFocus) {
+				this.pendingRefreshOnFocus = false;
+				this.refresh(false);
+			} else if (this.fileChangeEvents.length && !this.onFileChangesScheduler.isScheduled()) {
+				this.onFileChangesScheduler.schedule();
+			}
 		}
 	}
 

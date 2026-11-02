@@ -74,7 +74,7 @@ export class StickyScrollController extends Disposable implements IEditorContrib
 	private _endLineNumbers: number[] = [];
 	private _showEndForLine: number | undefined;
 	private _minRebuildFromLine: number | undefined;
-	private _mouseTarget: EventTarget | null = null;
+	private _mouseTarget: HTMLElement | null = null;
 	private _cursorPositionListener: IDisposable | undefined;
 	private _positionLineNumber: number | undefined;
 
@@ -306,7 +306,9 @@ export class StickyScrollController extends Disposable implements IEditorContrib
 			this._revealPosition(position);
 		}));
 		this._register(dom.addDisposableListener(mainWindow, dom.EventType.MOUSE_MOVE, mouseEvent => {
-			this._mouseTarget = mouseEvent.target;
+			this._mouseTarget = dom.isHTMLElement(mouseEvent.target) && this._stickyScrollWidget.getDomNode().contains(mouseEvent.target)
+				? mouseEvent.target
+				: null;
 			this._onMouseMoveOrKeyDown(mouseEvent);
 		}));
 		this._register(dom.addDisposableListener(mainWindow, dom.EventType.KEY_DOWN, mouseEvent => {
@@ -403,7 +405,7 @@ export class StickyScrollController extends Disposable implements IEditorContrib
 		if (!mouseEvent.shiftKey) {
 			return;
 		}
-		if (!this._mouseTarget || !dom.isHTMLElement(this._mouseTarget)) {
+		if (!this._mouseTarget) {
 			return;
 		}
 		const currentEndForLineIndex = this._stickyScrollWidget.getLineIndexFromChildDomNode(this._mouseTarget);
@@ -485,11 +487,17 @@ export class StickyScrollController extends Disposable implements IEditorContrib
 			|| event.hasChanged(EditorOption.lineHeight)
 			|| event.hasChanged(EditorOption.showFoldingControls)
 			|| event.hasChanged(EditorOption.lineNumbers)
+			|| event.hasChanged(EditorOption.fontInfo)
 		) {
 			this._readConfiguration();
 		}
 
-		if (event.hasChanged(EditorOption.lineNumbers) || event.hasChanged(EditorOption.folding) || event.hasChanged(EditorOption.showFoldingControls)) {
+		if (
+			event.hasChanged(EditorOption.lineNumbers)
+			|| event.hasChanged(EditorOption.folding)
+			|| event.hasChanged(EditorOption.showFoldingControls)
+			|| event.hasChanged(EditorOption.fontInfo)
+		) {
 			this._renderStickyScroll(0);
 		}
 	}

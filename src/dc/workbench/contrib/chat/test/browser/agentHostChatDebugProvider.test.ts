@@ -8,7 +8,7 @@ import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { IChatDebugModelTurnEvent, IChatDebugEventFileListContent, IChatDebugEventCustomizationSummaryContent } from '../../common/chatDebugService.js';
 import { buildCustomizationDebugEvents, convertAgentHostEventsToDebugEvents, parseJsonl } from '../../browser/chatDebug/agentHostChatDebugProvider.js';
-import { COPILOT_CLI_LOCAL_AH_SCHEME } from '../../browser/copilotCliEventsUri.js';
+import { COPILOT_CLI_LOCAL_AH_SCHEME } from '../../browser/dardcorCliEventsUri.js';
 import { CustomizationType, type Customization } from '../../../../../platform/agentHost/common/state/sessionState.js';
 
 suite('AgentHostChatDebugProvider - convertAgentHostEventsToDebugEvents', () => {

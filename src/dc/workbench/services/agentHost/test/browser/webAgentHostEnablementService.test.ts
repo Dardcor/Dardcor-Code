@@ -12,7 +12,7 @@ import { TestConfigurationService } from '../../../../../platform/configuration/
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { MockContextKeyService } from '../../../../../platform/keybinding/test/common/mockKeybindingService.js';
-import { IManagedSettingsService, NullManagedSettingsService } from '../../../../../platform/policy/common/copilotManagedSettings.js';
+import { IManagedSettingsService, NullManagedSettingsService } from '../../../../../platform/policy/common/dardcorManagedSettings.js';
 import { IWorkbenchEnvironmentService } from '../../../environment/common/environmentService.js';
 import { WebAgentHostEnablementService } from '../../browser/webAgentHostEnablementService.js';
 

@@ -5,7 +5,7 @@
 
 import { assertNever } from '../../../base/common/assert.js';
 import { RunOnceScheduler } from '../../../base/common/async.js';
-import { Color } from '../../../base/common/color.js';
+import { Color, RGBA } from '../../../base/common/color.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { IJSONSchema, IJSONSchemaSnippet } from '../../../base/common/jsonSchema.js';
 import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../../jsonschemas/common/jsonContributionRegistry.js';
@@ -46,6 +46,7 @@ export const enum ColorTransformType {
 	LessProminent,
 	IfDefinedThenElse,
 	Mix,
+	Opacity,
 }
 
 export type ColorTransform =
@@ -56,7 +57,8 @@ export type ColorTransform =
 	| { op: ColorTransformType.OneOf; values: readonly ColorValue[] }
 	| { op: ColorTransformType.LessProminent; value: ColorValue; background: ColorValue; factor: number; transparency: number }
 	| { op: ColorTransformType.IfDefinedThenElse; if: ColorIdentifier; then: ColorValue; else: ColorValue }
-	| { op: ColorTransformType.Mix; color: ColorValue; with: ColorValue; ratio?: number };
+	| { op: ColorTransformType.Mix; color: ColorValue; with: ColorValue; ratio?: number }
+	| { op: ColorTransformType.Opacity; value: ColorValue; opacity: number };
 
 export interface ColorDefaults {
 	light: ColorValue | null;
@@ -271,6 +273,12 @@ export function executeTransform(transform: ColorTransform, theme: IColorTheme):
 				? Color.getLighterColor(from, backgroundColor, transform.factor).transparent(transform.transparency)
 				: Color.getDarkerColor(from, backgroundColor, transform.factor).transparent(transform.transparency);
 		}
+
+		case ColorTransformType.Opacity: {
+			const color = resolveColorValue(transform.value, theme);
+			return color && new Color(new RGBA(color.rgba.r, color.rgba.g, color.rgba.b, transform.opacity));
+		}
+
 		default:
 			throw assertNever(transform);
 	}
@@ -304,6 +312,10 @@ export function lessProminent(colorValue: ColorValue, backgroundColorValue: Colo
 	return { op: ColorTransformType.LessProminent, value: colorValue, background: backgroundColorValue, factor, transparency };
 }
 
+export function withOpacity(colorValue: ColorValue, opacity: number): ColorTransform {
+	return { op: ColorTransformType.Opacity, value: colorValue, opacity };
+}
+
 
 export function resolveColorValue(colorValue: ColorValue | null, theme: IColorTheme): Color | undefined {
 	if (colorValue === null) {
@@ -333,4 +345,3 @@ colorRegistry.onDidChangeSchema(() => {
 		delayer.schedule();
 	}
 });
-

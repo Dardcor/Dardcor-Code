@@ -129,7 +129,7 @@ export abstract class NativeFilesystemMcpDiscovery extends FilesystemMcpDiscover
 		const details: INativeMcpDiscoveryData = {
 			...detailsDto,
 			homedir: URI.revive(detailsDto.homedir),
-			copilotHome: detailsDto.copilotHome ? URI.revive(detailsDto.copilotHome) : undefined,
+			dardcorHome: detailsDto.dardcorHome ? URI.revive(detailsDto.dardcorHome) : undefined,
 			xdgHome: detailsDto.xdgHome ? URI.revive(detailsDto.xdgHome) : undefined,
 			winAppData: detailsDto.winAppData ? URI.revive(detailsDto.winAppData) : undefined,
 		};

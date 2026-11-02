@@ -6864,7 +6864,7 @@ suite('AgentService (node dispatcher)', () => {
 			});
 		});
 
-		test('stores GitHub Copilot token for operation handlers', async () => {
+		test('stores Dardcor AI token for operation handlers', async () => {
 			registerTestAgentProvider(service, copilotAgent);
 			const changes: { resource: string; token: string | undefined }[] = [];
 			disposables.add(getAuthenticationService(service).onDidChangeAuthToken(event => changes.push({ resource: event.resource, token: event.token })));

@@ -10,7 +10,7 @@ import { Disposable, DisposableStore } from '../../../base/common/lifecycle.js';
 import { equals } from '../../../base/common/objects.js';
 import { IChannel, IServerChannel } from '../../../base/parts/ipc/common/ipc.js';
 import { ILogService } from '../../log/common/log.js';
-import { INativeManagedSettingsService, ManagedSettingsData } from './copilotManagedSettings.js';
+import { INativeManagedSettingsService, ManagedSettingsData } from './dardcorManagedSettings.js';
 import { PolicyDefinition } from './policy.js';
 
 export class NativeManagedSettingsChannel implements IServerChannel {

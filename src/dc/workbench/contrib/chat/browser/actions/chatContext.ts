@@ -37,7 +37,7 @@ import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ITerminalCommand, TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
-import { buildHostLocalEventsPath } from '../copilotCliEventsUri.js';
+import { buildHostLocalEventsPath } from '../dardcorCliEventsUri.js';
 
 export const EnableChatDebugToolsCommandId = 'chat.enableDebugTools';
 

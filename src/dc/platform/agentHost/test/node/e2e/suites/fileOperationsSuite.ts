@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'os';
 import { join } from '../../../../../../base/common/path.js';
 import { URI } from '../../../../../../base/common/uri.js';
-import { CopilotCliConfigKey } from '../../../../common/copilotCliConfig.js';
+import { CopilotCliConfigKey } from '../../../../common/dardcorCliConfig.js';
 import { SessionConfigKey } from '../../../../common/sessionConfigKeys.js';
 import { buildDefaultChatUri, getInlineToolInput, ResponsePartKind, ROOT_STATE_URI, ToolCallCancellationReason, ToolCallStatus, ToolResultContentType, type ChatState, type ToolResultFileEditContent } from '../../../../common/state/sessionState.js';
 import type { StringOrMarkdown } from '../../../../common/state/protocol/state.js';

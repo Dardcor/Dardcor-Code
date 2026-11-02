@@ -3,7 +3,7 @@ index 19747c8bd..67c166dc6 100644
 --- a/03-large
 +++ b/03-large-many-changes
 @@ -3,17 +3,11 @@
- 	"displayName": "GitHub Copilot Chat",
+ 	"displayName": "Dardcor AI Chat",
  	"description": "AI chat features powered by Copilot",
  	"version": "0.12.0",
 -	"build": "1",
@@ -128,7 +128,7 @@ index 19747c8bd..67c166dc6 100644
  			{
 @@ -142,6 +126,9 @@
  				"enablement": "!github.copilot.interactiveSession.disabled && !editorReadonly",
- 				"category": "GitHub Copilot"
+ 				"category": "Dardcor AI"
  			},
 +
 +
@@ -139,13 +139,13 @@ index 19747c8bd..67c166dc6 100644
 @@ -203,12 +190,6 @@
  				"command": "github.copilot.terminal.suggestCommand",
  				"title": "%github.copilot.command.suggestCommand%",
- 				"category": "GitHub Copilot"
+ 				"category": "Dardcor AI"
 -			},
 -			{
 -				"command": "github.copilot.git.generateCommitMessage",
 -				"title": "%github.copilot.git.generateCommitMessage%",
 -				"icon": "$(sparkle)",
--				"category": "GitHub Copilot"
+-				"category": "Dardcor AI"
  			}
  		],
  		"configuration": {

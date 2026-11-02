@@ -728,7 +728,7 @@ Workspace launch/log skills available:
 - **Bonus**: `vscode-dev-workbench` — for browser-driven testing of the Agents window if needed.
 
 **Scenario** (Phase 10 acceptance):
-1. Use the `launch` skill to start Code OSS with `--agents` and authenticate to GitHub Copilot.
+1. Use the `launch` skill to start Code OSS with `--agents` and authenticate to Dardcor AI.
 2. Open a new Claude session in the Agents window.
 3. Drive the workbench to register a client tool via the protocol
    (`session/activeClientToolsChanged`) with a minimal `ToolDefinition`

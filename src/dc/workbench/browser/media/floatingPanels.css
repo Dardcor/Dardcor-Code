@@ -5,6 +5,10 @@
 
 
 
+.monaco-workbench.floating-panels {
+	--modern-ui-floating-card-stroke-width: calc(max(1, round(nearest, var(--window-device-pixel-ratio, 1))) / var(--window-device-pixel-ratio, 1) * 1px);
+}
+
 .monaco-workbench.floating-panels .part.sidebar,
 .monaco-workbench.floating-panels .part.auxiliarybar {
 	margin: var(--vscode-spacing-size40) var(--vscode-spacing-size20) var(--vscode-spacing-size40) var(--vscode-spacing-size40);

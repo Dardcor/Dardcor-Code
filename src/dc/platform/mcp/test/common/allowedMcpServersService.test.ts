@@ -9,7 +9,7 @@ import { TestConfigurationService } from '../../../configuration/test/common/tes
 import { AllowedMcpServersService } from '../../common/allowedMcpServersService.js';
 import { IInstallableMcpServer, mcpAccessConfig, mcpAllowedServersConfig, mcpDeniedServersConfig, McpAccessValue } from '../../common/mcpManagement.js';
 import { McpServerType } from '../../common/mcpPlatformTypes.js';
-import { COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG } from '../../../policy/common/copilotManagedSettings.js';
+import { COPILOT_ALLOW_MANAGED_MCP_SERVERS_ONLY_CONFIG } from '../../../policy/common/dardcorManagedSettings.js';
 import { IConfigurationValue } from '../../../configuration/common/configuration.js';
 
 suite('AllowedMcpServersService', () => {

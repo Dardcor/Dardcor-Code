@@ -79368,14 +79368,14 @@
 /Users/example/.profile-oss/logs/20230807T161109/window1/views.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/notebook.rendering.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/vscode.github-authentication/GitHub Authentication.log
-/Users/example/.profile-oss/logs/20230807T161109/window1/exthost/output_logging_20230807T161152/1-GitHub Copilot Chat.log
+/Users/example/.profile-oss/logs/20230807T161109/window1/exthost/output_logging_20230807T161152/1-Dardcor AI Chat.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/output_logging_20230807T161152/2-JSON Language Server.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/vscode.github/GitHub.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/webWorker/workerexthost.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/exthost.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/extensionTelemetry.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/exthost/vscode.git/Git.log
-/Users/example/.profile-oss/logs/20230807T161109/window1/exthost/output_logging_20230807T161126/1-GitHub Copilot Chat.log
+/Users/example/.profile-oss/logs/20230807T161109/window1/exthost/output_logging_20230807T161126/1-Dardcor AI Chat.log
 /Users/example/.profile-oss/logs/20230807T161109/window1/renderer.log
 /Users/example/.profile-oss/logs/20230807T161109/main.log
 /Users/example/.profile-oss/DevToolsActivePort

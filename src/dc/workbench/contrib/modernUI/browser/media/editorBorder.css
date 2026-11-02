@@ -1,4 +1,7 @@
-
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 
 .modern-ui .monaco-grid-view .part.editor:not(.modal-editor-part) {
 	border: var(--vscode-strokeThickness) solid var(--vscode-editorGroup-border, color-mix(in srgb, var(--vscode-foreground) 12%, transparent));
@@ -64,4 +67,10 @@
 	.agent-sessions-container {
 		border-left-color: var(--vscode-surface-border, color-mix(in srgb, var(--vscode-foreground) 12%, transparent)) !important;
 	}
+}
+
+
+.modern-ui .notebookOverlay:not(.notebook-overlay-modal) {
+	border-radius: var(--vscode-cornerRadius-large);
+	overflow: hidden;
 }

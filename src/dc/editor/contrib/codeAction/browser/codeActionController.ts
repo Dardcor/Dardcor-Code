@@ -219,12 +219,14 @@ export class CodeActionController extends Disposable implements IEditorContribut
 		}
 
 		if (this._disposed) {
+			actions.dispose();
 			return;
 		}
 
 
 		const selection = this._editor.getSelection();
 		if (selection?.startLineNumber !== newState.position.lineNumber) {
+			actions.dispose();
 			return;
 		}
 

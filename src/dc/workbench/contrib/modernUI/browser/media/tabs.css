@@ -1,5 +1,7 @@
-
-
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 .modern-ui-tabs.monaco-workbench {
 	--modern-ui-tab-active-background: var(--vscode-modernTab-activeBackground);
 	--modern-ui-tab-hover-background: var(--vscode-modernTab-hoverBackground);
@@ -971,4 +973,14 @@
 
 .modern-ui-tabs.monaco-workbench .pane-body.integrated-terminal .tabs-list-container:not(.drop-target) {
 	background-color: var(--vscode-panel-background);
+}
+
+
+.modern-ui-tabs .part.editor .tabs-and-actions-container > .monaco-scrollable-element > .scrollbar.horizontal {
+	top: 0;
+	bottom: auto;
+}
+
+.modern-ui-tabs .part.editor .tabs-and-actions-container > .monaco-scrollable-element > .scrollbar.horizontal > .slider {
+	border-radius: 9999px;
 }

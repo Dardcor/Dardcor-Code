@@ -41,7 +41,7 @@ import { McpCollisionEnablementModel } from '../../common/mcpService.js';
 import { McpTaskManager } from '../../common/mcpTaskManager.js';
 import { IMcpPotentialSandboxBlock, LazyCollectionState, MCP_PLUGIN_COLLECTION_ID_PREFIX, McpCollectionDefinition, McpCollectionProvenance, McpServerDefinition, McpServerLaunch, McpServerTransportStdio, McpServerTransportType, McpServerTrust, McpStartServerInteraction } from '../../common/mcpTypes.js';
 import { TestMcpMessageTransport } from './mcpRegistryTypes.js';
-import { COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG } from '../../../../../platform/policy/common/copilotManagedSettings.js';
+import { COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG } from '../../../../../platform/policy/common/dardcorManagedSettings.js';
 
 class TestConfigurationResolverService {
 	declare readonly _serviceBrand: undefined;

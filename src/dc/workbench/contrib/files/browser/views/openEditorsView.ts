@@ -188,6 +188,19 @@ export class OpenEditorsView extends ViewPane {
 		this.dirtyCountElement.style.backgroundColor = asCssVariable(badgeBackground);
 		this.dirtyCountElement.style.color = asCssVariable(badgeForeground);
 		this.dirtyCountElement.style.border = `1px solid ${asCssVariable(contrastBorder)}`;
+		this.dirtyCountElement.tabIndex = 0;
+		this.dirtyCountElement.setAttribute('role', 'button');
+		this._register(dom.addDisposableListener(this.dirtyCountElement, dom.EventType.CLICK, e => {
+			dom.EventHelper.stop(e, true);
+			this.openFirstDirtyEditor();
+		}));
+		this._register(dom.addDisposableListener(this.dirtyCountElement, dom.EventType.KEY_DOWN, e => {
+			const ev = new StandardKeyboardEvent(e);
+			if (ev.equals(KeyCode.Enter) || ev.equals(KeyCode.Space)) {
+				dom.EventHelper.stop(e, true);
+				this.openFirstDirtyEditor();
+			}
+		}));
 
 		this.updateDirtyIndicator();
 	}
@@ -513,6 +526,17 @@ export class OpenEditorsView extends ViewPane {
 	private updateSize(): void {
 		this.minimumBodySize = this.orientation === Orientation.VERTICAL ? this.getMinExpandedBodySize() : 170;
 		this.maximumBodySize = this.orientation === Orientation.VERTICAL ? this.getMaxExpandedBodySize() : Number.POSITIVE_INFINITY;
+	}
+
+	private openFirstDirtyEditor(): void {
+		for (const group of this.editorGroupService.getGroups(GroupsOrder.GRID_APPEARANCE)) {
+			for (const editor of group.editors) {
+				if (editor.isDirty() && !editor.isSaving()) {
+					group.openEditor(editor);
+					return;
+				}
+			}
+		}
 	}
 
 	private updateDirtyIndicator(workingCopy?: IWorkingCopy): void {

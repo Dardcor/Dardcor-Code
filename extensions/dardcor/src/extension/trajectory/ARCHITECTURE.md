@@ -371,7 +371,7 @@ src/
   "schema_version": "ATIF-v1.5",
   "session_id": "chat-session-abc123",
   "agent": {
-    "name": "GitHub Copilot Chat",
+    "name": "Dardcor AI Chat",
     "version": "1.0.0",
     "tool_definitions": [...]
   },

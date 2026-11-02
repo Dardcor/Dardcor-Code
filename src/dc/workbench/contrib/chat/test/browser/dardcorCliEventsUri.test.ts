@@ -6,9 +6,9 @@
 import assert from 'assert';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { COPILOT_CLI_EH_SCHEME, COPILOT_CLI_LOCAL_AH_SCHEME, dedupeMigratedCopilotCliSessions, migratedCopilotCliResource } from '../../browser/copilotCliEventsUri.js';
+import { COPILOT_CLI_EH_SCHEME, COPILOT_CLI_LOCAL_AH_SCHEME, dedupeMigratedCopilotCliSessions, migratedCopilotCliResource } from '../../browser/dardcorCliEventsUri.js';
 
-suite('copilotCliEventsUri', () => {
+suite('dardcorCliEventsUri', () => {
 
 	ensureNoDisposablesAreLeakedInTestSuite();
 

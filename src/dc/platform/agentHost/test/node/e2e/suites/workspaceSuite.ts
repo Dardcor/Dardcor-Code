@@ -14,7 +14,7 @@ import { PROTOCOL_VERSION } from '../../../../common/state/protocol/version/regi
 import { ActionType, NotificationType, type IToolCallContentChangedAction, type IToolCallStartAction } from '../../../../common/state/sessionActions.js';
 import type { SessionAddedParams } from '../../../../common/state/protocol/notifications.js';
 import { buildDefaultChatUri, ROOT_STATE_URI, type SessionState, type TerminalState, type ToolResultContent } from '../../../../common/state/sessionState.js';
-import { CopilotCliConfigKey } from '../../../../common/copilotCliConfig.js';
+import { CopilotCliConfigKey } from '../../../../common/dardcorCliConfig.js';
 import {
 	dispatchTurn,
 	driveTurnToCompletion,

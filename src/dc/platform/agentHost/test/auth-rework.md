@@ -136,7 +136,7 @@ interface IAuthScheme {
 	 * server to require multiple independent tokens (e.g. one
 	 * per agent provider).
 	 *
-	 * Example: "github" for GitHub Copilot auth.
+	 * Example: "github" for Dardcor AI auth.
 	 */
 	id: string;
 
@@ -281,7 +281,7 @@ interface IAuthStateNotification {
 
 This replaces the implicit "push a token whenever you see an account change" model with an explicit server-driven signal.
 
-## Concrete Example: GitHub Copilot Auth
+## Concrete Example: Dardcor AI Auth
 
 ### Server-side (CopilotAgent)
 

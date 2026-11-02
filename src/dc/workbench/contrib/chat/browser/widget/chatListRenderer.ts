@@ -584,7 +584,7 @@ const mostRecentResponseClassName = 'chat-most-recent-response';
 export function shouldHideChatUserIdentity(username: string, sessionResource: URI, isResponse: boolean, isSystemInitiatedRequest: boolean): boolean {
 	const sessionType = getChatSessionType(sessionResource);
 	return username === DARDCOR_USERNAME ||
-		username === 'GitHub Copilot' ||
+		username === 'Dardcor AI' ||
 		username === 'Dardcor Code' ||
 		username.toLowerCase() === 'dardcor code' ||
 		username.toLowerCase().includes('dardcor') ||
