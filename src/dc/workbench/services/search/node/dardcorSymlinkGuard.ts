@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { SearchError, SearchErrorCode } from '../common/search.js';
+import { SearchError } from '../common/search.js';
 
 export const DARDCOR_MAX_SYMLINK_LOOPS = 1000;
 const SYMLINK_LOOP_REGEX = /Too many levels of symbolic links|circular symlink|ELOOP/g;

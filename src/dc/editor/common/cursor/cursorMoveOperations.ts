@@ -3,14 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CharCode } from '../../../../base/common/charCode.js';
-import * as strings from '../../../../base/common/strings.js';
+import * as strings from '../../../base/common/strings.js';
 import { CursorColumns } from '../core/cursorColumns.js';
 import { Position } from '../core/position.js';
 import { Range } from '../core/range.js';
 import { CursorConfiguration, ICursorSimpleModel, SingleCursorState } from '../cursorCommon.js';
 import { AtomicTabMoveOperations, Direction } from './cursorAtomicMoveOperations.js';
-import { Constants } from '../../../../base/common/uint.js';
+import { Constants } from '../../../base/common/uint.js';
 import { PositionAffinity } from '../model.js';
 
 export class CursorPosition {
@@ -146,7 +145,7 @@ export class MoveOperations {
 				column = Math.min(model.getLineMaxColumn(lineNumber), column);
 			}
 		} else {
-			column = CursorColumns.columnFromVisibleColumn2(config, model, lineNumber, currentVisibleColumn);
+			column = config.columnFromVisibleColumn(model, lineNumber, currentVisibleColumn);
 		}
 
 		if (wasAtEdgePosition) {

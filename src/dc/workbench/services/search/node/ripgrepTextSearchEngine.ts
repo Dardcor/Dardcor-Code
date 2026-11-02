@@ -117,12 +117,17 @@ export class RipgrepTextSearchEngine {
 			rgProc.stdout!.once('data', () => gotData = true);
 
 			let stderr = '';
+			const symlinkGuard = new DardcorSymlinkLoopGuard();
 			rgProc.stderr!.on('data', data => {
 				const message = data.toString();
 				this.outputChannel.appendLine(message);
 
 				if (stderr.length + message.length < 1e6) {
 					stderr += message;
+				}
+				if (symlinkGuard.inspectStderrChunk(message)) {
+					this.outputChannel.appendLine('DardcorSymlinkLoopGuard: terminating ripgrep after excessive symlink loops');
+					cancel();
 				}
 			});
 

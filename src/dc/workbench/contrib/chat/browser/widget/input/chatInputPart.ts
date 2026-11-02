@@ -1670,7 +1670,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			if (sessionResource) {
 				try {
 					const runStateService = this.instantiationService.invokeFunction(accessor => accessor.get(IChatAgentRunStateService));
-					const runState = runStateService?.getRunState(sessionResource);
+					const runState = runStateService?.getState(sessionResource);
 					if (runState && (runState.status === 'blocked' || runState.status === 'paused')) {
 						const todoListService = this.instantiationService.invokeFunction(accessor => accessor.get(IChatTodoListService));
 						const todos = todoListService?.getTodos(sessionResource) ?? [];

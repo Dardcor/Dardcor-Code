@@ -8,6 +8,7 @@ import * as nls from '../../../../../nls.js';
 import { RunOnceScheduler } from '../../../../../base/common/async.js';
 import { IAction, ActionRunner, WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification } from '../../../../../base/common/actions.js';
 import * as dom from '../../../../../base/browser/dom.js';
+import { StandardKeyboardEvent } from '../../../../../base/browser/keyboardEvent.js';
 import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IEditorGroupsService, IEditorGroup, GroupsOrder, GroupOrientation } from '../../../../services/editor/common/editorGroupsService.js';

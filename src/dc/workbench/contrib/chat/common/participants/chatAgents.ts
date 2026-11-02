@@ -4414,7 +4414,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		let todoListService: IChatTodoListService | undefined;
 		let runStateService: IChatAgentRunStateService | undefined;
 		let runState: IChatAgentRunState | undefined;
-		let checkpointPersisted = false;
 		let taskIsTracked = false;
 		let activeTaskPrompt = '';
 		const rawRequestPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
@@ -4485,9 +4484,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			runState = updateChatAgentRunState(runState, patch);
 			try {
 				runStateService.setState(request.sessionResource, runState);
-				checkpointPersisted = true;
 			} catch (error) {
-				checkpointPersisted = false;
 				console.warn('[streamDardcorRouter] Could not persist agent checkpoint:', error);
 			}
 		};
@@ -4696,7 +4693,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 			const allEvidence = runState?.verificationEvidence ?? [];
 			const evidence = allEvidence.filter(item => item.workspaceRevision === runState?.workspaceRevision);
-			const failures = runState?.verificationFailures ?? [];
 			const pendingVerification = runState?.verificationPending ?? [];
 
 			const lang = detectDardcorLanguage(activeTaskPrompt);
@@ -4767,6 +4763,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				}
 			}
 
+			let shouldAutoResumeIncompleteTodos = false;
 			if (!isComplete) {
 				const nextItem = pendingTodos[0]?.title ?? runState?.nextStep ?? i18n.resumeDefault;
 				lines.push('', `**${i18n.nextStep}:** ${nextItem}`);
@@ -4779,7 +4776,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const hasFatalModelOrRouterError = turnEncounteredFatalModelError || !!(
 					blocker && /(?:Dardcor Router returned HTTP|forbidden_plan_required|model_not_supported|FreeUsageLimitError|quota exceeded|insufficient_credits|credits required|insufficient balance|payment required|unauthorized|pricingUrl|Requested entity was not found|Model not found|all \d+ accounts locked|Paid subscription or credits required|Connect Timeout Error|ERR_TIMED_OUT|ECONNREFUSED|ECONNRESET|fetch failed|stream reading error|did not complete after \d+ attempts)/i.test(blocker)
 				);
-				const shouldAutoResumeIncompleteTodos = !isComplete
+				shouldAutoResumeIncompleteTodos = !isComplete
 					&& !token.isCancellationRequested
 					&& !isCancelled
 					&& !isBlocked
