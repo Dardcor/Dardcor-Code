@@ -9,6 +9,9 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
+// OpenClaw 2026.5.x writes agents[].model as either a plain string
+// (legacy) or as an object `{ primary, fallbacks }`. Normalize to the
+// string id so downstream consumers can call `.startsWith()` safely.
 const resolveAgentModel = (m) => {
   if (typeof m === "string") return m;
   if (m && typeof m === "object") return m.primary ?? "";
@@ -18,11 +21,12 @@ const resolveAgentModel = (m) => {
 const getOpenClawDir = () => path.join(os.homedir(), ".openclaw");
 const getOpenClawSettingsPath = () => path.join(getOpenClawDir(), "openclaw.json");
 
+// Check if openclaw CLI is installed (via which/where or config file exists)
 const checkOpenClawInstalled = async () => {
   try {
     const isWindows = os.platform() === "win32";
     const command = isWindows ? "where openclaw" : "which openclaw";
-
+    // On Windows, inject %APPDATA%\npm into PATH so npm global packages are found
     const env = isWindows
       ? { ...process.env, PATH: `${process.env.APPDATA}\\npm;${process.env.PATH}` }
       : process.env;
@@ -38,10 +42,13 @@ const checkOpenClawInstalled = async () => {
   }
 };
 
+// Read current settings.json
 const readSettings = async () => {
   try {
     const settingsPath = getOpenClawSettingsPath();
     const content = await fs.readFile(settingsPath, "utf-8");
+    // Tolerate JSONC (trailing commas) and treat unparseable files as "no config"
+    // rather than throwing a 500 that the UI misreads as "tool not installed".
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped);
   } catch (error) {
@@ -49,23 +56,26 @@ const readSettings = async () => {
   }
 };
 
-const hasDardcorCodeConfig = (settings) => {
+// Check if settings has Dardcor Router config
+const hasDardcorRouterConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
-  return !!settings.models.providers["dardcor-code"];
+  return !!settings.models.providers["dardcor-router"];
 };
 
+// Read per-agent models.json and return current model id (without "dardcor-router/" prefix)
 const readAgentModel = async (agentDir) => {
   try {
     const modelsPath = path.join(agentDir, "models.json");
     const content = await fs.readFile(modelsPath, "utf-8");
     const data = JSON.parse(content);
-    const models = data?.providers?.["dardcor-code"]?.models;
+    const models = data?.providers?.["dardcor-router"]?.models;
     return models?.[0]?.id || null;
   } catch {
     return null;
   }
 };
 
+// GET - Check openclaw CLI and read current settings
 export async function GET() {
   try {
     const isInstalled = await checkOpenClawInstalled();
@@ -80,6 +90,9 @@ export async function GET() {
 
     const settings = await readSettings();
 
+    // Enrich agents list with current per-agent model from models.json.
+    // Coerce agent.model to its string id when OpenClaw stores it as
+    // `{ primary, fallbacks }` so downstream `.startsWith()` calls work.
     const agentList = settings?.agents?.list || [];
     const enrichedAgents = await Promise.all(
       agentList.map(async (agent) => {
@@ -92,7 +105,7 @@ export async function GET() {
       installed: true,
       settings,
       agents: enrichedAgents,
-      hasDardcorCode: hasDardcorCodeConfig(settings),
+      hasDardcorRouter: hasDardcorRouterConfig(settings),
       settingsPath: getOpenClawSettingsPath(),
     });
   } catch (error) {
@@ -101,6 +114,7 @@ export async function GET() {
   }
 }
 
+// Write per-agent models.json
 const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   await fs.mkdir(agentDir, { recursive: true });
   const modelsPath = path.join(agentDir, "models.json");
@@ -108,10 +122,10 @@ const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   try {
     const content = await fs.readFile(modelsPath, "utf-8");
     existing = JSON.parse(content);
-  } catch { }
+  } catch { /* No existing */ }
 
   if (!existing.providers) existing.providers = {};
-  existing.providers["dardcor-code"] = {
+  existing.providers["dardcor-router"] = {
     baseUrl,
     apiKey: apiKey || "your_api_key",
     api: "openai-completions",
@@ -120,8 +134,10 @@ const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   await fs.writeFile(modelsPath, JSON.stringify(existing, null, 2));
 };
 
+// POST - Update Dardcor Router settings (merge with existing settings)
 export async function POST(request) {
   try {
+    // agentModels: { [agentId]: modelId } for per-agent override
     const { baseUrl, apiKey, model, agentModels = {} } = await request.json();
     
     if (!baseUrl || !model) {
@@ -137,7 +153,7 @@ export async function POST(request) {
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
       settings = JSON.parse(existingSettings);
-    } catch { }
+    } catch { /* No existing settings */ }
 
     if (!settings.agents) settings.agents = {};
     if (!settings.agents.defaults) settings.agents.defaults = {};
@@ -147,24 +163,30 @@ export async function POST(request) {
     if (!settings.models.providers) settings.models.providers = {};
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    const fullModelId = `dardcor-code/${model}`;
+    const fullModelId = `dardcor-router/${model}`;
 
+    // Remove all old dardcor-router/* entries from agents.defaults.models
     Object.keys(settings.agents.defaults.models)
-      .filter((k) => k.startsWith("dardcor-code/"))
+      .filter((k) => k.startsWith("dardcor-router/"))
       .forEach((k) => { delete settings.agents.defaults.models[k]; });
 
+    // Update default model
     settings.agents.defaults.model.primary = fullModelId;
 
+    // Collect all unique models (default + per-agent)
     const allModelIds = new Set([model]);
     Object.values(agentModels).forEach((m) => { if (m) allModelIds.add(m); });
 
+    // Add fresh dardcor-router models to allowlist
     allModelIds.forEach((m) => {
-      settings.agents.defaults.models[`dardcor-code/${m}`] = {};
+      settings.agents.defaults.models[`dardcor-router/${m}`] = {};
     });
 
+    // Remove old dardcor-router model from each agent in agents.list. The
+    // model field may be a plain string or `{ primary, fallbacks }`.
     if (settings.agents.list) {
       settings.agents.list = settings.agents.list.map((agent) => {
-        if (resolveAgentModel(agent.model).startsWith("dardcor-code/")) {
+        if (resolveAgentModel(agent.model).startsWith("dardcor-router/")) {
           const { model: _, ...rest } = agent;
           return rest;
         }
@@ -172,25 +194,28 @@ export async function POST(request) {
       });
     }
 
-    settings.models.providers["dardcor-code"] = {
+    // Update models.providers.dardcor-router with all models
+    settings.models.providers["dardcor-router"] = {
       baseUrl: normalizedBaseUrl,
       apiKey: apiKey || "your_api_key",
       api: "openai-completions",
       models: [...allModelIds].map((m) => ({ id: m, name: m.split("/").pop() || m })),
     };
 
+    // Set per-agent model in agents.list and write models.json
     if (settings.agents.list) {
       settings.agents.list = settings.agents.list.map((agent) => {
         const agentModel = agentModels[agent.id];
-        if (agentModel) return { ...agent, model: `dardcor-code/${agentModel}` };
+        if (agentModel) return { ...agent, model: `dardcor-router/${agentModel}` };
         return agent;
       });
 
+      // Write per-agent models.json for agents with agentDir
       await Promise.all(
         settings.agents.list.map(async (agent) => {
           if (!agent.agentDir) return;
           const agentModel = agentModels[agent.id];
-          const modelToWrite = agentModel || model;
+          const modelToWrite = agentModel || model; // fallback to default
           await writeAgentModels(agent.agentDir, modelToWrite, normalizedBaseUrl, apiKey);
         })
       );
@@ -209,10 +234,12 @@ export async function POST(request) {
   }
 }
 
+// DELETE - Remove Dardcor Router settings only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getOpenClawSettingsPath();
 
+    // Read existing settings
     let settings = {};
     try {
       const existingSettings = await fs.readFile(settingsPath, "utf-8");
@@ -227,16 +254,19 @@ export async function DELETE() {
       throw error;
     }
 
+    // Remove Dardcor Router from models.providers
     if (settings.models && settings.models.providers) {
-      delete settings.models.providers["dardcor-code"];
+      delete settings.models.providers["dardcor-router"];
       
+      // Remove providers object if empty
       if (Object.keys(settings.models.providers).length === 0) {
         delete settings.models.providers;
       }
     }
 
+    // Remove dardcor-router models from agents.defaults.models allowlist
     if (settings.agents?.defaults?.models) {
-      const keysToRemove = Object.keys(settings.agents.defaults.models).filter((k) => k.startsWith("dardcor-code/"));
+      const keysToRemove = Object.keys(settings.agents.defaults.models).filter((k) => k.startsWith("dardcor-router/"));
       for (const key of keysToRemove) {
         delete settings.agents.defaults.models[key];
       }
@@ -245,10 +275,12 @@ export async function DELETE() {
       }
     }
 
-    if (settings.agents?.defaults?.model?.primary?.startsWith("dardcor-code/")) {
+    // Reset agents.defaults.model.primary if it uses dardcor-router
+    if (settings.agents?.defaults?.model?.primary?.startsWith("dardcor-router/")) {
       delete settings.agents.defaults.model.primary;
     }
 
+    // Write updated settings
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
 
     return NextResponse.json({

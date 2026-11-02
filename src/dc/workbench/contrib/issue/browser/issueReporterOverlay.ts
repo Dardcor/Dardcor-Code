@@ -244,7 +244,7 @@ export class IssueReporterOverlay {
 		heading.textContent = localize('screenshotsHeading', "Add attachments for better context");
 
 		const subtitle = append(page, $('p.wizard-subtitle'));
-		subtitle.textContent = localize('screenshotsSubtitle', "You can add up to {0} screenshots or videos. Navigate VS Code and choose when to capture.", MAX_ATTACHMENTS);
+		subtitle.textContent = localize('screenshotsSubtitle', "You can add up to {0} screenshots or videos. Navigate Dardcor Code and choose when to capture.", MAX_ATTACHMENTS);
 
 		const captureShortcut = this.resolveKeybinding?.('workbench.action.issueReporter.captureScreenshot');
 		const recordShortcut = this.recordingSupported ? this.resolveKeybinding?.('workbench.action.issueReporter.toggleRecording') : undefined;
@@ -496,9 +496,9 @@ export class IssueReporterOverlay {
 			const guidanceMd = new MarkdownString(localize(
 				{
 					key: 'reviewGuidanceLabelWizard',
-					comment: ['{Locked="https://github.com/microsoft/vscode/wiki/Submitting-Bugs-and-Suggestions"}']
+					comment: ['{Locked="https://github.com/dardcor/dardcor-code/wiki/Submitting-Bugs-and-Suggestions"}']
 				},
-				'Before you report an issue here please [review the guidance we provide](https://github.com/microsoft/vscode/wiki/Submitting-Bugs-and-Suggestions). Please complete the form in English.'
+				'Before you report an issue here please [review the guidance we provide](https://github.com/dardcor/dardcor-code/wiki/Submitting-Bugs-and-Suggestions). Please complete the form in English.'
 			), { isTrusted: true });
 			const rendered = this.markdownRendererService.render(guidanceMd, {
 				actionHandler: async (link: string) => {
@@ -1118,7 +1118,7 @@ export class IssueReporterOverlay {
 
 	private updateDescriptionGuidance(): void {
 		const markdownHint = localize('markdownSupported', "Markdown formatting is supported.");
-		const perfWikiUrl = 'https://github.com/microsoft/vscode/wiki/Performance-Issues';
+		const perfWikiUrl = 'https://github.com/dardcor/dardcor-code/wiki/Performance-Issues';
 
 		this.descriptionGuidanceDisposables.clear();
 		this.descriptionGuidance.textContent = '';
@@ -1444,7 +1444,7 @@ export class IssueReporterOverlay {
 				renderContent: (container) => {
 					const sysTable = append(container, $('table.review-diag-table'));
 					if (modelData.versionInfo) {
-						this.addDiagRow(sysTable, 'VS Code', modelData.versionInfo.vscodeVersion);
+						this.addDiagRow(sysTable, 'Dardcor Code', modelData.versionInfo.vscodeVersion);
 						this.addDiagRow(sysTable, 'OS', modelData.versionInfo.os);
 					}
 					if (modelData.systemInfo) {
@@ -2054,7 +2054,7 @@ export class IssueReporterOverlay {
 		const rows: [string, string | undefined][] = [
 			['Issue Category', this.getIssueTypeTitle(this.selectedIssueType ?? IssueType.Bug)],
 			['Target', this.getIssueSourceLabel()],
-			['VS Code Version', modelData.versionInfo?.vscodeVersion ?? product.version],
+			['Dardcor Code Version', modelData.versionInfo?.vscodeVersion ?? product.version],
 			['OS Version', modelData.versionInfo?.os ?? modelData.systemInfo?.os],
 		];
 
@@ -2075,7 +2075,7 @@ export class IssueReporterOverlay {
 
 		if (modelData.versionInfo) {
 			rows.push(
-				['VS Code Version', modelData.versionInfo.vscodeVersion],
+				['Dardcor Code Version', modelData.versionInfo.vscodeVersion],
 				['OS Version', modelData.versionInfo.os],
 			);
 		}

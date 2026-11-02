@@ -95,7 +95,7 @@ export class OverlayWebview extends Disposable implements IOverlayWebview {
 
 	public get container(): HTMLElement {
 		if (this._isDisposed) {
-			throw new Error(`OverlayWebview has been disposed`);
+			return this._overlayLayout?.content ?? document.createElement('div');
 		}
 
 		return this.overlayLayout.content;

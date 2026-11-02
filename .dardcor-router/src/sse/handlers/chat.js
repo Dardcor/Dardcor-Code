@@ -196,7 +196,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
   }
 
-  const { provider, model } = modelInfo;
+  let { provider, model } = modelInfo;
 
 
   const userAgent = request?.headers?.get("user-agent") || "";
@@ -317,6 +317,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
 
     const chatSettings = await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
+    const providerOverrides = (chatSettings.providerOverrides || {})[provider] || null;
     const result = await handleChatCore({
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
@@ -343,6 +344,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       pxpipeTransform: chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
       providerThinking,
+      providerOverrides,
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
@@ -358,6 +360,29 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     });
 
     if (result.success) return result.response;
+
+    const lowerErr = typeof result.error === "string" ? result.error.toLowerCase() : "";
+    const isClientAbort = result.status === 499 ||
+      request?.signal?.aborted ||
+      lowerErr.includes("aborted by client") ||
+      lowerErr.includes("request aborted") ||
+      lowerErr.includes("aborterror") ||
+      lowerErr.includes("signal is aborted") ||
+      lowerErr.includes("client closed request");
+
+    if (isClientAbort) {
+      log.info("CHAT", `Client aborted request (${credentials.connectionName})`);
+      return result.response;
+    }
+
+    // Virtual noAuth connections (free:<provider>) and env tokens have no secondary accounts to fall back to.
+    // Return the upstream response immediately instead of locking virtual IDs or looping to a non-existent next account.
+    if (
+      typeof credentials.connectionId === "string" &&
+      (credentials.connectionId.startsWith("free:") || credentials.connectionId.startsWith("env:"))
+    ) {
+      return result.response;
+    }
 
     let quotaResetMs = null;
     let resetsAtMs = result.resetsAtMs;

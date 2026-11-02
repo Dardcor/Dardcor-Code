@@ -46,6 +46,7 @@ export default function HeaderMenu({ onLogout }) {
     try {
       await fetch("/api/version/shutdown", { method: "POST" });
     } catch (e) {
+      // Expected to fail as server shuts down; ignore error
     }
     setIsShuttingDown(false);
     setShutdownOpen(false);

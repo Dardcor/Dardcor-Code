@@ -16,12 +16,12 @@ export const enum AgentHostClientType {
 
 export const editorWindowAgentHostClientInfo: Readonly<Implementation> = Object.freeze({
 	name: EDITOR_WINDOW_CLIENT_NAME,
-	title: 'VS Code',
+	title: 'Dardcor Code',
 });
 
 export const agentsWindowAgentHostClientInfo: Readonly<Implementation> = Object.freeze({
 	name: AGENTS_WINDOW_CLIENT_NAME,
-	title: 'VS Code Agents Window',
+	title: 'Dardcor Code Agents Window',
 });
 
 export function getAgentHostClientType(clientInfo: Implementation | undefined): AgentHostClientType {

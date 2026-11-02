@@ -13,6 +13,7 @@ import { fromNowByDay, safeIntl } from '../../../../../base/common/date.js';
 import { Event } from '../../../../../base/common/event.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
+import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { language } from '../../../../../base/common/platform.js';
 import { basename } from '../../../../../base/common/resources.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
@@ -764,7 +765,8 @@ export function registerChatActions() {
 				isNewChat?: boolean;
 			}
 
-			const qp = quickInputService.createQuickPick<IChatHistoryPickItem>({ useSeparators: true });
+			const disposables = new DisposableStore();
+			const qp = disposables.add(quickInputService.createQuickPick<IChatHistoryPickItem>({ useSeparators: true }));
 			qp.widgetPosition = 'center';
 			qp.placeholder = localize('chat.history.placeholder', "Select a chat session or start a new chat");
 			qp.matchOnDescription = true;
@@ -808,7 +810,7 @@ export function registerChatActions() {
 
 			qp.items = buildSessionPicks();
 
-			qp.onDidTriggerItemButton(async e => {
+			disposables.add(qp.onDidTriggerItemButton(async e => {
 				const item = e.item as IChatHistoryPickItem;
 				if (item.sessionResource) {
 					const resource = item.sessionResource;
@@ -824,9 +826,9 @@ export function registerChatActions() {
 						await instantiationService.invokeFunction(clearChatSessionPreservingType, lastWidget, undefined);
 					}
 				}
-			});
+			}));
 
-			qp.onDidAccept(async () => {
+			disposables.add(qp.onDidAccept(async () => {
 				const selected = qp.selectedItems[0];
 				qp.hide();
 				if (!selected) {
@@ -838,11 +840,11 @@ export function registerChatActions() {
 				} else if (selected.sessionResource) {
 					await chatWidgetService.openSession(selected.sessionResource, ChatViewPaneTarget);
 				}
-			});
+			}));
 
-			qp.onDidHide(() => {
-				qp.dispose();
-			});
+			disposables.add(qp.onDidHide(() => {
+				disposables.dispose();
+			}));
 
 			qp.show();
 		}

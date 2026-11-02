@@ -12,8 +12,14 @@ function getRedirectUri() {
   return `http://localhost:${port}/callback`;
 }
 
+/**
+ * GitLab Duo Authentication Modal
+ * Supports two modes:
+ * - OAuth (PKCE): requires OAuth App Client ID (and optional Client Secret)
+ * - PAT: requires Personal Access Token
+ */
 export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClose }) {
-  const [mode, setMode] = useState(null);
+  const [mode, setMode] = useState(null); // null | "oauth" | "pat"
   const [baseUrl, setBaseUrl] = useState(GITLAB_COM);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -76,6 +82,7 @@ export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClo
 
   if (!isOpen) return null;
 
+  // Sub-modal for OAuth PKCE flow
   if (showOAuth && oauthMeta) {
     return (
       <OAuthModal
@@ -92,7 +99,7 @@ export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClo
   return (
     <Modal isOpen={isOpen} title="Connect GitLab Duo" onClose={handleClose} size="lg">
       <div className="flex flex-col gap-4">
-        {}
+        {/* Mode selection */}
         {!mode && (
           <>
             <p className="text-sm text-text-muted">
@@ -123,7 +130,7 @@ export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClo
           </>
         )}
 
-        {}
+        {/* OAuth mode */}
         {mode === "oauth" && (
           <>
             <p className="text-xs text-text-muted">
@@ -149,7 +156,7 @@ export default function GitLabAuthModal({ isOpen, providerInfo, onSuccess, onClo
           </>
         )}
 
-        {}
+        {/* PAT mode */}
         {mode === "pat" && (
           <>
             <p className="text-xs text-text-muted">

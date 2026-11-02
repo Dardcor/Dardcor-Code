@@ -7,10 +7,12 @@ import { DATA_DIR } from '@/lib/dataDir';
 const MACHINE_ID_FILE = path.join(DATA_DIR, 'machine-id');
 const AUTH_DIR = path.join(DATA_DIR, 'auth');
 const CLI_SECRET_FILE = path.join(AUTH_DIR, 'cli-secret');
-const CLI_AUTH_SALT = '9r-cli-auth';
+const CLI_AUTH_SALT = 'dardcor-cli-auth';
 let cachedRawId = null;
 let cachedCliSecret = null;
 
+// Persist raw machine ID to file → guarantees CLI/server/middleware see same value
+// even when machineIdSync fails or returns inconsistent values across runtimes.
 function loadRawMachineId() {
   if (cachedRawId) return cachedRawId;
   try {
@@ -29,6 +31,7 @@ function loadRawMachineId() {
   return cachedRawId;
 }
 
+// Random secret persisted on first run → unpredictable CLI token even when machineId leaks.
 function loadCliSecret() {
   if (cachedCliSecret) return cachedCliSecret;
   try {
@@ -54,6 +57,10 @@ export async function getRawMachineId() {
   return loadRawMachineId();
 }
 
+/**
+ * Check if we're running in browser or server environment
+ * @returns {boolean} True if in browser, false if in server
+ */
 export function isBrowser() {
   return typeof window !== 'undefined';
 }

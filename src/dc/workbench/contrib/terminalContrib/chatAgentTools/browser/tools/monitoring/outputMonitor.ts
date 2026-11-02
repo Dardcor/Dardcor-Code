@@ -286,7 +286,7 @@ export class OutputMonitor extends Disposable implements IOutputMonitor {
 
 		const isTask = this._execution.task !== undefined;
 		if (isTask && detectsVSCodeTaskFinishMessage(outputTail)) {
-			this._logService.trace('OutputMonitor: Idle -> VS Code task finish message detected, stopping');
+			this._logService.trace('OutputMonitor: Idle -> Dardcor Code task finish message detected, stopping');
 			return { shouldContinuePolling: false, output };
 		}
 

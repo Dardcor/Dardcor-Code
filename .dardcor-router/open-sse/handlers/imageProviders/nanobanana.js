@@ -1,3 +1,4 @@
+// NanoBanana API — async submit + poll record-info
 import { sleep, nowSec, sizeToAspectRatio, POLL_INTERVAL_MS, POLL_TIMEOUT_MS } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 
@@ -22,6 +23,7 @@ export default {
       type: isEdit ? "IMAGETOIAMGE" : "TEXTTOIAMGE",
       numImages: body.n || 1,
       image_size: ratio,
+      // API requires callBackUrl; we poll instead so a dummy URL is fine.
       callBackUrl: "https://localhost/callback",
     };
     if (isEdit) {
@@ -31,6 +33,7 @@ export default {
     }
     return req;
   },
+  // Async: parse submit → poll until SUCCESS, return raw poll data
   async parseResponse(response, { headers }) {
     const submitData = await response.json();
     if (submitData.code !== 200) throw new Error(submitData.msg || "NanoBanana submit failed");

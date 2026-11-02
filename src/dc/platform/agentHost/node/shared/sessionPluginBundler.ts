@@ -15,7 +15,7 @@ import { customizationId, type ClientPluginCustomization } from '../../common/st
 import { CustomizationType, type URI as ProtocolURI } from '../../common/state/protocol/state.js';
 import { DiscoveredType, type IDiscoveredDirectory } from './sessionDiscoveryTypes.js';
 
-const DISPLAY_NAME = 'VS Code Synced Data';
+const DISPLAY_NAME = 'Dardcor Code Synced Data';
 const HOST_DISCOVERY_DIR = 'host-discovery';
 
 const MANIFEST_CONTENT = JSON.stringify({

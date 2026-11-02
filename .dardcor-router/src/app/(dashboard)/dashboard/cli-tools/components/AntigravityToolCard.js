@@ -17,7 +17,7 @@ export default function AntigravityToolCard({
 }) {
   const [status, setStatus] = useState(initialStatus || null);
   const [loading, setLoading] = useState(false);
-  const [startingStep, setStartingStep] = useState(null);
+  const [startingStep, setStartingStep] = useState(null); // "cert" | "server" | "dns" | null
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [sudoPassword, setSudoPassword] = useState("");
   const [selectedApiKey, setSelectedApiKey] = useState("");
@@ -83,6 +83,7 @@ export default function AntigravityToolCard({
     }
   };
 
+  // MITM elevation is decided by the server OS, not by this browser's OS.
   const serverIsWindows = status?.isWin === true;
   const canRunWithoutPassword = serverIsWindows || status?.hasCachedPassword || status?.needsSudoPassword === false;
 
@@ -107,11 +108,12 @@ export default function AntigravityToolCard({
   const doStart = async (password) => {
     setLoading(true);
     setMessage(null);
+    // Show steps progressing in order
     setStartingStep("cert");
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_dardcor-code" : null);
+        || (!cloudEnabled ? "sk_dardcor" : null);
 
       const res = await fetch("/api/cli-tools/antigravity-mitm", {
         method: "POST",
@@ -257,7 +259,7 @@ export default function AntigravityToolCard({
 
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
-          {}
+          {/* Status indicators — ordered: Cert → Server → DNS */}
           <div className="flex items-center gap-1">
             {[
               { key: "cert", label: "Cert", ok: status?.certExists },
@@ -285,7 +287,7 @@ export default function AntigravityToolCard({
             })}
           </div>
 
-          {}
+          {/* Start/Stop Button */}
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
             {isRunning ? (
               <button
@@ -315,7 +317,7 @@ export default function AntigravityToolCard({
             </div>
           )}
 
-          {}
+          {/* When running: API Key + Model Mappings */}
           {isRunning && (
             <>
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
@@ -331,7 +333,7 @@ export default function AntigravityToolCard({
                   </select>
                 ) : (
                   <span className="min-w-0 rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                    {cloudEnabled ? "No API keys - Create one in Keys page" : "sk_dardcor-code (default)"}
+                    {cloudEnabled ? "No API keys - Create one in Keys page" : "sk_dardcor (default)"}
                   </span>
                 )}
               </div>
@@ -382,7 +384,7 @@ export default function AntigravityToolCard({
             </>
           )}
 
-          {}
+          {/* Windows admin warning */}
           {!isRunning && serverIsWindows && (
             <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs bg-yellow-500/10 text-yellow-600 border border-yellow-500/20">
               <span className="material-symbols-outlined text-[14px]">warning</span>
@@ -390,7 +392,7 @@ export default function AntigravityToolCard({
             </div>
           )}
 
-          {}
+          {/* When stopped: how it works */}
           {!isRunning && (
             <div className="flex flex-col gap-1.5 px-1">
               <p className="text-xs text-text-muted">
@@ -406,7 +408,7 @@ export default function AntigravityToolCard({
         </div>
       )}
 
-      {}
+      {/* Password Modal */}
       <Modal
         isOpen={showPasswordModal}
         onClose={() => {
@@ -461,7 +463,7 @@ export default function AntigravityToolCard({
         </div>
       </Modal>
 
-      {}
+      {/* Model Select Modal */}
       {modalOpen && (
         <ModelSelectModal
           isOpen={modalOpen}

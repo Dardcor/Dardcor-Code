@@ -22,20 +22,35 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
     const providerId = resolveProviderId(provider);
 
-    const isFreeNoAuth = !!FREE_PROVIDERS[providerId]?.noAuth;
     const isEnabled = await getProviderStatus(providerId);
-    if (!isEnabled && !isFreeNoAuth) {
-      const activeConns = await getProviderConnections({ provider: providerId, isActive: true });
-      if (activeConns.length > 0) {
-        log.info("AUTH", `Auto-enabling provider ${providerId} because ${activeConns.length} active connection(s) exist`);
-        await setProviderStatus(providerId, true);
-      } else {
-        log.warn("AUTH", `Provider ${providerId} is currently turned OFF / disabled`);
-        return null;
-      }
+    if (isEnabled === false) {
+      log.warn("AUTH", `Provider ${providerId} is currently turned OFF / disabled by user`);
+      return null;
     }
 
-    if (FREE_PROVIDERS[providerId]?.noAuth) {
+    const connections = await getProviderConnections({ provider: providerId, isActive: true });
+    log.debug("AUTH", `${provider} | total connections: ${connections.length}, excludeIds: ${excludeSet.size > 0 ? [...excludeSet].join(",") : "none"}, model: ${model || "any"}`);
+
+    if (connections.length === 0 && FREE_PROVIDERS[providerId]?.noAuth) {
+      if (providerId === "opencode") {
+        const envToken = process.env.OPENCODE_ACCESS_TOKEN || process.env.OPENCODE_API_KEY;
+        if (envToken) {
+          const envConnId = "env:opencode";
+          if (excludeSet.has(envConnId)) return null;
+          return {
+            id: envConnId,
+            connectionId: envConnId,
+            connectionName: "Environment Token",
+            isActive: true,
+            accessToken: envToken,
+            providerSpecificData: {},
+          };
+        }
+      }
+      const freeConnId = `free:${providerId}`;
+      if (excludeSet.has(freeConnId)) {
+        return null;
+      }
       const settings = await getSettings();
       const override = (settings.providerStrategies || {})[providerId] || {};
       const strategy = override.rotateStrategy || "none";
@@ -46,7 +61,6 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
         pickedId = pickProxyPoolId(poolIds, strategy, providerId);
       }
       const resolvedProxy = await resolveConnectionProxyConfig({ proxyPoolId: pickedId || "" });
-      const freeConnId = `free:${providerId}`;
       const providerDisplay = FREE_PROVIDERS[providerId]?.name || `${providerId} Free`;
       return {
         id: freeConnId,
@@ -64,13 +78,11 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       };
     }
 
-    const connections = await getProviderConnections({ provider: providerId, isActive: true });
-    log.debug("AUTH", `${provider} | total connections: ${connections.length}, excludeIds: ${excludeSet.size > 0 ? [...excludeSet].join(",") : "none"}, model: ${model || "any"}`);
-
     if (connections.length === 0) {
       if (providerId === "opencode") {
         const envToken = process.env.OPENCODE_ACCESS_TOKEN || process.env.OPENCODE_API_KEY;
         const ocConnId = envToken ? "env:opencode" : "free:opencode";
+        if (excludeSet.has(ocConnId)) return null;
         return {
           id: ocConnId,
           connectionId: ocConnId,
@@ -222,6 +234,17 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
 export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null) {
   if (!connectionId || connectionId === "noauth") return { shouldFallback: false, cooldownMs: 0 };
+
+  const lowerErr = errorText ? (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase() : "";
+  const isClientAbort = status === 499 ||
+    lowerErr.includes("aborted by client") ||
+    lowerErr.includes("request aborted") ||
+    lowerErr.includes("aborterror") ||
+    lowerErr.includes("signal is aborted") ||
+    lowerErr.includes("client closed request");
+  if (isClientAbort) {
+    return { shouldFallback: false, cooldownMs: 0 };
+  }
   const connections = await getProviderConnections({ provider });
   const conn = connections.find(c => c.id === connectionId);
   const backoffLevel = conn?.backoffLevel || 0;

@@ -171,6 +171,7 @@ export const PROVIDERS = {
   IFLOW: "iflow",
   ANTIGRAVITY: "antigravity",
   OPENAI: "openai",
+  GITHUB: "github",
   KIRO: "kiro",
   CURSOR: "cursor",
   KIMI: "kimi",
@@ -188,4 +189,27 @@ export const PROVIDERS = {
   GLM: "glm",
   ZED: "zed",
   OPENCODE: "opencode",
+};
+
+export const QODER_CN_CONFIG = {
+  ...(PROVIDER_OAUTH["qoder-cn"] || PROVIDER_OAUTH["qoder"] || {}),
+  deviceCodeUrl: PROVIDER_OAUTH["qoder-cn"]?.deviceCodeUrl || "https://openapi.qoder.com.cn/auth/device/code",
+  tokenUrl: PROVIDER_OAUTH["qoder-cn"]?.tokenUrl || "https://openapi.qoder.com.cn/auth/device/token",
+  userUrl: PROVIDER_OAUTH["qoder-cn"]?.userUrl || "https://openapi.qoder.com.cn/auth/user",
+  clientId: PROVIDER_OAUTH["qoder-cn"]?.clientId || "qoder-cli",
+};
+
+export const NOUS_CONFIG = {
+  ...(PROVIDER_OAUTH["nous"] || {}),
+  deviceCodeUrl: PROVIDER_OAUTH["nous"]?.deviceCodeUrl || "https://portal.nousresearch.com/oauth/device/code",
+  tokenUrl: PROVIDER_OAUTH["nous"]?.tokenUrl || "https://portal.nousresearch.com/oauth/device/token",
+  clientId: PROVIDER_OAUTH["nous"]?.clientId || "nous-portal",
+  scope: PROVIDER_OAUTH["nous"]?.scope || "openid profile email",
+};
+
+export const MUSE_CONFIG = {
+  ...(PROVIDER_OAUTH["muse"] || {}),
+  deviceCodeUrl: PROVIDER_OAUTH["muse"]?.deviceCodeUrl || "https://auth.meta.com/oauth/device/code",
+  tokenUrl: PROVIDER_OAUTH["muse"]?.tokenUrl || "https://auth.meta.com/oauth/device/token",
+  clientId: PROVIDER_OAUTH["muse"]?.clientId || "muse-cli",
 };

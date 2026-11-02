@@ -1,21 +1,32 @@
+/**
+ * Shared usage helpers (cross-provider)
+ */
 
 import { PROVIDERS } from "../../providers/index.js";
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 
+// usage endpoints: single source from registry transport.usage
 export const U = (id) => PROVIDERS[id]?.usage || {};
 
+/**
+ * Parse reset date/time to ISO string
+ * Handles multiple formats: Unix timestamp (ms), ISO date string, etc.
+ */
 export function parseResetTime(resetValue) {
   if (!resetValue) return null;
 
   try {
+    // If it's already a Date object
     if (resetValue instanceof Date) {
       return resetValue.toISOString();
     }
 
+    // Unix timestamps from provider APIs may be seconds or milliseconds.
     if (typeof resetValue === 'number') {
       return new Date(resetValue < 1e12 ? resetValue * 1000 : resetValue).toISOString();
     }
 
+    // If it's a numeric string, treat it like a Unix timestamp too.
     if (typeof resetValue === 'string') {
       if (/^\d+$/.test(resetValue)) {
         const timestamp = Number(resetValue);

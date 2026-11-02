@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, Button, Badge, Input } from "@/shared/components";
 
-const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
+const DEFAULT_MITM_ROUTER_BASE = "http://localhost:25128";
 
-
-
-
-
+/**
+ * Shared MITM infrastructure card — manages SSL cert + server start/stop.
+ * DNS per-tool is handled separately in MitmToolCard.
+ */
 export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
   const serverIsWindows = status?.isWin === true;
   const canRunWithoutPassword = serverIsWindows || status?.hasCachedPassword || status?.needsSudoPassword === false;
   const isAdmin = status?.isAdmin !== false;
-
+  // No privilege: not admin/root AND (Win OR no cached sudo password)
   const noPrivilege = !isAdmin && (serverIsWindows || (!status?.hasCachedPassword && status?.needsSudoPassword !== false));
 
   const fetchStatus = useCallback(async () => {
@@ -51,7 +51,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
 
   const handleAction = (action) => {
     setActionError(null);
-
+    // Wait for status to load before deciding whether to show sudo modal
     if (!status) return;
     if (canRunWithoutPassword) {
       doAction(action, "");
@@ -76,7 +76,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
       } else if (action === "start") {
         const keyToUse = selectedApiKey?.trim()
           || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-          || (!cloudEnabled ? "sk_dardcor-code" : null);
+          || (!cloudEnabled ? "sk_dardcor" : null);
         res = await fetch("/api/cli-tools/antigravity-mitm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -165,10 +165,10 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
           {/* Purpose & How it works */}
           <div className="px-2 py-2 rounded-lg bg-surface/50 border border-border/50 flex flex-col gap-2">
             <p className="text-[11px] text-text-muted leading-relaxed">
-              <span className="font-medium text-text-main">Purpose:</span> Use Antigravity IDE with any provider/model from Dardcor Router
+              <span className="font-medium text-text-main">Purpose:</span> Use Antigravity IDE & GitHub Copilot → with ANY provider/model from Dardcor Router
             </p>
             <p className="text-[11px] text-text-muted leading-relaxed">
-              <span className="font-medium text-text-main">How it works:</span> Antigravity IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Router → response to Antigravity
+              <span className="font-medium text-text-main">How it works:</span> Antigravity/Copilot IDE request → DNS redirect to localhost:443 → MITM proxy intercepts → Dardcor Router → response to Antigravity/Copilot
             </p>
           </div>
 
@@ -195,7 +195,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
                   list="mitm-api-keys"
                   value={selectedApiKey}
                   onChange={(e) => setSelectedApiKey(e.target.value)}
-                  placeholder={cloudEnabled ? "Enter or pick API key" : "sk_dardcor-code (default)"}
+                  placeholder={cloudEnabled ? "Enter or pick API key" : "sk_dardcor (default)"}
                   className="flex-1 min-w-0 px-2 py-1.5 bg-surface rounded border border-border text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
                 {apiKeys?.length > 0 && (

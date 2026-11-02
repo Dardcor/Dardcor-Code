@@ -7,10 +7,11 @@ const tracingRoot = process.env.NEXT_TRACING_ROOT_MODE === "workspace"
   : projectRoot;
 const proxyClientMaxBodySize = process.env.DARDCORROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
-  serverExternalPackages: ["open"],
+  serverExternalPackages: ["open", "@aws-sdk/credential-providers"],
   turbopack: {
     root: tracingRoot
   },
@@ -69,6 +70,10 @@ const nextConfig = {
       {
         source: "/responses",
         destination: "/api/v1/responses"
+      },
+      {
+        source: "/systemone",
+        destination: "/api/v1/systemone"
       },
       {
         source: "/v1beta/:path*",

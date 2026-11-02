@@ -41,7 +41,7 @@ configurationRegistry.registerConfiguration({
 				localization: {
 					description: {
 						key: 'chat.editor.preferCopilotHarness.policy',
-						value: nls.localize('chat.editor.preferCopilotHarness.policy', "Configure whether VS Code uses the Agent Host Copilot SDK instead of the local harness for new editor chat sessions."),
+						value: nls.localize('chat.editor.preferCopilotHarness.policy', "Configure whether Dardcor Code uses the Agent Host Copilot SDK instead of the local harness for new editor chat sessions."),
 					},
 				},
 			},
@@ -55,7 +55,7 @@ configurationRegistry.registerConfiguration({
 		},
 		'chat.editor.localAgent.enabled': {
 			type: 'boolean',
-			description: nls.localize('chat.editor.localAgent.enabled', "When enabled, shows the VS Code local chat harness in the chat picker. This setting is ignored in virtual workspaces, where the local chat harness is always available."),
+			description: nls.localize('chat.editor.localAgent.enabled', "When enabled, shows the Dardcor Code local chat harness in the chat picker. This setting is ignored in virtual workspaces, where the local chat harness is always available."),
 			default: true,
 			tags: ['experimental'],
 			experiment: { mode: 'startup' },

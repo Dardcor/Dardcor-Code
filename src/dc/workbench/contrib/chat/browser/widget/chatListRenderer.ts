@@ -194,7 +194,7 @@ export function buildPlanReviewProgressContent(review: IChatPlanReview, message:
 	const feedbackMarkdown = [overall, inlineMd].filter(value => !!value).join('\n\n')
 		|| data?.feedback?.trim();
 
-	const content = new MarkdownString(undefined, { supportThemeIcons: true });
+	const content = new MarkdownString(undefined, { supportThemeIcons: true, isTrusted: true });
 	content.appendText(message);
 	if (feedbackMarkdown) {
 		content.appendMarkdown('\n\n');
@@ -202,23 +202,23 @@ export function buildPlanReviewProgressContent(review: IChatPlanReview, message:
 	}
 
 	if (renderedAsUsed) {
-		const reviewContent = review.content.trim();
 		const planUri = review.planUri ? URI.revive(review.planUri) : undefined;
-		if (reviewContent || planUri) {
-			content.appendMarkdown('\n\n');
+		if (planUri) {
+			const planFileName = basename(planUri);
+			const label = planFileName
+				? localize('chat.planReview.openFullPlanFile', "Open plan ({0})", planFileName)
+				: localize('chat.planReview.openFullPlan', "Open plan");
+			const commandUri = URI.from({
+				scheme: 'command',
+				path: 'markdown.showPreview',
+				query: JSON.stringify([planUri])
+			});
+			content.appendMarkdown(` &mdash; [${escapeMarkdownLinkLabel(label)}](${commandUri.toString()})`);
+		} else {
+			const reviewContent = review.content.trim();
 			if (reviewContent) {
+				content.appendMarkdown('\n\n');
 				content.appendMarkdown(reviewContent);
-			}
-			if (planUri) {
-				if (reviewContent) {
-					content.appendMarkdown('\n\n');
-				}
-				const planFileName = basename(planUri);
-				const label = planFileName
-					? localize('chat.planReview.openFullPlanFile', "Open full plan file ({0})", planFileName)
-					: localize('chat.planReview.openFullPlan', "Open full plan file");
-				const planWidgetUri = planUri.with({ query: planUri.query ? `${planUri.query}&vscodeLinkType=file` : 'vscodeLinkType=file' });
-				content.appendMarkdown(`[${escapeMarkdownLinkLabel(label)}](${planWidgetUri.toString(true)})`);
 			}
 		}
 	}
@@ -527,7 +527,7 @@ export function shouldRenderInitialProgressiveContentImmediately(isComplete: boo
 }
 
 export function shouldStartNewCollapsedThinkingGroup(displayMode: ThinkingDisplayMode, existingGroup: 'reasoning' | 'items', incomingGroup: 'reasoning' | 'items'): boolean {
-	return displayMode === ThinkingDisplayMode.Collapsed && existingGroup !== incomingGroup;
+	return false;
 }
 
 export function shouldCreateGroupedThinkingPart(collapsedToolsMode: CollapsedToolsDisplayMode, separatedFromReasoning: boolean): boolean {

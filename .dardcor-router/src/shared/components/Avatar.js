@@ -17,6 +17,7 @@ export default function Avatar({
     xl: "size-16 text-xl",
   };
 
+  // Get initials from name
   const getInitials = (name) => {
     if (!name) return "?";
     const parts = name.split(" ");
@@ -26,6 +27,7 @@ export default function Avatar({
     return name.substring(0, 2).toUpperCase();
   };
 
+  // Generate color from name
   const getColorFromName = (name) => {
     if (!name) return "bg-primary";
     const colors = [

@@ -1,6 +1,8 @@
+// OpenAI-compatible embeddings adapter (most providers)
 import { bearerAuth } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 
+// media-only providers without a registry file keep URL here; rest derive from registry media.embeddingConfig.baseUrl
 const ENDPOINTS = {
   "jina-ai": "https://api.jina.ai/v1/embeddings",
 };

@@ -21,3 +21,22 @@ export const GEMINI_FINISH = {
   BLOCKLIST: "BLOCKLIST",
   PROHIBITED_CONTENT: "PROHIBITED_CONTENT",
 };
+
+export const RESPONSES_INCOMPLETE_REASON = {
+  CONTENT_FILTER: "content_filter",
+  MAX_OUTPUT_TOKENS: "max_output_tokens",
+};
+
+export const RESPONSES_STATUS = {
+  INCOMPLETE: "incomplete",
+  FAILED: "failed",
+  COMPLETED: "completed",
+};
+
+export const NO_RETRY_EMPTY_FINISH = new Set([
+  OPENAI_FINISH.CONTENT_FILTER,
+  "content_filter",
+  "safety",
+  "blocklist",
+  "prohibited_content",
+]);

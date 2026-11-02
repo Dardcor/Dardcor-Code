@@ -83,7 +83,7 @@ export class AgentMergeTools implements IAgentMergeToolAccessor {
 			throw new Error('The review thread is not an unresolved thread authorized for this Agent Merge turn.');
 		}
 		const attributedBody = context.configuration.replyAttribution
-			? `${body}\n\n> [!NOTE]\n> Automated reply by VS Code Agent Merge.`
+			? `${body}\n\n> [!NOTE]\n> Automated reply by Dardcor Code Agent Merge.`
 			: body;
 		this._logService.info(`[AgentMergeTools] Replying to authorized review thread: session=${session}, turn=${context.turnId}, resolve=${resolve}, attribution=${context.configuration.replyAttribution}`);
 		const result = await this._gitHubService.mutations.replyAndResolveThread(context.ref, {

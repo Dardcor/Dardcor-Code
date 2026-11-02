@@ -10,7 +10,7 @@ import { UPDATER_CONFIG } from "@/shared/constants/config";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 
 const APP_PORT = UPDATER_CONFIG.appPort;
-const CLI_TOKEN_HEADER = "x-9r-cli-token";
+const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
 const CLI_TOKEN_SALT = "9r-cli-auth";
 const LOCAL_MCP_PREFIX = `http://localhost:${APP_PORT}/api/mcp/`;
 
@@ -20,6 +20,7 @@ const getCliToken = async () => {
   return cachedCliToken;
 };
 
+// Inject CLI token header into entries pointing at our local /api/mcp/ bridge.
 const injectAuthHeaders = async (entries) => {
   const token = await getCliToken();
   for (const e of entries) {
@@ -32,6 +33,7 @@ const injectAuthHeaders = async (entries) => {
 
 const PROVIDER = "gateway";
 
+// Hardcoded relax-security profile applied on every Apply.
 const SECURITY_RELAX = {
   coworkEgressAllowedHosts: ["*"],
   disabledBuiltinTools: [],
@@ -45,6 +47,8 @@ const SECURITY_RELAX = {
   disableNonessentialServices: true,
 };
 
+// Tools auto-allow per server via toolPolicy["*"] = "allow" semantics.
+// 3p schema requires explicit tool names; we mark "*" via operonSkipMcpApprovals instead.
 
 const getCandidateRoots = () => {
   if (os.platform() === "darwin") {
@@ -89,7 +93,7 @@ const resolveAppRootForRead = async () => {
     try {
       await fs.access(path.join(dir, "configLibrary"));
       return dir;
-    } catch { }
+    } catch { /* try next */ }
   }
   return candidates[0];
 };
@@ -114,6 +118,8 @@ const get1pConfigPath = () => path.join(get1pRoot(), "claude_desktop_config.json
 const read1pConfig = async () => {
   try {
     const content = await fs.readFile(get1pConfigPath(), "utf-8");
+    // Tolerate JSONC (trailing commas) and treat unparseable files as empty config
+    // rather than throwing a 500 that the UI misreads as "tool not installed".
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped) || {};
   } catch (error) {
@@ -134,6 +140,7 @@ const bootstrapDeploymentMode = async () => {
   return true;
 };
 
+// Remove any legacy stdio entries previously written into 1p claude_desktop_config.json.
 const cleanup1pLegacy = async () => {
   const cfg = await read1pConfig();
   if (!cfg.mcpServers || typeof cfg.mcpServers !== "object") return;
@@ -145,6 +152,7 @@ const cleanup1pLegacy = async () => {
   await write1pConfig(cfg);
 };
 
+// Build SSE bridge entries pointing at this app's inline /api/mcp/{name} endpoint.
 const buildLocalBridgeEntries = (localPluginNames) => {
   const names = Array.isArray(localPluginNames) ? localPluginNames : [];
   const out = [];
@@ -170,6 +178,7 @@ const buildLocalBridgeEntries = (localPluginNames) => {
   return out;
 };
 
+// Build entries for user-defined custom MCP plugins (URL or stdio command).
 const buildCustomEntries = (customPlugins) => {
   if (!Array.isArray(customPlugins)) return [];
   const out = [];
@@ -182,7 +191,7 @@ const buildCustomEntries = (customPlugins) => {
 
 const checkInstalled = async () => {
   for (const dir of [...getCandidateRoots(), ...getAppInstallPaths()]) {
-    try { await fs.access(dir); return true; } catch { }
+    try { await fs.access(dir); return true; } catch { /* try next */ }
   }
   return false;
 };
@@ -190,6 +199,8 @@ const checkInstalled = async () => {
 const readJson = async (filePath) => {
   try {
     const content = await fs.readFile(filePath, "utf-8");
+    // Tolerate JSONC (trailing commas) and treat unparseable files as "no config"
+    // rather than throwing a 500 that the UI misreads as "tool not installed".
     const stripped = content.replace(/,(\s*[}\]])/g, "$1");
     return JSON.parse(stripped);
   } catch (error) {
@@ -214,6 +225,7 @@ const ensureMeta = async () => {
   return meta;
 };
 
+// Auto-skip approvals for every managed server (no per-tool prompts).
 async function writeSkipApprovals(managedServers) {
   const cfgPath = path.join(getWriteRoot(), "config.json");
   let cfg = {};
@@ -246,13 +258,15 @@ export async function GET() {
       ? config.inferenceModels.map((m) => (typeof m === "string" ? m : m?.name)).filter(Boolean)
       : [];
     const managedMcp = Array.isArray(config?.managedMcpServers) ? config.managedMcpServers : [];
-    const hasDardcorCode = !!(config?.inferenceProvider === PROVIDER && baseUrl);
+    const hasDardcorRouter = !!(config?.inferenceProvider === PROVIDER && baseUrl);
 
+    // Active local plugins = managedMcp entries whose URL points at our inline bridge.
     const stdioNames = new Set(LOCAL_STDIO_PLUGINS.map((p) => p.name));
     const activeLocalNames = managedMcp
       .filter((m) => stdioNames.has(m.name) && typeof m.url === "string" && m.url.includes("/api/mcp/"))
       .map((m) => m.name);
 
+    // Custom plugins = bridge entries not in preset LOCAL_STDIO_PLUGINS (custom:true or unknown name).
     const activeCustomPlugins = managedMcp
       .filter((m) => m.custom || (!stdioNames.has(m.name) && typeof m.url === "string" && m.url.includes("/api/mcp/")))
       .map((m) => ({ name: m.name, url: m.url, transport: m.transport, custom: true }));
@@ -260,7 +274,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasDardcorCode,
+      hasDardcorRouter,
       configPath,
       cowork: {
         appliedId,
@@ -268,6 +282,7 @@ export async function GET() {
         models,
         provider: config?.inferenceProvider || null,
         plugins: managedMcp.filter((m) => !m.custom && !(stdioNames.has(m.name) && typeof m.url === "string" && m.url.includes("/api/mcp/"))).map((m) => {
+          // Strip "{name}-" prefix and dedupe so re-applies don't multiply entries.
           const keys = m.toolPolicy ? Object.keys(m.toolPolicy) : [];
           const prefix = `${m.name}-`;
           const bare = new Set();
@@ -276,6 +291,7 @@ export async function GET() {
             while (t.startsWith(prefix)) t = t.slice(prefix.length);
             bare.add(t);
           }
+          // If plugin matches a default, prefer default toolNames (curated/correct).
           const def = DEFAULT_PLUGINS.find((d) => d.name === m.name);
           const toolNames = def && Array.isArray(def.toolNames) ? def.toolNames : Array.from(bare);
           return { name: m.name, url: m.url, transport: m.transport, oauth: !!m.oauth, toolNames };
@@ -304,8 +320,10 @@ export async function POST(request) {
       return NextResponse.json({ error: "At least one model is required" }, { status: 400 });
     }
 
+    // Respect empty array (user toggled all off); fallback to defaults only when undefined.
     const pluginsArray = Array.isArray(plugins) ? plugins : DEFAULT_PLUGINS;
     const localPluginNames = Array.isArray(localPlugins) ? localPlugins : [];
+    // Only URL-based custom plugins allowed (no stdio command spawning).
     const customPluginsArray = (Array.isArray(customPlugins) ? customPlugins : []).filter((p) => p?.url);
 
     const bridgeEntries = await injectAuthHeaders(buildLocalBridgeEntries(localPluginNames));
@@ -330,8 +348,9 @@ export async function POST(request) {
     let skipResult = null;
     try { skipResult = await writeSkipApprovals(managedMcpServers); } catch (e) { skipResult = { error: e.message }; }
 
+    // Best-effort cleanup of legacy 1p mcpServers entries written by earlier versions.
     let localMcpResult = { applied: localPluginNames, via: "3p-sse-bridge" };
-    try { await cleanup1pLegacy(); } catch { }
+    try { await cleanup1pLegacy(); } catch { /* ignore */ }
 
     return NextResponse.json({
       success: true,
@@ -358,8 +377,8 @@ export async function DELETE() {
     const configPath = path.join(await getConfigDir(), `${meta.appliedId}.json`);
     try { await fs.writeFile(configPath, JSON.stringify({}, null, 2)); }
     catch (error) { if (error.code !== "ENOENT") throw error; }
-    try { await writeSkipApprovals([]); } catch { }
-    try { await cleanup1pLegacy(); } catch { }
+    try { await writeSkipApprovals([]); } catch { /* ignore */ }
+    try { await cleanup1pLegacy(); } catch { /* ignore */ }
     return NextResponse.json({ success: true, message: "Cowork config reset" });
   } catch (error) {
     console.log("Error resetting cowork settings:", error);

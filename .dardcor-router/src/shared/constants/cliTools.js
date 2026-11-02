@@ -1,3 +1,4 @@
+// MITM Tools — IDE tools intercepted via MITM proxy
 export const MITM_TOOLS = {
   antigravity: {
     id: "antigravity",
@@ -7,10 +8,10 @@ export const MITM_TOOLS = {
     description: "Google Antigravity IDE with MITM",
     configType: "mitm",
     mitmDomain: "daily-cloudcode-pa.googleapis.com",
-    modelAliases: ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.5-flash-low", "gemini-3-flash-agent", "gemini-3.5-flash-extra-low", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium", "gemini-3-flash"],
+    modelAliases: ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.1-pro-high", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-5-5", "claude-sonnet-5-5-low", "claude-sonnet-5-5-medium", "claude-sonnet-5-5-high", "claude-opus-5-5", "claude-opus-5-5-low", "claude-opus-5-5-medium", "claude-opus-5-5-high", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium"],
     defaultModels: [
       { id: "gemini-3.8-flash-high", name: "Gemini 3.8 Flash (High)", alias: "gemini-3.8-flash-high" },
-      { id: "gemini-3.8-flash-medium", name: "Gemini 3.8 Flash (Medium)", alias: "gemini-3.8-flash-medium" },
+      { id: "gemini-3.8-flash-medium", name: "Gemini 3.8 Flash (Medium) / Default", alias: "gemini-3.8-flash-medium", mandatory: true },
       { id: "gemini-3.8-flash-low", name: "Gemini 3.8 Flash (Low)", alias: "gemini-3.8-flash-low" },
       { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)", alias: "gemini-3.7-flash-high" },
       { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)", alias: "gemini-3.7-flash-medium" },
@@ -18,15 +19,20 @@ export const MITM_TOOLS = {
       { id: "gemini-3.6-flash-high", name: "Gemini 3.6 Flash (High)", alias: "gemini-3.6-flash-high" },
       { id: "gemini-3.6-flash-medium", name: "Gemini 3.6 Flash (Medium)", alias: "gemini-3.6-flash-medium" },
       { id: "gemini-3.6-flash-low", name: "Gemini 3.6 Flash (Low)", alias: "gemini-3.6-flash-low" },
-      { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium) / Default", alias: "gemini-3.5-flash-low", mandatory: true },
-      { id: "gemini-3-flash-agent", name: "Gemini 3.5 Flash (High)", alias: "gemini-3-flash-agent" },
-      { id: "gemini-3.5-flash-extra-low", name: "Gemini 3.5 Flash (Low)", alias: "gemini-3.5-flash-extra-low" },
+      { id: "gemini-3.1-pro-high", name: "Gemini 3.1 Pro (High)", alias: "gemini-3.1-pro-high" },
       { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)", alias: "gemini-3.1-pro-low" },
-      { id: "gemini-pro-agent", name: "Gemini 3.1 Pro (High)", alias: "gemini-pro-agent" },
+      { id: "gemini-pro-agent", name: "Gemini 3.1 Pro (High) / Legacy", alias: "gemini-pro-agent" },
+      { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5 (Thinking)", alias: "claude-sonnet-5-5" },
+      { id: "claude-sonnet-5-5-low", name: "Claude Sonnet 5.5 (Low)", alias: "claude-sonnet-5-5-low" },
+      { id: "claude-sonnet-5-5-medium", name: "Claude Sonnet 5.5 (Medium)", alias: "claude-sonnet-5-5-medium" },
+      { id: "claude-sonnet-5-5-high", name: "Claude Sonnet 5.5 (High)", alias: "claude-sonnet-5-5-high" },
+      { id: "claude-opus-5-5", name: "Claude Opus 5.5 (Thinking)", alias: "claude-opus-5-5" },
+      { id: "claude-opus-5-5-low", name: "Claude Opus 5.5 (Low)", alias: "claude-opus-5-5-low" },
+      { id: "claude-opus-5-5-medium", name: "Claude Opus 5.5 (Medium)", alias: "claude-opus-5-5-medium" },
+      { id: "claude-opus-5-5-high", name: "Claude Opus 5.5 (High)", alias: "claude-opus-5-5-high" },
       { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6 (Thinking)", alias: "claude-sonnet-4-6" },
       { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 (Thinking)", alias: "claude-opus-4-6-thinking" },
       { id: "gpt-oss-120b-medium", name: "GPT-OSS 120B (Medium)", alias: "gpt-oss-120b-medium" },
-      { id: "gemini-3-flash", name: "Gemini 3 Flash (Command)", alias: "gemini-3-flash" },
     ],
   },
   kiro: {
@@ -38,6 +44,10 @@ export const MITM_TOOLS = {
     configType: "mitm",
     mitmDomain: "runtime.us-east-1.kiro.dev",
     defaultModels: [
+      // Kiro's agent/"vibe" mode sends modelId "auto" for the main turn and "simple-task"
+      // for background sub-tasks (verified via MITM request dump of generateAssistantResponse).
+      // Both need a mappable slot — otherwise getMappedModel returns null and the chat call
+      // is passed through to AWS instead of being routed to the chosen provider.
       { id: "auto", name: "Auto (Kiro Agent)", alias: "auto" },
       { id: "claude-sonnet-5", name: "Claude Sonnet 5", alias: "claude-sonnet-5" },
       { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4.5" },
@@ -51,8 +61,23 @@ export const MITM_TOOLS = {
       { id: "simple-task", name: "Qwen3 Coder Next", alias: "simple-task" },
     ],
   },
+  // cursor: {
+  //   id: "cursor",
+  //   name: "Cursor",
+  //   image: "/providers/cursor.png",
+  //   color: "#000000",
+  //   description: "Cursor IDE with MITM",
+  //   configType: "mitm",
+  //   mitmDomain: "api2.cursor.sh",
+  //   defaultModels: [
+  //     { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4-5" },
+  //     { id: "claude-opus-4", name: "Claude Opus 4", alias: "claude-opus-4" },
+  //     { id: "gpt-4o", name: "GPT-4o", alias: "gpt-4o" },
+  //   ],
+  // },
 };
 
+// CLI Tools configuration
 export const CLI_TOOLS = {
   claude: {
     id: "claude",
@@ -94,6 +119,34 @@ export const CLI_TOOLS = {
     description: "OpenAI Codex CLI",
     configType: "custom",
   },
+  copilot: {
+    id: "copilot",
+    name: "GitHub Copilot",
+    image: "/providers/copilot.png",
+    color: "#1F6FEB",
+    description: "GitHub Copilot in VS Code via Dardcor Router extension",
+    configType: "guide",
+    docsUrl: "https://marketplace.visualstudio.com/items?itemName=hotrungnhan.dardcor-router-for-github-copilot",
+    guideSteps: [
+      {
+        step: 1,
+        title: "Install Extension",
+        desc: "In VS Code, open Extensions (Ctrl+Shift+X or Cmd+Shift+X), search for 'Dardcor Router for Github Copilot' and click Install.",
+      },
+      {
+        step: 2,
+        title: "Configure Server",
+        desc: "Press Cmd+Shift+P (or Ctrl+Shift+P), run 'Dardcor Router: Configure Server', then enter your Server URL and API Key:",
+        value: "{{baseUrl}}",
+        copyable: true,
+      },
+      {
+        step: 3,
+        title: "Select Model in Copilot Chat",
+        desc: "Open Copilot Chat, click the model picker at the bottom → 'Manage Models...' → check the Dardcor Router models to use.",
+      },
+    ],
+  },
   opencode: {
     id: "opencode",
     name: "OpenCode",
@@ -117,6 +170,30 @@ export const CLI_TOOLS = {
     color: "#8B5CF6",
     description: "Nous Research self-improving AI agent",
     configType: "custom",
+    // Model slots Hermes supports besides the default ("model:" block).
+    // "default" is not listed — the card renders it as the main model picker.
+    // Mirrors the "auxiliary" defaults in hermes_cli/config_defaults.py (Hermes 0.21.5):
+    // web_extract/session_search no longer call an LLM (their leftover blocks are ignored,
+    // so exposing them only invites dead config), MoA slots are preset-driven and not listed.
+    roles: [
+      { id: "delegation", label: "Delegation (subagents)" },
+      { id: "vision", label: "Vision" },
+      { id: "compression", label: "Compression" },
+      { id: "title_generation", label: "Title Generation" },
+      { id: "approval", label: "Approval" },
+      { id: "skills_hub", label: "Skills Hub" },
+      { id: "mcp", label: "MCP" },
+      { id: "review", label: "Review (/review subagent)" },
+      { id: "memory_query_rewrite", label: "Memory Query Rewrite" },
+      { id: "background_review", label: "Background Review" },
+      { id: "curator", label: "Curator" },
+      { id: "monitor", label: "Monitor" },
+      { id: "tts_audio_tags", label: "TTS Audio Tags" },
+      { id: "triage_specifier", label: "Triage Specifier" },
+      { id: "kanban_decomposer", label: "Kanban Decomposer" },
+      { id: "profile_describer", label: "Profile Describer" },
+      { id: "goal_judge", label: "Goal Judge" },
+    ],
   },
   droid: {
     id: "droid",
@@ -213,7 +290,7 @@ export const CLI_TOOLS = {
     defaultCommand: "amp",
     modelAliases: ["g25p", "g25f", "cs45", "g54"],
     notes: [
-      { type: "info", text: "Use Dardcor Code model aliases to keep Amp shorthand mappings stable across provider updates." },
+      { type: "info", text: "Use Dardcor Router model aliases to keep Amp shorthand mappings stable across provider updates." },
       { type: "warning", text: "Suggested shorthand examples: g25p → gemini/gemini-2.5-pro, g25f → gemini/gemini-2.5-flash, cs45 → cc/claude-sonnet-4-5-20250929." },
     ],
     guideSteps: [
@@ -221,7 +298,7 @@ export const CLI_TOOLS = {
       { step: 2, title: "API Key", type: "apiKeySelector" },
       { step: 3, title: "Base URL", value: "{{baseUrl}}", copyable: true },
       { step: 4, title: "Select Model", type: "modelSelector" },
-      { step: 5, title: "Add Shorthands", desc: "Map Amp shorthand names such as g25p or cs45 to Dardcor Code aliases in your local config." },
+      { step: 5, title: "Add Shorthands", desc: "Map Amp shorthand names such as g25p or cs45 to Dardcor Router aliases in your local config." },
     ],
     codeBlock: {
       language: "bash",
@@ -238,15 +315,15 @@ amp --model "{{model}}"
     name: "Qwen Code",
     image: "/providers/qwen.png",
     color: "#10B981",
-    description: "Alibaba Qwen Code CLI — supports OpenAI, Anthropic & Gemini providers via Dardcor Code",
+    description: "Alibaba Qwen Code CLI — supports OpenAI, Anthropic & Gemini providers via Dardcor Router",
     docsUrl: "https://qwenlm.github.io/qwen-code-docs/en/users/configuration/model-providers/",
     configType: "guide",
     defaultCommand: "qwen",
     notes: [
-      { type: "info", text: "Qwen Code supports multiple provider types (openai, anthropic, gemini) via modelProviders in settings.json. Dardcor Code works as an OpenAI-compatible endpoint." },
-      { type: "info", text: "Any model available in Dardcor Code can be used — not just Qwen models. Select from Qwen, Claude, Gemini, GPT, and more." },
+      { type: "info", text: "Qwen Code supports multiple provider types (openai, anthropic, gemini) via modelProviders in settings.json. Dardcor Router works as an OpenAI-compatible endpoint." },
+      { type: "info", text: "Any model available in Dardcor Router can be used — not just Qwen models. Select from Qwen, Claude, Gemini, GPT, and more." },
       { type: "warning", text: "Config path: Linux/macOS ~/.qwen/settings.json • Windows %USERPROFILE%\\.qwen\\settings.json" },
-      { type: "error", text: "Qwen OAuth free tier was discontinued on 2026-04-15. Use Dardcor Code with alicode/openrouter/anthropic/gemini providers instead." },
+      { type: "error", text: "Qwen OAuth free tier was discontinued on 2026-04-15. Use Dardcor Router with alicode/openrouter/anthropic/gemini providers instead." },
     ],
     modelAliases: ["coder-model", "qwen3-coder-plus", "qwen3-coder-flash", "vision-model", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gemini-3-flash", "gemini-3.1-pro-high"],
     defaultModels: [
@@ -298,7 +375,7 @@ amp --model "{{model}}"
       { id: "deepseek-chat", name: "DeepSeek V3 Chat", alias: "deepseek-chat" },
     ],
     notes: [
-      { type: "info", text: "DeepSeek TUI uses ~/.deepseek/config.toml for configuration. Dardcor Code will update the provider to 'openai' mode with your base_url, api_key, and model." },
+      { type: "info", text: "DeepSeek TUI uses ~/.deepseek/config.toml for configuration. Dardcor Router will update the provider to 'openai' mode with your base_url, api_key, and model." },
       { type: "warning", text: "Config path: Linux/macOS ~/.deepseek/config.toml • Windows %USERPROFILE%\\.deepseek\\config.toml" },
     ],
   },
@@ -317,7 +394,7 @@ amp --model "{{model}}"
       },
       {
         type: "info",
-        text: "Configure dardcor-code as an OpenAI-compatible provider to route all jcode requests through dardcor-code's optimization layer."
+        text: "Configure dardcor-router as an OpenAI-compatible provider to route all jcode requests through dardcor-router's optimization layer."
       },
       {
         type: "warning",
@@ -327,7 +404,7 @@ amp --model "{{model}}"
     defaultModels: [
       { id: "claude-opus-5", name: "Claude Opus 5", alias: "opus", defaultValue: "cc/claude-opus-5" },
       { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", alias: "sonnet", defaultValue: "cc/claude-sonnet-4-6" },
-      { id: "gpt-5.5", name: "GPT 5.5", alias: "gpt5", defaultValue: "cx/gpt-5.5" },
+      { id: "gpt-6.1-sol", name: "GPT 6.1 Sol", alias: "gpt6", defaultValue: "cx/gpt-6.1-sol" },
       { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", alias: "gemini", defaultValue: "gemini/gemini-3.1-pro" },
     ],
   },
@@ -343,11 +420,11 @@ amp --model "{{model}}"
     notes: [
       {
         type: "info",
-        text: "Grok Build uses ~/.grok/config.toml. Dardcor Code writes a [model.dardcor] custom model and sets it as the default.",
+        text: "Grok Build uses ~/.grok/config.toml. Dardcor Router writes a [model.dardcor-router] custom model and sets it as the default.",
       },
       {
         type: "info",
-        text: "After Apply, run grok (or /model dardcor-code) to use the routed model. Switch back anytime with /model grok-build.",
+        text: "After Apply, run grok (or /model dardcor-router) to use the routed model. Switch back anytime with /model grok-build.",
       },
       {
         type: "warning",
@@ -390,12 +467,12 @@ devin --version`,
     docsUrl: "https://github.com/manalkaff/opendesign",
     configType: "guide",
     notes: [
-      { type: "info", text: "OpenDesign ships as a plugin/skills pack installed into Claude Code, Cursor, OpenAI Codex, Gemini CLI, or OpenCode. It inherits the host agent's model config, so once your host points at Dardcor Code, /opendesign design sessions route through Dardcor Code automatically — no extra env vars needed." },
+      { type: "info", text: "OpenDesign ships as a plugin/skills pack installed into Claude Code, Cursor, OpenAI Codex, Gemini CLI, or OpenCode. It inherits the host agent's model config, so once your host points at Dardcor Router, /opendesign design sessions route through Dardcor Router automatically — no extra env vars needed." },
       { type: "info", text: "Invoke with /opendesign <brief>. Covers decks, wireframes, interactive prototypes, design-system extraction, and brand systems, with a verifier subagent that checks output against the brief." },
     ],
     guideSteps: [
       { step: 1, title: "Install the plugin", desc: "Pick your host below and run the matching install command from the matrix." },
-      { step: 2, title: "No config needed", desc: "OpenDesign runs inside your host agent and uses its model config. If the host already routes through Dardcor Code, /opendesign traffic does too." },
+      { step: 2, title: "No config needed", desc: "OpenDesign runs inside your host agent and uses its model config. If the host already routes through Dardcor Router, /opendesign traffic does too." },
       { step: 3, title: "Start designing", desc: "Invoke OpenDesign from your agent:", value: "/opendesign make a pitch deck for a seed-stage AI company, 10 slides", copyable: true },
     ],
     codeBlock: {
@@ -420,8 +497,116 @@ gemini extensions install https://github.com/manalkaff/opendesign
 # Fetch and follow .opencode/INSTALL.md from the repo`,
     },
   },
+  pi: {
+    id: "pi",
+    name: "Pi (pi-coding-agent)",
+    image: "/providers/pi.svg",
+    color: "#6366F1",
+    description: "Pi coding agent — minimal, extensible agent harness (pi.dev)",
+    configType: "custom",
+    docsUrl: "https://pi.dev",
+    notes: [
+      {
+        type: "info",
+        text: "Pi uses ~/.pi/agent/models.json. Dardcor Router is configured under providers.dardcor-router as an OpenAI-compatible endpoint.",
+      },
+    ],
+  },
+  omp: {
+    id: "omp",
+    name: "Oh My Pi",
+    image: "/providers/omp.png",
+    color: "#EC4899",
+    description: "Oh My Pi terminal AI agent with auto-discovery support",
+    configType: "custom",
+    docsUrl: "https://github.com/can1357/oh-my-pi",
+    notes: [
+      {
+        type: "info",
+        text: "Oh My Pi uses ~/.omp/agent/models.yml and agent.db. Dardcor Router is configured with proxy discovery so all models appear automatically under /model.",
+      },
+    ],
+  },
+  crush: {
+    id: "crush",
+    name: "Crush",
+    image: "/providers/crush.png",
+    color: "#FB923C",
+    description: "Charm Crush terminal AI coding agent",
+    configType: "custom",
+    docsUrl: "https://github.com/charmbracelet/crush",
+    notes: [
+      {
+        type: "info",
+        text: "Crush uses ~/.config/crush/crush.json. Dardcor Router registers as an openai-compat provider.",
+      },
+    ],
+  },
+  forge: {
+    id: "forge",
+    name: "ForgeCode",
+    image: "/providers/forge.png",
+    color: "#EAB308",
+    description: "Antinomy HQ ForgeCode agent harness",
+    configType: "custom",
+    docsUrl: "https://github.com/antinomyhq/forge",
+    notes: [
+      {
+        type: "info",
+        text: "ForgeCode uses ~/.forge/config.toml. Dardcor Router updates the [openai] section with your baseUrl, apiKey, and model.",
+      },
+    ],
+  },
+  smelt: {
+    id: "smelt",
+    name: "Smelt",
+    image: "/providers/smelt.svg",
+    color: "#EF4444",
+    description: "Smelt terminal AI coding assistant",
+    configType: "custom",
+    docsUrl: "https://github.com/leonardcser/smelt",
+    notes: [
+      {
+        type: "info",
+        text: "Smelt uses ~/.smelt/config.json for OpenAI-compatible endpoint configuration.",
+      },
+    ],
+  },
+  codewhale: {
+    id: "codewhale",
+    name: "CodeWhale",
+    image: "/providers/codewhale.svg",
+    color: "#4F46E5",
+    description: "CodeWhale terminal coding agent (successor to DeepSeek TUI)",
+    configType: "custom",
+    docsUrl: "https://github.com/Hmbown/CodeWhale",
+    notes: [
+      {
+        type: "info",
+        text: "CodeWhale uses ~/.codewhale/config.toml. Dardcor Router configures the [openai] provider with your base_url, api_key, and model.",
+      },
+    ],
+  },
+  // HIDDEN: gemini-cli
+  // "gemini-cli": {
+  //   id: "gemini-cli",
+  //   name: "Gemini CLI",
+  //   icon: "terminal",
+  //   color: "#4285F4",
+  //   description: "Google Gemini CLI",
+  //   configType: "env",
+  //   envVars: {
+  //     baseUrl: "GEMINI_API_BASE_URL",
+  //     model: "GEMINI_MODEL",
+  //   },
+  //   defaultModels: [
+  //     { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", alias: "pro" },
+  //     { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", alias: "flash" },
+  //   ],
+  // },
 };
 
+// Get all provider models for mapping dropdown
 export const getProviderModelsForMapping = (providers) => {
   const result = [];
   providers.forEach(conn => {

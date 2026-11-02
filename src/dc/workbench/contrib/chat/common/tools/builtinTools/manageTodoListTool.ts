@@ -20,7 +20,7 @@ import {
 } from '../languageModelToolsService.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
-import { IChatTodo, IChatTodoListService } from '../chatTodoListService.js';
+import { IChatTodo, IChatTodoListService, normalizeTodoListArgs } from '../chatTodoListService.js';
 import { localize } from '../../../../../../nls.js';
 import { MarkdownString } from '../../../../../../base/common/htmlContent.js';
 import { URI } from '../../../../../../base/common/uri.js';
@@ -96,9 +96,12 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	async invoke(invocation: IToolInvocation, _countTokens: any, _progress: any, _token: CancellationToken): Promise<IToolResult> {
-		const args = invocation.parameters as IManageTodoListToolInputParams;
+		const rawArgs = invocation.parameters;
+		const normalized = normalizeTodoListArgs(rawArgs);
+		const args = (rawArgs || {}) as IManageTodoListToolInputParams;
+
 		let chatSessionResource = invocation.context?.sessionResource;
-		if (!chatSessionResource && args.operation === 'read' && args.chatSessionResource) {
+		if (!chatSessionResource && (normalized.operation === 'read' || args.operation === 'read') && args.chatSessionResource) {
 			try {
 				chatSessionResource = URI.parse(args.chatSessionResource);
 			} catch (error) {
@@ -114,13 +117,24 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 			};
 		}
 
-		this.logService.debug(`ManageTodoListTool: Invoking with options ${JSON.stringify(args)}`);
+		this.logService.debug(`ManageTodoListTool: Invoking with options ${JSON.stringify(rawArgs)}`);
 
 		try {
-			if (args.operation === 'read') {
+			if (normalized.operation === 'read' || (normalized.items.length === 0 && (args?.operation === 'read' || (args as any)?.action === 'read'))) {
 				return this.handleReadOperation(chatSessionResource);
+			} else if (normalized.items.length > 0) {
+				return this.handleWriteOperation({ ...args, todoList: normalized.items }, chatSessionResource);
 			} else {
-				return this.handleWriteOperation(args, chatSessionResource);
+				const existingTodos = this.chatTodoListService.getTodos(chatSessionResource);
+				if (existingTodos.length > 0) {
+					return this.handleReadOperation(chatSessionResource);
+				}
+				return {
+					content: [{
+						kind: 'text',
+						value: 'No todo items provided. To write todos, provide a list of items: { todoList: [{ id: 1, title: "task", status: "not-started" }] }'
+					}]
+				};
 			}
 
 		} catch (error) {
@@ -135,22 +149,23 @@ export class ManageTodoListTool extends Disposable implements IToolImpl {
 	}
 
 	async prepareToolInvocation(context: IToolInvocationPreparationContext, _token: CancellationToken): Promise<IPreparedToolInvocation | undefined> {
-		const args = context.parameters as IManageTodoListToolInputParams;
 		const chatSessionResource = context.chatSessionResource;
 		if (!chatSessionResource) {
 			return undefined;
 		}
 
+		const normalized = normalizeTodoListArgs(context.parameters);
 		const currentTodoItems = this.chatTodoListService.getTodos(chatSessionResource);
 		let message: string | undefined;
 
-		if (args.operation === 'read') {
+		const isRead = normalized.operation === 'read' || (normalized.items.length === 0 && ((context.parameters as any)?.operation === 'read' || (context.parameters as any)?.action === 'read'));
+		if (isRead) {
 			message = localize('todo.readOperation', "Read todo list");
-		} else if (args.todoList) {
-			message = this.generatePastTenseMessage(currentTodoItems, args.todoList);
+		} else if (normalized.items.length > 0) {
+			message = this.generatePastTenseMessage(currentTodoItems, normalized.items);
 		}
 
-		const items = args.todoList ?? currentTodoItems;
+		const items = normalized.items.length > 0 ? normalized.items : currentTodoItems;
 		const todoList = items.map(todo => ({
 			id: todo.id.toString(),
 			title: todo.title,

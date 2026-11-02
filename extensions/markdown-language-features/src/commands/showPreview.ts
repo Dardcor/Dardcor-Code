@@ -22,7 +22,17 @@ async function showPreview(
 ): Promise<any> {
 	let resource = uri;
 	if (!(resource instanceof vscode.Uri)) {
-		if (vscode.window.activeTextEditor) {
+		if (uri && typeof uri === 'object' && ('scheme' in (uri as any) || 'path' in (uri as any))) {
+			try {
+				resource = vscode.Uri.from(uri as any);
+			} catch {
+				resource = uri as vscode.Uri;
+			}
+		} else if (typeof uri === 'string') {
+			try {
+				resource = vscode.Uri.parse(uri);
+			} catch { }
+		} else if (vscode.window.activeTextEditor) {
 			resource = vscode.window.activeTextEditor.document.uri;
 		}
 	}

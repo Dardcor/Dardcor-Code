@@ -1,11 +1,25 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Dardcor Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-
 import crypto from "crypto";
 import { GLM_OAUTH_CONFIG } from "../constants/oauth.js";
 
+// Zai GLM Coding OAuth — CLI polling flow (mirrors the official
+// ZCode CLI, apps/zcode-cli packages/adapters/src/auth/cli-oauth.ts +
+// coding-plan-api-key.ts). No PKCE and no local callback server:
+//
+//   1) POST {cliInitUrl}   Authorization: Bearer <pollToken>  {"provider":"zai"}
+//        → { code: 0, data: { authorize_url, flow_id, poll_interval_sec, expires_at } }
+//   2) Browser opens authorize_url; user signs in with the Z.ai account
+//   3) GET {cliPollUrl}/<flow_id>   Authorization: Bearer <pollToken>
+//        → { data: { status: "pending" } } until
+//          { data: { status: "ready", token, user, accessToken, refreshToken? } }
+//   4) accessToken (Z.AI OAuth token) → POST {businessLoginUrl} {"token": ...}
+//        → { data: { access_token } } (platform business JWT)
+//   5) Business JWT → coding-plan API key via getCustomerInfo → api_keys
+//      list/create("zcode-api-key") → copy → "apiKey.secretKey"
+//
+// The coding-plan API key is the long-lived model credential; the ZAI OAuth
+// provider has no refresh_token grant, so expiry means re-login (same as the
+// official CLI). zcode JWT + business token ride along in providerSpecificData
+// for quota/usage and debugging.
 const glm = {
   config: GLM_OAUTH_CONFIG,
   flowType: "device_code",
@@ -34,6 +48,7 @@ const glm = {
     return {
       device_code: data.flow_id,
       verification_uri: data.authorize_url,
+      // expires_at is upstream-absolute; surface a relative deadline for the UI
       expires_in: relativeSeconds(data.expires_at) ?? 300,
       interval: data.poll_interval_sec || 3,
       _zcodePollToken: pollToken,
@@ -92,6 +107,10 @@ const glm = {
       };
     }
 
+    // ready payload nests the ZAI OAuth tokens under data[providerId] (see
+    // apps/zcode-cli cli-oauth.ts parseReadyData): { status:"ready", token,
+    // user, zai: { access_token, refresh_token? } }. Fall back to top-level
+    // fields for resilience against payload drift.
     const providerData = data[config.providerId] || data[data.providerId] || {};
     const zaiAccessToken =
       providerData.access_token ||
@@ -108,6 +127,7 @@ const glm = {
       };
     }
 
+    // ready.accessToken is the Z.AI OAuth token — derive the coding-plan API key
     const { planApiKey, businessToken } = await resolveCodingPlanApiKey(config, zaiAccessToken);
 
     return {
@@ -142,6 +162,9 @@ const glm = {
   },
 };
 
+// Business JWT → coding-plan API key ("apiKey.secretKey"). Mirrors ZCode CLI
+// coding-plan-api-key.ts: getCustomerInfo → default org/project → api_keys
+// list/create("zcode-api-key") → copy → secretKey.
 async function resolveCodingPlanApiKey(config, zaiAccessToken) {
   const businessToken = await exchangeBusinessToken(config, zaiAccessToken);
   const authHeaders = {
@@ -196,6 +219,7 @@ async function resolveCodingPlanApiKey(config, zaiAccessToken) {
   return { planApiKey: `${apiKey}.${secretKey}`, businessToken };
 }
 
+// POST {businessLoginUrl} {"token": <zai oauth token>} → { data: { access_token } }
 async function exchangeBusinessToken(config, zaiAccessToken) {
   const payload = await fetchBusinessJson(
     config.businessLoginUrl,
@@ -213,6 +237,8 @@ async function exchangeBusinessToken(config, zaiAccessToken) {
   return token;
 }
 
+// Business endpoints answer {code, msg, data}; code 0/200 (or absent) = success.
+// data is returned directly (null when missing).
 async function fetchBusinessJson(url, options, label) {
   const response = await fetch(url, options);
   const text = await response.text();
@@ -231,6 +257,8 @@ async function fetchBusinessJson(url, options, label) {
   return payload?.data ?? payload ?? null;
 }
 
+// Prefer the org named "默认机构"/"default" and the non-team project named
+// "默认项目"/"default" (projectType "2" = team), falling back to the first entries.
 function pickOrgAndProject(customerInfo) {
   const organizations = Array.isArray(customerInfo?.organizations)
     ? customerInfo.organizations
@@ -265,6 +293,7 @@ function isSuccessCode(code) {
   return code === undefined || code === null || code === 0 || code === 200 || code === "0" || code === "200";
 }
 
+// Absolute epoch (s or ms) → seconds from now; null when absent/invalid.
 function relativeSeconds(expiresAt) {
   const raw = Number(expiresAt);
   if (!Number.isFinite(raw) || raw <= 0) return null;

@@ -217,8 +217,49 @@ body {
   overflow-x: hidden;
   zoom: 0.8;
   width: calc(100vw / 0.8);
+  height: calc(100vh / 0.8);
+  height: calc(100dvh / 0.8);
   min-height: calc(100vh / 0.8);
   min-height: calc(100dvh / 0.8);
+}
+
+/* Compensate for body zoom (0.8) across all full-screen layout utilities */
+.h-screen {
+  height: calc(100vh / 0.8) !important;
+  height: calc(100dvh / 0.8) !important;
+}
+
+.min-h-screen {
+  min-height: calc(100vh / 0.8) !important;
+  min-height: calc(100dvh / 0.8) !important;
+}
+
+.max-h-screen {
+  max-height: calc(100vh / 0.8) !important;
+  max-height: calc(100dvh / 0.8) !important;
+}
+
+.w-screen {
+  width: calc(100vw / 0.8) !important;
+  width: calc(100dvw / 0.8) !important;
+}
+
+.min-w-screen {
+  min-width: calc(100vw / 0.8) !important;
+  min-width: calc(100dvw / 0.8) !important;
+}
+
+.max-w-screen {
+  max-width: calc(100vw / 0.8) !important;
+  max-width: calc(100dvw / 0.8) !important;
+}
+
+.h-dvh {
+  height: calc(100dvh / 0.8) !important;
+}
+
+.min-h-dvh {
+  min-height: calc(100dvh / 0.8) !important;
 }
 
 ::selection {

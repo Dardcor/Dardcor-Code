@@ -60,7 +60,7 @@ export const RETRY_CONFIG = {
 };
 
 export const DEFAULT_RETRY_CONFIG = {
-  429: { attempts: 0, delayMs: 0 },
+  429: { attempts: 3, delayMs: 2000 },
   502: { attempts: 3, delayMs: 3000 },
   503: { attempts: 3, delayMs: 2000 },
   504: { attempts: 2, delayMs: 3000 }
@@ -78,3 +78,5 @@ export function resolveRetryEntry(entry) {
 export const SKIP_PATTERNS = [
   "Please write a 5-10 word title for the following conversation:"
 ];
+
+export const EMPTY_PEEK_DEADLINE_MS = 2500;

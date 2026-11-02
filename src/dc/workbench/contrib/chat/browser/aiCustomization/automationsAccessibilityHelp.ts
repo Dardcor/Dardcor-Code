@@ -67,7 +67,7 @@ export function buildAutomationsHelpContent(keybindingService: IKeybindingServic
 	lines.push('');
 
 	lines.push(nls.localize('automations.help.historyHeader', 'Run History:'));
-	lines.push(nls.localize('automations.help.historyDesc', 'Each run records its status (Pending, Running, Completed, Failed), the trigger that started it (Schedule, Manual, or Catch-up after VS Code restarts), the time it started, and the time it took. Failed runs include the failure reason.'));
+	lines.push(nls.localize('automations.help.historyDesc', 'Each run records its status (Pending, Running, Completed, Failed), the trigger that started it (Schedule, Manual, or Catch-up after Dardcor Code restarts), the time it started, and the time it took. Failed runs include the failure reason.'));
 	lines.push('');
 
 	lines.push(nls.localize('automations.help.statusHeader', 'Screen Reader Announcements:'));

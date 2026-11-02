@@ -25,12 +25,17 @@ export default {
       url: "https://opencode.ai/zen/v1/usage",
     },
   },
+  // Multi-endpoint: pick the transport matching the client sourceFormat to skip
+  // translation. Mirrors opencode-go, pointed at /zen/v1 (see https://opencode.ai/docs/zen/).
   transports: [
     { format: "openai", baseUrl: "https://opencode.ai/zen/v1/chat/completions", auth: { combined: true, header: "Authorization", scheme: "bearer" } },
     { format: "claude", baseUrl: "https://opencode.ai/zen/v1/messages", auth: { combined: true, header: "x-api-key", scheme: "raw", anthropicVersion: true } },
     { format: "openai-responses", baseUrl: "https://opencode.ai/zen/v1/responses", auth: { combined: true, header: "Authorization", scheme: "bearer" } },
   ],
+  // supportedFormats follow the endpoint table in https://opencode.ai/docs/zen/
+  // (live /zen/v1/models, 2026-09-18: 71 ids).
   models: [
+    // Claude (messages)
     { id: "claude-fable-5", name: "Claude Fable 5", supportedFormats: ["claude"] },
     { id: "claude-fable-5-1", name: "Claude Fable 5.1", supportedFormats: ["claude"] },
     { id: "claude-opus-5", name: "Claude Opus 5", supportedFormats: ["claude"] },
@@ -43,6 +48,7 @@ export default {
     { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", supportedFormats: ["claude"] },
     { id: "claude-sonnet-4", name: "Claude Sonnet 4", supportedFormats: ["claude"] },
     { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", supportedFormats: ["claude"] },
+    // Gemini (own path, via chat completions transport)
     { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash", supportedFormats: ["openai"] },
     { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", supportedFormats: ["openai"] },
     { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash", supportedFormats: ["openai"] },
@@ -50,6 +56,7 @@ export default {
     { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", supportedFormats: ["openai"] },
     { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", supportedFormats: ["openai"] },
     { id: "gemini-3-flash", name: "Gemini 3 Flash", supportedFormats: ["openai"] },
+    // GPT / Grok / Muse Spark paid (responses)
     { id: "gpt-6-astra", name: "GPT 6 Astra", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
@@ -76,8 +83,10 @@ export default {
     { id: "grok-4.5", name: "Grok 4.5", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "muse-spark-1.3", name: "Muse Spark 1.3", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "muse-spark-1.2", name: "Muse Spark 1.2", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
+    // Qwen paid (messages)
     { id: "qwen3.6-plus", name: "Qwen 3.6 Plus", supportedFormats: ["claude"] },
     { id: "qwen3.5-plus", name: "Qwen 3.5 Plus", supportedFormats: ["claude"] },
+    // DeepSeek / GLM / MiniMax / Kimi / Big Pickle (chat completions)
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", supportedFormats: ["openai"] },
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", supportedFormats: ["openai"] },
     { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp", supportedFormats: ["openai"] },
@@ -95,14 +104,17 @@ export default {
     { id: "kimi-k2.5", name: "Kimi K2.5", supportedFormats: ["openai"] },
     { id: "big-pickle", name: "Big Pickle", supportedFormats: ["openai"] },
     { id: "union-alpha", name: "Union Alpha", supportedFormats: ["claude"] },
+    // Free tier on the keyed lane (chat completions)
     { id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free", supportedFormats: ["openai"] },
     { id: "mimo-v2.6-flash-free", name: "MiMo V2.6 Flash Free", supportedFormats: ["openai"] },
     { id: "mimo-v2.5-free", name: "MiMo V2.5 Free", supportedFormats: ["openai"] },
     { id: "ling-3.0-flash-fin-free", name: "Ling 3.0 Flash Fin Free", supportedFormats: ["openai"] },
     { id: "nemotron-3-ultra-free", name: "Nemotron 3 Ultra Free", supportedFormats: ["openai"] },
     { id: "nemotron-3.5-lightning-free", name: "Nemotron 3.5 Lightning Free", supportedFormats: ["openai"] },
+    // Free tier on the keyed lane (responses)
     { id: "muse-spark-1.3-contributor-free", name: "Muse Spark 1.3 Contributor Free", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
     { id: "muse-spark-1.2-contributor-free", name: "Muse Spark 1.2 Contributor Free", targetFormat: "openai-responses", supportedFormats: ["openai-responses"] },
+    // System One (Jev) decision models on the native /systemone endpoint
     { id: "jev-1.13", name: "Jev 1.13", kind: "systemone" },
     { id: "jev-1.13-free", name: "Jev 1.13 Free", kind: "systemone" },
   ],

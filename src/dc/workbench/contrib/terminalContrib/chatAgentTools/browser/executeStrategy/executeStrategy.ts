@@ -69,7 +69,14 @@ export function detectsCommonPromptPattern(cursorLine: string): IPromptDetection
 		return { detected: true, reason: `Starship prompt pattern detected: "${cursorLine}"` };
 	}
 
+	if (/^\s*>>/.test(cursorLine) || />>\s*$/.test(cursorLine) || /^\s*\.{3}/.test(cursorLine)) {
+		return { detected: false, reason: `Continuation prompt (>> ) is not ready: "${cursorLine}"` };
+	}
+
 	if (/[>%]\s*$/.test(cursorLine)) {
+		if (/^\s*>>/.test(cursorLine) || />>\s*$/.test(cursorLine)) {
+			return { detected: false, reason: `Continuation prompt (>> ) is not ready: "${cursorLine}"` };
+		}
 		return { detected: true, reason: `Generic prompt pattern detected: "${cursorLine}"` };
 	}
 

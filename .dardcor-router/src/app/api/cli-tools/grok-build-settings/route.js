@@ -1,6 +1,7 @@
 "use server";
 
 import { NextResponse } from "next/server";
+import { resolveCliApiKey } from "../resolveApiKey.js";
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
@@ -30,7 +31,7 @@ const checkGrokInstalled = async () => {
       try {
         await fs.access(candidate);
         return true;
-      } catch { }
+      } catch { /* try next */ }
     }
     return false;
   }
@@ -55,13 +56,13 @@ const normalizeContextWindow = (value, model) => {
 };
 
 const normalizeSubagentModels = (value) => {
-  if (value === undefined) return undefined;
+  if (value === undefined) return undefined; // backwards-compatible callers leave current overrides untouched
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const result = {};
   for (const type of GROK_SUBAGENT_TYPES) {
     const entry = value[type];
     const model = typeof entry === "string" ? entry.trim() : entry?.model?.trim();
-    if (!model) continue;
+    if (!model) continue; // blank means inherit the main model
     result[type] = {
       model,
       contextWindow: normalizeContextWindow(entry?.contextWindow, model),
@@ -70,7 +71,7 @@ const normalizeSubagentModels = (value) => {
   return result;
 };
 
-const hasDardcorCodeConfig = (settings) => Boolean(settings?.model?.base_url);
+const hasDardcorRouterConfig = (settings) => Boolean(settings?.model?.base_url);
 
 export async function GET() {
   try {
@@ -87,7 +88,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      hasDardcorCode: hasDardcorCodeConfig(settings),
+      hasDardcorRouter: hasDardcorRouterConfig(settings),
       configPath: getGrokConfigPath(),
     });
   } catch (error) {
@@ -108,7 +109,7 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const toml = applyGrokBuildConfig(await readConfigToml(), {
       baseUrl: normalizedBaseUrl,
-      apiKey: apiKey || "sk_dardcor-code",
+      apiKey: await resolveCliApiKey(apiKey),
       model: selectedModel,
       contextWindow: normalizeContextWindow(contextWindow, selectedModel),
       subagentModels: normalizeSubagentModels(subagentModels),
@@ -119,7 +120,7 @@ export async function POST(request) {
       success: true,
       message: "Grok Build settings applied successfully!",
       configPath: getGrokConfigPath(),
-      modelSlot: "dardcor-code",
+      modelSlot: "dardcor-router",
     });
   } catch (error) {
     console.log("Error updating grok-build settings:", error);
@@ -143,7 +144,7 @@ export async function DELETE() {
     await fs.writeFile(configPath, resetGrokBuildConfig(toml));
     return NextResponse.json({
       success: true,
-      message: "dardcor-code model slots removed from Grok Build",
+      message: "Dardcor Router model slots removed from Grok Build",
     });
   } catch (error) {
     console.log("Error resetting grok-build settings:", error);

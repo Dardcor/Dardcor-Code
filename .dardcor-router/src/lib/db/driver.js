@@ -16,32 +16,32 @@ import { createJsonStoreAdapter } from "./jsonEngine.js";
 if (!global._dbAdapter) global._dbAdapter = { instance: null, initPromise: null, logged: false };
 const state = global._dbAdapter;
 
-function detectAndScheduleSave(adapter, sql, params) {
+function detectAndScheduleSave(adapter, sql, params, preDeleteProvider = null) {
   if (!sql || typeof sql !== "string") return;
   const upper = sql.toUpperCase();
   if (upper.startsWith("SELECT") || upper.startsWith("PRAGMA")) return;
 
   if (upper.includes("SETTINGS")) {
-    saveSystemDbSync(adapter, "settings");
+    scheduleModularSave(adapter, { systemDb: "settings" });
   }
   if (upper.includes("APIKEYS") || upper.includes("API_KEYS")) {
-    saveSystemDbSync(adapter, "api-keys");
+    scheduleModularSave(adapter, { systemDb: "api-keys" });
   }
   if (upper.includes("COMBOS")) {
-    saveSystemDbSync(adapter, "combos");
+    scheduleModularSave(adapter, { systemDb: "combos" });
   }
   if (upper.includes("PROXYPOOLS") || upper.includes("PROXY_POOLS")) {
-    saveSystemDbSync(adapter, "proxy-pools");
+    scheduleModularSave(adapter, { systemDb: "proxy-pools" });
   }
   if (upper.includes("PROVIDERNODES") || upper.includes("PROVIDER_NODES")) {
-    saveSystemDbSync(adapter, "nodes");
+    scheduleModularSave(adapter, { systemDb: "nodes" });
   }
   if (upper.includes("KV")) {
-    saveSystemDbSync(adapter, "aliases");
-    saveSystemDbSync(adapter, "pricing");
+    scheduleModularSave(adapter, { systemDb: "aliases" });
+    scheduleModularSave(adapter, { systemDb: "pricing" });
   }
   if (upper.includes("_META")) {
-    saveSystemDbSync(adapter, "meta");
+    scheduleModularSave(adapter, { systemDb: "meta" });
   }
   if (upper.includes("USAGEHISTORY") || upper.includes("USAGE_HISTORY")) {
     scheduleModularSave(adapter, { systemUsage: "history" });
@@ -54,6 +54,10 @@ function detectAndScheduleSave(adapter, sql, params) {
   }
   if (upper.includes("PROVIDERCONNECTIONS") || upper.includes("PROVIDER_CONNECTIONS")) {
     let savedAny = false;
+    if (preDeleteProvider) {
+      scheduleModularSave(adapter, { provider: preDeleteProvider });
+      savedAny = true;
+    }
     if (params && Array.isArray(params)) {
       for (const p of params) {
         if (
@@ -70,13 +74,24 @@ function detectAndScheduleSave(adapter, sql, params) {
           p !== "access_token" &&
           p !== "password"
         ) {
-          saveProviderSync(adapter, p);
+          scheduleModularSave(adapter, { provider: p });
           savedAny = true;
+        }
+      }
+      if (!savedAny) {
+        for (const p of params) {
+          if (typeof p === "string" && p.length >= 8) {
+            const row = adapter.get(`SELECT provider FROM providerConnections WHERE id = ?`, [p]);
+            if (row?.provider) {
+              scheduleModularSave(adapter, { provider: row.provider });
+              savedAny = true;
+            }
+          }
         }
       }
     }
     if (!savedAny) {
-      flushModularSaveSync(adapter);
+      scheduleModularSave(adapter);
     }
   }
 }
@@ -126,8 +141,13 @@ async function initAdapter() {
 
   const originalRun = adapter.run.bind(adapter);
   adapter.run = (sql, params) => {
+    let preDeleteProvider = null;
+    if (sql && /DELETE\s+FROM\s+providerConnections/i.test(sql) && Array.isArray(params) && params.length === 1) {
+      const existing = adapter.get(`SELECT provider FROM providerConnections WHERE id = ?`, [params[0]]);
+      if (existing?.provider) preDeleteProvider = existing.provider;
+    }
     const res = originalRun(sql, params);
-    detectAndScheduleSave(adapter, sql, params);
+    detectAndScheduleSave(adapter, sql, params, preDeleteProvider);
     return res;
   };
 
@@ -137,6 +157,16 @@ async function initAdapter() {
     scheduleModularSave(adapter);
     return res;
   };
+
+  if (!state.exitHookRegistered) {
+    state.exitHookRegistered = true;
+    const onExitFlush = () => {
+      try {
+        flushModularSaveSync(adapter);
+      } catch {}
+    };
+    process.once("exit", onExitFlush);
+  }
 
   if (!state.logged) {
     console.log(`[DB] Driver: Full JSON Store | path: ${DATA_DIR}`);

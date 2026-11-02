@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 
+/**
+ * Kiro Auth Method Selection Modal
+ * Auto-detects token from AWS SSO cache or allows manual import
+ */
 export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [idcStartUrl, setIdcStartUrl] = useState("");
@@ -18,6 +22,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
   const [autoDetected, setAutoDetected] = useState(false);
   const [idcCredentials, setIdcCredentials] = useState(null);
 
+  // Auto-detect token when import method is selected
   useEffect(() => {
     if (selectedMethod !== "import" || !isOpen) return;
 
@@ -34,6 +39,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
         if (data.found) {
           setRefreshToken(data.refreshToken);
           setAutoDetected(true);
+          // Store IDC/organization credentials if present
           if (data.clientId && data.clientSecret) {
             setIdcCredentials({
               clientId: data.clientId,
@@ -91,6 +97,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
         throw new Error(data.error || "Import failed");
       }
 
+      // Success - notify parent to refresh connections
       onMethodSelect("import");
     } catch (err) {
       setError(err.message);
@@ -162,6 +169,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
         throw new Error(data.error || "Import failed");
       }
 
+      // Success - notify parent to refresh connections
       onMethodSelect("api-key");
     } catch (err) {
       setError(err.message);
@@ -177,14 +185,14 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
   return (
     <Modal isOpen={isOpen} title="Connect Kiro" onClose={onClose} size="lg">
       <div className="flex flex-col gap-4">
-        {}
+        {/* Method Selection */}
         {!selectedMethod && (
           <div className="space-y-3">
             <p className="text-sm text-text-muted mb-4">
               Choose your authentication method:
             </p>
 
-            {}
+            {/* AWS Builder ID */}
             <button
               onClick={() => onMethodSelect("builder-id")}
               className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -200,7 +208,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             </button>
 
-            {}
+            {/* AWS IAM Identity Center (IDC) */}
             <button
               onClick={() => handleMethodSelect("idc")}
               className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -216,7 +224,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             </button>
 
-            {}
+            {/* AWS API Key */}
             <button
               onClick={() => handleMethodSelect("api-key")}
               className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -232,7 +240,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             </button>
 
-            {}
+            {/* Google Social Login - HIDDEN */}
             <button
               onClick={() => handleMethodSelect("social-google")}
               className="hidden w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -248,7 +256,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             </button>
 
-            {}
+            {/* GitHub Social Login - HIDDEN */}
             <button
               onClick={() => handleMethodSelect("social-github")}
               className="hidden w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -264,7 +272,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             </button>
 
-            {}
+            {/* Import Token */}
             <button
               onClick={() => handleMethodSelect("import")}
               className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -280,7 +288,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             </button>
 
-            {}
+            {/* Import CLIProxyAPI JSON */}
             <button
               onClick={() => handleMethodSelect("import-cli-proxy")}
               className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
@@ -298,7 +306,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
           </div>
         )}
 
-        {}
+        {/* IDC Configuration */}
         {selectedMethod === "idc" && (
           <div className="space-y-4">
             <div>
@@ -346,7 +354,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
           </div>
         )}
 
-        {}
+        {/* API Key */}
         {selectedMethod === "api-key" && (
           <div className="space-y-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -403,7 +411,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
           </div>
         )}
 
-        {}
+        {/* Social Login Info (Google) */}
         {selectedMethod === "social-google" && (
           <div className="space-y-4">
             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -431,7 +439,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
           </div>
         )}
 
-        {}
+        {/* Social Login Info (GitHub) */}
         {selectedMethod === "social-github" && (
           <div className="space-y-4">
             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -459,10 +467,10 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
           </div>
         )}
 
-        {}
+        {/* Import Token */}
         {selectedMethod === "import" && (
           <div className="space-y-4">
-            {}
+            {/* Auto-detecting state */}
             {autoDetecting && (
               <div className="text-center py-6">
                 <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -477,10 +485,10 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
               </div>
             )}
 
-            {}
+            {/* Form (shown after auto-detect completes) */}
             {!autoDetecting && (
               <>
-                {}
+                {/* Success message if auto-detected */}
                 {autoDetected && (
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex gap-2">
@@ -492,7 +500,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
                   </div>
                 )}
 
-                {}
+                {/* Info message if not auto-detected */}
                 {!autoDetected && !error && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex gap-2">
@@ -535,7 +543,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
           </div>
         )}
 
-        {}
+        {/* Import CLIProxyAPI JSON */}
         {selectedMethod === "import-cli-proxy" && (
           <div className="space-y-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">

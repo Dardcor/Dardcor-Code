@@ -110,6 +110,8 @@ import { getChatSessionType, isUntitledChatSession, LocalChatSessionUri } from '
 import { IChatResponseViewModel, isResponseVM } from '../../../common/model/chatViewModel.js';
 import { IChatAgentService } from '../../../common/participants/chatAgents.js';
 import { ILanguageModelToolsService } from '../../../common/tools/languageModelToolsService.js';
+import { IChatAgentRunStateService } from '../../../common/tools/agentRunStateService.js';
+import { IChatTodoListService } from '../../../common/tools/chatTodoListService.js';
 import { ChatHistoryNavigator } from '../../../common/widget/chatWidgetHistoryService.js';
 import { ChatEditingSessionSubmitAction, ChatSessionPrimaryPickerAction, ChatSubmitAction, IChatExecuteActionContext, OpenModelPickerAction, OpenModePickerAction, OpenPermissionPickerAction, OpenSessionTargetPickerAction, OpenWorkspacePickerAction } from '../../actions/chatExecuteActions.js';
 import { ChatVoiceInputModeAction, VoiceInputModeActionViewItem } from '../../voiceInputMode/voiceInputModeActionViewItem.js';
@@ -1662,6 +1664,31 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			this._syncInputStateToModel();
 		};
 		this._modelSelectionController.applySelection(model, apply, isUserAction);
+
+		if (isUserAction) {
+			const sessionResource = this.getCurrentSessionResource() || this._inputModelSessionResource || this._widget?.viewModel?.model.sessionResource;
+			if (sessionResource) {
+				try {
+					const runStateService = this.instantiationService.invokeFunction(accessor => accessor.get(IChatAgentRunStateService));
+					const runState = runStateService?.getRunState(sessionResource);
+					if (runState && (runState.status === 'blocked' || runState.status === 'paused')) {
+						const todoListService = this.instantiationService.invokeFunction(accessor => accessor.get(IChatTodoListService));
+						const todos = todoListService?.getTodos(sessionResource) ?? [];
+						const hasIncomplete = todos.some(t => t.status !== 'completed');
+						if (hasIncomplete) {
+							setTimeout(() => {
+								this.chatService.sendRequest(sessionResource, 'continue', {
+									userSelectedModelId: model.identifier,
+									location: this.location
+								});
+							}, 300);
+						}
+					}
+				} catch (e) {
+					console.warn('[ChatInputPart] Auto-resume on model switch error:', e);
+				}
+			}
+		}
 	}
 
 	private _applyProgrammaticLanguageModel(model: ILanguageModelChatMetadataAndIdentifier): void {

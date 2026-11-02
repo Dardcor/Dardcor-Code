@@ -1,9 +1,13 @@
+/**
+ * TTS Provider Configuration
+ * Centralized config for TTS provider UI behavior
+ */
 export const TTS_PROVIDER_CONFIG = {
   "google-tts": {
     hasLanguageDropdown: false,
     hasModelSelector: false,
     hasBrowseButton: true,
-    voiceSource: "hardcoded",
+    voiceSource: "hardcoded", // languages built from providerModels at runtime
   },
   "openai": {
     hasLanguageDropdown: false,
@@ -27,8 +31,8 @@ export const TTS_PROVIDER_CONFIG = {
     hasLanguageDropdown: false,
     hasModelSelector: true,
     hasBrowseButton: true,
-    hasVoiceIdInput: true,
-    voiceSource: "api-language",
+    hasVoiceIdInput: true, // allow manual voice id entry
+    voiceSource: "api-language", // grouped by language from backend
     modelKey: "elevenlabs-tts-models",
     apiEndpoint: "/api/media-providers/tts/elevenlabs/voices",
   },
@@ -36,14 +40,37 @@ export const TTS_PROVIDER_CONFIG = {
     hasLanguageDropdown: false,
     hasModelSelector: false,
     hasBrowseButton: true,
-    voiceSource: "api-language",
+    voiceSource: "api-language", // from API with language picker
   },
   "local-device": {
     hasLanguageDropdown: false,
     hasModelSelector: false,
     hasBrowseButton: true,
-    voiceSource: "api-language",
+    voiceSource: "api-language", // from API with language picker
   },
+  "selfhosted-tts": {
+    hasModelSelector: true,
+    hasVoiceIdInput: true,
+    hasBrowseButton: false,
+    voiceSource: "manual", // model and voice depend on the connected server
+  },
+  "ollama-local": {
+    hasLanguageDropdown: false,
+    hasModelSelector: true,
+    hasBrowseButton: false,
+    hasVoiceIdInput: true,
+    voiceSource: "hardcoded",
+    modelKey: "ollama-local-tts-models",
+    voiceKey: "ollama-local-tts-voices",
+    voicesPerModel: true,
+    defaultVoiceId: "default",
+    defaultFormat: "wav",
+    formatOptions: [
+      { value: "wav", label: "WAV (Binary)" },
+      { value: "pcm", label: "PCM (Raw)" },
+    ],
+  },
+  // ── Config-driven providers (load models from providers.js → ttsConfig.models) ──
   "nvidia": {
     hasModelSelector: true,
     hasBrowseButton: false,
@@ -122,7 +149,7 @@ export const TTS_PROVIDER_CONFIG = {
   },
   "gemini": {
     hasLanguageDropdown: false,
-    hasLanguageHint: true,
+    hasLanguageHint: true, // sends body.language to guide TTS pronunciation
     hasModelSelector: true,
     hasBrowseButton: false,
     voiceSource: "hardcoded",
@@ -135,8 +162,8 @@ export const TTS_PROVIDER_CONFIG = {
     hasModelSelector: true,
     hasBrowseButton: false,
     hasVoiceIdInput: false,
-    hasStyleInput: true,
-    hasLanguageHint: true,
+    hasStyleInput: true, // style/voice instructions (role: user)
+    hasLanguageHint: true, // language dropdown (Auto-detect default); voices are language-independent
     languageOptions: ["Chinese", "English"],
     voiceSource: "hardcoded",
     modelKey: "xiaomi-mimo-tts-models",

@@ -114,7 +114,7 @@ export function parseDardcorAgentToolArguments(
 }
 
 export function isDardcorAutonomousTask(prompt: string): boolean {
-	return /\b(create|make|build|implement|improve|fix|repair|debug|diagnose|refactor|update|change|add|remove|write|code|test|verify|check|inspect|review|analyze|selesaikan|buat|bikin|perbaiki|perbaikan|ubah|tambahkan|hapus|uji|cek|periksa|testing|kerjakan|lanjutkan|continue)\b/i.test(prompt);
+	return /\b(create|make|build|implement|improve|fix|repair|debug|diagnose|refactor|update|change|add|remove|write|code|test|verify|check|inspect|review|analyze|selesaikan|buat|bikin|perbaiki|perbaikan|ubah|tambahkan|hapus|uji|cek|periksa|testing|kerjakan|lanjutkan|continue|lokasi|path|folder|direktori|directory|project|proyek|salah|bukan|pindah|ganti|terjemah|terjemahan|translate|translation|locale|bahasa|setup|install|generate|compile|run|jalankan|sempurnakan|optimasi|optimize|coba|gunakan|pakai|cursor|mouse|klik|click|lakukan|bantu|tolong|eksekusi|execute|render|tampilkan|buka|open|tutup|close|pasang|terapkan)\b|[a-z]:[\\/]/i.test(prompt);
 }
 
 export function isDardcorContinuation(prompt: string): boolean {
@@ -248,10 +248,16 @@ export function requiresDardcorToolConfirmation(
 	return true;
 }
 
-export function summarizeDardcorToolAction(toolName: string, args: Record<string, unknown> | undefined): string {
+export function summarizeDardcorToolAction(toolName: string, args: Record<string, unknown> | undefined, lang: DardcorSupportedLanguage = 'en'): string {
 	if (!args) {
 		return toolName;
 	}
+	const locale = getDardcorLocaleStrings(lang);
+	const labelMap: Record<string, string> = {
+		explanation: locale.confirmExplanationLabel,
+		goal: locale.confirmGoalLabel,
+		mode: locale.confirmModeLabel,
+	};
 	const fieldsByTool: Record<string, readonly string[]> = {
 		write_file: ['filePath', 'content'],
 		edit_file: ['filePath', 'searchContent', 'replaceContent'],
@@ -280,7 +286,23 @@ export function summarizeDardcorToolAction(toolName: string, args: Record<string
 		set_artifacts: ['artifacts'],
 		set_artifact_rules: ['rules'],
 	};
-	const fields = fieldsByTool[toolName] ?? Object.keys(args).slice(0, 8);
+	const toolFields = fieldsByTool[toolName] ?? [];
+	const metaKeys = ['explanation', 'goal', 'mode', 'reason', 'description'];
+	const keySet = new Set<string>();
+	for (const k of metaKeys) {
+		if (k in args) {
+			keySet.add(k);
+		}
+	}
+	for (const k of toolFields) {
+		if (k in args) {
+			keySet.add(k);
+		}
+	}
+	for (const k of Object.keys(args)) {
+		keySet.add(k);
+	}
+	const fields = Array.from(keySet).slice(0, 12);
 	const details = fields.flatMap(key => {
 		const value = args[key];
 		if (value === undefined) {
@@ -298,13 +320,15 @@ export function summarizeDardcorToolAction(toolName: string, args: Record<string
 		if (typeof value === 'object' && value !== null) {
 			try {
 				const pretty = JSON.stringify(value, null, 2);
-				return [`${key}:\n${pretty}`];
+				const displayKey = labelMap[key] ?? key;
+				return [`${displayKey}:\n${pretty}`];
 			} catch {}
 		}
 		const raw = typeof value === 'string' ? value : JSON.stringify(value);
 		const normalized = (raw ?? String(value)).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\r\n\t]+/g, ' ');
 		const excerpt = normalized.length > 480 ? `${normalized.slice(0, 480)}… [${normalized.length} chars]` : normalized;
-		return [`${key}: ${excerpt}`];
+		const displayKey = labelMap[key] ?? key;
+		return [`${displayKey}: ${excerpt}`];
 	});
 	return details.length > 0 ? `${toolName}\n${details.join('\n')}`.slice(0, 1600) : toolName;
 }
@@ -647,9 +671,12 @@ export function getDardcorVerificationCommandStatus(command: string, output: str
 	return 'passed';
 }
 
-export function getDardcorPlainTextTurnDecision(taskIsTracked: boolean, consecutiveTextTurns: number, maxTextTurns: number): 'continue' | 'pause' | 'normal' {
-	if (!taskIsTracked) {
+export function getDardcorPlainTextTurnDecision(taskIsTracked: boolean, consecutiveTextTurns: number, maxTextTurns: number, hasIncompleteTodos = false): 'continue' | 'pause' | 'normal' {
+	if (!taskIsTracked && !hasIncompleteTodos) {
 		return 'normal';
+	}
+	if (hasIncompleteTodos && consecutiveTextTurns <= Math.max(maxTextTurns, 15)) {
+		return 'continue';
 	}
 	return consecutiveTextTurns <= maxTextTurns ? 'continue' : 'pause';
 }
@@ -754,7 +781,7 @@ export function detectDardcorLanguage(text: string | undefined): DardcorSupporte
 		}
 	};
 
-	scoreMatches(/\b(saya|kamu|anda|tolong|perbaiki|buat|buatkan|bikin|ganti|ubah|cek|periksa|hapus|tampilkan|nomer|nomor|selesai|belum|jangan|kenapa|mengapa|coba|kerjakan|lanjut|lanjutkan|teruskan|aplikasi|fitur|ada|yang|ini|itu|di|ke|dari|untuk|dengan|dan|atau|sudah|bisa|harus|mau|akan|masih|tapi|namun|bagaimana|apa|semua|secara|otomatis|stiker|jawaban)\b/gi, 'id', 2);
+	scoreMatches(/\b(saya|kamu|anda|tolong|perbaiki|buat|buatkan|bikin|ganti|ubah|cek|periksa|hapus|tampilkan|nomer|nomor|selesai|belum|jangan|kenapa|mengapa|coba|kerjakan|lanjut|lanjutkan|teruskan|aplikasi|fitur|ada|yang|ini|itu|di|ke|dari|untuk|dengan|dan|atau|sudah|bisa|harus|mau|akan|masih|tapi|namun|bagaimana|apa|semua|secara|otomatis|stiker|jawaban|gambar|kendala|bahasa|dunia|pastikan|mendeteksi|skrip|jalan|jalankan|instal|pasang|tampilan|router|hilang|muncul|terkadang|data|realtime|token|unlimited|baca|project|aslinya|menembus|sempurna|rencana|perbaikan|system|canggih)\b/gi, 'id', 3);
 	scoreMatches(/\b(hola|gracias|arreglar|crear|cambiar|eliminar|mostrar|prueba|archivo|código|cómo|está|para|pero|ahora|tarea|resumen)\b/gi, 'es', 2);
 	scoreMatches(/\b(bonjour|merci|corriger|créer|creer|modifier|supprimer|afficher|fichier|code|comment|pour|avec|mais|maintenant|continuer|tâche|tache|résumé|resume|veuillez)\b/gi, 'fr', 2);
 	scoreMatches(/\b(bitte|hallo|danke|beheben|erstellen|ändern|aendern|löschen|loeschen|anzeigen|datei|code|wie|für|fuer|mit|aber|jetzt|fortsetzen|aufgabe|übersicht|uebersicht)\b/gi, 'de', 2);
@@ -822,6 +849,20 @@ export interface IDardcorLocaleStrings {
 	readonly autoContinueActive: string;
 	readonly sendContinueToResume: string;
 	readonly resumeDefault: string;
+	// Localized tool and action confirmation dialog strings
+	readonly confirmAgentActionHeader: string;
+	readonly confirmTerminalHeader: string;
+	readonly confirmAgentActionQuestion: string;
+	readonly confirmTerminalActionQuestion: string;
+	readonly confirmExactCommandQuestion: string;
+	readonly confirmPolicyRestricted: string;
+	readonly confirmExternalFile: string;
+	readonly confirmAllowOnce: string;
+	readonly confirmSkipAction: string;
+	readonly confirmSkipCommand: string;
+	readonly confirmExplanationLabel: string;
+	readonly confirmGoalLabel: string;
+	readonly confirmModeLabel: string;
 }
 
 const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings> = {
@@ -840,6 +881,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Auto-Continue Aktif: Melanjutkan tugas secara otomatis...',
 		sendContinueToResume: 'Kirim `continue` untuk melanjutkan.',
 		resumeDefault: 'Lanjutkan dari checkpoint',
+		confirmAgentActionHeader: 'Persetujuan Tindakan Agen',
+		confirmTerminalHeader: 'Persetujuan Perintah Terminal',
+		confirmAgentActionQuestion: 'Tindakan agen ini dapat mengubah status sistem atau mengakses sumber daya eksternal. Izinkan tindakan ini sekali?',
+		confirmTerminalActionQuestion: 'Perintah terminal ini dapat mengubah status sistem atau mengakses sumber daya eksternal. Izinkan tindakan ini sekali?',
+		confirmExactCommandQuestion: 'Izinkan perintah ini dijalankan sekali?',
+		confirmPolicyRestricted: 'Akses penuh dibatasi oleh kebijakan organisasi. ',
+		confirmExternalFile: 'File ini berada di luar ruang kerja atau tidak dapat diverifikasi secara aman. Izinkan agen membaca dan menyertakan isinya sekali?',
+		confirmAllowOnce: 'Izinkan sekali',
+		confirmSkipAction: 'Lewati tindakan',
+		confirmSkipCommand: 'Lewati perintah',
+		confirmExplanationLabel: 'Penjelasan',
+		confirmGoalLabel: 'Tujuan',
+		confirmModeLabel: 'Mode',
 	},
 	en: {
 		taskSummaryComplete: 'Task Summary: Complete',
@@ -856,6 +910,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Auto-Continue Active: Automatically resuming task...',
 		sendContinueToResume: 'Send `continue` to resume.',
 		resumeDefault: 'Resume from checkpoint',
+		confirmAgentActionHeader: 'Agent action approval',
+		confirmTerminalHeader: 'Terminal command approval',
+		confirmAgentActionQuestion: 'This agent action may change state or access an external resource. Allow this exact action once?',
+		confirmTerminalActionQuestion: 'This terminal action may change state or access an external resource. Allow this exact action once?',
+		confirmExactCommandQuestion: 'Allow this exact command to run once?',
+		confirmPolicyRestricted: 'Full access is restricted by organization policy. ',
+		confirmExternalFile: 'This file is outside the workspace or could not be safely verified. Allow the agent to read it and include its contents in the model context once?',
+		confirmAllowOnce: 'Allow once',
+		confirmSkipAction: 'Skip action',
+		confirmSkipCommand: 'Skip command',
+		confirmExplanationLabel: 'Explanation',
+		confirmGoalLabel: 'Goal',
+		confirmModeLabel: 'Mode',
 	},
 	ja: {
 		taskSummaryComplete: 'タスク概要：完了',
@@ -872,6 +939,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: '自動続行有効：タスクを自動的に再開しています...',
 		sendContinueToResume: '再開するには `continue` を送信してください。',
 		resumeDefault: 'チェックポイントから再開',
+		confirmAgentActionHeader: 'エージェントのアクション承認',
+		confirmTerminalHeader: 'ターミナルコマンドの承認',
+		confirmAgentActionQuestion: 'このエージェントのアクションはシステムの状態を変更するか外部リソースにアクセスする可能性があります。このアクションを1回許可しますか？',
+		confirmTerminalActionQuestion: 'このターミナルアクションはシステムの状態を変更するか外部リソースにアクセスする可能性があります。このアクションを1回許可しますか？',
+		confirmExactCommandQuestion: 'このコマンドの実行を1回許可しますか？',
+		confirmPolicyRestricted: '組織のポリシーによりフルアクセスが制限されています。',
+		confirmExternalFile: 'このファイルはワークスペース外にあるか、安全に検証できませんでした。エージェントが一度読み取ることを許可しますか？',
+		confirmAllowOnce: '1回許可する',
+		confirmSkipAction: 'アクションをスキップ',
+		confirmSkipCommand: 'コマンドをスキップ',
+		confirmExplanationLabel: '説明',
+		confirmGoalLabel: '目標',
+		confirmModeLabel: 'モード',
 	},
 	zh: {
 		taskSummaryComplete: '任务总结：已完成',
@@ -888,6 +968,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: '自动继续已启用：正在自动继续任务...',
 		sendContinueToResume: '发送 `continue` 继续执行。',
 		resumeDefault: '从检查点恢复',
+		confirmAgentActionHeader: '智能体操作审批',
+		confirmTerminalHeader: '终端命令审批',
+		confirmAgentActionQuestion: '此智能体操作可能会更改状态或访问外部资源。是否允许执行此操作一次？',
+		confirmTerminalActionQuestion: '此终端操作可能会更改状态或访问外部资源。是否允许执行此操作一次？',
+		confirmExactCommandQuestion: '是否允许运行此命令一次？',
+		confirmPolicyRestricted: '组织策略限制了完全访问。',
+		confirmExternalFile: '此文件位于工作区之外或无法安全验证。是否允许智能体读取一次？',
+		confirmAllowOnce: '允许一次',
+		confirmSkipAction: '跳过操作',
+		confirmSkipCommand: '跳过命令',
+		confirmExplanationLabel: '说明',
+		confirmGoalLabel: '目标',
+		confirmModeLabel: '模式',
 	},
 	ko: {
 		taskSummaryComplete: '작업 요약: 완료',
@@ -904,6 +997,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: '자동 계속 활성: 작업을 자동으로 재개합니다...',
 		sendContinueToResume: '`continue`를 입력하여 재개하세요.',
 		resumeDefault: '체크포인트에서 재개',
+		confirmAgentActionHeader: '에이전트 동작 승인',
+		confirmTerminalHeader: '터미널 명령 승인',
+		confirmAgentActionQuestion: '이 에이전트 동작은 상태를 변경하거나 외부 리소스에 액세스할 수 있습니다. 이 동작을 한 번 허용하시겠습니까?',
+		confirmTerminalActionQuestion: '이 터미널 동작은 상태를 변경하거나 외부 리소스에 액세스할 수 있습니다. 이 동작을 한 번 허용하시겠습니까?',
+		confirmExactCommandQuestion: '이 명령을 한 번 실행하도록 허용하시겠습니까?',
+		confirmPolicyRestricted: '조직 정책에 의해 전체 액세스가 제한됩니다. ',
+		confirmExternalFile: '이 파일은 작업 영역 외부에 있거나 안전하게 확인할 수 없습니다. 에이전트가 한 번 읽도록 허용하시겠습니까?',
+		confirmAllowOnce: '한 번 허용',
+		confirmSkipAction: '동작 건너뛰기',
+		confirmSkipCommand: '명령 건너뛰기',
+		confirmExplanationLabel: '설명',
+		confirmGoalLabel: '목표',
+		confirmModeLabel: '모드',
 	},
 	es: {
 		taskSummaryComplete: 'Resumen de la tarea: Completada',
@@ -920,6 +1026,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Continuación automática activa: Reanudando la tarea automáticamente...',
 		sendContinueToResume: 'Envía `continue` para reanudar.',
 		resumeDefault: 'Reanudar desde el punto de control',
+		confirmAgentActionHeader: 'Aprobación de acción del agente',
+		confirmTerminalHeader: 'Aprobación de comando de terminal',
+		confirmAgentActionQuestion: 'Esta acción del agente puede cambiar el estado o acceder a un recurso externo. ¿Permitir esta acción exacta una vez?',
+		confirmTerminalActionQuestion: 'Esta acción de terminal puede cambiar el estado o acceder a un recurso externo. ¿Permitir esta acción exacta una vez?',
+		confirmExactCommandQuestion: '¿Permitir ejecutar este comando una vez?',
+		confirmPolicyRestricted: 'El acceso completo está restringido por la directiva de la organización. ',
+		confirmExternalFile: 'Este archivo está fuera del espacio de trabajo o no se pudo verificar de forma segura. ¿Permitir que el agente lo lea una vez?',
+		confirmAllowOnce: 'Permitir una vez',
+		confirmSkipAction: 'Omitir acción',
+		confirmSkipCommand: 'Omitir comando',
+		confirmExplanationLabel: 'Explicación',
+		confirmGoalLabel: 'Objetivo',
+		confirmModeLabel: 'Modo',
 	},
 	fr: {
 		taskSummaryComplete: 'Résumé de la tâche : Terminé',
@@ -936,6 +1055,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Reprise automatique active : Reprise de la tâche en cours...',
 		sendContinueToResume: 'Envoyez `continue` pour reprendre.',
 		resumeDefault: 'Reprendre à partir du point de contrôle',
+		confirmAgentActionHeader: "Approbation de l'action de l'agent",
+		confirmTerminalHeader: 'Approbation de la commande de terminal',
+		confirmAgentActionQuestion: "Cette action de l'agent peut modifier l'état ou accéder à une ressource externe. Autoriser cette action exacte une fois ?",
+		confirmTerminalActionQuestion: "Cette action de terminal peut modifier l'état ou accéder à une ressource externe. Autoriser cette action exacte une fois ?",
+		confirmExactCommandQuestion: 'Autoriser cette commande à être exécutée une fois ?',
+		confirmPolicyRestricted: "L'accès complet est restreint par la politique de l'organisation. ",
+		confirmExternalFile: "Ce fichier est en dehors de l'espace de travail ou n'a pas pu être vérifié en toute sécurité. Autoriser l'agent à le lire une fois ?",
+		confirmAllowOnce: 'Autoriser une fois',
+		confirmSkipAction: "Ignorer l'action",
+		confirmSkipCommand: 'Ignorer la commande',
+		confirmExplanationLabel: 'Explication',
+		confirmGoalLabel: 'Objectif',
+		confirmModeLabel: 'Mode',
 	},
 	de: {
 		taskSummaryComplete: 'Aufgabenübersicht: Abgeschlossen',
@@ -952,6 +1084,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Automatisches Fortsetzen aktiv: Aufgabe wird automatisch fortgesetzt...',
 		sendContinueToResume: 'Senden Sie `continue`, um fortzufahren.',
 		resumeDefault: 'Vom Prüfpunkt fortsetzen',
+		confirmAgentActionHeader: 'Genehmigung der Agent-Aktion',
+		confirmTerminalHeader: 'Genehmigung des Terminalbefehls',
+		confirmAgentActionQuestion: 'Diese Agent-Aktion kann den Zustand ändern oder auf eine externe Ressource zugreifen. Einmalige Ausführung erlauben?',
+		confirmTerminalActionQuestion: 'Diese Terminal-Aktion kann den Zustand ändern oder auf eine externe Ressource zugreifen. Einmalige Ausführung erlauben?',
+		confirmExactCommandQuestion: 'Diesen genauen Befehl einmal ausführen lassen?',
+		confirmPolicyRestricted: 'Der Vollzugriff ist durch die Unternehmensrichtlinie eingeschränkt. ',
+		confirmExternalFile: 'Diese Datei befindet sich außerhalb des Arbeitsbereichs. Dem Agenten einmaliges Lesen gestatten?',
+		confirmAllowOnce: 'Einmalig erlauben',
+		confirmSkipAction: 'Aktion überspringen',
+		confirmSkipCommand: 'Befehl überspringen',
+		confirmExplanationLabel: 'Erklärung',
+		confirmGoalLabel: 'Ziel',
+		confirmModeLabel: 'Modus',
 	},
 	pt: {
 		taskSummaryComplete: 'Resumo da tarefa: Concluída',
@@ -968,6 +1113,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Continuação automática ativa: Retomando a tarefa automaticamente...',
 		sendContinueToResume: 'Envie `continue` para retomar.',
 		resumeDefault: 'Retomar a partir do ponto de verificação',
+		confirmAgentActionHeader: 'Aprovação de ação do agente',
+		confirmTerminalHeader: 'Aprovação de comando do terminal',
+		confirmAgentActionQuestion: 'Esta ação do agente pode alterar o estado ou acessar um recurso externo. Permitir esta ação exata uma vez?',
+		confirmTerminalActionQuestion: 'Esta ação do terminal pode alterar o estado ou acessar um recurso externo. Permitir esta ação exata uma vez?',
+		confirmExactCommandQuestion: 'Permitir executar este comando uma vez?',
+		confirmPolicyRestricted: 'O acesso total é restrito pela política da organização. ',
+		confirmExternalFile: 'Este arquivo está fora da área de trabalho. Permitir que o agente leia uma vez?',
+		confirmAllowOnce: 'Permitir uma vez',
+		confirmSkipAction: 'Pular ação',
+		confirmSkipCommand: 'Pular comando',
+		confirmExplanationLabel: 'Explicação',
+		confirmGoalLabel: 'Objetivo',
+		confirmModeLabel: 'Modo',
 	},
 	ru: {
 		taskSummaryComplete: 'Сводка задачи: Завершено',
@@ -984,6 +1142,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Автопродолжение активно: Автоматическое возобновление задачи...',
 		sendContinueToResume: 'Отправьте `continue`, чтобы продолжить.',
 		resumeDefault: 'Возобновить с контрольной точки',
+		confirmAgentActionHeader: 'Подтверждение действия агента',
+		confirmTerminalHeader: 'Подтверждение команды терминала',
+		confirmAgentActionQuestion: 'Это действие агента может изменить состояние или запросить внешний ресурс. Разрешить это действие один раз?',
+		confirmTerminalActionQuestion: 'Это действие терминала может изменить состояние или запросить внешний ресурс. Разрешить это действие один раз?',
+		confirmExactCommandQuestion: 'Разрешить выполнение этой команды один раз?',
+		confirmPolicyRestricted: 'Полный доступ ограничен политикой организации. ',
+		confirmExternalFile: 'Этот файл находится вне рабочей области. Разрешить агенту прочитать его один раз?',
+		confirmAllowOnce: 'Разрешить один раз',
+		confirmSkipAction: 'Пропустить действие',
+		confirmSkipCommand: 'Пропустить команду',
+		confirmExplanationLabel: 'Объяснение',
+		confirmGoalLabel: 'Цель',
+		confirmModeLabel: 'Режим',
 	},
 	it: {
 		taskSummaryComplete: 'Riepilogo attività: Completato',
@@ -1000,6 +1171,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Ripresa automatica attiva: Ripresa automatica del compito...',
 		sendContinueToResume: 'Invia `continue` per riprendere.',
 		resumeDefault: 'Riprendi dal punto di controllo',
+		confirmAgentActionHeader: "Approvazione dell'azione dell'agente",
+		confirmTerminalHeader: 'Approvazione del comando da terminale',
+		confirmAgentActionQuestion: "Questa azione dell'agente può modificare lo stato o accedere a una risorsa esterna. Consentire questa azione una volta?",
+		confirmTerminalActionQuestion: "Questa azione da terminale può modificare lo stato o accedere a una risorsa esterna. Consentire questa azione una volta?",
+		confirmExactCommandQuestion: "Consentire l'esecuzione di questo comando una volta?",
+		confirmPolicyRestricted: "L'accesso completo è limitato dai criteri dell'organizzazione. ",
+		confirmExternalFile: "Questo file è esterno all'area di lavoro. Consentire all'agente di leggerlo una volta?",
+		confirmAllowOnce: 'Consenti una volta',
+		confirmSkipAction: 'Ignora azione',
+		confirmSkipCommand: 'Ignora comando',
+		confirmExplanationLabel: 'Spiegazione',
+		confirmGoalLabel: 'Obiettivo',
+		confirmModeLabel: 'Modalità',
 	},
 	ar: {
 		taskSummaryComplete: 'ملخص المهمة: مكتمل',
@@ -1016,6 +1200,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'المتابعة التلقائية نشطة: استئناف المهمة تلقائياً...',
 		sendContinueToResume: 'أرسل `continue` للاستئناف.',
 		resumeDefault: 'الاستئناف من نقطة التحقق',
+		confirmAgentActionHeader: 'الموافقة على إجراء الوكيل',
+		confirmTerminalHeader: 'الموافقة على أمر الطرفية',
+		confirmAgentActionQuestion: 'قد يؤدي هذا الإجراء إلى تغيير حالة النظام أو الوصول إلى مورد خارجي. هل تسمح بهذا الإجراء مرة واحدة؟',
+		confirmTerminalActionQuestion: 'قد يؤدي أمر الطرفية هذا إلى تغيير حالة النظام أو الوصول إلى مورد خارجي. هل تسمح بهذا الإجراء مرة واحدة؟',
+		confirmExactCommandQuestion: 'هل تسمح بتشغيل هذا الأمر المحدد مرة واحدة؟',
+		confirmPolicyRestricted: 'تم تقييد الوصول الكامل بواسطة سياسة المؤسسة. ',
+		confirmExternalFile: 'هذا الملف خارج مساحة العمل. هل تسمح للوكيل بقراءته مرة واحدة؟',
+		confirmAllowOnce: 'السماح مرة واحدة',
+		confirmSkipAction: 'تخطي الإجراء',
+		confirmSkipCommand: 'تخطي الأمر',
+		confirmExplanationLabel: 'التفسير',
+		confirmGoalLabel: 'الهدف',
+		confirmModeLabel: 'الوضع',
 	},
 	nl: {
 		taskSummaryComplete: 'Taakoverzicht: Voltooid',
@@ -1032,6 +1229,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Automatisch hervatten actief: Taak wordt automatisch hervat...',
 		sendContinueToResume: 'Stuur `continue` om te hervatten.',
 		resumeDefault: 'Hervatten vanaf controlepunt',
+		confirmAgentActionHeader: 'Goedkeuring agentactie',
+		confirmTerminalHeader: 'Goedkeuring terminalopdracht',
+		confirmAgentActionQuestion: 'Deze agentactie kan de systeemstatus wijzigen of toegang zoeken tot een externe bron. Eenmalig toestaan?',
+		confirmTerminalActionQuestion: 'Deze terminalopdracht kan de systeemstatus wijzigen of toegang zoeken tot een externe bron. Eenmalig toestaan?',
+		confirmExactCommandQuestion: 'Deze opdracht eenmalig laten uitvoeren?',
+		confirmPolicyRestricted: 'Volledige toegang is beperkt door het organisatiebeleid. ',
+		confirmExternalFile: 'Dit bestand bevindt zich buiten de werkruimte. Eenmalig lezen toestaan?',
+		confirmAllowOnce: 'Eenmalig toestaan',
+		confirmSkipAction: 'Actie overslaan',
+		confirmSkipCommand: 'Opdracht overslaan',
+		confirmExplanationLabel: 'Uitleg',
+		confirmGoalLabel: 'Doel',
+		confirmModeLabel: 'Modus',
 	},
 	tr: {
 		taskSummaryComplete: 'Görev Özeti: Tamamlandı',
@@ -1048,6 +1258,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Otomatik Devam Et Etkin: Görev otomatik olarak sürdürülüyor...',
 		sendContinueToResume: 'Devam etmek için `continue` gönderin.',
 		resumeDefault: 'Kontrol noktasından devam et',
+		confirmAgentActionHeader: 'Ajan Eylemi Onayı',
+		confirmTerminalHeader: 'Terminal Komutu Onayı',
+		confirmAgentActionQuestion: 'Bu ajan eylemi sistem durumunu değiştirebilir veya harici bir kaynağa erişebilir. Bu eyleme bir kez izin verilsin mi?',
+		confirmTerminalActionQuestion: 'Bu terminal eylemi sistem durumunu değiştirebilir veya harici bir kaynağa erişebilir. Bu eyleme bir kez izin verilsin mi?',
+		confirmExactCommandQuestion: 'Bu komutun bir kez çalıştırılmasına izin verilsin mi?',
+		confirmPolicyRestricted: 'Tam erişim kurum ilkeleri tarafından kısıtlanmıştır. ',
+		confirmExternalFile: 'Bu dosya çalışma alanı dışındadır. Ajanın dosyayı bir kez okumasına izin verilsin mi?',
+		confirmAllowOnce: 'Bir kez izin ver',
+		confirmSkipAction: 'Eylemi atla',
+		confirmSkipCommand: 'Komutu atla',
+		confirmExplanationLabel: 'Açıklama',
+		confirmGoalLabel: 'Hedef',
+		confirmModeLabel: 'Mod',
 	},
 	vi: {
 		taskSummaryComplete: 'Tóm tắt nhiệm vụ: Hoàn thành',
@@ -1064,6 +1287,19 @@ const DARDCOR_LOCALE_MAP: Record<DardcorSupportedLanguage, IDardcorLocaleStrings
 		autoContinueActive: 'Tự động tiếp tục đang hoạt động: Đang tự động tiếp tục nhiệm vụ...',
 		sendContinueToResume: 'Gửi `continue` để tiếp tục.',
 		resumeDefault: 'Tiếp tục từ điểm kiểm tra',
+		confirmAgentActionHeader: 'Phê duyệt hành động của tác nhân',
+		confirmTerminalHeader: 'Phê duyệt lệnh terminal',
+		confirmAgentActionQuestion: 'Hành động này có thể thay đổi trạng thái hoặc truy cập tài nguyên bên ngoài. Cho phép hành động này một lần?',
+		confirmTerminalActionQuestion: 'Lệnh terminal này có thể thay đổi trạng thái hoặc truy cập tài nguyên bên ngoài. Cho phép hành động này một lần?',
+		confirmExactCommandQuestion: 'Cho phép chạy lệnh này một lần?',
+		confirmPolicyRestricted: 'Toàn quyền truy cập bị hạn chế bởi chính sách tổ chức. ',
+		confirmExternalFile: 'Tệp này nằm ngoài không gian làm việc. Cho phép tác nhân đọc một lần?',
+		confirmAllowOnce: 'Cho phép một lần',
+		confirmSkipAction: 'Bỏ qua hành động',
+		confirmSkipCommand: 'Bỏ qua lệnh',
+		confirmExplanationLabel: 'Giải thích',
+		confirmGoalLabel: 'Mục tiêu',
+		confirmModeLabel: 'Chế độ',
 	},
 };
 
@@ -1108,29 +1344,29 @@ export function getDardcorAutonomousMomentumDirective(
 ): string {
 	switch (lang) {
 		case 'id':
-			return `[Arahan Momentum Mandiri]: Mode Akses Penuh aktif dan daftar tugas belum selesai (${completedCount}/${totalCount} item selesai). Jangan berhenti atau mengeluarkan teks percakapan saja. Segera lanjutkan dengan implementasi item daftar tugas berikutnya #${nextItem.id}: "${nextItem.title}". Panggil alat yang relevan sekarang.`;
+			return `[Arahan Momentum Mandiri]: Daftar tugas belum selesai (${completedCount}/${totalCount} item selesai). DILARANG berhenti atau hanya mengeluarkan teks percakapan/rencana. Segera lanjutkan implementasi item daftar tugas #${nextItem.id}: "${nextItem.title}". Panggil satu alat aksi konkret sekarang (misalnya write_file, edit_file, run_command, atau manage_todo_list). Jika menulis banyak berkas, tulis satu berkas per pemanggilan write_file agar tidak terpotong.`;
 		case 'ja':
-			return `[自律モメンタム指令]: フルアクセスモードが有効で、タスクチェックリストはまだ完了していません（${completedCount}/${totalCount} 完了）。テキストのみを出力して停止せず、直ちに未完了のチェックリスト項目 #${nextItem.id}: "${nextItem.title}" の実装に進んでください。関連するツールを今すぐ呼び出してください。`;
+			return `[自律モメンタム指令]: タスクチェックリストはまだ完了していません（${completedCount}/${totalCount} 完了）。テキストのみを出力して停止せず、直ちに未完了のチェックリスト項目 #${nextItem.id}: "${nextItem.title}" の実装に進んでください。1回の呼び出しにつき1つの具体的なツール（write_file、edit_file、run_commandなど）を今すぐ呼び出してください。`;
 		case 'zh':
-			return `[自主推进指令]：完全访问模式已启用，任务清单尚未完成（已完成 ${completedCount}/${totalCount} 项）。请勿仅输出对话文本而停止。立即继续执行未完成的清单项 #${nextItem.id}：“${nextItem.title}”。立即调用相关工具。`;
+			return `[自主推进指令]：任务清单尚未完成（已完成 ${completedCount}/${totalCount} 项）。严禁仅输出对话或计划文本而停止。立即继续执行未完成的清单项 #${nextItem.id}：“${nextItem.title}”。现在立即调用一个具体的操作工具（如 write_file、edit_file、run_command 或 manage_todo_list），每次写入一个文件以防截断。`;
 		case 'ko':
-			return `[자율 모멘텀 지침]: 전체 액세스 모드가 활성화되어 있으며 체크리스트가 아직 완료되지 않았습니다 (${completedCount}/${totalCount} 항목 완료). 대화 텍스트만 출력하고 멈추지 마십시오. 즉시 미완료 체크리스트 항목 #${nextItem.id}: "${nextItem.title}" 구현을 진행하고 관련 도구를 호출하십시오.`;
+			return `[자율 모멘텀 지침]: 체크리스트가 아직 완료되지 않았습니다 (${completedCount}/${totalCount} 항목 완료). 대화 텍스트만 출력하고 멈추지 마십시오. 즉시 미완료 체크리스트 항목 #${nextItem.id}: "${nextItem.title}" 구현을 진행하고 지금 바로 구체적인 도구(write_file, edit_file, run_command 등)를 호출하십시오.`;
 		case 'es':
-			return `[Directiva de impulso autónomo]: El modo de acceso completo está activo y la lista de tareas aún no está terminada (${completedCount}/${totalCount} completadas). No se detenga solo con texto conversacional. Proceda de inmediato con la implementación del elemento #${nextItem.id}: "${nextItem.title}". Llame a la herramienta correspondiente ahora.`;
+			return `[Directiva de impulso autónomo]: La lista de tareas aún no está terminada (${completedCount}/${totalCount} completadas). No se detenga solo con texto conversacional. Proceda de inmediato con la implementación del elemento #${nextItem.id}: "${nextItem.title}". Llame a una herramienta de acción concreta ahora (write_file, edit_file, run_command).`;
 		case 'fr':
-			return `[Directive d'élan autonome] : Le mode d'accès complet est actif et la liste de contrôle n'est pas encore terminée (${completedCount}/${totalCount} éléments terminés). Ne vous arrêtez pas au simple texte conversationnel. Passez immédiatement à l'implémentation de l'élément #${nextItem.id} : "${nextItem.title}". Appelez l'outil approprié dès maintenant.`;
+			return `[Directive d'élan autonome] : La liste de contrôle n'est pas encore terminée (${completedCount}/${totalCount} éléments terminés). Ne vous arrêtez pas au simple texte conversationnel. Passez immédiatement à l'implémentation de l'élément #${nextItem.id} : "${nextItem.title}". Appelez un outil d'action concret dès maintenant.`;
 		case 'de':
-			return `[Autonome Impuls-Anweisung]: Der Vollzugriffsmodus ist aktiv und die Checkliste ist noch nicht abgeschlossen (${completedCount}/${totalCount} Aufgaben erledigt). Halten Sie nicht mit reinem Text an. Fahren Sie sofort mit der Implementierung des Checklisteneintrags #${nextItem.id} fort: "${nextItem.title}". Rufen Sie jetzt das entsprechende Tool auf.`;
+			return `[Autonome Impuls-Anweisung]: Die Checkliste ist noch nicht abgeschlossen (${completedCount}/${totalCount} Aufgaben erledigt). Halten Sie nicht mit reinem Text an. Fahren Sie sofort mit der Implementierung des Checklisteneintrags #${nextItem.id} fort: "${nextItem.title}". Rufen Sie jetzt das entsprechende Tool auf.`;
 		case 'pt':
-			return `[Diretiva de impulso autónomo]: O modo de acesso total está ativo e a lista de tarefas ainda não foi concluída (${completedCount}/${totalCount} itens concluídos). Não pare emitindo apenas texto de conversa. Prossiga imediatamente com a implementação do item #${nextItem.id}: "${nextItem.title}". Chame a ferramenta relevante agora.`;
+			return `[Diretiva de impulso autónomo]: A lista de tarefas ainda não foi concluída (${completedCount}/${totalCount} itens concluídos). Não pare emitindo apenas texto de conversa. Prossiga imediatamente com a implementação do item #${nextItem.id}: "${nextItem.title}". Chame a ferramenta relevante agora.`;
 		case 'ru':
-			return `[Директива автономного импульса]: Режим полного доступа активен, и контрольный список еще не завершен (выполнено ${completedCount}/${totalCount}). Не останавливайтесь на простом тексте ответов. Немедленно переходите к выполнению следующего пункта списка #${nextItem.id}: "${nextItem.title}". Вызовите соответствующий инструмент прямо сейчас.`;
+			return `[Директива автономного импульса]: Контрольный список еще не завершен (выполнено ${completedCount}/${totalCount}). Не останавливайтесь на простом тексте ответов. Немедленно переходите к выполнению следующего пункта списка #${nextItem.id}: "${nextItem.title}". Вызовите соответствующий инструмент прямо сейчас.`;
 		case 'it':
-			return `[Direttiva di impulso autonomo]: La modalità di accesso completo è attiva e la lista delle attività non è ancora completata (${completedCount}/${totalCount} elementi completati). Non fermarti con solo testo conversazionale. Procedi immediatamente con l'implementazione della voce #${nextItem.id}: "${nextItem.title}". Chiama subito lo strumento pertinente.`;
+			return `[Direttiva di impulso autonomo]: La lista delle attività non è ancora completata (${completedCount}/${totalCount} elementi completati). Non fermarti con solo testo conversazionale. Procedi immediatamente con l'implementazione della voce #${nextItem.id}: "${nextItem.title}". Chiama subito lo strumento pertinente.`;
 		case 'ar':
-			return `[توجيه الزخم التلقائي]: وضع الوصول الكامل نشط وقائمة المهام لم تكتمل بعد (${completedCount}/${totalCount} عنصر مكتمل). لا تتوقف عند إخراج نص محادثة فقط. تابع فوراً تنفيذ عنصر القائمة التالي #${nextItem.id}: "${nextItem.title}". استدعِ الأداة المناسبة الآن.`;
+			return `[توجيه الزخم التلقائي]: قائمة المهام لم تكتمل بعد (${completedCount}/${totalCount} عنصر مكتمل). لا تتوقف عند إخراج نص محادثة فقط. تابع فوراً تنفيذ عنصر القائمة التالي #${nextItem.id}: "${nextItem.title}". استدعِ الأداة المناسبة الآن.`;
 		default:
-			return `[Autonomous Momentum Directive]: Full Access mode is active and the task checklist is not yet finished (${completedCount}/${totalCount} items complete). Do not stop or yield conversational text. Proceed immediately with the implementation of incomplete checklist item #${nextItem.id}: "${nextItem.title}". Call the relevant action tool now.`;
+			return `[Autonomous Momentum Directive]: The task checklist is not yet finished (${completedCount}/${totalCount} items complete). Do NOT stop or yield conversational text without calling a tool. Proceed immediately with incomplete checklist item #${nextItem.id}: "${nextItem.title}". Invoke one concrete action tool now (e.g. write_file, edit_file, run_command, or manage_todo_list). When creating multiple files, write one file per write_file call to avoid token truncation.`;
 	}
 }
 

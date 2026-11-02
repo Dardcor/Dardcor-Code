@@ -1668,7 +1668,7 @@ export class SSHRemoteAgentHostMainService extends Disposable implements ISSHRem
 			serverDataFolderName: this._serverDataFolderName,
 			quality: this._quality,
 			commit: this._commit,
-			reportInstalling: () => reportProgress(localize('sshProgressDownloadingCLI', "Installing VS Code CLI on remote...")),
+			reportInstalling: () => reportProgress(localize('sshProgressDownloadingCLI', "Installing Dardcor Code CLI on remote...")),
 			logService: this._logService,
 			logPrefix: LOG_PREFIX,
 		});

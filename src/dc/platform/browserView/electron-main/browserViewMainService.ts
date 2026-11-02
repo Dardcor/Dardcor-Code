@@ -501,7 +501,7 @@ export class BrowserViewMainService extends Disposable implements IBrowserViewMa
 		}
 		if (options.initialUrl) {
 			void view.loadURL(options.initialUrl).catch(error => {
-				this.logService.error(`[BrowserViewMainService] Failed to load initial URL for browser view ${id}`, error);
+				this.logService.debug(`[BrowserViewMainService] Failed to load initial URL for browser view ${id}`, error);
 			});
 		}
 		if (options.openSource) {

@@ -1,3 +1,26 @@
+export function parseResetSeconds(delayStr?: string): number | undefined {
+	if (!delayStr) {
+		return undefined;
+	}
+	const str = delayStr.trim();
+	const hMatch = str.match(/(\d+)\s*h(?:ours?|r)?/i);
+	const mMatch = str.match(/(\d+)\s*m(?:in(?:utes?)?)?/i);
+	const sMatch = str.match(/(\d+(?:\.\d+)?)\s*s(?:ec(?:onds?)?)?/i);
+	if (hMatch || mMatch || sMatch) {
+		const h = hMatch ? parseInt(hMatch[1], 10) : 0;
+		const m = mMatch ? parseInt(mMatch[1], 10) : 0;
+		const s = sMatch ? parseFloat(sMatch[1]) : 0;
+		const total = h * 3600 + m * 60 + Math.ceil(s);
+		return total > 0 ? total : undefined;
+	}
+	const numMatch = str.match(/\b(\d+(?:\.\d+)?)\b/);
+	if (numMatch) {
+		const num = parseFloat(numMatch[1]);
+		return !isNaN(num) && num > 0 ? Math.ceil(num) : undefined;
+	}
+	return undefined;
+}
+
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Dardcor Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -11,6 +34,7 @@ export interface IParsedRouterError {
 	userMessage: string;
 	resetDelay?: string;
 	resetTimeStamp?: string;
+	resetAfterSec?: number;
 	isQuotaExhausted: boolean;
 	isInsufficientCredits?: boolean;
 	isForbiddenPlan?: boolean;
@@ -28,6 +52,7 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 	let statusMessage = '';
 	let resetDelay: string | undefined;
 	let resetTimeStamp: string | undefined;
+	let resetAfterSec: number | undefined;
 	let isQuotaExhausted = statusCode === 429;
 	let isInsufficientCredits = statusCode === 402;
 	let isForbiddenPlan = statusCode === 403;
@@ -114,6 +139,20 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		}
 
 		if (typeof errObj === 'object' && errObj !== null) {
+			if (typeof errObj.resetAfterSec === 'number') {
+				resetAfterSec = errObj.resetAfterSec;
+			} else if (typeof parsedJson.resetAfterSec === 'number') {
+				resetAfterSec = parsedJson.resetAfterSec;
+			} else if (typeof parsedJson.error?.resetAfterSec === 'number') {
+				resetAfterSec = parsedJson.error.resetAfterSec;
+			}
+			if (errObj.retryAfter && !resetAfterSec) {
+				const retryDate = new Date(errObj.retryAfter).getTime();
+				if (!isNaN(retryDate)) {
+					const diff = Math.max(Math.ceil((retryDate - Date.now()) / 1000), 1);
+					resetAfterSec = diff;
+				}
+			}
 			if (errObj.code === 429 || errObj.status === 'RESOURCE_EXHAUSTED' || errObj.type === 'insufficient_quota' || errObj.type === 'rate_limit_error') {
 				isQuotaExhausted = true;
 			}
@@ -230,6 +269,15 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		detectedProvider = inferProviderFromModel(detectedModel);
 	}
 
+	if (resetDelay && !resetAfterSec) {
+		resetAfterSec = parseResetSeconds(resetDelay);
+	}
+	if (resetAfterSec !== undefined && resetAfterSec > 0) {
+		if (statusCode === 503 || statusCode === 429) {
+			isQuotaExhausted = true;
+		}
+	}
+
 	return {
 		statusCode,
 		model: detectedModel,
@@ -238,6 +286,7 @@ export function parseDardcorRouterError(statusCode: number, rawError: string, fa
 		userMessage,
 		resetDelay,
 		resetTimeStamp,
+		resetAfterSec,
 		isQuotaExhausted,
 		isInsufficientCredits,
 		isForbiddenPlan,
@@ -390,18 +439,20 @@ function formatResetTimestamp(timestampStr: string): string {
 	return timestampStr;
 }
 
-function cleanMessageText(text: string): string {
+export function cleanMessageText(text: string): string {
 	let cleaned = text.trim();
 	cleaned = cleaned.replace(/\]\(https?:\/\/[^\)]+\)\)*$/g, '');
 	cleaned = cleaned.replace(/\s*\(reset after [^\)]+\)/gi, '');
 	cleaned = cleaned.replace(/^"|"$/g, '');
 	cleaned = cleaned.replace(/\\n/g, ' ');
 	cleaned = cleaned.replace(/\\"/g, '"');
+	cleaned = cleaned.replace(/;\s*origin:\s*[^\.\n\r]+/gi, '');
+	cleaned = cleaned.replace(/vscode-file:\/\/[^\s\)\'\"\,]+/gi, '');
 	cleaned = cleaned.replace(/\s{2,}/g, ' ');
 	return cleaned;
 }
 
-function formatModelDisplayName(modelId: string): string {
+export function formatModelDisplayName(modelId: string): string {
 	const cleaned = (modelId || '').replace(/^(dardcor|ag|oc|opencode|ds|gemini|grok|claude|openai|cl|cline|cx|codex|qd|qdcn|qoder|kc|kilocode|cbai|cbcn|codebuddy|cu|cursor|zd|zed|cf|cloudflare|cmc|ocz|gh|v1m|tinyfish|atria|agnes|bai|dahl|tokenharbor|muse)\//i, '');
 	return cleaned
 		.split(/[-_]/)
@@ -455,4 +506,100 @@ function formatProviderDisplayName(provider?: string): string {
 	if (lower.includes('grok') || lower.includes('xai')) return 'xAI (Grok)';
 	if (lower.includes('deepseek')) return 'DeepSeek';
 	return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+
+export type DardcorProviderIssueCategory = 'DOWN' | 'LIMIT' | 'ERROR';
+
+export interface IDardcorProviderDiagnosis {
+	category: DardcorProviderIssueCategory;
+	provider: string;
+	model: string;
+	title: string;
+	description: string;
+}
+
+export function diagnoseProviderIssue(statusCode: number, rawError: string, modelId?: string, lang: string = 'en'): IDardcorProviderDiagnosis {
+	const parsed = parseDardcorRouterError(statusCode, rawError, modelId);
+	const model = formatModelDisplayName(parsed.model || modelId || 'Unknown Model');
+	const provider = formatProviderDisplayName(parsed.provider);
+	const text = `${rawError || ''} ${parsed.userMessage || ''} ${parsed.technicalDetails || ''}`;
+	const lower = text.toLowerCase();
+	const isIndonesian = lang === 'id';
+
+	// 1. DOWN: Server unreachable, DNS failure, 502 Bad Gateway, 504 Gateway Timeout, connection refused/reset, network drops
+	const isDown = statusCode === 502 || statusCode === 504 ||
+		(statusCode === 503 && !parsed.resetDelay && !parsed.resetAfterSec && !parsed.isQuotaExhausted) ||
+		/enotfound|econnrefused|econnreset|etimedout|err_timed_out|connect timeout|fetch failed|server unreachable|bad gateway|gateway error|network error|connection lost/i.test(text);
+
+	if (isDown) {
+		let cause = isIndonesian ? 'Server upstream tidak dapat dijangkau' : 'Upstream server is unreachable';
+		const hostMatch = text.match(/enotfound\s+([a-zA-Z0-9_\-\.]+)/i) || text.match(/getaddrinfo\s+enotfound\s+([a-zA-Z0-9_\-\.]+)/i);
+		if (hostMatch) {
+			cause = isIndonesian
+				? `Domain upstream (${hostMatch[1]}) tidak dapat dihubungi atau server sedang down`
+				: `Upstream host (${hostMatch[1]}) could not be resolved or server is down`;
+		} else if (lower.includes('connect timeout')) {
+			cause = isIndonesian ? 'Waktu koneksi ke server upstream habis (timeout)' : 'Upstream connection timed out';
+		} else if (lower.includes('econnrefused')) {
+			cause = isIndonesian ? 'Koneksi ditolak oleh server provider' : 'Connection refused by upstream provider';
+		} else if (statusCode === 502) {
+			cause = isIndonesian ? 'Gateway provider merespons HTTP 502 Bad Gateway' : 'Gateway responded with HTTP 502 Bad Gateway';
+		} else if (statusCode === 504) {
+			cause = isIndonesian ? 'Gateway provider mengalami timeout (HTTP 504)' : 'Gateway timed out (HTTP 504)';
+		}
+
+		return {
+			category: 'DOWN',
+			provider,
+			model,
+			title: isIndonesian ? 'Server Provider Down' : 'Provider Server Down',
+			description: isIndonesian
+				? `Server provider ${provider} sedang down atau tidak dapat dijangkau: ${cause}.`
+				: `The ${provider} provider server is currently down or unreachable: ${cause}.`
+		};
+	}
+
+	// 2. LIMIT: Quota limit, rate limit, token exhausted, 429
+	const isLimit = statusCode === 429 || parsed.isQuotaExhausted || !!parsed.resetDelay || !!parsed.resetAfterSec ||
+		/quota exceeded|rate_limit|rate limit|too many requests|resource_exhausted|resource has been exhausted|out of tokens|free usage limit|all \d+ accounts locked/i.test(text);
+
+	if (isLimit) {
+		const resetInfo = parsed.resetDelay
+			? (isIndonesian ? ` (Reset dalam: ${parsed.resetDelay})` : ` (Resets in: ${parsed.resetDelay})`)
+			: '';
+		return {
+			category: 'LIMIT',
+			provider,
+			model,
+			title: isIndonesian ? 'Batas Kuota / Rate Limit Tercapai' : 'Quota / Rate Limit Exceeded',
+			description: isIndonesian
+				? `Batas kuota atau kecepatan (rate-limit) model ${model} pada provider ${provider} telah tercapai${resetInfo}.`
+				: `The quota or rate-limit for model ${model} on provider ${provider} has been reached${resetInfo}.`
+		};
+	}
+
+	// 3. ERROR: Authentication failure, plan required, payment, invalid model
+	let errorCause = cleanMessageText(parsed.userMessage);
+	if (parsed.isForbiddenPlan || statusCode === 403 || lower.includes('pricingurl') || lower.includes('subscription')) {
+		errorCause = isIndonesian ? 'Model ini memerlukan paket berbayar atau langganan aktif' : 'This model requires a paid plan or active subscription';
+	} else if (parsed.isInsufficientCredits || statusCode === 402 || lower.includes('insufficient_credits')) {
+		errorCause = isIndonesian ? 'Saldo akun tidak mencukupi untuk model berbayar' : 'Insufficient account credits for this model';
+	} else if (parsed.isUnauthorized || statusCode === 401 || lower.includes('unauthorized')) {
+		errorCause = isIndonesian ? 'Kredensial atau token API kedaluwarsa atau tidak valid' : 'Account credentials or API token expired/invalid';
+	} else if (statusCode === 404 || lower.includes('model_not_found')) {
+		errorCause = isIndonesian ? 'Model tidak ditemukan pada provider upstream' : 'Model not found on upstream provider';
+	} else if (!errorCause) {
+		errorCause = isIndonesian ? 'Terjadi kesalahan konfigurasi atau autentikasi' : 'Configuration or authentication error encountered';
+	}
+
+	return {
+		category: 'ERROR',
+		provider,
+		model,
+		title: isIndonesian ? 'Kendala Provider' : 'Provider Error',
+		description: isIndonesian
+			? `Kendala akses pada provider ${provider}: ${errorCause}.`
+			: `Access error on provider ${provider}: ${errorCause}.`
+	};
 }

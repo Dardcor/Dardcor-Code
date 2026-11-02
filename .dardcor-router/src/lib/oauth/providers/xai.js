@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { XAI_CONFIG, XAI_PKCE_VERIFIER_BYTES } from "../constants/xai.js";
 import { validateXaiOAuthEndpoint, decodeXaiIdTokenEmail } from "../providerHelpers.js";
 
+// Inlined from services/xai.js to keep web route bundle free of `open` (CLI-only) package
 let cachedXaiDiscovery = null;
 
 async function discoverXaiEndpoints() {
@@ -16,7 +17,7 @@ async function discoverXaiEndpoints() {
       };
       return cachedXaiDiscovery;
     }
-  } catch { }
+  } catch { /* fall through to static fallback */ }
   cachedXaiDiscovery = { authorizeUrl: XAI_CONFIG.authorizeUrl, tokenUrl: XAI_CONFIG.tokenUrl };
   return cachedXaiDiscovery;
 }
@@ -36,6 +37,7 @@ const xai = {
     };
   },
   buildAuthUrl: (config, redirectUri, state, codeChallenge) => {
+    // Mirror CLIProxyAPI BuildAuthorizeURL: includes nonce, plan, referrer
     const nonce = crypto.randomBytes(16).toString("hex");
     const params = {
       response_type: "code",

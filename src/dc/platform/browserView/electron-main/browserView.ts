@@ -710,6 +710,10 @@ export class BrowserView extends Disposable {
 		if (webContents.isDestroyed() || webContents.isLoadingMainFrame()) {
 			return;
 		}
+		const currentUrl = webContents.getURL();
+		if (!currentUrl || currentUrl === 'about:blank' || currentUrl.startsWith('chrome-error://') || currentUrl.startsWith('devtools://')) {
+			return;
+		}
 		void webContents.executeJavaScript(DARDCOR_BOOTSTRAP_CURSOR_SCRIPT).catch(error => {
 			this.logService.debug(`[BrowserView] Could not install the browser agent cursor overlay: ${error instanceof Error ? error.message : String(error)}`);
 		});

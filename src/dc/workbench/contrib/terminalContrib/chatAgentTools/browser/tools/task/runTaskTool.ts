@@ -68,11 +68,17 @@ export class RunTaskTool implements IToolImpl {
 			const raceResult = await Promise.race([this._tasksService.run(task, undefined, TaskRunSource.ChatAgent), timeout(3000)]);
 			const result: ITaskSummary | undefined = raceResult && typeof raceResult === 'object' ? raceResult as ITaskSummary : undefined;
 
-			const resources = this._tasksService.getTerminalsForTasks(dependencyTasks ?? task);
-			if (!resources || resources.length === 0) {
-				return { content: [{ kind: 'text', value: `Task started but no terminal was found for: ${taskLabel}` }], toolResultMessage: new MarkdownString(localize('chat.noTerminal', 'Task started but no terminal was found for: \`{0}\`', taskLabel)) };
+			let terminals: ITerminalInstance[] = [];
+			for (let attempt = 0; attempt < 8; attempt++) {
+				const resources = this._tasksService.getTerminalsForTasks(dependencyTasks ?? task);
+				if (resources && resources.length > 0) {
+					terminals = this._terminalService.instances.filter(t => resources.some(r => r.path === t.resource.path && r.scheme === t.resource.scheme));
+					if (terminals.length > 0) {
+						break;
+					}
+				}
+				await new Promise(r => setTimeout(r, 100));
 			}
-			const terminals = this._terminalService.instances.filter(t => resources.some(r => r.path === t.resource.path && r.scheme === t.resource.scheme));
 			if (terminals.length === 0) {
 				return { content: [{ kind: 'text', value: `Task started but no terminal was found for: ${taskLabel}` }], toolResultMessage: new MarkdownString(localize('chat.noTerminal', 'Task started but no terminal was found for: \`{0}\`', taskLabel)) };
 			}
@@ -169,7 +175,7 @@ export const RunTaskToolData: IToolData = {
 	toolReferenceName: 'runTask',
 	legacyToolReferenceFullNames: ['runTasks/runTask'],
 	displayName: localize('runInTerminalTool.displayName', 'Run Task'),
-	modelDescription: `Runs a VS Code task.\n\n- If you see that an appropriate task exists for building or running code, prefer to use this tool to run the task instead of using the ${TerminalToolId.RunInTerminal} tool.\n- Make sure that any appropriate build or watch task is running before trying to run tests or execute code.\n- If the user asks to run a task, use this tool to do so.`,
+	modelDescription: `Runs a Dardcor Code task.\n\n- If you see that an appropriate task exists for building or running code, prefer to use this tool to run the task instead of using the ${TerminalToolId.RunInTerminal} tool.\n- Make sure that any appropriate build or watch task is running before trying to run tests or execute code.\n- If the user asks to run a task, use this tool to do so.`,
 	userDescription: localize('runInTerminalTool.userDescription', 'Run tasks in the workspace'),
 	icon: Codicon.tools,
 	source: ToolDataSource.Internal,

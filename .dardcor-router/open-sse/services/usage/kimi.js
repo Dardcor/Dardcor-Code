@@ -1,3 +1,13 @@
+/**
+ * Kimi Coding usage — GET /v1/usages
+ *
+ * Dual auth (single provider id `kimi`):
+ *   - apiKey present → x-api-key only (platform / coding API key)
+ *   - else accessToken → Bearer + X-Msh-* (device-code OAuth)
+ *
+ * Note: chat messages use combined x-api-key; /usages OAuth is Bearer.
+ * 403 permission_denied is NOT auth-expired — account lacks usage feature / sub.
+ */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { parseResetTime, toFiniteNumber } from "./shared.js";
@@ -19,11 +29,13 @@ function getKimiPlanName(level) {
   return key.replace(/^LEVEL_/, "").toLowerCase();
 }
 
+/** Best-effort extract human message from Kimi error JSON (403 body is Connect-RPC-ish). */
 export function formatKimiUsageError(status, responseText) {
   let parsed = null;
   try {
     parsed = JSON.parse(responseText || "");
   } catch {
+    /* plain text */
   }
 
   const detail0 = Array.isArray(parsed?.details) ? parsed.details[0] : null;
@@ -39,6 +51,8 @@ export function formatKimiUsageError(status, responseText) {
     return "Kimi authentication expired. Please re-authorize.";
   }
 
+  // Live OAuth token without Kimi Code usage entitlement returns 403
+  // REASON_FEATURE_NO_PERMISSION — not an expired session.
   if (
     status === 403 &&
     (reason === "REASON_FEATURE_NO_PERMISSION" ||
@@ -61,6 +75,8 @@ export function formatKimiUsageError(status, responseText) {
 function makeQuota({ used, total, remaining, resetAt }) {
   const safeTotal = Math.max(0, toFiniteNumber(total, 0));
   const safeUsed = Math.max(0, toFiniteNumber(used, 0));
+  // Prefer provider remaining when present; never set absolute `remaining`
+  // on the quota object — QuotaTable treats it as a 0–100 percentage.
   let remainingPct;
   if (safeTotal > 0 && remaining != null && Number.isFinite(Number(remaining))) {
     remainingPct = (Math.max(0, Number(remaining)) / safeTotal) * 100;
@@ -78,6 +94,12 @@ function makeQuota({ used, total, remaining, resetAt }) {
   };
 }
 
+/**
+ * @param {string|null|undefined} accessToken
+ * @param {string|null|undefined} apiKey
+ * @param {object|null} proxyOptions
+ * @param {object|null} providerSpecificData
+ */
 export async function getKimiUsage(
   accessToken = null,
   apiKey = null,

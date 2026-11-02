@@ -354,9 +354,9 @@ export class ChatSessionStore extends Disposable {
 							this.dialogService.prompt({
 								custom: true,
 								title: localize('chatSessionStore.serializationError', 'Error saving chat session'),
-								message: localize('chatSessionStore.writeError', 'Error serializing chat session for storage. The session will be lost if the window is closed. Please report this issue to the VS Code team:\n\n{0}', e.stack || toErrorMessage(e)),
+								message: localize('chatSessionStore.writeError', 'Error serializing chat session for storage. The session will be lost if the window is closed. Please report this issue to the Dardcor Code team:\n\n{0}', e.stack || toErrorMessage(e)),
 								buttons: [
-									{ label: localize('reportIssue', 'Report Issue'), run: () => this.openerService.open('https://github.com/microsoft/vscode/issues/new?template=bug_report.md') }
+									{ label: localize('reportIssue', 'Report Issue'), run: () => this.openerService.open('https://github.com/dardcor/dardcor-code/issues/new?template=bug_report.md') }
 								]
 							});
 						}

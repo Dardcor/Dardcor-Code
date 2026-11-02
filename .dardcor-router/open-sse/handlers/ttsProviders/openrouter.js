@@ -1,3 +1,4 @@
+// OpenRouter TTS — via chat completions + audio modality (SSE stream)
 import { PROVIDER_MEDIA } from "../../providers/index.js";
 
 const TTS_CFG = PROVIDER_MEDIA["openrouter"]?.ttsConfig || {};
@@ -6,6 +7,7 @@ export default {
   async synthesize(text, model, credentials) {
     if (!credentials?.apiKey) throw new Error("No OpenRouter API key configured");
 
+    // model format: "tts-model/voice" e.g. "openai/gpt-4o-mini-tts/alloy"
     let ttsModel = TTS_CFG.defaultModel;
     let voice = "alloy";
     if (model && model.includes("/")) {
@@ -43,6 +45,7 @@ export default {
       throw new Error(err?.error?.message || `OpenRouter TTS failed: ${res.status}`);
     }
 
+    // Parse SSE stream, accumulate base64 audio chunks
     const chunks = [];
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

@@ -66,6 +66,7 @@ const KNOWN_URL_SCHEMES = new Set([
 	'mailto',
 	'chrome',
 	'edge',
+	'dardcor-code',
 	'vscode',
 	'vscode-insiders',
 ]);

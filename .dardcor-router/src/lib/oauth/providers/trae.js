@@ -2,7 +2,11 @@ import crypto from "crypto";
 import { TRAE_CONFIG } from "../constants/oauth.js";
 import { extractJsonPath } from "./_shared.js";
 
+// ───────────────────────────────────────────────────────────────────────────
+// Trae (ByteDance marscode) OAuth helpers
+// ───────────────────────────────────────────────────────────────────────────
 
+// Per-login device context. No IDE access in Dardcor Router, so use stable defaults.
 function buildTraeDeviceContext() {
   return {
     plugin_version: TRAE_CONFIG.defaultPluginVersion,
@@ -17,6 +21,7 @@ function buildTraeDeviceContext() {
   };
 }
 
+// POST GetLoginGuidance → { Result: { LoginHost } }
 async function fetchTraeLoginGuidance(loginTraceId) {
   const body = JSON.stringify({ loginTraceID: loginTraceId, login_trace_id: loginTraceId });
   let lastErr = "no successful response";
@@ -45,6 +50,7 @@ async function fetchTraeLoginGuidance(loginTraceId) {
   throw new Error(`Trae GetLoginGuidance failed: ${lastErr}`);
 }
 
+// Build the browser verification URL the user opens to sign in.
 function buildTraeVerificationUrl(loginHost, loginTraceId, callbackUrl, ctx) {
   const url = new URL(loginHost.startsWith("http") ? loginHost : `https://${loginHost.replace(/^\/+/, "")}`);
   url.pathname = TRAE_CONFIG.authorizationPath;
@@ -72,6 +78,8 @@ function buildTraeVerificationUrl(loginHost, loginTraceId, callbackUrl, ctx) {
   return url.toString();
 }
 
+// Parse the Trae OAuth callback (query string or full URL).
+// Expected: ?isRedirect=true&refreshToken=...&loginHost=...[&x-cloudide-token=...]
 function parseTraeCallback(raw) {
   const text = String(raw || "").trim();
   let queryStr = text;
@@ -95,10 +103,14 @@ function parseTraeCallback(raw) {
   return { refreshToken, loginHost, cloudideToken };
 }
 
+// Allowed API origins for ExchangeToken/GetUserInfo — hardcoded HTTPS allowlist only.
+// loginHost from the callback is intentionally NOT honored (SSRF guard: a callback
+// attacker could otherwise point this at internal hosts/cloud metadata).
 function traeApiOrigins() {
   return [...TRAE_CONFIG.apiOrigins];
 }
 
+// POST ExchangeToken {ClientID, RefreshToken, ClientSecret, UserID} → {Result:{AccessToken,RefreshToken,ExpiresAt}}
 async function fetchTraeExchangeToken(refreshToken, cloudideToken) {
   const body = JSON.stringify({
     ClientID: TRAE_CONFIG.clientId,
@@ -131,7 +143,7 @@ async function fetchTraeExchangeToken(refreshToken, cloudideToken) {
       return {
         accessToken,
         refreshToken: extractJsonPath(data, [["Result", "RefreshToken"], ["result", "refresh_token"], ["refreshToken"]]) || refreshToken,
-        expiresIn: null,
+        expiresIn: null, // ExchangeToken returns ExpiresAt (absolute), converted below
         expiresAt: extractJsonPath(data, [["Result", "ExpiresAt"], ["Result", "expiresAt"], ["result", "expires_at"], ["expiresAt"]]),
       };
     } catch (e) { lastErr = `${url} ${e.message}`; }
@@ -139,6 +151,7 @@ async function fetchTraeExchangeToken(refreshToken, cloudideToken) {
   throw new Error(`Trae ExchangeToken failed: ${lastErr}`);
 }
 
+// POST GetUserInfo with x-cloudide-token → identity fields used by SOLO common_params.
 async function fetchTraeUserInfo(accessToken) {
   for (const origin of traeApiOrigins()) {
     const url = `${origin.replace(/\/$/, "")}${TRAE_CONFIG.getUserInfoPath}`;
@@ -169,11 +182,12 @@ async function fetchTraeUserInfo(accessToken) {
         tenant: extractJsonPath(data, [["Result", "TenantID"], ["Result", "tenantId"], ["tenantId"]]),
         userId: extractJsonPath(data, [["Result", "UserID"], ["Result", "userId"], ["userId"]]),
       };
-    } catch { }
+    } catch { /* try next origin */ }
   }
   return { email: null, name: null };
 }
 
+// Map AIRegion (e.g. "SG", "US") → SOLO scope used in common_params.
 function traeScopeForRegion(aiRegion) {
   const r = (aiRegion || "").toLowerCase();
   if (r === "sg" || r.includes("singapore")) return "marscode-sg";
@@ -181,6 +195,9 @@ function traeScopeForRegion(aiRegion) {
   return "marscode-us";
 }
 
+// Trae — browser OAuth: GetLoginGuidance → verification URL
+// → local callback (refreshToken+loginHost) → ExchangeToken → GetUserInfo.
+// state === config.loginTraceID so the proxy can match the callback.
 const trae = {
   config: TRAE_CONFIG,
   flowType: "authorization_code",
@@ -197,8 +214,10 @@ const trae = {
   },
   exchangeToken: async (config, code) => {
     const trimmed = String(code || "").trim();
+    // Paste-token mode: raw Cloud-IDE-JWT (no refresh exchange)
     const looksCallback = /[?=&]/.test(trimmed) && (trimmed.includes("refreshToken") || trimmed.includes("refresh_token"));
     if (!looksCallback) {
+      // Strip "Cloud-IDE-JWT " / "Bearer " prefix users paste from the Authorization header
       const clean = trimmed.replace(/^(Cloud-IDE-JWT|Bearer)\s+/i, "");
       return { accessToken: clean, refreshToken: null, expiresIn: TRAE_CONFIG.tokenLifetimeDays * 24 * 60 * 60, _authMethod: "imported" };
     }
@@ -214,6 +233,8 @@ const trae = {
       || (tokens.expiresAt ? Math.max(60, Number(tokens.expiresAt) - Math.floor(Date.now() / 1000)) : TRAE_CONFIG.tokenLifetimeDays * 24 * 60 * 60);
     const ui = extra?.userInfo || {};
     const aiRegion = ui.aiRegion || "US-East";
+    // SOLO common_params defaults — identity fields web_id/biz_user_id are not
+    // exposed by GetUserInfo; empty strings are accepted upstream (verified).
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

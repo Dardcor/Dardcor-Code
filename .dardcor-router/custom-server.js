@@ -129,16 +129,31 @@ http.createServer = (...args) => {
     const isLoopbackProxy = socketIp === "127.0.0.1" || socketIp === "::1" || socketIp === "::ffff:127.0.0.1";
     const proxyIp = xRealIp || (xff ? String(xff).split(",")[0].trim() : "");
     const ip = isLoopbackProxy && proxyIp ? proxyIp : socketIp;
+    delete req.headers["x-dardcor-real-ip"];
     delete req.headers["x-9r-real-ip"];
     delete req.headers["x-forwarded-for"];
+    delete req.headers["x-dardcor-via-proxy"];
     delete req.headers["x-9r-via-proxy"];
+    delete req.headers["x-dardcor-peer-token"];
     delete req.headers["x-9r-peer-token"];
+    req.headers["x-dardcor-real-ip"] = ip;
     req.headers["x-9r-real-ip"] = ip;
+    req.headers["x-dardcor-peer-token"] = PEER_TOKEN;
     req.headers["x-9r-peer-token"] = PEER_TOKEN;
-    if (viaProxy) req.headers["x-9r-via-proxy"] = "1";
+    if (viaProxy) req.headers["x-dardcor-via-proxy"] = "1";
+    req.headers["x-9r-via-proxy"] = "1";
     return handler(req, res);
   };
   const server = origCreate(...rest, wrapped);
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+  server.requestTimeout = 300000;
+  server.on("connection", (socket) => {
+    try {
+      socket.setNoDelay(true);
+      socket.setKeepAlive(true, 30000);
+    } catch {}
+  });
   server.once("listening", () => {
     startBackgroundTokenRefreshFromCustomServer();
   });

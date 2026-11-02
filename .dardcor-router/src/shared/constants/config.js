@@ -1,20 +1,23 @@
 import pkg from "../../../package.json" with { type: "json" };
 
+// App configuration
 export const APP_CONFIG = {
   name: "Dardcor Router",
-  description: "AI Infrastructure Management",
+  description: "AI Infrastructure Management for Dardcor Code",
   version: pkg.version,
 };
 
+// GitHub configuration
 export const GITHUB_CONFIG = {
-  changelogUrl: "https://raw.githubusercontent.com/dardcor/dardcor-code/refs/heads/master/CHANGELOG.md",
-  donateUrl: "https://dardcor-code.web.id/api/donate",
+  changelogUrl: "https://raw.githubusercontent.com/dardcor/dardcor-code/main/CHANGELOG.md",
+  donateUrl: "",
 };
 
+// Updater configuration
 export const UPDATER_CONFIG = {
   npmPackageName: "dardcor-code",
-  installCmd: "npm i -g dardcor-code",
-  installCmdLatest: "npm i -g dardcor-code@latest --prefer-online",
+  installCmd: "npm run start",
+  installCmdLatest: "npm run start",
   shutdownCountdownSec: 3,
   exitDelayMs: 500,
   statusPort: 25129,
@@ -29,11 +32,13 @@ export const UPDATER_CONFIG = {
   appPort: 25128,
 };
 
+// Theme configuration
 export const THEME_CONFIG = {
   storageKey: "theme",
-  defaultTheme: "dark",
+  defaultTheme: "system", // "light" | "dark" | "system"
 };
 
+// Subscription
 export const SUBSCRIPTION_CONFIG = {
   price: 1.0,
   currency: "USD",
@@ -41,6 +46,7 @@ export const SUBSCRIPTION_CONFIG = {
   planName: "Pro Plan",
 };
 
+// API endpoints
 export const API_ENDPOINTS = {
   users: "/api/users",
   providers: "/api/providers",
@@ -53,17 +59,19 @@ export const CONSOLE_LOG_CONFIG = {
   pollIntervalMs: 1000,
 };
 
+// Client-side store TTL: how long fetched data stays fresh before re-fetching
 export const CLIENT_STORE_TTL_MS = 60000;
 
+// Quota auto-ping: keep 5h windows warm by sending a tiny request right after reset.
 export const QUOTA_AUTOPING_CONFIG = {
-  tickIntervalMs: 60000,
-  pingLeadMs: 5000,
-  refreshAheadMs: 300000,
-  failureCooldownMs: 900000,
+  tickIntervalMs: 60000,                // scheduler tick
+  pingLeadMs: 5000,                     // fire once reset passes (within tolerance)
+  refreshAheadMs: 300000,               // refetch usage when within 5min of reset
+  failureCooldownMs: 900000,            // avoid failed ping spam while upstream/auth is unhealthy
   providers: {
     claude: {
-      settingsKey: "claudeAutoPing",
-      quotaKey: "session (5h)",
+      settingsKey: "claudeAutoPing",    // preserve existing settings contract
+      quotaKey: "session (5h)",         // quota key returned by usage handler
       pingModel: "claude-haiku-4-5-20251001",
       pingText: "hi",
       pingMaxTokens: 1,
@@ -75,7 +83,8 @@ export const QUOTA_AUTOPING_CONFIG = {
       resetAtDriftMs: 30000,
       minPingIntervalMs: 600000,
       skipWhenBlockingQuotaExhausted: true,
-      pingModel: "gpt-5.5",
+      // gpt-5.6-terra is the lightweight model for auto-pinging Codex 5h reset window.
+      pingModel: "gpt-5.6-terra",
       pingText: "hi",
       pingInstructions: "Reply with OK.",
       pingReasoningEffort: "none",
@@ -83,6 +92,7 @@ export const QUOTA_AUTOPING_CONFIG = {
   },
 };
 
+// Re-export from providers.js for backward compatibility
 export {
   FREE_PROVIDERS,
   OAUTH_PROVIDERS,
@@ -92,6 +102,7 @@ export {
   AUTH_METHODS,
 } from "./providers.js";
 
+// Re-export from models.js for backward compatibility
 export {
   PROVIDER_MODELS,
   AI_MODELS,

@@ -1,4 +1,8 @@
-import { OPENCODE_CONFIG } from "../constants/oauth.js";
+const OPENCODE_CONFIG = {
+  clientId: "opencode-cli",
+  deviceCodeUrl: "https://opencode.ai/auth/device/code",
+  tokenUrl: "https://opencode.ai/auth/device/token",
+};
 
 const opencode = {
   config: OPENCODE_CONFIG,

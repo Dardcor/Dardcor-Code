@@ -1,5 +1,7 @@
 import { GITLAB_CONFIG } from "../constants/oauth.js";
 
+// GitLab Duo - Authorization Code Flow with PKCE
+// Supports two login modes via loginMode metadata: "oauth" (default) or "pat"
 const gitlab = {
   config: GITLAB_CONFIG,
   flowType: "authorization_code_pkce",
@@ -36,6 +38,7 @@ const gitlab = {
     });
     if (!response.ok) throw new Error(`GitLab token exchange failed: ${await response.text()}`);
     const tokens = await response.json();
+    // Fetch user info
     const userRes = await fetch(`${baseUrl}${config.userInfoUrlPath}`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });

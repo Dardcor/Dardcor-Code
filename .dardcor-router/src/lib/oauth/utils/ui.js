@@ -1,6 +1,9 @@
 import chalk from "chalk";
 import ora from "ora";
 
+/**
+ * UI Helper Functions
+ */
 
 export function success(message) {
   console.log(chalk.green(`\n✓ ${message}\n`));

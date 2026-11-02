@@ -1,3 +1,7 @@
+/**
+ * DeepSeek usage — GET https://api.deepseek.com/user/balance
+ * Auth: Bearer <apiKey>
+ */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { toFiniteNumber } from "./shared.js";
@@ -32,6 +36,10 @@ function parseBalanceInfos(data) {
   return results;
 }
 
+/**
+ * @param {string|null|undefined} apiKey
+ * @param {object|null} proxyOptions
+ */
 export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
   if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
     return { message: "DeepSeek API key not available. Add a key to view usage." };
@@ -83,12 +91,15 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
     const quotas = {};
     for (const b of balances) {
       const total = Math.max(0, b.totalBalance);
+      // Credit balance: show as "Credit: $X.XX USD" not a usage quota
       quotas[`Balance (${b.currency})`] = {
         used: 0,
         total,
         remainingPercentage: total > 0 ? 100 : 0,
         resetAt: null,
-        unlimited: total > 0,
+        unlimited: false,
+        isCreditBalance: true,
+        currency: b.currency,
       };
     }
 

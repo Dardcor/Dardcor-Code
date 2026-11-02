@@ -132,8 +132,16 @@ export class CreateAndRunTaskTool implements IToolImpl {
 			const raceResult = await Promise.race([this._tasksService.run(task, undefined, TaskRunSource.ChatAgent), timeout(3000)]);
 			result = raceResult && typeof raceResult === 'object' ? raceResult as ITaskSummary : undefined;
 
-			const resources = this._tasksService.getTerminalsForTasks(dependencyTasks ?? task);
-			const terminals = resources?.map(resource => this._terminalService.instances.find(t => t.resource.path === resource?.path && t.resource.scheme === resource.scheme)).filter(Boolean) as ITerminalInstance[];
+			let terminals: ITerminalInstance[] = [];
+			for (let attempt = 0; attempt < 8; attempt++) {
+				const resources = this._tasksService.getTerminalsForTasks(dependencyTasks ?? task);
+				const found = resources?.map(resource => this._terminalService.instances.find(t => t.resource.path === resource?.path && t.resource.scheme === resource.scheme)).filter(Boolean) as ITerminalInstance[];
+				if (found && found.length > 0) {
+					terminals = found;
+					break;
+				}
+				await new Promise(r => setTimeout(r, 100));
+			}
 			if (!terminals || terminals.length === 0) {
 				return { content: [{ kind: 'text', value: `Task started but no terminal was found for: ${args.task.label}` }], toolResultMessage: new MarkdownString(localize('copilotChat.noTerminal', 'Task started but no terminal was found for: `{0}`', args.task.label)) };
 			}
@@ -276,7 +284,7 @@ export const CreateAndRunTaskToolData: IToolData = {
 					},
 					'problemMatcher': {
 						'type': 'array',
-						'description': `The problem matcher to use to parse task output for errors and warnings. Can be a predefined matcher like '$tsc' (TypeScript), '$eslint - stylish', '$gcc', etc., or a custom pattern defined in tasks.json. This helps VS Code display errors in the Problems panel and enables quick navigation to error locations.`,
+						'description': `The problem matcher to use to parse task output for errors and warnings. Can be a predefined matcher like '$tsc' (TypeScript), '$eslint - stylish', '$gcc', etc., or a custom pattern defined in tasks.json. This helps Dardcor Code display errors in the Problems panel and enables quick navigation to error locations.`,
 						'items': {
 							'type': 'string'
 						}

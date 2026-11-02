@@ -709,7 +709,7 @@ configurationRegistry.registerConfiguration({
 		[ChatConfiguration.AutoApprovedUrls]: {
 			default: {
 				'https://www.dardcor-code.web.id': true,
-				'https://github.com/microsoft/vscode/wiki/*': true,
+				'https://github.com/dardcor/dardcor-code/wiki/*': true,
 			},
 			markdownDescription: nls.localize('chat.tools.fetchPage.approvedUrls', "Controls which URLs are automatically approved when requested by chat tools. Keys are URL patterns and values can be `true` to approve both requests and responses, `false` to deny, or an object with `approveRequest` and `approveResponse` properties for granular control.\n\nExamples:\n- `\"https://example.com\": true` - Approve all requests to example.com\n- `\"https://*.example.com\": true` - Approve all requests to any subdomain of example.com\n- `\"https://example.com/api/*\": { \"approveRequest\": true, \"approveResponse\": false }` - Approve requests but not responses for example.com/api paths"),
 			type: 'object',
@@ -936,7 +936,7 @@ configurationRegistry.registerConfiguration({
 			],
 			enumDescriptions: [
 				nls.localize('chat.mcp.access.none', "No access to MCP servers."),
-				nls.localize('chat.mcp.access.registry', "Allows access to MCP servers listed in the registry that VS Code is connected to."),
+				nls.localize('chat.mcp.access.registry', "Allows access to MCP servers listed in the registry that Dardcor Code is connected to."),
 				nls.localize('chat.mcp.access.any', "Allow access to any installed MCP server.")
 			],
 			default: McpAccessValue.All,
@@ -963,7 +963,7 @@ configurationRegistry.registerConfiguration({
 							key: 'chat.mcp.access.none', value: nls.localize('chat.mcp.access.none', "No access to MCP servers."),
 						},
 						{
-							key: 'chat.mcp.access.registry', value: nls.localize('chat.mcp.access.registry', "Allows access to MCP servers listed in the registry that VS Code is connected to."),
+							key: 'chat.mcp.access.registry', value: nls.localize('chat.mcp.access.registry', "Allows access to MCP servers listed in the registry that Dardcor Code is connected to."),
 						},
 						{
 							key: 'chat.mcp.access.any', value: nls.localize('chat.mcp.access.any', "Allow access to any installed MCP server.")
@@ -1462,7 +1462,7 @@ configurationRegistry.registerConfiguration({
 			type: 'string',
 			enum: [...copilotSdkLogLevelSettingValues],
 			enumDescriptions: [
-				nls.localize('chat.agentHost.copilotSdk.logLevel.info', "Log informational messages. Running VS Code with trace logging still enables all Dardcor SDK runtime diagnostics."),
+				nls.localize('chat.agentHost.copilotSdk.logLevel.info', "Log informational messages. Running Dardcor Code with trace logging still enables all Dardcor SDK runtime diagnostics."),
 				nls.localize('chat.agentHost.copilotSdk.logLevel.trace', "Log all Dardcor SDK runtime diagnostics."),
 			],
 			markdownDescription: nls.localize('chat.agentHost.copilotSdk.logLevel', "Controls the log level for the Dardcor SDK runtime used by the local agent host. Changing this setting restarts the Dardcor SDK client; active sessions are reloaded when next used."),
@@ -1478,7 +1478,7 @@ configurationRegistry.registerConfiguration({
 		},
 		[AgentHostToolSearchEnabledSettingId]: {
 			type: 'boolean',
-			description: nls.localize('chat.agentHost.copilot.toolSearch.enabled', "When enabled, Dardcor SDK sessions defer MCP and non-core VS Code tools behind a tool-search tool so the model discovers them on demand instead of loading every tool definition up front."),
+			description: nls.localize('chat.agentHost.copilot.toolSearch.enabled', "When enabled, Dardcor SDK sessions defer MCP and non-core Dardcor Code tools behind a tool-search tool so the model discovers them on demand instead of loading every tool definition up front."),
 			default: true,
 			tags: ['experimental', 'advanced'],
 		},

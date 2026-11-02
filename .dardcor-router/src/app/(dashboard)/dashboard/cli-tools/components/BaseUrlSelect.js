@@ -57,12 +57,14 @@ export default function BaseUrlSelect({
   const [mode, setMode] = useState("");
   const [customInput, setCustomInput] = useState("");
   const initializedRef = useRef(false);
+  const currentUrlRef = useRef("");
   const customInputRef = useRef("");
 
   useEffect(() => {
     const sync = () => {
       const presets = readPresets();
       setSavedPresets(presets);
+      // A preset saved elsewhere (e.g. on Apply) takes over the custom slot
       setMode((prev) => {
         if (prev !== CUSTOM_VALUE) return prev;
         const typed = stripSlash(customInputRef.current);
@@ -84,22 +86,34 @@ export default function BaseUrlSelect({
     [requiresExternalUrl, tunnelEnabled, tunnelPublicUrl, tailscaleEnabled, tailscaleUrl, cloudEnabled, cloudUrl, savedPresets, withV1]
   );
 
+  // Sync the active config URL without replacing edits unless the config itself changes.
   useEffect(() => {
-    if (initializedRef.current) return;
     if (!presetsLoaded || options.length === 0) return;
+    const normalizeUrl = (url) => (withV1 ? ensureV1(url) : stripSlash(url));
+    const current = normalizeUrl(currentUrl);
+    if (initializedRef.current && currentUrlRef.current === current) return;
     initializedRef.current = true;
-    const current = stripSlash(currentUrl);
+    currentUrlRef.current = current;
     const matched = current
-      ? options.find((o) => o.saved && stripSlash(o.url) === current)
+      ? options.find((o) => o.value !== CUSTOM_VALUE && normalizeUrl(o.url) === current)
       : null;
-    const target = matched || options.find((o) => o.value !== CUSTOM_VALUE);
-    if (target) {
+    if (matched) {
+      setCustomInput("");
+      customInputRef.current = "";
+      setMode(matched.value);
+      onChange(matched.url);
+    } else if (current) {
+      setCustomInput(current);
+      customInputRef.current = current;
+      setMode(CUSTOM_VALUE);
+      onChange(current);
+    } else {
+      const target = options.find((o) => o.value !== CUSTOM_VALUE);
+      if (!target) return;
       setMode(target.value);
       onChange(target.url);
-    } else {
-      setMode(CUSTOM_VALUE);
     }
-  }, [presetsLoaded, options, onChange, currentUrl]);
+  }, [presetsLoaded, options, onChange, currentUrl, withV1]);
 
   const handleSelect = (e) => {
     const next = e.target.value;

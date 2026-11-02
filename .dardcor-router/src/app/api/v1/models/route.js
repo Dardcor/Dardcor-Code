@@ -65,7 +65,15 @@ const LIVE_MODEL_RESOLVERS = {
       accessToken: conn.accessToken,
       refreshToken: conn.refreshToken,
       providerSpecificData: conn.providerSpecificData || {}
-    }, { log: console });
+    }, {
+      log: console,
+      onCredentialsRefreshed: async (refreshed) => {
+        await updateProviderCredentials(conn.id, {
+          ...refreshed,
+          existingProviderSpecificData: conn.providerSpecificData || {},
+        });
+      },
+    });
     return result?.models?.length ? { models: result.models } : null;
   },
   qoder: async (conn) => {
@@ -168,12 +176,53 @@ const LIVE_MODEL_RESOLVERS = {
   },
 };
 
+const LIVE_RESOLVER_CACHE_TTL_MS = 60_000;
+const LIVE_RESOLVER_FAIL_TTL_MS = 30_000;
+const liveResolverCache = new Map();
+const liveResolverInflight = new Map();
+
+async function getCachedLiveModels(cacheKey, fetcher) {
+  const now = Date.now();
+  const cached = liveResolverCache.get(cacheKey);
+  if (cached) {
+    const ttl = cached.failed ? LIVE_RESOLVER_FAIL_TTL_MS : LIVE_RESOLVER_CACHE_TTL_MS;
+    if (now - cached.ts < ttl) {
+      return cached.data;
+    }
+  }
+  if (liveResolverInflight.has(cacheKey)) {
+    return liveResolverInflight.get(cacheKey);
+  }
+  const promise = (async () => {
+    try {
+      const data = await fetcher();
+      if (data) {
+        liveResolverCache.set(cacheKey, { data, ts: Date.now(), failed: false });
+      } else if (cached && !cached.failed) {
+        liveResolverCache.set(cacheKey, { data: cached.data, ts: Date.now(), failed: true });
+        return cached.data;
+      } else {
+        liveResolverCache.set(cacheKey, { data: null, ts: Date.now(), failed: true });
+      }
+      return data;
+    } catch (err) {
+      if (cached && !cached.failed) return cached.data;
+      liveResolverCache.set(cacheKey, { data: null, ts: Date.now(), failed: true });
+      throw err;
+    } finally {
+      liveResolverInflight.delete(cacheKey);
+    }
+  })();
+  liveResolverInflight.set(cacheKey, promise);
+  return promise;
+}
+
 const parseOpenAIStyleModels = (data) => {
   if (Array.isArray(data)) return data;
   return data?.data || data?.models || data?.results || [];
 };
 
-const INTERNAL_MODELS_FETCH_HEADER = "x-9r-internal-models-fetch";
+const INTERNAL_MODELS_FETCH_HEADER = "x-dardcor-internal-models-fetch";
 
 const LLM_KIND = "llm";
 
@@ -318,6 +367,7 @@ export async function buildModelsList(kindFilter, options = {}) {
 
   const activeConnectionByProvider = new Map();
   for (const conn of connections) {
+    if (providerStatuses[conn.provider.toLowerCase()] === false) continue;
     if (!activeConnectionByProvider.has(conn.provider)) {
       activeConnectionByProvider.set(conn.provider, conn);
     }
@@ -352,6 +402,9 @@ export async function buildModelsList(kindFilter, options = {}) {
   }
 
   if (activeConnectionByProvider.size === 0) {
+    if (options.connectedOnly) {
+      return models; // Return only configured combos or empty when connectedOnly is requested
+    }
     const aliasToProviderId = Object.fromEntries(
       Object.entries(PROVIDER_ID_TO_ALIAS).map(([id, alias]) => [alias, id])
     );
@@ -388,9 +441,8 @@ export async function buildModelsList(kindFilter, options = {}) {
     }
   } else {
     for (const [providerId, conn] of activeConnectionByProvider.entries()) {
-      if (providerStatuses[providerId.toLowerCase()] !== true) {
-        providerStatuses[providerId.toLowerCase()] = true;
-        setProviderStatus(providerId, true).catch(() => {});
+      if (providerStatuses[providerId.toLowerCase()] === false) {
+        continue;
       }
       if (!providerMatchesKinds(providerId, kindFilter)) continue;
 
@@ -424,13 +476,15 @@ export async function buildModelsList(kindFilter, options = {}) {
         : providerModels.map((model) => model.id);
 
       if (isCompatibleProvider && rawModelIds.length === 0 && !skipDynamicFetch) {
-        rawModelIds = await fetchCompatibleModelIds(conn);
+        const compatKey = `compat:${providerId}:${conn?.id || "default"}`;
+        rawModelIds = (await getCachedLiveModels(compatKey, () => fetchCompatibleModelIds(conn))) || [];
       }
 
       const liveResolver = LIVE_MODEL_RESOLVERS[providerId];
       if (liveResolver && !hasExplicitEnabledModels) {
         try {
-          const live = await liveResolver(conn);
+          const resolverKey = `live:${providerId}:${conn?.id || "default"}`;
+          const live = await getCachedLiveModels(resolverKey, () => liveResolver(conn));
           if (live?.models?.length) {
             rawModelIds = live.models.map((m) => m.id);
             liveModelKindById = new Map(

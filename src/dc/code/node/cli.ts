@@ -212,7 +212,7 @@ export async function main(argv: string[]): Promise<void> {
 		}
 
 		if (args['transient']) {
-			const tempParentDir = randomPath(tmpdir(), 'vscode');
+			const tempParentDir = randomPath(tmpdir(), 'dardcor-code');
 			const tempUserDataDir = join(tempParentDir, 'data');
 			const tempExtensionsDir = join(tempParentDir, 'extensions');
 			const tempSharedDataDir = join(tempParentDir, 'shared');

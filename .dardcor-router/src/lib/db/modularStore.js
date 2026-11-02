@@ -716,10 +716,30 @@ export function importFromModular(adapter, baseDir) {
   ensureAllProviderFoldersExist(baseDir);
 }
 
-export function saveProviderSync(adapter, providerId, baseDir) {
+async function writeAtomicAsync(filePath, content) {
+  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
+  try {
+    await fs.promises.writeFile(tmpPath, content, "utf-8");
+    if (process.platform === "win32") {
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (err) {
+        if (err && err.code !== "ENOENT") throw err;
+      }
+    }
+    await fs.promises.rename(tmpPath, filePath);
+  } catch {
+    try {
+      await fs.promises.unlink(tmpPath);
+    } catch {}
+    await fs.promises.writeFile(filePath, content, "utf-8");
+  }
+}
+
+function buildProviderPayload(adapter, providerId, baseDir) {
   baseDir = getBaseDir(baseDir);
-  if (!providerId || typeof providerId !== "string") return;
-  if (!/^[a-zA-Z0-9_.-]+$/.test(providerId) || providerId.includes(":") || providerId.length > 50) return;
+  if (!providerId || typeof providerId !== "string") return null;
+  if (!/^[a-zA-Z0-9_.-]+$/.test(providerId) || providerId.includes(":") || providerId.length > 50) return null;
   const rows = adapter.all(`SELECT * FROM providerConnections WHERE provider = ?`, [providerId]);
   const unpacked = rows.map((r) => {
     const extra = parseJson(r.data, {});
@@ -731,8 +751,15 @@ export function saveProviderSync(adapter, providerId, baseDir) {
     };
   });
   const { dirPath, filePath } = resolveProviderDbPath(providerId, baseDir);
+  return { dirPath, filePath, content: JSON.stringify(unpacked, null, 2), baseDir };
+}
+
+export function saveProviderSync(adapter, providerId, baseDir) {
+  const payload = buildProviderPayload(adapter, providerId, baseDir);
+  if (!payload) return;
+  const { dirPath, filePath, content } = payload;
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(unpacked, null, 2), "utf-8");
+  fs.writeFileSync(filePath, content, "utf-8");
 
   const legacyNested = path.join(dirPath, "db", path.basename(filePath));
   if (fs.existsSync(legacyNested)) {
@@ -742,11 +769,11 @@ export function saveProviderSync(adapter, providerId, baseDir) {
     } catch {}
   }
 
-  const legacyRootFile = path.join(baseDir, path.basename(dirPath), path.basename(filePath));
+  const legacyRootFile = path.join(payload.baseDir, path.basename(dirPath), path.basename(filePath));
   if (fs.existsSync(legacyRootFile) && legacyRootFile !== filePath) {
     try {
       fs.unlinkSync(legacyRootFile);
-      const parentDir = path.join(baseDir, path.basename(dirPath));
+      const parentDir = path.join(payload.baseDir, path.basename(dirPath));
       if (fs.readdirSync(parentDir).length === 0) {
         fs.rmdirSync(parentDir);
       }
@@ -754,34 +781,37 @@ export function saveProviderSync(adapter, providerId, baseDir) {
   }
 }
 
-export function saveSystemDbSync(adapter, target, baseDir) {
+export async function saveProviderAsync(adapter, providerId, baseDir) {
+  const payload = buildProviderPayload(adapter, providerId, baseDir);
+  if (!payload) return;
+  const { dirPath, filePath, content } = payload;
+  await fs.promises.mkdir(dirPath, { recursive: true });
+  await writeAtomicAsync(filePath, content);
+}
+
+function buildSystemDbPayload(adapter, target, baseDir) {
   baseDir = getBaseDir(baseDir);
   const sysDbDir = getSystemDbDir(baseDir);
-  fs.mkdirSync(sysDbDir, { recursive: true });
 
   switch (target) {
     case "settings": {
       const row = adapter.get(`SELECT data FROM settings WHERE id = 1`);
       const data = row ? parseJson(row.data, {}) : {};
-      fs.writeFileSync(path.join(sysDbDir, "settings.json"), JSON.stringify(data, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "settings.json"), content: JSON.stringify(data, null, 2) };
     }
     case "api-keys":
     case "apiKeys": {
       const rows = adapter.all(`SELECT * FROM apiKeys`);
-      fs.writeFileSync(path.join(sysDbDir, "api-keys.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "api-keys.json"), content: JSON.stringify(rows, null, 2) };
     }
     case "combos": {
       const rows = adapter.all(`SELECT * FROM combos`);
-      fs.writeFileSync(path.join(sysDbDir, "combos.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "combos.json"), content: JSON.stringify(rows, null, 2) };
     }
     case "proxy-pools":
     case "proxyPools": {
       const rows = adapter.all(`SELECT * FROM proxyPools`);
-      fs.writeFileSync(path.join(sysDbDir, "proxy-pools.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "proxy-pools.json"), content: JSON.stringify(rows, null, 2) };
     }
     case "aliases": {
       const aliasesObj = { modelAliases: {}, customModels: [], mitmAlias: {}, disabledModels: {}, providerStatus: {} };
@@ -800,65 +830,93 @@ export function saveSystemDbSync(adapter, target, baseDir) {
       for (const r of adapter.all(`SELECT key, value FROM kv WHERE scope = 'providerStatus'`)) {
         aliasesObj.providerStatus[r.key] = parseJson(r.value, r.value);
       }
-      fs.writeFileSync(path.join(sysDbDir, "aliases.json"), JSON.stringify(aliasesObj, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "aliases.json"), content: JSON.stringify(aliasesObj, null, 2) };
     }
     case "pricing": {
       const pricingObj = {};
       for (const r of adapter.all(`SELECT key, value FROM kv WHERE scope = 'pricing'`)) {
         pricingObj[r.key] = parseJson(r.value, r.value);
       }
-      fs.writeFileSync(path.join(sysDbDir, "pricing.json"), JSON.stringify(pricingObj, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "pricing.json"), content: JSON.stringify(pricingObj, null, 2) };
     }
     case "nodes":
     case "providerNodes": {
       const rows = adapter.all(`SELECT * FROM providerNodes`);
-      fs.writeFileSync(path.join(sysDbDir, "nodes.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "nodes.json"), content: JSON.stringify(rows, null, 2) };
     }
     case "meta":
     case "_meta": {
       const rows = adapter.all(`SELECT key, value FROM _meta`);
       const metaObj = {};
       for (const r of rows) metaObj[r.key] = r.value;
-      fs.writeFileSync(path.join(sysDbDir, "meta.json"), JSON.stringify(metaObj, null, 2), "utf-8");
-      break;
+      return { sysDbDir, filePath: path.join(sysDbDir, "meta.json"), content: JSON.stringify(metaObj, null, 2) };
     }
+    default:
+      return null;
   }
 }
 
-export function saveSystemUsageSync(adapter, target, baseDir) {
+export function saveSystemDbSync(adapter, target, baseDir) {
+  const payload = buildSystemDbPayload(adapter, target, baseDir);
+  if (!payload) return;
+  fs.mkdirSync(payload.sysDbDir, { recursive: true });
+  fs.writeFileSync(payload.filePath, payload.content, "utf-8");
+}
+
+export async function saveSystemDbAsync(adapter, target, baseDir) {
+  const payload = buildSystemDbPayload(adapter, target, baseDir);
+  if (!payload) return;
+  await fs.promises.mkdir(payload.sysDbDir, { recursive: true });
+  await writeAtomicAsync(payload.filePath, payload.content);
+}
+
+const MAX_PERSISTED_USAGE_HISTORY = 1000;
+const MAX_PERSISTED_REQUEST_DETAILS = 300;
+
+function buildSystemUsagePayload(adapter, target, baseDir) {
   baseDir = getBaseDir(baseDir);
   const sysUsageDir = getSystemUsageDir(baseDir);
-  fs.mkdirSync(sysUsageDir, { recursive: true });
 
   switch (target) {
     case "history":
     case "usageHistory": {
-      const rows = adapter.all(`SELECT * FROM usageHistory`);
-      fs.writeFileSync(path.join(sysUsageDir, "history.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      const rows = adapter.all(`SELECT * FROM usageHistory ORDER BY id DESC LIMIT ?`, [MAX_PERSISTED_USAGE_HISTORY]).reverse();
+      return { sysUsageDir, filePath: path.join(sysUsageDir, "history.json"), content: JSON.stringify(rows, null, 2) };
     }
     case "daily":
     case "usageDaily": {
       const rows = adapter.all(`SELECT * FROM usageDaily`);
-      fs.writeFileSync(path.join(sysUsageDir, "daily.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      return { sysUsageDir, filePath: path.join(sysUsageDir, "daily.json"), content: JSON.stringify(rows, null, 2) };
     }
     case "request-details":
     case "requestDetails": {
-      const rows = adapter.all(`SELECT * FROM requestDetails`);
-      fs.writeFileSync(path.join(sysUsageDir, "request-details.json"), JSON.stringify(rows, null, 2), "utf-8");
-      break;
+      const rows = adapter.all(`SELECT * FROM requestDetails ORDER BY timestamp DESC LIMIT ?`, [MAX_PERSISTED_REQUEST_DETAILS]);
+      return { sysUsageDir, filePath: path.join(sysUsageDir, "request-details.json"), content: JSON.stringify(rows, null, 2) };
     }
+    default:
+      return null;
   }
+}
+
+export function saveSystemUsageSync(adapter, target, baseDir) {
+  const payload = buildSystemUsagePayload(adapter, target, baseDir);
+  if (!payload) return;
+  fs.mkdirSync(payload.sysUsageDir, { recursive: true });
+  fs.writeFileSync(payload.filePath, payload.content, "utf-8");
+}
+
+export async function saveSystemUsageAsync(adapter, target, baseDir) {
+  const payload = buildSystemUsagePayload(adapter, target, baseDir);
+  if (!payload) return;
+  await fs.promises.mkdir(payload.sysUsageDir, { recursive: true });
+  await writeAtomicAsync(payload.filePath, payload.content);
 }
 
 const pendingProviderSaves = new Set();
 const pendingSystemDbSaves = new Set();
 const pendingSystemUsageSaves = new Set();
 let debounceTimer = null;
+let flushInFlight = false;
 
 export function scheduleModularSave(adapter, { provider, systemDb, systemUsage } = {}) {
   if (provider) pendingProviderSaves.add(provider);
@@ -868,8 +926,54 @@ export function scheduleModularSave(adapter, { provider, systemDb, systemUsage }
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
-    flushModularSaveSync(adapter);
-  }, 500);
+    void flushModularSaveAsync(adapter);
+  }, 250);
+}
+
+export async function flushModularSaveAsync(adapter, baseDir) {
+  if (flushInFlight) return;
+  flushInFlight = true;
+  baseDir = getBaseDir(baseDir);
+
+  try {
+    const providers = Array.from(pendingProviderSaves);
+    pendingProviderSaves.clear();
+
+    const sysDbs = Array.from(pendingSystemDbSaves);
+    pendingSystemDbSaves.clear();
+
+    const usages = Array.from(pendingSystemUsageSaves);
+    pendingSystemUsageSaves.clear();
+
+    const tasks = [];
+    for (const prov of providers) {
+      tasks.push(
+        saveProviderAsync(adapter, prov, baseDir).catch((e) => {
+          console.error(`[DB] Failed to save provider ${prov}:`, e.message);
+        })
+      );
+    }
+    for (const target of sysDbs) {
+      tasks.push(
+        saveSystemDbAsync(adapter, target, baseDir).catch((e) => {
+          console.error(`[DB] Failed to save system DB ${target}:`, e.message);
+        })
+      );
+    }
+    for (const target of usages) {
+      tasks.push(
+        saveSystemUsageAsync(adapter, target, baseDir).catch((e) => {
+          console.error(`[DB] Failed to save usage ${target}:`, e.message);
+        })
+      );
+    }
+    await Promise.all(tasks);
+  } finally {
+    flushInFlight = false;
+    if (pendingProviderSaves.size > 0 || pendingSystemDbSaves.size > 0 || pendingSystemUsageSaves.size > 0) {
+      scheduleModularSave(adapter);
+    }
+  }
 }
 
 export function flushModularSaveSync(adapter, baseDir) {

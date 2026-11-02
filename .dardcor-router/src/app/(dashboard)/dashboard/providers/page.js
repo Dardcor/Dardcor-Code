@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import {
   Card,
@@ -157,39 +157,71 @@ export default function ProvidersPage() {
       return (a.name || "").localeCompare(b.name || "");
     });
 
+  const fetchData = useCallback(async (isBackground = false) => {
+    try {
+      if (!isBackground) setLoading(true);
+      const [connectionsRes, nodesRes, statusRes] = await Promise.all([
+        fetch("/api/providers", { cache: "no-store" }),
+        fetch("/api/provider-nodes", { cache: "no-store" }),
+        fetch("/api/providers/status", { cache: "no-store" }),
+      ]);
+      const connectionsData = await connectionsRes.json();
+      const nodesData = await nodesRes.json();
+      const statusData = statusRes.ok ? await statusRes.json() : {};
+      if (connectionsRes.ok)
+        setConnections(connectionsData.connections || []);
+      if (nodesRes.ok) setProviderNodes(nodesData.nodes || []);
+      if (statusData.statuses) setProviderStatuses(statusData.statuses);
+    } catch (error) {
+      console.log("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [connectionsRes, nodesRes, statusRes] = await Promise.all([
-          fetch("/api/providers"),
-          fetch("/api/provider-nodes"),
-          fetch("/api/providers/status"),
-        ]);
-        const connectionsData = await connectionsRes.json();
-        const nodesData = await nodesRes.json();
-        const statusData = statusRes.ok ? await statusRes.json() : {};
-        if (connectionsRes.ok)
-          setConnections(connectionsData.connections || []);
-        if (nodesRes.ok) setProviderNodes(nodesData.nodes || []);
-        if (statusData.statuses) setProviderStatuses(statusData.statuses);
-      } catch (error) {
-        console.log("Error fetching data:", error);
-      } finally {
-        setLoading(false);
+    fetchData();
+
+    const onSync = () => fetchData(true);
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        fetchData(true);
       }
     };
-    fetchData();
-  }, []);
+
+    window.addEventListener("focus", onSync);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("providersChanged", onSync);
+    window.addEventListener("modelsChanged", onSync);
+
+    let bc;
+    try {
+      bc = new BroadcastChannel("dardcor_providers");
+      bc.onmessage = () => fetchData(true);
+    } catch {}
+
+    const pollTimer = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        fetchData(true);
+      }
+    }, 3000);
+
+    return () => {
+      window.removeEventListener("focus", onSync);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("providersChanged", onSync);
+      window.removeEventListener("modelsChanged", onSync);
+      clearInterval(pollTimer);
+      if (bc) bc.close();
+    };
+  }, [fetchData]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleStatusUpdate = (e) => {
       const detail = e.detail;
       if (!detail?.providerId) {
-        fetch("/api/providers/status")
-          .then((r) => r.json())
-          .then((d) => { if (d.statuses) setProviderStatuses(d.statuses); })
-          .catch(() => {});
+        fetchData(true);
         return;
       }
       setProviderStatuses((prev) => ({
@@ -199,11 +231,16 @@ export default function ProvidersPage() {
     };
     window.addEventListener("providerStatusChanged", handleStatusUpdate);
     return () => window.removeEventListener("providerStatusChanged", handleStatusUpdate);
-  }, []);
+  }, [fetchData]);
 
   const handleToggleProviderStatus = async (providerId, nextState) => {
     const key = providerId.toLowerCase();
     setProviderStatuses((prev) => ({ ...prev, [key]: nextState }));
+    setConnections((prev) =>
+      prev.map((c) =>
+        c.provider.toLowerCase() === key ? { ...c, isActive: nextState } : c
+      )
+    );
     try {
       const res = await fetch(`/api/providers/status/${encodeURIComponent(providerId)}`, {
         method: "PUT",
@@ -217,20 +254,41 @@ export default function ProvidersPage() {
           type: "error",
           message: `Failed to update status for ${providerId}`,
         });
-      } else {
-        notify.addNotification({
-          type: nextState ? "success" : "info",
-          message: `${providerId} is now ${nextState ? "ON (Active)" : "OFF (Disabled)"}`,
-        });
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("providerStatusChanged", {
-              detail: { providerId, enabled: nextState },
+        return;
+      }
+
+      const matchingConns = connections.filter(
+        (c) => c.provider.toLowerCase() === key
+      );
+      if (matchingConns.length > 0) {
+        await Promise.allSettled(
+          matchingConns.map((c) =>
+            fetch(`/api/providers/${c.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ isActive: nextState }),
             })
-          );
-          window.dispatchEvent(new CustomEvent("providersChanged"));
-          window.dispatchEvent(new CustomEvent("modelsChanged"));
-        }
+          )
+        );
+      }
+
+      notify.addNotification({
+        type: nextState ? "success" : "info",
+        message: `${providerId} is now ${nextState ? "ON (Active)" : "OFF (Disabled)"}`,
+      });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("providerStatusChanged", {
+            detail: { providerId, enabled: nextState },
+          })
+        );
+        window.dispatchEvent(new CustomEvent("providersChanged"));
+        window.dispatchEvent(new CustomEvent("modelsChanged"));
+        try {
+          const bc = new BroadcastChannel("dardcor_providers");
+          bc.postMessage({ providerId, enabled: nextState });
+          bc.close();
+        } catch {}
       }
     } catch (error) {
       console.log("Error toggling provider status:", error);
@@ -298,8 +356,10 @@ export default function ProvidersPage() {
     return { connected, error, total, errorCode, errorTime, allDisabled };
   };
 
-  const matchStatus = (stats, isNoAuth) =>
-    matchesStatusFilter(statusFilter, stats, isNoAuth);
+  const matchStatus = (stats, isNoAuth, providerId) => {
+    const isEnabled = providerStatuses[providerId?.toLowerCase()] === true;
+    return matchesStatusFilter(statusFilter, stats, isNoAuth, isEnabled);
+  };
 
   const handleToggleProvider = async (providerId, authType, newActive) => {
     let authTypes = Array.isArray(authType) ? authType : [authType];
@@ -327,6 +387,14 @@ export default function ProvidersPage() {
         }),
       ),
     );
+
+    const updatedConns = connections.map((c) => (matches(c) ? { ...c, isActive: newActive } : c));
+    const hasAnyActive = updatedConns.some(
+      (c) => c.provider.toLowerCase() === providerId.toLowerCase() && c.isActive
+    );
+    if (providerStatuses[providerId.toLowerCase()] !== hasAnyActive) {
+      handleToggleProviderStatus(providerId, hasAnyActive);
+    }
   };
 
   const handleBatchTest = async (mode, providerId = null) => {
@@ -364,7 +432,7 @@ export default function ProvidersPage() {
       apiType: node.apiType,
     }))
     .filter(
-      (p) => matchSearch(p.name) && matchStatus(getProviderStats(p.id, "apikey")),
+      (p) => matchSearch(p.name) && matchStatus(getProviderStats(p.id, "apikey"), false, p.id),
     );
 
   const anthropicCompatibleProviders = providerNodes
@@ -376,7 +444,7 @@ export default function ProvidersPage() {
       textIcon: "AC",
     }))
     .filter(
-      (p) => matchSearch(p.name) && matchStatus(getProviderStats(p.id, "apikey")),
+      (p) => matchSearch(p.name) && matchStatus(getProviderStats(p.id, "apikey"), false, p.id),
     );
 
   const dualAuthTypes = (info, key) => {
@@ -402,7 +470,7 @@ export default function ProvidersPage() {
       ([key, info]) =>
         !info.hidden &&
         matchSearch(info.name) &&
-        matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth),
+        matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth, key),
     ),
   );
   const freeEntries = Object.entries(FREE_PROVIDERS)
@@ -410,7 +478,7 @@ export default function ProvidersPage() {
       ([key, info]) =>
         !info.hidden &&
         matchSearch(info.name) &&
-        matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth),
+        matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth, key),
     )
     .sort(
       ([, a], [, b]) =>
@@ -423,7 +491,7 @@ export default function ProvidersPage() {
         !info.hidden &&
         matchSearch(info.name) &&
         (info.serviceKinds ?? ["llm"]).includes("llm") &&
-        matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth),
+        matchStatus(getProviderStats(key, dualAuthTypes(info, key)), info.noAuth, key),
     )
     .sort(([ka, a], [kb, b]) => {
       const pa = a.priority ?? 999;
@@ -442,7 +510,7 @@ export default function ProvidersPage() {
         !info.hidden &&
         (info.serviceKinds ?? ["llm"]).includes("llm") &&
         matchSearch(info.name) &&
-        matchStatus(getProviderStats(key, "apikey"), info.noAuth),
+        matchStatus(getProviderStats(key, "apikey"), info.noAuth, key),
     )
     .sort(([ka, a], [kb, b]) => {
       const ca = getProviderStats(ka, "apikey").total > 0 ? 0 : 1;
@@ -837,8 +905,8 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle, provide
                       Disabled
                     </span>
                   </Badge>
-                ) : isNoAuth ? (
-                  <Badge variant="success" size="sm" dot>Ready</Badge>
+                ) : (isNoAuth || provider?.noAuth || providerId === "kiro" || providerId === "opencode") ? (
+                  <Badge variant="success" size="sm" dot>{connected > 0 ? `${connected} Connected` : "Ready"}</Badge>
                 ) : (
                   <>
                     {getStatusDisplay(connected, error, errorCode, total)}
@@ -978,6 +1046,8 @@ function ApiKeyProviderCard({
                       Disabled
                     </span>
                   </Badge>
+                ) : (provider?.noAuth || providerId === "kiro" || providerId === "opencode") ? (
+                  <Badge variant="success" size="sm" dot>{connected > 0 ? `${connected} Connected` : "Ready"}</Badge>
                 ) : (
                   <>
                     {getStatusDisplay(connected, error, errorCode, total)}

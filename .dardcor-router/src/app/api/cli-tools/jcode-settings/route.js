@@ -15,7 +15,7 @@ const getConfigPath = () => path.join(getJcodeConfigDir(), "config.toml");
 
 const getProviderEnvPath = () => {
   const configDir = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
-  return path.join(configDir, "jcode", "provider-dardcor-code.env");
+  return path.join(configDir, "jcode", "provider-dardcor-router.env");
 };
 
 const checkJcodeInstalled = async () => {
@@ -44,12 +44,12 @@ const readConfig = async () => {
   }
 };
 
-const hasDardcorCodeConfig = (config) => {
+const hasDardcorRouterConfig = (config) => {
   if (!config || !config.providers) return false;
 
   const providers = config.providers;
 
-  if (providers["dardcor-code"]) return true;
+  if (providers["dardcor-router"]) return true;
 
   for (const [name, provider] of Object.entries(providers)) {
     if (provider.base_url && provider.base_url.includes("localhost:20128")) {
@@ -118,12 +118,12 @@ export async function GET() {
   }
 
   const config = await readConfig();
-  const hasDardcorCode = hasDardcorCodeConfig(config);
+  const hasDardcorRouter = hasDardcorRouterConfig(config);
 
   return NextResponse.json({
     installed: true,
     config,
-    hasDardcorCode,
+    hasDardcorRouter,
     configPath: getConfigPath(),
   });
 }
@@ -149,12 +149,12 @@ export async function POST(request) {
       config.providers = {};
     }
 
-    config.providers["dardcor-code"] = {
+    config.providers["dardcor-router"] = {
       type: "openai-compatible",
       base_url: normalizedBaseUrl,
       auth: "bearer",
-      api_key_env: "JCODE_DARDCOR_CODE_API_KEY",
-      env_file: "provider-dardcor-code.env",
+      api_key_env: "JCODE_DARDCOR_ROUTER_API_KEY",
+      env_file: "provider-dardcor-router.env",
       default_model: models && models.length > 0 ? models[0] : "cc/claude-opus-4-7",
       requires_api_key: true,
     };
@@ -169,12 +169,12 @@ export async function POST(request) {
     await fs.mkdir(jcodeConfigDir, { recursive: true });
 
     const env = await readProviderEnv();
-    env.JCODE_DARDCOR_CODE_API_KEY = apiKey;
+    env.JCODE_DARDCOR_ROUTER_API_KEY = apiKey;
     await writeProviderEnv(env);
 
     return NextResponse.json({
       success: true,
-      message: "jcode configured successfully. Use: jcode --provider-profile dardcor-code",
+      message: "jcode configured successfully. Use: jcode --provider-profile dardcor-router",
       configPath: getConfigPath(),
     });
   } catch (error) {
@@ -194,17 +194,17 @@ export async function DELETE() {
       return NextResponse.json({ success: true, message: "No configuration to remove" });
     }
 
-    delete config.providers["dardcor-code"];
+    delete config.providers["dardcor-router"];
 
     await writeConfig(config);
 
     const env = await readProviderEnv();
-    delete env.JCODE_DARDCOR_CODE_API_KEY;
+    delete env.JCODE_DARDCOR_ROUTER_API_KEY;
     await writeProviderEnv(env);
 
     return NextResponse.json({
       success: true,
-      message: "dardcor-code configuration removed from jcode",
+      message: "Dardcor Router configuration removed from jcode",
     });
   } catch (error) {
     console.error("Error removing jcode configuration:", error);

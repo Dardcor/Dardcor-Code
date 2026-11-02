@@ -7,3 +7,5 @@ export const GROK_CLI_USER_AGENT = `grok-shell/${GROK_CLI_VERSION} (linux; x86_6
 export function supportsGrokCliReasoningEffort(model) {
   return /^grok-4\.5(?:$|-)/.test(String(model || ""));
 }
+
+export const GROK_CLI_PAGER_USER_AGENT = GROK_CLI_USER_AGENT;

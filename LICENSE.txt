@@ -1,6 +1,8 @@
 The MIT License (MIT)
 
 Copyright (c) 2026 - present Dardcor Corporation
+Portions derived from Code - OSS, Copyright (c) 2015 - present Microsoft Corporation
+Portions of Dardcor Router derived from 9router, Copyright (c) decolua
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Dardcor Code Editor"), to deal

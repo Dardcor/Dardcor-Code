@@ -4,7 +4,8 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 import { hasTrustedPeerHeaders } from "@/lib/auth/trustedPeer";
 
-const CLI_TOKEN_HEADER = "x-9r-cli-token";
+const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
+const LEGACY_CLI_TOKEN_HEADER = "x-9r-cli-token";
 const CLI_TOKEN_SALT = "9r-cli-auth";
 
 let cachedCliToken = null;
@@ -14,7 +15,7 @@ async function getCliToken() {
 }
 
 async function hasValidCliToken(request) {
-  const token = request.headers.get(CLI_TOKEN_HEADER);
+  const token = (request.headers.get(CLI_TOKEN_HEADER) || request.headers.get(LEGACY_CLI_TOKEN_HEADER));
   if (!token) return false;
   return token === await getCliToken();
 }
@@ -99,7 +100,7 @@ function isLoopbackHostname(h) {
 
 function isLoopbackPeer(request) {
   if (hasTrustedPeerHeaders(request)) {
-    return isLoopbackHostname(request.headers.get("x-9r-real-ip"));
+    return isLoopbackHostname((request.headers.get("x-dardcor-real-ip") || request.headers.get("x-9r-real-ip")));
   }
   if (process.env.NODE_ENV === "development") {
     return isLoopbackHostname(request.headers.get("host"));
@@ -108,7 +109,7 @@ function isLoopbackPeer(request) {
 }
 
 export function isLocalRequest(request) {
-  if (request.headers.get("x-9r-via-proxy")) return false;
+  if ((request.headers.get("x-dardcor-via-proxy") || request.headers.get("x-9r-via-proxy"))) return false;
   if (!isLoopbackPeer(request)) return false;
   const origin = request.headers.get("origin");
   if (origin) {

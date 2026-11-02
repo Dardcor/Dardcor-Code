@@ -13,7 +13,7 @@ import { isCI, isMacintosh } from '../../../../../../base/common/platform.js';
 import type { ICommandDetectionCapability } from '../../../../../../platform/terminal/common/capabilities/capabilities.js';
 import { ITerminalLogService, type ITerminalLaunchError } from '../../../../../../platform/terminal/common/terminal.js';
 import type { ITerminalInstance } from '../../../../terminal/browser/terminal.js';
-import { trackIdleOnPrompt, type ITerminalExecuteStrategy, type ITerminalExecuteStrategyResult } from './executeStrategy.js';
+import { trackIdleOnPrompt, waitForIdle, type ITerminalExecuteStrategy, type ITerminalExecuteStrategyResult } from './executeStrategy.js';
 import type { IMarker as IXtermMarker } from '@xterm/xterm';
 import { createAltBufferPromise, setupRecreatingStartMarker, stripCommandEchoAndPrompt } from './strategyHelpers.js';
 import { TerminalChatAgentToolsSettingId } from '../../common/terminalChatAgentToolsConfiguration.js';
@@ -123,6 +123,15 @@ export class RichExecuteStrategy extends Disposable implements ITerminalExecuteS
 				store,
 				this._log.bind(this)
 			);
+
+			const activeBuffer = (xterm as any)?.raw?.buffer?.active;
+			const lineIndex = activeBuffer ? (activeBuffer.baseY + activeBuffer.cursorY) : 0;
+			const currentCursorLine = activeBuffer ? (activeBuffer.getLine(lineIndex)?.translateToString(true) ?? '') : '';
+			if (/^\s*>>/.test(currentCursorLine) || />>\s*$/.test(currentCursorLine) || /^\s*\.{3}/.test(currentCursorLine)) {
+				this._log('Terminal trapped in continuation prompt (>> ), sending SIGINT to reset');
+				await this._instance.sendText('\x03', false);
+				await waitForIdle(this._instance.onData, 150);
+			}
 
 			this._log(`Executing command line \`${commandLine}\``);
 			markerRecreation.dispose();

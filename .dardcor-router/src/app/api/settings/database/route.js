@@ -3,8 +3,8 @@ import { exportDb, getSettings, importDb } from "@/lib/localDb";
 import { applyOutboundProxyEnv } from "@/lib/network/outboundProxy";
 import { verifyDashboardPassword } from "@/lib/auth/dashboardSession";
 
-const CLI_TOKEN_HEADER = "x-9r-cli-token";
-const PASSWORD_HEADER = "x-9r-password";
+const CLI_TOKEN_HEADER = "x-dardcor-cli-token";
+const PASSWORD_HEADER = "x-dardcor-password";
 
 function isCliRequest(request) {
   return Boolean(request.headers.get(CLI_TOKEN_HEADER));

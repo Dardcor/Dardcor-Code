@@ -77,7 +77,16 @@ export function unavailableResponse(statusCode, message, retryAfter, retryAfterH
   const retryAfterSec = Math.max(Math.ceil((new Date(retryAfter).getTime() - Date.now()) / 1000), 1);
   const msg = `${message} (${retryAfterHuman})`;
   return new Response(
-    JSON.stringify({ error: { message: msg } }),
+    JSON.stringify({
+      error: {
+        code: "rate_limited_cooldown",
+        status: statusCode,
+        message: msg,
+        resetAfterSec: retryAfterSec,
+        retryAfter: retryAfter,
+        retryAfterHuman: retryAfterHuman
+      }
+    }),
     {
       status: statusCode,
       headers: {

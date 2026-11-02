@@ -28,6 +28,8 @@ export function generateRandomPublicIp() {
 }
 
 export function buildCloakedHeaders(existingHeaders = {}) {
+  // Pass through headers cleanly. Cloudflare edge rejects client-supplied
+  // cf-connecting-ip and true-client-ip with Error 1000 ("DNS points to prohibited IP").
   return {
     ...existingHeaders,
   };

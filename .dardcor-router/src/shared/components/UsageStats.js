@@ -4,28 +4,22 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FREE_PROVIDERS, AI_PROVIDERS } from "@/shared/constants/providers";
 
+// Keep providers without serviceKinds (default LLM) or with "llm" in serviceKinds
 function isLLMProvider(id) {
   const p = AI_PROVIDERS[id];
   if (!p?.serviceKinds) return true;
   return p.serviceKinds.includes("llm");
 }
-
-const CORE_ROUTER_PROVIDERS = [
-  { provider: "opencode", name: "OpenCode Free" },
-  { provider: "antigravity", name: "AntiGravity" },
-  { provider: "cursor", name: "Cursor" },
-  { provider: "gemini-cli", name: "Gemini CLI" },
-  { provider: "codex", name: "OpenAI Codex" },
-  { provider: "minimax-code", name: "MiniMax Code" },
-  { provider: "github", name: "GitHub Copilot" },
-];
 import Badge from "./Badge";
 import Card from "./Card";
 import OverviewCards from "@/app/(dashboard)/dashboard/usage/components/OverviewCards";
 import UsageTable, { fmt, fmtTime } from "@/app/(dashboard)/dashboard/usage/components/UsageTable";
 import dynamic from "next/dynamic";
+// Lazy-load: keeps @xyflow/react and recharts out of the initial bundle
 const ProviderTopology = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/ProviderTopology"), { ssr: false });
-import UsageChart from "@/app/(dashboard)/dashboard/usage/components/UsageChart";
+const UsageChart = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/UsageChart"), { ssr: false });
+const ProviderBarChart = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/ProviderBarChart"), { ssr: false });
+const TopModelsChart = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/TopModelsChart"), { ssr: false });
 
 function timeAgo(timestamp) {
   const diff = Math.floor((Date.now() - new Date(timestamp)) / 1000);
@@ -35,6 +29,7 @@ function timeAgo(timestamp) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+// Auto-update time display every second without re-rendering parent
 function TimeAgo({ timestamp }) {
   const [, setTick] = useState(0);
   
@@ -49,7 +44,7 @@ function TimeAgo({ timestamp }) {
 function RecentRequests({ requests = [] }) {
   return (
     <Card className="flex min-w-0 flex-col overflow-hidden" padding="sm" style={{ height: 480 }}>
-      {}
+      {/* Header */}
       <div className="px-1 py-2 border-b border-border shrink-0">
         <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Recent Requests</span>
       </div>
@@ -57,7 +52,7 @@ function RecentRequests({ requests = [] }) {
       {!requests.length ? (
         <div className="flex-1 flex items-center justify-center text-text-muted text-sm">No requests yet.</div>
       ) : (
-        <div className="flex-1 overflow-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto">
           <table className="w-full min-w-[300px] border-collapse text-xs">
             <thead className="sticky top-0 bg-bg z-10">
               <tr className="border-b border-border">
@@ -98,6 +93,10 @@ function sortData(dataMap, pendingMap = {}, sortBy, sortOrder) {
     .map(([key, data]) => {
       const totalTokens = (data.promptTokens || 0) + (data.completionTokens || 0);
       const totalCost = data.cost || 0;
+      // ponytail: cost split is a token-share allocation of the (rate-accurate)
+      // server total, not a per-rate recompute. cached is a subset of prompt, so
+      // peel it out of the input share. Upgrade to a stored per-component cost
+      // breakdown if exact cached-rate cost display is needed.
       const cachedTokens = data.cachedTokens || 0;
       const nonCachedInput = Math.max(0, (data.promptTokens || 0) - cachedTokens);
       const inputCost = totalTokens > 0 ? nonCachedInput * (totalCost / totalTokens) : 0;
@@ -120,7 +119,7 @@ function getGroupKey(item, keyField) {
   switch (keyField) {
     case "rawModel": return item.rawModel || "Unknown Model";
     case "accountName": return item.accountName || `Account ${item.connectionId?.slice(0, 8)}...` || "Unknown Account";
-    case "keyName": return item.keyName || "Unknown Key";
+    case "keyName": return item.apiKeyMasked ? `${item.keyName} (${item.apiKeyMasked})` : item.keyName || "Unknown Key";
     case "endpoint": return item.endpoint || "Unknown Endpoint";
     default: return item[keyField] || "Unknown";
   }
@@ -196,11 +195,12 @@ const TABLE_OPTIONS = [
 ];
 
 const PERIODS = [
+  { value: "today", label: "Today" },
+  { value: "24h", label: "24h" },
   { value: "7d", label: "7D" },
   { value: "30d", label: "30D" },
-  { value: "90d", label: "90D" },
-  { value: "180d", label: "180D" },
-  { value: "360d", label: "360D" },
+  { value: "60d", label: "60D" },
+  { value: "all", label: "All" },
 ];
 
 export default function UsageStats({ period: periodProp, setPeriod: setPeriodProp, hidePeriodSelector = false } = {}) {
@@ -215,91 +215,144 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   const [fetching, setFetching] = useState(false);
   const [tableView, setTableView] = useState("model");
   const [viewMode, setViewMode] = useState("costs");
-  const [providers, setProviders] = useState([]);
-  const [periodLocal, setPeriodLocal] = useState("7d");
+  const [connections, setConnections] = useState([]);
+  const [nodeNameMap, setNodeNameMap] = useState({});
+  const [providerStatuses, setProviderStatuses] = useState(null);
+  const [periodLocal, setPeriodLocal] = useState("today");
   const isInitialLoad = useRef(true);
   const hasLoadedStats = useRef(false);
   const period = periodProp ?? periodLocal;
   const setPeriod = setPeriodProp ?? setPeriodLocal;
 
-  const refreshProviders = useCallback((currentStats = null) => {
-    Promise.all([
-      fetch("/api/providers").then((r) => r.ok ? r.json() : null),
-      fetch("/api/provider-nodes").then((r) => r.ok ? r.json() : null),
-    ])
-      .then(([d, nodesData]) => {
-        const nodeNameMap = {};
-        for (const node of (nodesData?.nodes || [])) {
-          if (node.id) nodeNameMap[node.id] = node.name;
-        }
-        const seen = new Set();
-        const result = [];
-
-        // 1. Configured DB connections
-        for (const c of (d?.connections || [])) {
-          if (c.isActive === false) continue;
-          if (!isLLMProvider(c.provider)) continue;
-          if (seen.has(c.provider)) continue;
-          seen.add(c.provider);
-          result.push({
-            ...c,
-            nodeName: nodeNameMap[c.provider] || null,
-          });
-        }
-
-        // 2. Nodes from provider-nodes
-        for (const node of (nodesData?.nodes || [])) {
-          if (!seen.has(node.id) && isLLMProvider(node.id)) {
-            seen.add(node.id);
-            result.push({
-              provider: node.id,
-              name: node.name || node.id,
-              nodeName: node.name || null,
-            });
-          }
-        }
-
-        // 3. Historical providers from usage stats
-        const activeStats = currentStats || stats;
-        if (activeStats?.byProvider) {
-          for (const pid of Object.keys(activeStats.byProvider)) {
-            if (!seen.has(pid) && isLLMProvider(pid)) {
-              seen.add(pid);
-              result.push({ provider: pid, name: AI_PROVIDERS[pid]?.name || pid });
-            }
-          }
-        }
-
-        // 4. Default noAuth providers
-        for (const p of Object.values(FREE_PROVIDERS)) {
-          if (p.noAuth && !seen.has(p.id) && isLLMProvider(p.id)) {
-            seen.add(p.id);
-            result.push({ provider: p.id, name: p.name });
-          }
-        }
-
-        // 5. Core router baseline providers (always ensure topology has representative providers)
-        for (const cp of CORE_ROUTER_PROVIDERS) {
-          if (!seen.has(cp.provider) && isLLMProvider(cp.provider)) {
-            seen.add(cp.provider);
-            result.push(cp);
-          }
-        }
-
-        setProviders(result);
-      })
-      .catch(() => {});
-  }, [stats]);
-
+  // Fetch connected providers, custom nodes, and provider activation statuses
   useEffect(() => {
-    refreshProviders();
-    const interval = setInterval(() => {
-      refreshProviders();
-    }, 20000);
-    return () => clearInterval(interval);
-  }, [refreshProviders]);
+    let mounted = true;
 
+    const fetchMeta = () => {
+      Promise.all([
+        fetch("/api/providers").then((r) => r.ok ? r.json() : null).catch(() => null),
+        fetch("/api/provider-nodes").then((r) => r.ok ? r.json() : null).catch(() => null),
+        fetch("/api/providers/status").then((r) => r.ok ? r.json() : null).catch(() => null),
+      ]).then(([providersData, nodesData, statusData]) => {
+        if (!mounted) return;
+        if (providersData?.connections) {
+          setConnections(providersData.connections);
+        }
+        if (nodesData?.nodes) {
+          const map = {};
+          for (const node of nodesData.nodes) {
+            if (node.id && node.name) map[node.id] = node.name;
+          }
+          setNodeNameMap(map);
+        }
+        if (statusData?.statuses) {
+          setProviderStatuses(statusData.statuses);
+        }
+      });
+    };
+
+    fetchMeta();
+
+    const handleStatusUpdate = (e) => {
+      const detail = e.detail;
+      if (!detail?.providerId) {
+        fetch("/api/providers/status")
+          .then((r) => r.ok ? r.json() : null)
+          .then((d) => {
+            if (d?.statuses && mounted) setProviderStatuses(d.statuses);
+          })
+          .catch(() => {});
+        return;
+      }
+      setProviderStatuses((prev) => ({
+        ...(prev || {}),
+        [detail.providerId.toLowerCase()]: detail.enabled,
+      }));
+    };
+
+    window.addEventListener("providerStatusChanged", handleStatusUpdate);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("providerStatusChanged", handleStatusUpdate);
+    };
+  }, []);
+
+  // Multi-source aggregation for topology providers
+  const providers = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+
+    const addProvider = (id, extra = {}) => {
+      if (!id || typeof id !== "string") return;
+      const pid = id.toLowerCase();
+      if (pid === "unknown" || seen.has(pid)) return;
+      if (!isLLMProvider(pid)) return;
+      if (AI_PROVIDERS[pid]?.hidden) return;
+      // Do not add if explicitly disabled by user master switch
+      if (providerStatuses && providerStatuses[pid] === false) return;
+
+      seen.add(pid);
+      const config = AI_PROVIDERS[pid] || FREE_PROVIDERS[pid];
+      const displayName = nodeNameMap[pid] || extra.name || config?.name || (pid.charAt(0).toUpperCase() + pid.slice(1));
+
+      result.push({
+        ...extra,
+        provider: pid,
+        name: displayName,
+        nodeName: nodeNameMap[pid] || null,
+      });
+    };
+
+    // 1. Providers with active connections
+    for (const c of connections) {
+      if (c.isActive === false) continue;
+      const pid = c.provider?.toLowerCase();
+      if (providerStatuses && providerStatuses[pid] === false) continue;
+      addProvider(c.provider, c);
+    }
+
+    // 2. Providers enabled in status.json / provider status API (e.g. Antigravity, Kiro, OpenCode)
+    if (providerStatuses) {
+      for (const [rawId, isEnabled] of Object.entries(providerStatuses)) {
+        if (isEnabled === true) {
+          addProvider(rawId);
+        }
+      }
+    }
+
+    // 3. Built-in free providers (e.g. opencode, kiro)
+    for (const p of Object.values(FREE_PROVIDERS)) {
+      if (p.hidden) continue;
+      const pid = p.id?.toLowerCase();
+      if (providerStatuses && providerStatuses[pid] === false) continue;
+      if (p.noAuth || providerStatuses?.[pid] === true) {
+        addProvider(p.id, { name: p.name });
+      }
+    }
+
+    // 4. Current in-flight active requests only (never historical stats from 360 days ago)
+    if (Array.isArray(stats?.activeRequests)) {
+      for (const r of stats.activeRequests) {
+        if (r?.provider && (providerStatuses?.[r.provider.toLowerCase()] !== false)) {
+          addProvider(r.provider);
+        }
+      }
+    }
+
+    // Fallback: If no providers discovered yet during initial hydration, display active trio
+    if (result.length === 0) {
+      for (const fallbackId of ["antigravity", "kiro", "opencode"]) {
+        addProvider(fallbackId);
+      }
+    }
+
+    return result;
+  }, [connections, nodeNameMap, providerStatuses, stats?.activeRequests]);
+
+  // Fetch filtered stats via REST when period changes
   useEffect(() => {
+    // First load: show full spinner; subsequent: show subtle fetching indicator
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
       setLoading(true);
@@ -313,7 +366,6 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         if (data) {
           hasLoadedStats.current = true;
           setStats((prev) => ({ ...prev, ...data }));
-          refreshProviders(data);
         }
       })
       .catch(() => {})
@@ -321,27 +373,27 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         setLoading(false);
         setFetching(false);
       });
-  }, [period, refreshProviders]);
+  }, [period]);
 
+  // SSE connection - real-time updates for activeRequests + recentRequests only
   useEffect(() => {
     const es = new EventSource("/api/usage/stream");
 
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
+        // Always merge only real-time fields, never overwrite full stats from REST
         setStats((prev) => {
-          if (!prev) return data;
+          if (!prev) return prev;
           return {
             ...prev,
-            ...data,
-            activeRequests: data.activeRequests || [],
-            recentRequests: data.recentRequests || [],
-            errorProvider: data.errorProvider || "",
-            pending: data.pending || {},
+            activeRequests: data.activeRequests,
+            recentRequests: data.recentRequests,
+            errorProvider: data.errorProvider,
+            pending: data.pending,
           };
         });
-        hasLoadedStats.current = true;
-        setLoading(false);
+        if (hasLoadedStats.current) setLoading(false);
       } catch (err) {
         console.error("[SSE CLIENT] parse error:", err);
       }
@@ -363,6 +415,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
+  // Compute active table data
   const activeTableConfig = useMemo(() => {
     if (!stats) return null;
     switch (tableView) {
@@ -375,17 +428,17 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className={`px-3 sm:px-6 py-2.5 sm:py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
+              <td className="px-6 py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
+              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -408,19 +461,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No account-specific usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className={`px-3 sm:px-6 py-2.5 sm:py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}</td>
-              <td className={`px-3 sm:px-6 py-2.5 sm:py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}</td>
+              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
+              <td className="px-6 py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
+              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -433,19 +486,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No API key usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 font-medium">{item.keyName}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3">{item.rawModel}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3"><Badge variant="neutral" size="sm">{item.provider}</Badge></td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-6 py-3 font-medium font-mono text-xs">{item.apiKeyMasked || item.keyName}</td>
+              <td className="px-6 py-3">{item.rawModel}</td>
+              <td className="px-6 py-3"><Badge variant="neutral" size="sm">{item.provider}</Badge></td>
+              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -459,19 +512,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No endpoint usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-text-muted">—</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-text-muted">—</td>
+              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 font-medium font-mono text-sm">{item.endpoint}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3">{item.rawModel}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3"><Badge variant="neutral" size="sm">{item.provider}</Badge></td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-3 sm:px-6 py-2.5 sm:py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-6 py-3 font-medium font-mono text-sm">{item.endpoint}</td>
+              <td className="px-6 py-3">{item.rawModel}</td>
+              <td className="px-6 py-3"><Badge variant="neutral" size="sm">{item.provider}</Badge></td>
+              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
+              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -489,10 +542,10 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      {}
+      {/* Period selector (hidden when controlled by parent) */}
       {!hidePeriodSelector && (
         <div className="flex w-full items-center gap-2 sm:w-auto sm:self-end">
-          <div className="grid flex-1 grid-cols-5 items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1 sm:flex sm:flex-none">
+          <div className="grid flex-1 grid-cols-6 items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1 sm:flex sm:flex-none">
             {PERIODS.map((p) => (
               <button
                 key={p.value}
@@ -510,26 +563,32 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
         </div>
       )}
 
-      {}
+      {/* Overview cards */}
       {loading ? spinner : <OverviewCards stats={stats} />}
 
-      {}
-      {loading ? spinner : (
-        <div className="grid min-w-0 grid-cols-1 items-stretch gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-          <ProviderTopology
-            providers={providers}
-            activeRequests={stats.activeRequests || []}
-            lastProvider={stats.recentRequests?.[0]?.provider || ""}
-            errorProvider={stats.errorProvider || ""}
-          />
-          <RecentRequests requests={stats.recentRequests || []} />
+      {/* Provider topology + Recent Requests - Persistently mounted to preserve ReactFlow canvas */}
+      <div className="grid min-w-0 grid-cols-1 items-stretch gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+        <ProviderTopology
+          providers={providers}
+          activeRequests={stats?.activeRequests || []}
+          lastProvider={stats?.recentRequests?.[0]?.provider || ""}
+          errorProvider={stats?.errorProvider || ""}
+        />
+        <RecentRequests requests={stats?.recentRequests || []} />
+      </div>
+
+      {/* Token / Cost chart - sync period */}
+      {loading ? spinner : <UsageChart period={period} />}
+
+      {/* Provider and model breakdown charts */}
+      {!loading && (stats.byProvider || stats.byModel) && (
+        <div className="grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2">
+          <ProviderBarChart byProvider={stats.byProvider} />
+          <TopModelsChart byModel={stats.byModel} />
         </div>
       )}
 
-      {}
-      {loading ? spinner : <UsageChart period={period} />}
-
-      {}
+      {/* Table with dropdown selector */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <select

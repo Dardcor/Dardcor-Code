@@ -41,7 +41,7 @@ export default function Pagination({
         className
       )}
     >
-      {}
+      {/* Info text */}
       {totalItems > 0 && (
         <div className="text-sm text-text-muted">
           Showing <span className="font-medium text-text-main">{startItem}</span> to{" "}
@@ -51,7 +51,7 @@ export default function Pagination({
       )}
 
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-        {}
+        {/* Page size selector */}
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-text-muted">Rows:</span>

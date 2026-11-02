@@ -626,8 +626,8 @@ export class ChatDebugWireLogView extends Disposable {
 		const dirIcon = outbound ? Codicon.arrowRight : Codicon.arrowLeft;
 		const dirEl = DOM.append(header, $(`span.chat-debug-wirelog-dir${ThemeIcon.asCSSSelector(dirIcon)}`));
 		dirEl.title = outbound
-			? localize('chatDebug.wireLog.outbound', "VS Code → Agent Host")
-			: localize('chatDebug.wireLog.inbound', "Agent Host → VS Code");
+			? localize('chatDebug.wireLog.outbound', "Dardcor Code → Agent Host")
+			: localize('chatDebug.wireLog.inbound', "Agent Host → Dardcor Code");
 
 		const label = frame.method ?? localize('chatDebug.wireLog.responseLabel', "(response)");
 		DOM.append(header, $('span.chat-debug-wirelog-method', undefined, label));

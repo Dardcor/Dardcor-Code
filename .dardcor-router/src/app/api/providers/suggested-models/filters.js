@@ -6,9 +6,14 @@ const DEAD_OR_NON_CHAT_FREE_OPENCODE_MODELS = new Set([
   "deepseek-v4-flash-free",
   "exo-free",
   "ling-3.0-flash-fin-free",
-  "nemotron-3-ultra-free",
   "mimo-v2.5-free",
   "union-alpha",
+  "step-5-preview-free",
+  "cat-jam-free",
+  "longcat-2.5-preview-free",
+  "space-bunny-free",
+  "muse-spark-1.2-contributor-free",
+  "muse-spark-1.3-contributor-free",
 ]);
 
 export const FILTERS = {

@@ -26,6 +26,8 @@ function messagePayload(body) {
   if (Array.isArray(body?.input)) return body.input;
   const kiro = collectKiroHeadroomMessages(body);
   if (kiro) return kiro.messages;
+  const antigravity = collectAntigravityHeadroomMessages(body);
+  if (antigravity) return antigravity.messages;
   return null;
 }
 
@@ -40,7 +42,7 @@ function captureSizeSnapshot(body) {
   return {
     bodyBytes: jsonBytes(body),
     messageBytes: messages ? jsonBytes(messages) : 0,
-    toolSchemaBytes: jsonBytes(body?.tools || []),
+    toolSchemaBytes: jsonBytes(body?.tools || body?.request?.tools || []),
     toolHistoryBytes: jsonBytes(toolHistory),
   };
 }
@@ -212,6 +214,153 @@ function applyKiroHeadroomMessages(projection, compressedMessages, diagnostics) 
   return true;
 }
 
+function collectAntigravityHeadroomMessages(body) {
+  if (!body || typeof body !== "object") return null;
+
+  const container = (body.request && typeof body.request === "object") ? body.request : body;
+  const rawContents = Array.isArray(container.contents)
+    ? container.contents
+    : (Array.isArray(body.contents) ? body.contents : null);
+
+  if (!Array.isArray(rawContents)) return null;
+
+  const messages = [];
+  const targets = [];
+
+  const addTextTarget = (role, text, target, extra = {}) => {
+    if (typeof text !== "string" || text.length === 0) return;
+    messages.push({ role, content: text, ...extra });
+    targets.push(target);
+  };
+
+  const sys = container.systemInstruction || container.system_instruction || body.systemInstruction || body.system_instruction;
+  if (sys) {
+    if (Array.isArray(sys.parts)) {
+      for (const part of sys.parts) {
+        if (part && typeof part.text === "string" && !part.thought && !part.thoughtSignature) {
+          addTextTarget("system", part.text, { object: part, key: "text" });
+        }
+      }
+    } else if (typeof sys.text === "string") {
+      addTextTarget("system", sys.text, { object: sys, key: "text" });
+    } else if (typeof sys === "string") {
+      const sysTarget = (container.systemInstruction !== undefined) ? { object: container, key: "systemInstruction" }
+        : (container.system_instruction !== undefined) ? { object: container, key: "system_instruction" }
+        : (body.systemInstruction !== undefined) ? { object: body, key: "systemInstruction" }
+        : { object: body, key: "system_instruction" };
+      addTextTarget("system", sys, sysTarget);
+    }
+  }
+
+  const toToolCalls = (parts) => {
+    if (!Array.isArray(parts)) return undefined;
+    const calls = [];
+    for (const part of parts) {
+      const fc = part?.functionCall;
+      if (fc && typeof fc === "object" && fc.name) {
+        calls.push({
+          id: fc.id || `call_${fc.name}`,
+          type: "function",
+          function: {
+            name: fc.name,
+            arguments: typeof fc.args === "string" ? fc.args : JSON.stringify(fc.args || {}),
+          },
+        });
+      }
+    }
+    return calls.length > 0 ? calls : undefined;
+  };
+
+  for (const item of rawContents) {
+    if (!item || typeof item !== "object") continue;
+    const parts = item.parts;
+    if (!Array.isArray(parts) || parts.length === 0) continue;
+
+    const isModel = item.role === "model";
+    const defaultRole = isModel ? "assistant" : (item.role === "system" ? "system" : "user");
+    const toolCalls = isModel ? toToolCalls(parts) : undefined;
+    let toolCallsAttached = false;
+
+    for (const part of parts) {
+      if (!part || typeof part !== "object") continue;
+
+      if (part.thought === true || part.thoughtSignature !== undefined) {
+        continue;
+      }
+      if (part.functionCall) {
+        continue;
+      }
+      if (part.inlineData || part.fileData) {
+        continue;
+      }
+
+      const fnResp = part.functionResponse;
+      if (fnResp && typeof fnResp === "object") {
+        const toolCallId = fnResp.id || fnResp.name || "call_unknown";
+        const resp = fnResp.response;
+        if (resp && typeof resp === "object") {
+          if (typeof resp.result === "string") {
+            addTextTarget("tool", resp.result, { object: resp, key: "result" }, { tool_call_id: toolCallId });
+            continue;
+          }
+          if (typeof resp.output === "string") {
+            addTextTarget("tool", resp.output, { object: resp, key: "output" }, { tool_call_id: toolCallId });
+            continue;
+          }
+          if (typeof resp.content === "string") {
+            addTextTarget("tool", resp.content, { object: resp, key: "content" }, { tool_call_id: toolCallId });
+            continue;
+          }
+        } else if (typeof resp === "string") {
+          addTextTarget("tool", resp, { object: fnResp, key: "response" }, { tool_call_id: toolCallId });
+          continue;
+        }
+        continue;
+      }
+
+      if (typeof part.text === "string") {
+        const extra = {};
+        if (toolCalls && !toolCallsAttached) {
+          extra.tool_calls = toolCalls;
+          toolCallsAttached = true;
+        }
+        addTextTarget(defaultRole, part.text, { object: part, key: "text" }, extra);
+      }
+    }
+  }
+
+  return messages.length > 0 ? { messages, targets } : null;
+}
+
+function applyAntigravityHeadroomMessages(projection, compressedMessages, diagnostics) {
+  if (!Array.isArray(compressedMessages) || compressedMessages.length !== projection.messages.length) {
+    setDiagnostic(diagnostics, "proxy response did not match antigravity message count");
+    return false;
+  }
+
+  const updates = [];
+  for (let i = 0; i < projection.messages.length; i++) {
+    const expected = projection.messages[i];
+    const actual = compressedMessages[i];
+    if (!actual || actual.role !== expected.role) {
+      setDiagnostic(diagnostics, "proxy response did not preserve antigravity message order");
+      return false;
+    }
+
+    const text = textFromHeadroomMessage(actual);
+    if (text === null) {
+      setDiagnostic(diagnostics, "proxy response missing antigravity text content");
+      return false;
+    }
+    updates.push({ target: projection.targets[i], text });
+  }
+
+  for (const update of updates) {
+    update.target.object[update.target.key] = update.text;
+  }
+  return true;
+}
+
 let headroomCircuitBreakerUntil = 0;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 15 * 60 * 1000;
 
@@ -320,6 +469,19 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
       if (!data) return null;
       if (!applyKiroHeadroomMessages(projection, data.messages, diagnostics)) return null;
+      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
+      return data;
+    }
+
+    if (format === "antigravity" || format === "gemini" || format === "gemini-cli" || format === "vertex") {
+      const projection = collectAntigravityHeadroomMessages(body);
+      if (!projection) {
+        setDiagnostic(diagnostics, "antigravity request did not project to messages[]");
+        return null;
+      }
+      const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
+      if (!data) return null;
+      if (!applyAntigravityHeadroomMessages(projection, data.messages, diagnostics)) return null;
       if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
       return data;
     }

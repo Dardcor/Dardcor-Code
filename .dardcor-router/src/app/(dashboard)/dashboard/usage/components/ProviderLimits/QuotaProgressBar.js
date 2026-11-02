@@ -3,6 +3,7 @@
 import { cn } from "@/shared/utils/cn";
 import { formatResetTime } from "./utils";
 
+// Calculate color based on remaining percentage
 const getColorClasses = (remainingPercentage) => {
   if (remainingPercentage > 70) {
     return {
@@ -22,6 +23,7 @@ const getColorClasses = (remainingPercentage) => {
     };
   }
   
+  // 0-29% including 0% (out of quota) - show red
   return {
     text: "text-red-500",
     bg: "bg-red-500",
@@ -30,6 +32,7 @@ const getColorClasses = (remainingPercentage) => {
   };
 };
 
+// Format reset time display
 const formatResetTimeDisplay = (resetTime) => {
   if (!resetTime) return null;
   
@@ -73,13 +76,16 @@ export default function QuotaProgressBar({
   const countdown = formatResetTime(resetTime);
   const resetDisplay = formatResetTimeDisplay(resetTime);
 
+  // recurring defaults true. One-shot packs (e.g. CodeBuddy CN bonus packs)
+  // set recurring:false: resetTime is a hard expiry, so word it as "expires".
   const resetWord = recurring ? "Reset" : "Expires";
 
+  // percentage is already remaining percentage (from ProviderLimitCard)
   const remaining = percentage;
   
   return (
     <div className="space-y-2">
-      {}
+      {/* Label and percentage */}
       <div className="flex items-center justify-between text-sm">
         <span className="font-semibold text-text-primary">
           {label}
@@ -92,7 +98,7 @@ export default function QuotaProgressBar({
         </div>
       </div>
 
-      {}
+      {/* Progress bar */}
       {!unlimited && (
         <div className={cn("h-2 rounded-full overflow-hidden", colors.bgLight)}>
           <div
@@ -102,7 +108,7 @@ export default function QuotaProgressBar({
         </div>
       )}
 
-      {}
+      {/* Usage details and countdown */}
       <div className="flex items-center justify-between text-xs text-text-muted">
         <span>
           {used.toLocaleString()} / {total.toLocaleString()} requests
@@ -115,7 +121,7 @@ export default function QuotaProgressBar({
         )}
       </div>
 
-      {}
+      {/* Reset time display */}
       {resetDisplay && (
         <div className="text-xs text-text-muted/70">
           {resetWord} at {resetDisplay}

@@ -40,11 +40,12 @@ export default function DroidToolCard({
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
 
-  const currentBaseUrl = droidStatus?.settings?.customModels?.find((m) => m.id?.startsWith("custom:Dardcor Code"))?.baseUrl || "";
+  const currentBaseUrl = droidStatus?.settings?.customModels?.find((m) => m.id?.startsWith("custom:Dardcor Router"))?.baseUrl || "";
 
   const getConfigStatus = () => {
     if (!droidStatus?.installed) return null;
-    const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Code"));
+    // Check for any Dardcor Router model entry (support multi-model: custom:Dardcor Router-0, custom:Dardcor Router-1, ...)
+    const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Router"));
     if (!currentConfig) return "not_configured";
     return matchKnownEndpoint(currentConfig.baseUrl, { tunnelPublicUrl, tailscaleUrl, cloudUrl: cloudEnabled ? CLOUD_URL : null }) ? "configured" : "other";
   };
@@ -78,17 +79,19 @@ export default function DroidToolCard({
     }
   };
 
+  // Pre-fill model list from existing config (supports multi-model)
   useEffect(() => {
     if (droidStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
       const existingModels = (droidStatus.settings?.customModels || [])
-        .filter(m => m.id?.startsWith("custom:Dardcor Code"))
+        .filter(m => m.id?.startsWith("custom:Dardcor Router"))
         .sort((a, b) => (a.index || 0) - (b.index || 0))
         .map(m => m.model);
       if (existingModels.length > 0) {
         setModelList(existingModels);
       } else {
-        const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:Dardcor Code-0");
+        // Legacy: single model stored as custom:Dardcor Router-0
+        const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:Dardcor Router-0");
         if (legacy?.model) {
           setModelList([legacy.model]);
         }
@@ -154,6 +157,7 @@ export default function DroidToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkDroidStatus();
@@ -195,7 +199,7 @@ export default function DroidToolCard({
     const settingsContent = {
       customModels: modelList.map((m, i) => ({
         model: m,
-        id: `custom:Dardcor Code-${i}`,
+        id: `custom:Dardcor Router-${i}`,
         index: i,
         baseUrl: getEffectiveBaseUrl(),
         apiKey: keyToUse,
@@ -256,7 +260,7 @@ export default function DroidToolCard({
                   <span className="material-symbols-outlined text-yellow-500">warning</span>
                   <div className="flex-1">
                     <p className="font-medium text-yellow-600 dark:text-yellow-400">Factory Droid CLI not detected locally</p>
-                    <p className="text-sm text-text-muted">Manual configuration is still available if dardcor-code is deployed on a remote server.</p>
+                    <p className="text-sm text-text-muted">Manual configuration is still available if Dardcor Router is deployed on a remote server.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-9">
@@ -288,7 +292,7 @@ export default function DroidToolCard({
           {!checkingDroid && droidStatus?.installed && (
             <>
               <div className="flex flex-col gap-2">
-                {}
+                {/* Endpoint (selector) */}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -304,32 +308,32 @@ export default function DroidToolCard({
                   />
                 </div>
 
-                {}
-                {droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Code"))?.baseUrl && (
+                {/* Current configured */}
+                {droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:Dardcor Router"))?.baseUrl && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:Dardcor Code")).baseUrl}
+                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:Dardcor Router")).baseUrl}
                     </span>
                   </div>
                 )}
 
-                {}
+                {/* API Key */}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
-                {}
+                {/* Models */}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">
                     Models {modelList.length > 0 && <span className="text-primary">({modelList.length})</span>}
                   </span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <div className="flex-1 flex flex-col gap-1">
-                    {}
+                    {/* Model list */}
                     {modelList.length > 0 && (
                       <div className="flex flex-col gap-0.5 mb-1">
                         {modelList.map((id) => (
@@ -342,7 +346,7 @@ export default function DroidToolCard({
                         ))}
                       </div>
                     )}
-                    {}
+                    {/* Model input row */}
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"
@@ -378,7 +382,7 @@ export default function DroidToolCard({
                 <Button variant="primary" size="sm" onClick={handleApplySettings} disabled={modelList.length === 0} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!droidStatus?.hasDardcorCode} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!droidStatus?.hasDardcorRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

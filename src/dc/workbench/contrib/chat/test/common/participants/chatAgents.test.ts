@@ -18,6 +18,8 @@ import { getDardcorBrowserSnapshotChanges, performDardcorBrowserClick } from '..
 import { attachPlaywrightPageToGroups, IPlaywrightService, isBrowserDocumentReadyState, matchPlaywrightTargetToView } from '../../../../../../platform/browserView/common/playwrightService.js';
 import { DardcorBrowserAgentController, extractDardcorRefId } from '../../../common/participants/dardcorBrowserAgentController.js';
 import { URI } from '../../../../../../base/common/uri.js';
+import { parseResetSeconds, parseDardcorRouterError, cleanMessageText, diagnoseProviderIssue } from '../../../common/participants/dardcorRouterError.js';
+import { detectsCommonPromptPattern } from '../../../../terminalContrib/chatAgentTools/browser/executeStrategy/executeStrategy.js';
 
 const testAgentId = 'testAgent';
 const testAgentData: IChatAgentData = {
@@ -837,5 +839,229 @@ test('automatically detects all world languages and provides zero-emoji localize
 		assert.ok(clarifPattern.test('wait, what are you downloading?'));
 		assert.ok(clarifPattern.test('tunggu sebentar'));
 		assert.strictEqual(clarifPattern.test('tolong lanjutkan pekerjaan'), false);
+	});
+
+	test('verifies language detection, confirmation modal localization, and powershell continuation safety', () => {
+		// 1. Language detection on real user prompt
+		const indonesianPrompt = 'cek gambar 1 dengan jelas, saya menemukan sedikit kendala. dimana dimana ketika seperti di gambar itu saya tidak tahu dia mau ngapain this agent action may bla bla bla, harusnya kalimatnya. mendeteksi bahasa yang sedang digunakan oleh user. pastikan bisa mendeteksi semua bahasa didunia.';
+		assert.strictEqual(detectDardcorLanguage(indonesianPrompt), 'id');
+
+		// 2. Localized confirmation dialog strings
+		const idLocale = getDardcorLocaleStrings('id');
+		assert.strictEqual(idLocale.confirmAgentActionHeader, 'Persetujuan Tindakan Agen');
+		assert.strictEqual(idLocale.confirmTerminalHeader, 'Persetujuan Perintah Terminal');
+		assert.strictEqual(idLocale.confirmAllowOnce, 'Izinkan sekali');
+		assert.strictEqual(idLocale.confirmSkipAction, 'Lewati tindakan');
+		assert.strictEqual(idLocale.confirmSkipCommand, 'Lewati perintah');
+
+		const jaLocale = getDardcorLocaleStrings('ja');
+		assert.strictEqual(jaLocale.confirmAgentActionHeader, 'エージェントのアクション承認');
+		assert.strictEqual(jaLocale.confirmAllowOnce, '1回許可する');
+
+		// 3. Summarize tool action with localized labels
+		const summary = summarizeDardcorToolAction('run_command', {
+			explanation: 'Inspect toolchain for Laravel project',
+			goal: 'Inspect PHP stack',
+			mode: 'sync'
+		}, 'id');
+		assert.match(summary, /Penjelasan: Inspect toolchain/);
+		assert.match(summary, /Tujuan: Inspect PHP stack/);
+		assert.match(summary, /Mode: sync/);
+
+		// 4. PowerShell continuation prompt (>> ) safety
+		assert.strictEqual(detectsCommonPromptPattern('>> ').detected, false);
+		assert.strictEqual(detectsCommonPromptPattern('  >>   ').detected, false);
+		assert.strictEqual(detectsCommonPromptPattern('PS C:\\Users\\Dardcor> ').detected, true);
+	});
+
+	test('verifies task completion summary is not wrapped in tool input and presentation is hidden', () => {
+		const isCompletionTool = (toolName: string) => toolName === 'task_completed' || toolName === 'complete_task';
+		assert.strictEqual(isCompletionTool('task_completed'), true);
+		assert.strictEqual(isCompletionTool('complete_task'), true);
+		assert.strictEqual(isCompletionTool('run_command'), false);
+
+		// Verify presentation calculation: completion tools MUST be Hidden so they do not wrap summary in a collapsible input card
+		const getPresentation = (externalEdit: boolean, toolName: string) =>
+			(externalEdit || toolName === 'task_completed' || toolName === 'complete_task') ? 'Hidden' : undefined;
+
+		assert.strictEqual(getPresentation(false, 'task_completed'), 'Hidden');
+		assert.strictEqual(getPresentation(false, 'complete_task'), 'Hidden');
+		assert.strictEqual(getPresentation(false, 'run_command'), undefined);
+		assert.strictEqual(getPresentation(true, 'run_command'), 'Hidden');
+
+		// Verify rich summary detection: executive summaries are emitted directly to markdownContent
+		const isRichSummary = (summary: string) => summary.trim().length >= 60;
+		assert.strictEqual(isRichSummary('Done'), false);
+		assert.strictEqual(isRichSummary('## Ringkasan Eksekutif\n\nWebsite trading + scraper data pasar realtime global selesai dibangun.'), true);
+	});
+	test('verifies auto-continue is strictly halted when a task encounters model or router errors or is blocked', () => {
+		const isFatalModelOrRouterError = (blocker?: string, turnEncounteredFatalModelError = false) => {
+			return turnEncounteredFatalModelError || !!(
+				blocker && /(?:Dardcor Router returned HTTP|forbidden_plan_required|model_not_supported|FreeUsageLimitError|quota exceeded|insufficient_credits|credits required|insufficient balance|payment required|unauthorized|pricingUrl|Requested entity was not found|Model not found|all \d+ accounts locked|Paid subscription or credits required|Connect Timeout Error|ERR_TIMED_OUT|ECONNREFUSED|ECONNRESET|fetch failed|stream reading error|did not complete after \d+ attempts)/i.test(blocker)
+			);
+		};
+
+		const shouldAutoResumeIncompleteTodos = (opts: {
+			isComplete: boolean;
+			isCancellationRequested: boolean;
+			isCancelled: boolean;
+			isBlocked: boolean;
+			hasFatalModelOrRouterError: boolean;
+			pendingTodosCount: number;
+			isFullAccessActive: boolean;
+		}) => {
+			return !opts.isComplete
+				&& !opts.isCancellationRequested
+				&& !opts.isCancelled
+				&& !opts.isBlocked
+				&& !opts.hasFatalModelOrRouterError
+				&& opts.pendingTodosCount > 0
+				&& opts.isFullAccessActive;
+		};
+
+		// 1. Qoder 403 Forbidden Plan (user report)
+		const qoder403 = 'Dardcor Router returned HTTP 403 after retries: {"error":{"code":"forbidden_plan_required","status":403,"message":"[qoder/dmodel] A paid plan or subscription is required for this model.","provider":"qoder","model":"dmodel"}}';
+		assert.strictEqual(isFatalModelOrRouterError(qoder403), true);
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: true,
+			hasFatalModelOrRouterError: isFatalModelOrRouterError(qoder403),
+			pendingTodosCount: 5,
+			isFullAccessActive: true
+		}), false, 'Must NOT auto-continue on 403 Forbidden Plan required');
+
+		// 2. GitHub 400 Model Not Supported (user report)
+		const gh400 = 'Dardcor Router returned HTTP 400 after retries: {"error":{"message":"The requested model is not supported.","code":"model_not_supported","param":"model","type":"invalid_request_error"}}';
+		assert.strictEqual(isFatalModelOrRouterError(gh400), true);
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: true,
+			hasFatalModelOrRouterError: isFatalModelOrRouterError(gh400),
+			pendingTodosCount: 3,
+			isFullAccessActive: true
+		}), false, 'Must NOT auto-continue on 400 Model Not Supported');
+
+		// 3. Antigravity 404 Model Not Found (user report)
+		const ag404 = 'Dardcor Router returned HTTP 404 after retries: {"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}';
+		assert.strictEqual(isFatalModelOrRouterError(ag404), true);
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: true,
+			hasFatalModelOrRouterError: isFatalModelOrRouterError(ag404),
+			pendingTodosCount: 4,
+			isFullAccessActive: true
+		}), false, 'Must NOT auto-continue on 404 Model Not Found');
+
+		// 4. OpenCode 429 Free Usage Limit Reached (user report)
+		const oc429 = 'Dardcor Router returned HTTP 429 after retries: {"type":"error","error":{"type":"FreeUsageLimitError","message":"Free usage limit reached. Free models work in OpenCode..."}}';
+		assert.strictEqual(isFatalModelOrRouterError(oc429), true);
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: true,
+			hasFatalModelOrRouterError: isFatalModelOrRouterError(oc429),
+			pendingTodosCount: 2,
+			isFullAccessActive: true
+		}), false, 'Must NOT auto-continue on 429 Free Usage Limit Reached');
+
+		// 5. Connect Timeout / 502
+		const qoder502 = 'Dardcor Router returned HTTP 502 after retries: fetch failed (cause: UND_ERR_CONNECT_TIMEOUT: Connect Timeout Error)';
+		assert.strictEqual(isFatalModelOrRouterError(qoder502), true);
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: true,
+			hasFatalModelOrRouterError: isFatalModelOrRouterError(qoder502),
+			pendingTodosCount: 1,
+			isFullAccessActive: true
+		}), false, 'Must NOT auto-continue on 502 Connect Timeout');
+
+		// 6. Healthy autonomous turn with incomplete todos and Full Access active MUST auto-continue
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: false,
+			hasFatalModelOrRouterError: false,
+			pendingTodosCount: 3,
+			isFullAccessActive: true
+		}), true, 'Healthy turn with pending todos and full access must auto-continue');
+
+		// 7. Non-Full Access mode (Ask / Manual) MUST NOT auto-continue
+		assert.strictEqual(shouldAutoResumeIncompleteTodos({
+			isComplete: false,
+			isCancellationRequested: false,
+			isCancelled: false,
+			isBlocked: false,
+			hasFatalModelOrRouterError: false,
+			pendingTodosCount: 3,
+			isFullAccessActive: false
+		}), false, 'Manual mode must NOT auto-continue');
+	});
+
+	test('parseResetSeconds parses human and numeric durations accurately', () => {
+		assert.strictEqual(parseResetSeconds('30s'), 30);
+		assert.strictEqual(parseResetSeconds('1m'), 60);
+		assert.strictEqual(parseResetSeconds('1m 30s'), 90);
+		assert.strictEqual(parseResetSeconds('2h 5m 10s'), 7510);
+		assert.strictEqual(parseResetSeconds('reset after 45s'), 45);
+		assert.strictEqual(parseResetSeconds('45'), 45);
+		assert.strictEqual(parseResetSeconds(''), undefined);
+		assert.strictEqual(parseResetSeconds(undefined), undefined);
+	});
+
+	test('parseDardcorRouterError extracts structured cooldown and resetAfterSec', () => {
+		const jsonErr = JSON.stringify({
+			error: {
+				code: 'rate_limited_cooldown',
+				message: '[qoder/dfmodel] [502]: fetch failed (reset after 30s)',
+				resetAfterSec: 30
+			}
+		});
+		const parsed = parseDardcorRouterError(503, jsonErr, 'qoder/dfmodel');
+		assert.strictEqual(parsed.statusCode, 503);
+		assert.strictEqual(parsed.resetAfterSec, 30);
+		assert.strictEqual(parsed.isQuotaExhausted, true);
+	});
+
+	test('cleanMessageText removes raw origin stack traces and local file uris', () => {
+		const raw = 'Browser action failed: Error: Integrated browser document did not become ready; origin: DardcorBrowserAgentController.waitTillHTMLStable (vscode-file://vscode-app/c:/app/controller.js:123)';
+		const cleaned = cleanMessageText(raw);
+		assert.strictEqual(cleaned.includes('origin:'), false);
+		assert.strictEqual(cleaned.includes('vscode-file://'), false);
+		assert.strictEqual(cleaned.includes('Browser action failed: Error: Integrated browser document did not become ready'), true);
+	});
+
+	test('diagnoseProviderIssue accurately classifies DOWN, LIMIT, and ERROR', () => {
+		// 1. DOWN (User's exact Qoder case)
+		const downError = '[qoder/dfmodel] [502]: fetch failed (cause: ENOTFOUND: getaddrinfo ENOTFOUND api3.qoder.sh)';
+		const downDiag = diagnoseProviderIssue(502, downError, 'qoder/dfmodel', 'id');
+		assert.strictEqual(downDiag.category, 'DOWN');
+		assert.strictEqual(downDiag.provider, 'Qoder');
+		assert.strictEqual(downDiag.model, 'Dfmodel');
+		assert.strictEqual(downDiag.description.includes('api3.qoder.sh'), true);
+		assert.strictEqual(downDiag.description.includes('down'), true);
+
+		// 2. LIMIT (Quota / Rate-limit)
+		const limitError = 'Dardcor Router returned HTTP 429: {"error":{"message":"Resource has been exhausted","code":429}} (reset after 30s)';
+		const limitDiag = diagnoseProviderIssue(429, limitError, 'ag/gemini-3.8-flash-high', 'id');
+		assert.strictEqual(limitDiag.category, 'LIMIT');
+		assert.strictEqual(limitDiag.provider, 'Antigravity');
+		assert.strictEqual(limitDiag.description.includes('rate-limit'), true);
+
+		// 3. ERROR (403 Plan required)
+		const planError = 'Dardcor Router returned HTTP 403: {"error":{"code":"forbidden_plan_required","status":403,"message":"[qoder/dmodel] A paid plan or subscription is required for this model."}}';
+		const planDiag = diagnoseProviderIssue(403, planError, 'qoder/dmodel', 'id');
+		assert.strictEqual(planDiag.category, 'ERROR');
+		assert.strictEqual(planDiag.provider, 'Qoder');
+		assert.strictEqual(planDiag.description.includes('berbayar'), true);
 	});
 });

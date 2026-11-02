@@ -59,7 +59,7 @@ export class UserAttentionService extends Disposable implements IUserAttentionSe
 
 			reader.store.add(autorun(innerReader => {
 				const focused = this.isVsCodeFocused.read(innerReader);
-				this._logService.trace(`[UserAttentionService] VS Code focus changed: ${focused}`);
+				this._logService.trace(`[UserAttentionService] Dardcor Code focus changed: ${focused}`);
 			}));
 			reader.store.add(autorun(innerReader => {
 				const hasAttention = this.hasUserAttention.read(innerReader);

@@ -1,10 +1,28 @@
+/**
+ * Xiaomi MiMo usage — weekly quota from the Xiaomi account session.
+ *
+ * Primary path: GET {mimo-server}/api/user/usage authorized by the account-session
+ * cookie (see shared/mimoAccount.js). Response: { code: 0, data: { percent (remaining
+ * %), resetDate, resetAt } }.
+ *
+ * Fallback: the sk- API key cannot read the quota, so when no account session is
+ * available we surface a graceful message instead of failing.
+ */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { getMimoAccountUsage } from "../../shared/mimoAccount.js";
 
 const USAGE_URL = "https://aistudio.xiaomimimo.com/open-apis/v1/user/usage";
 
+/**
+ * @param {string|null|undefined} accessToken - sk- API key
+ * @param {object|null} providerSpecificData - may contain mimoPassToken, uid, etc.
+ * @param {object|null} proxyOptions
+ */
 export async function getXiaomiMimoUsage(accessToken = null, providerSpecificData = null, proxyOptions = null) {
+  // Preferred path: the weekly quota comes from the account service session
+  // (mimo-server /api/user/usage), which the sk- key cannot reach. The session is
+  // derived from MiMo Desktop's persisted passToken via the SSO/sts handshake.
   const account = await getMimoAccountUsage(providerSpecificData, proxyOptions);
   if (typeof account.percent === "number" && Number.isFinite(account.percent)) {
     const remaining = Math.max(0, Math.min(100, Math.round(account.percent)));
@@ -24,6 +42,8 @@ export async function getXiaomiMimoUsage(accessToken = null, providerSpecificDat
     };
   }
 
+  // Fallback: no account session available (Desktop never logged in, or its cookie
+  // store is locked). The sk- key cannot read the quota, so surface a clear message.
   const key = accessToken || providerSpecificData?.apiKey;
   if (!key || typeof key !== "string" || !key.trim()) {
     return { message: "Xiaomi MiMo Desktop not connected. Add credentials to view usage." };
@@ -74,9 +94,11 @@ export async function getXiaomiMimoUsage(accessToken = null, providerSpecificDat
       };
     }
 
+    // percent = remaining percentage (e.g. 94 means 94% remaining)
     const remaining = Math.max(0, Math.min(100, Math.round(percent)));
     const used = 100 - remaining;
 
+    // Parse resetDate — expected format "2026-09-16"
     let resetAt = null;
     if (resetDate && typeof resetDate === "string") {
       const parsed = new Date(`${resetDate}T00:00:00Z`);

@@ -1,3 +1,4 @@
+// Gemini TTS — generateContent with AUDIO modality returns PCM L16, wrap as WAV
 import { Buffer } from "node:buffer";
 import { PROVIDER_MEDIA, PROVIDER_MODELS } from "../../providers/index.js";
 
@@ -15,6 +16,7 @@ const KNOWN_MODELS = [
 const DEFAULT_MODEL = KNOWN_MODELS[0] || FALLBACK_MODEL;
 const DEFAULT_VOICE = "Kore";
 
+// Parse "model/voice" — if input doesn't match a known TTS model, treat it as voice with default model
 function parseGeminiModelVoice(input) {
   if (!input) return { modelId: DEFAULT_MODEL, voiceId: DEFAULT_VOICE };
   for (const id of KNOWN_MODELS) {
@@ -23,10 +25,12 @@ function parseGeminiModelVoice(input) {
   }
   return { modelId: DEFAULT_MODEL, voiceId: input };
 }
+// Gemini returns PCM 16-bit signed mono @ 24kHz
 const SAMPLE_RATE = 24000;
 const CHANNELS = 1;
 const BITS_PER_SAMPLE = 16;
 
+// Build WAV header for raw PCM payload
 function pcmToWav(pcmBuffer) {
   const dataSize = pcmBuffer.length;
   const byteRate = SAMPLE_RATE * CHANNELS * BITS_PER_SAMPLE / 8;
@@ -48,8 +52,9 @@ function pcmToWav(pcmBuffer) {
   return Buffer.concat([header, pcmBuffer]);
 }
 
+// Build TTS prompt: add "Say [in {language}]:" prefix to force TTS mode
 function buildPrompt(text, language) {
-  if (/:\s/.test(text)) return text;
+  if (/:\s/.test(text)) return text; // user already provided style instruction
   return language ? `Say in ${language}: ${text}` : `Say: ${text}`;
 }
 
@@ -84,6 +89,7 @@ export default {
   },
 };
 
+// Voice fetcher — return prebuilt voices (Gemini has no list API)
 const PREBUILT_VOICES = [
   { id: "Zephyr", lang: "en", gender: "Female" },
   { id: "Puck", lang: "en", gender: "Male" },

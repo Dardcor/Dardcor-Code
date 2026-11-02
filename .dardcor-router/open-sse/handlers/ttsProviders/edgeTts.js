@@ -1,7 +1,8 @@
+// Microsoft Edge / Bing TTS (no auth) — via Bing translator endpoint
 import { Buffer } from "node:buffer";
 import { UA } from "./_base.js";
 
-const REFRESH_MS = 5 * 60 * 1000;
+const REFRESH_MS = 5 * 60 * 1000; // token TTL ~1h, refresh early
 const VOICES_TTL = 24 * 60 * 60 * 1000;
 
 const cache = { token: null, tokenTime: 0 };
@@ -69,6 +70,7 @@ export default {
     let token = await getToken();
     let res = await ttsRequest(text, voiceId, token);
 
+    // 429/403: invalidate cache and retry once
     if (res.status === 429 || res.status === 403) {
       cache.token = null;
       cache.tokenTime = 0;

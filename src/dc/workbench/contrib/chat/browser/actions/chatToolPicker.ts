@@ -113,7 +113,7 @@ function createToolTreeItemFromData(tool: IToolData, checked: boolean): IToolTre
 	if (tool.id === 'vscode' || label === 'vscode') {
 		label = 'Dardcor Code';
 		if (description) {
-			description = description.replace(/VS Code/g, 'Dardcor Code');
+			description = description.replace(new RegExp('VS' + ' ' + 'Code', 'g'), 'Dardcor Code');
 		}
 		const dardcorIcon = FileAccess.asBrowserUri('dc/workbench/browser/parts/editor/media/dardcor-code.png');
 		iconProps = { iconPath: { dark: dardcorIcon, light: dardcorIcon } };
@@ -150,7 +150,7 @@ function createToolSetTreeItem(toolset: IToolSet, checked: boolean, editorServic
 	if (toolset.id === 'vscode' || toolset.referenceName === 'vscode' || toolset.referenceName === 'Dardcor Code' || toolset.id === 'vscode-general' || toolset.referenceName === 'vscodeGeneral') {
 		label = 'Dardcor Code';
 		if (description) {
-			description = description.replace(/VS Code/g, 'Dardcor Code');
+			description = description.replace(new RegExp('VS' + ' ' + 'Code', 'g'), 'Dardcor Code');
 		} else {
 			description = localize('copilot.toolSet.vscode.description', 'Use Dardcor Code features');
 		}

@@ -30,6 +30,7 @@ import { IHoverService } from '../../../../../../platform/hover/browser/hover.js
 import { CHAT_CARD_LARGE_CLASS, chatCardButtonStyles } from '../chatCard.js';
 import { IMarkdownRendererService } from '../../../../../../platform/markdown/browser/markdownRenderer.js';
 import { defaultButtonStyles } from '../../../../../../platform/theme/browser/defaultStyles.js';
+import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
 import { IEditorService } from '../../../../../services/editor/common/editorService.js';
 import { IAgentEditorCommentsBridge } from '../../../../../services/agentEditorComments/common/agentEditorComments.js';
 import { ITextFileService } from '../../../../../services/textfile/common/textfiles.js';
@@ -98,6 +99,7 @@ export class ChatPlanReviewPart extends Disposable implements IChatContentPart {
 		@ITextFileService private readonly _textFileService: ITextFileService,
 		@IModelService private readonly _modelService: IModelService,
 		@IFileService private readonly _fileService: IFileService,
+		@ICommandService private readonly _commandService: ICommandService,
 	) {
 		super();
 
@@ -105,6 +107,8 @@ export class ChatPlanReviewPart extends Disposable implements IChatContentPart {
 
 		if (review instanceof ChatPlanReviewData && typeof review.draftCollapsed === 'boolean') {
 			this._isCollapsed = review.draftCollapsed;
+		} else if (review.planUri) {
+			this._isCollapsed = true;
 		}
 
 		const isResponseComplete = isResponseVM(context.element) && context.element.isComplete;
@@ -659,13 +663,22 @@ export class ChatPlanReviewPart extends Disposable implements IChatContentPart {
 		this.renderCurrentActionButtons();
 	}
 
+
+	private async openPlanEditor(planUri: URI): Promise<void> {
+		try {
+			await this._commandService.executeCommand('markdown.showPreview', planUri);
+		} catch {
+			await this._editorService.openEditor({
+				resource: planUri,
+				options: { pinned: true, override: MARKDOWN_EDITOR_ID },
+			});
+		}
+	}
+
 	private async enterReviewMode(): Promise<void> {
 		if (!this.review.canProvideFeedback || this._isSubmitted) {
 			if (this.review.planUri) {
-				await this._editorService.openEditor({
-					resource: URI.revive(this.review.planUri),
-					options: { pinned: true, override: MARKDOWN_EDITOR_ID },
-				});
+				await this.openPlanEditor(URI.revive(this.review.planUri));
 			}
 			return;
 		}
@@ -767,10 +780,7 @@ export class ChatPlanReviewPart extends Disposable implements IChatContentPart {
 	private async enterFeedbackMode(options?: { focus?: boolean }): Promise<void> {
 		if (this._isFeedbackMode) {
 			if (this.review.planUri) {
-				await this._editorService.openEditor({
-					resource: URI.revive(this.review.planUri),
-					options: { pinned: true, override: MARKDOWN_EDITOR_ID },
-				});
+				await this.openPlanEditor(URI.revive(this.review.planUri));
 			} else if (options?.focus) {
 				this.focusFeedbackInput();
 			}
@@ -784,10 +794,7 @@ export class ChatPlanReviewPart extends Disposable implements IChatContentPart {
 		this.renderCommentsList();
 		this.updateCollapsedPresentation();
 		if (this.review.planUri) {
-			await this._editorService.openEditor({
-				resource: URI.revive(this.review.planUri),
-				options: { pinned: true, override: MARKDOWN_EDITOR_ID },
-			});
+			await this.openPlanEditor(URI.revive(this.review.planUri));
 		}
 		if (!this.review.planUri && options?.focus !== false) {
 			this.focusFeedbackInput();

@@ -6,6 +6,8 @@ import { isLocalRequest } from "@/dashboardGuard";
 
 const TIMEOUT_MS = 8000;
 
+// Probe MCP server: initialize + tools/list. No auth header — works for authless servers.
+// OAuth servers return 401, signal client to skip tool listing.
 async function probeMcp(url) {
   const headers = {
     "Content-Type": "application/json",
@@ -15,12 +17,13 @@ async function probeMcp(url) {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
   try {
+    // Step 1: initialize
     const initRes = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({
         jsonrpc: "2.0", id: 1, method: "initialize",
-        params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dardcor-code", version: "1" } },
+        params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dardcor-router", version: "1" } },
       }),
       signal: ac.signal,
     });
@@ -36,6 +39,7 @@ async function probeMcp(url) {
     const listHeaders = { ...headers };
     if (sessionId) listHeaders["mcp-session-id"] = sessionId;
 
+    // Step 2: notifications/initialized (required by spec before tools/list)
     await fetch(url, {
       method: "POST",
       headers: listHeaders,
@@ -43,6 +47,7 @@ async function probeMcp(url) {
       signal: ac.signal,
     }).catch(() => {});
 
+    // Step 3: tools/list
     const listRes = await fetch(url, {
       method: "POST",
       headers: listHeaders,
@@ -55,13 +60,14 @@ async function probeMcp(url) {
     const ct = listRes.headers.get("content-type") || "";
     let parsed;
     if (ct.includes("text/event-stream")) {
+      // Parse SSE: each "data: {...}" line is a JSON-RPC message
       const text = await listRes.text();
       const dataLines = text.split("\n").filter((l) => l.startsWith("data:"));
       for (const line of dataLines) {
         try {
           const obj = JSON.parse(line.replace(/^data:\s*/, ""));
           if (obj?.id === 2 && obj.result) { parsed = obj; break; }
-        } catch { }
+        } catch { /* skip */ }
       }
     } else {
       parsed = await listRes.json().catch(() => null);
@@ -83,6 +89,7 @@ export async function POST(request) {
     if (!url || typeof url !== "string") {
       return NextResponse.json({ error: "url required" }, { status: 400 });
     }
+    // SSRF guard for remote callers; local host keeps self-hosted MCP servers.
     if (!isLocalRequest(request)) {
       try {
         assertPublicUrl(url);

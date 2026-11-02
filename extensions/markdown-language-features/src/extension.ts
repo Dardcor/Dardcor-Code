@@ -21,9 +21,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const engine = new MarkdownItEngine(contributions, githubSlugifier, logger);
 
-	const client = await startServer(context, engine);
-	context.subscriptions.push(client);
-	activateShared(context, client, engine, logger, contributions);
+	// Start server in background without blocking preview command registration
+	const clientPromise = startServer(context, engine);
+	context.subscriptions.push({
+		dispose: () => { void clientPromise.then(c => c.dispose()).catch(() => { }); }
+	});
+
+	const lazyClient = createLazyClient(clientPromise);
+	activateShared(context, lazyClient, engine, logger, contributions);
+}
+
+function createLazyClient(clientPromise: Promise<MdLanguageClient>): MdLanguageClient {
+	return {
+		resolveLinkTarget: (linkText, uri) => clientPromise.then(c => c.resolveLinkTarget(linkText, uri)),
+		getEditForFileRenames: (files, token) => clientPromise.then(c => c.getEditForFileRenames(files, token)),
+		getReferencesToFileInWorkspace: (resource, token) => clientPromise.then(c => c.getReferencesToFileInWorkspace(resource, token)),
+		prepareUpdatePastedLinks: (doc, ranges, token) => clientPromise.then(c => c.prepareUpdatePastedLinks(doc, ranges, token)),
+		getUpdatePastedLinksEdit: (pastingIntoDoc, edits, metadata, token) => clientPromise.then(c => c.getUpdatePastedLinksEdit(pastingIntoDoc, edits, metadata, token)),
+		dispose: () => { void clientPromise.then(c => c.dispose()).catch(() => { }); }
+	} as MdLanguageClient;
 }
 
 function startServer(context: vscode.ExtensionContext, parser: IMdParser): Promise<MdLanguageClient> {

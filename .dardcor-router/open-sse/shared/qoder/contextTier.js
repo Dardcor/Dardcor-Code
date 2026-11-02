@@ -1,8 +1,29 @@
+/**
+ * Qoder context-window tiers.
+ *
+ * Each Qoder model_config ships a `context_config` list (e.g. 200K / 400K / 1M for
+ * qmodel_38max) while `max_input_tokens` only carries the tier the IDE currently has
+ * selected (~180K by default). The Qoder IDE lets the user switch tiers from the model
+ * picker; a qodercli-style client (which is what Dardcor Router impersonates) has no picker,
+ * so a long Claude-Code / Codex session that grew past the default tier is rejected
+ * upstream even though the model itself supports 1M.
+ *
+ * This module emulates the IDE: estimate the prompt size, pick the smallest advertised
+ * tier that fits (never below the model's current default), and mirror the choice into
+ * the same three places the IDE writes:
+ *   parameters.context_length
+ *   chat_context.extra.ideModelConfigOverride.max_input_tokens
+ *   model_config.max_input_tokens
+ *
+ * Override with QODER_CONTEXT_TIER = auto (default) | max | default | <tier name, e.g. 1M>.
+ * Pure functions, no I/O — the executor wires them into buildQoderRequestBody.
+ */
 
 import { QODER_CONTEXT_TIER_HEADROOM, QODER_CONTEXT_TIER_MODES } from "./constants.js";
 
 const UNIT = { K: 1_000, M: 1_000_000 };
 
+/** "200K" | "1M" | "204800" | 204800 → integer token count (0 when unparseable). */
 export function parseTierTokenCount(value) {
   if (typeof value === "number") return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
   if (typeof value !== "string") return 0;
@@ -20,6 +41,10 @@ function tierName(entry, tokenCount) {
   return String(tokenCount);
 }
 
+/**
+ * Normalize a model_config into sorted tiers: [{ name, tokenCount, isDefault }] ascending.
+ * Accepts snake_case and camelCase shapes; returns [] when the model has no tiers.
+ */
 export function getQoderContextTiers(modelConfig) {
   const list = modelConfig?.context_config ?? modelConfig?.contextConfig;
   if (!Array.isArray(list)) return [];
@@ -43,6 +68,11 @@ export function getQoderContextTiers(modelConfig) {
 
 const CJK_RE = /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/g;
 
+/**
+ * Rough prompt-size estimate in tokens. CJK characters count ~1 token each, everything
+ * else ~4 chars/token — the plain chars/4 rule underestimates Chinese/Japanese by up to
+ * 4x, which is exactly when a tier decision matters.
+ */
 export function estimateQoderPromptTokens({ system, messages, tools } = {}) {
   let text = "";
   try {
@@ -65,6 +95,15 @@ function findNamedTier(tiers, name) {
   return tiers.find((t) => t.name.replace(/\s+/g, "").toUpperCase() === wanted || (asCount && t.tokenCount === asCount)) || null;
 }
 
+/**
+ * Decide which tier a request should run under.
+ *
+ * @param {object} modelConfig   raw Qoder model_config (has context_config + max_input_tokens)
+ * @param {{system?: string, messages?: any[], tools?: any[]}} prompt  what will be sent
+ * @param {{preference?: string, headroom?: number}} [options]
+ * @returns {{ tier: {name, tokenCount, isDefault}, estimatedTokens: number, reason: string } | null}
+ *   null → leave the payload exactly as before (no tiers, or the default already fits).
+ */
 export function resolveQoderContextTier(modelConfig, prompt, options = {}) {
   const tiers = getQoderContextTiers(modelConfig);
   if (!tiers.length) return null;
@@ -85,18 +124,24 @@ export function resolveQoderContextTier(modelConfig, prompt, options = {}) {
   if (mode.toLowerCase() !== QODER_CONTEXT_TIER_MODES.AUTO) {
     const named = findNamedTier(tiers, mode);
     if (named) return { tier: named, estimatedTokens, reason: `forced:${named.name}` };
+    // Unknown tier name → fall through to auto rather than silently breaking requests.
   }
 
+  // auto: keep the upstream default (current behaviour) while the prompt fits in it.
   const currentMax = parseTierTokenCount(modelConfig?.max_input_tokens ?? modelConfig?.maxInputTokens);
   const currentLimit = currentMax || defaultTier.tokenCount;
   if (need <= currentLimit) return null;
 
   const fits = tiers.find((t) => t.tokenCount >= need && t.tokenCount > currentLimit);
   const tier = fits || largest;
-  if (tier.tokenCount <= currentLimit) return null;
+  if (tier.tokenCount <= currentLimit) return null; // nothing bigger to escalate to
   return { tier, estimatedTokens, reason: fits ? "auto:fits" : "auto:largest" };
 }
 
+/**
+ * Write the chosen tier into a Qoder chat payload (mutates + returns it).
+ * Mirrors the IDE: parameters.context_length, ideModelConfigOverride, model_config.
+ */
 export function applyQoderContextTier(payload, tier) {
   if (!payload || !tier?.tokenCount) return payload;
   payload.parameters = { ...(payload.parameters || {}), context_length: tier.tokenCount };

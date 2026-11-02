@@ -149,7 +149,7 @@ import { CODEX_COMPACT_SLASH_COMMAND } from '../codexCompactCommand.js';
 
 const CLIENT_INFO = {
 	name: 'vscode_agent_host',
-	title: 'VS Code Agent Host',
+	title: 'Dardcor Code Agent Host',
 	version: '0.1.0',
 };
 

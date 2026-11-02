@@ -1,3 +1,17 @@
+/**
+ * Qoder COSY (hybrid RSA+AES+MD5) signing, ported from CLIProxyAPIPlus
+ * qoder-provider branch (internal/auth/qoder/cosy.go).
+ *
+ * Every signed request carries:
+ *   - an AES-128-CBC payload of the user info, the AES key wrapped in RSA
+ *   - an MD5 signature over `payload || cosyKey || timestamp || body || sigPath`
+ *   - the body's MD5 hash + length so the server can validate integrity
+ *   - 17 Cosy-* / X-* headers fingerprinting the client (machine id, IDE
+ *     version, organization id, etc.)
+ *
+ * The on-the-wire header keys use the same casing as qodercli:
+ *   Cosy-Machineid, not Cosy-MachineID.
+ */
 
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -12,6 +26,10 @@ import {
   QODER_RSA_PUBLIC_KEY,
 } from "./constants.js";
 
+// AES-128 wants a 16-byte key. Match qodercli/Veria: take the first 16 chars
+// of a fresh UUID's canonical string (hyphens included). The key is fresh
+// per request so even though the IV reuses the key bytes, each request still
+// has a unique IV.
 function generateAesKey() {
   return uuidv4().slice(0, 16);
 }
@@ -56,6 +74,10 @@ function md5Hex(input) {
   return crypto.createHash("md5").update(input).digest("hex");
 }
 
+/**
+ * Strip the leading "/algo" prefix from the request path. Matches qodercli
+ * convention. Empty input returns "".
+ */
 function computeSigPath(requestUrl) {
   let pathname;
   try {
@@ -69,10 +91,52 @@ function computeSigPath(requestUrl) {
   return pathname;
 }
 
+/**
+ * Generate a fresh machine UUID. Persisted on the connection record so
+ * every request from the same auth carries the same machineId.
+ */
 export function generateMachineId() {
   return uuidv4();
 }
 
+/**
+ * Machine id derived deterministically from the Qoder user id.
+ *
+ * qodercli generates one machine id per install and reuses it for every request
+ * (including queue-status polls and model-queue replays); the server tracks
+ * per-client queue state by it. Connections that predate machine-id persistence
+ * (PAT connections) have none stored, so falling back to a random uuid made each
+ * request look like a brand-new device — and a new device starts at the back of
+ * the queue again. Deriving it from the user id keeps it stable without needing
+ * extra storage.
+ */
+export function deriveMachineId(seed) {
+  if (!seed) return generateMachineId();
+  const h = crypto.createHash("sha256").update(`qoder-machine\0${seed}`).digest("hex");
+  // Format as a UUID so it is indistinguishable from a generated machine id.
+  return [
+    h.slice(0, 8),
+    h.slice(8, 12),
+    `5${h.slice(13, 16)}`,
+    `a${h.slice(17, 20)}`,
+    h.slice(20, 32),
+  ].join("-");
+}
+
+/**
+ * Build the full Cosy-* header set for a single Qoder request.
+ *
+ * @param {Buffer|Uint8Array|string} body  The exact bytes that will be sent.
+ *   For GET requests pass an empty Buffer / "".
+ * @param {string} requestUrl              Full request URL (used for sigPath).
+ * @param {object} creds
+ * @param {string} creds.userId            Stable Qoder user id.
+ * @param {string} creds.authToken         Device access token (`dt-...`).
+ * @param {string} [creds.name]            Display name (optional).
+ * @param {string} [creds.email]           Email (optional, can be empty).
+ * @param {string} [creds.machineId]       Persisted machine UUID.
+ * @returns {Record<string, string>} Header map ready to merge onto fetch().
+ */
 export function buildCosyHeaders(body, requestUrl, creds) {
   if (!creds?.userId) throw new Error("cosy: user id is empty");
   if (!creds?.authToken) throw new Error("cosy: auth token is empty");

@@ -23,7 +23,7 @@ function dardcorRouterHtml(): string {
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://127.0.0.1:25128 http://localhost:25128; style-src 'unsafe-inline';">
 	<style>
-		html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; overflow: hidden; background: #09090b; }
+		html, body, iframe { width: 100%; height: 100%; min-height: 100%; margin: 0; padding: 0; border: 0; overflow: hidden; display: block; background: #09090b; }
 	</style>
 </head>
 <body><iframe title="Model" src="http://127.0.0.1:25128/dashboard/providers"></iframe></body>

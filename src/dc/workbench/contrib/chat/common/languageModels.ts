@@ -47,7 +47,7 @@ const _LM_ROUTER_PORT = (typeof process !== 'undefined' && process.env?.DARDCOR_
 const _LM_ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
 const _LM_ROUTER_AUTH = { 'Authorization': 'Bearer sk-dardcor-local-key' };
 
-async function fetchRouterLM(path: string, init?: RequestInit, retries = 8, timeoutMs = 30000): Promise<Response> {
+async function fetchRouterLM(path: string, init?: RequestInit, retries = 4, timeoutMs = 15000): Promise<Response> {
 	let lastErr: unknown;
 	for (let attempt = 0; attempt < retries; attempt++) {
 		for (const host of _LM_ROUTER_HOSTS) {
@@ -70,7 +70,7 @@ async function fetchRouterLM(path: string, init?: RequestInit, retries = 8, time
 			}
 		}
 		if (attempt < retries - 1) {
-			const delay = Math.min(500 + attempt * 300, 2000);
+			const delay = Math.min(200 * Math.pow(2, attempt), 1000);
 			await new Promise<void>(resolve => setTimeout(resolve, delay));
 		}
 	}
@@ -1465,7 +1465,7 @@ export class LanguageModelsService implements ILanguageModelsService {
 		let activePollTimer: any = undefined;
 		const scheduleNextPoll = () => {
 			if (activePollTimer) clearTimeout(activePollTimer);
-			const delay = 2000;
+			const delay = 20000;
 			activePollTimer = setTimeout(async () => {
 				await fetchLocalModels();
 				scheduleNextPoll();

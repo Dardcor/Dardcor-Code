@@ -1,5 +1,6 @@
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 
+// Browser-local preset stores (endpoints, API keys) shared by every CLI tool card
 function createStore({ storageKey, changeEvent, itemField, normalize = (v) => v, defaultName = (v) => v }) {
   const read = () => {
     if (typeof window === "undefined") return [];
@@ -25,6 +26,7 @@ function createStore({ storageKey, changeEvent, itemField, normalize = (v) => v,
       window.addEventListener(changeEvent, handler);
       return () => window.removeEventListener(changeEvent, handler);
     },
+    // Adds or replaces a preset; returns the stored name, or null when skipped
     upsert: (value, name) => {
       const v = normalize(value);
       if (!v) return null;
@@ -48,8 +50,8 @@ function createStore({ storageKey, changeEvent, itemField, normalize = (v) => v,
 const stripSlash = (url) => (url || "").replace(/\/+$/, "");
 
 const endpoints = createStore({
-  storageKey: "dardcor-code.cliToolEndpointPresets",
-  changeEvent: "dardcor-code:endpoint-presets-changed",
+  storageKey: "dardcor-router.cliToolEndpointPresets",
+  changeEvent: "dardcor-router:endpoint-presets-changed",
   itemField: "baseUrl",
   normalize: stripSlash,
   defaultName: (url) => {
@@ -58,8 +60,8 @@ const endpoints = createStore({
 });
 
 const apiKeys = createStore({
-  storageKey: "dardcor-code.cliToolApiKeyPresets",
-  changeEvent: "dardcor-code:api-key-presets-changed",
+  storageKey: "dardcor-router.cliToolApiKeyPresets",
+  changeEvent: "dardcor-router:api-key-presets-changed",
   itemField: "key",
 });
 
@@ -73,6 +75,7 @@ export const subscribeKeyPresets = apiKeys.subscribe;
 export const upsertKeyPreset = apiKeys.upsert;
 export const deleteKeyPreset = apiKeys.remove;
 
+// Save an applied endpoint unless it exactly matches a built-in dropdown option
 export function rememberEndpoint(baseUrl, { tunnelPublicUrl, tailscaleUrl, cloudUrl } = {}) {
   const url = stripSlash(baseUrl);
   if (!url) return null;

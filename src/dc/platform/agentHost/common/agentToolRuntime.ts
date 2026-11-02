@@ -54,6 +54,20 @@ export function isAgentToolExecutionStatus(value: unknown): value is AgentToolEx
 		|| value === 'cancelled' || value === 'timedOut' || value === 'unknown' || value === 'rejected';
 }
 
+function extractOrigin(stack: string | undefined): string | undefined {
+	if (!stack || typeof stack !== 'string') {
+		return undefined;
+	}
+	const lines = stack.split(/\r?\n/);
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (trimmed.startsWith('at ')) {
+			return trimmed.replace(/^at\s+/, '');
+		}
+	}
+	return undefined;
+}
+
 export function formatAgentToolError(error: unknown): string {
 	const seen = new Set<object>();
 	const render = (value: unknown, depth: number): string => {
@@ -85,27 +99,135 @@ export function formatAgentToolError(error: unknown): string {
 		}
 
 		const record = value as Record<string, unknown>;
-		const name = typeof record.name === 'string' && record.name.trim() ? record.name.trim() : undefined;
-		const message = ['message', 'errorMessage', 'reason', 'description']
-			.map(key => record[key])
-			.find((item): item is string => typeof item === 'string' && item.trim().length > 0);
-		const code = typeof record.code === 'string' || typeof record.code === 'number' ? String(record.code) : undefined;
+
+		// Extract constructor name (e.g. DOMException, CustomError, TimeoutError)
+		const ctor = (value as { constructor?: { name?: string } }).constructor;
+		const ctorName = ctor && typeof ctor.name === 'string' && ctor.name !== 'Object' ? ctor.name : undefined;
+
+		// 1. Resolve error name / classification
+		let name = typeof record.name === 'string' && record.name.trim() ? record.name.trim() : undefined;
+		if (!name && ctorName && ctorName !== 'Error') {
+			name = ctorName;
+		}
+
+		// 2. Resolve error message from common candidate keys
+		let message: string | undefined;
+		for (const key of ['message', 'errorMessage', 'reason', 'description', 'detail', 'msg', 'title', 'statusText', 'error_description']) {
+			const candidate = record[key];
+			if (typeof candidate === 'string' && candidate.trim().length > 0) {
+				message = candidate.trim();
+				break;
+			}
+		}
+
+		// CDP / Playwright exceptionDetails support
+		if (!message && record.exceptionDetails && isRecord(record.exceptionDetails)) {
+			const ed = record.exceptionDetails as Record<string, unknown>;
+			const exceptionObj = isRecord(ed.exception) ? ed.exception : undefined;
+			const desc = (typeof exceptionObj?.description === 'string' && exceptionObj.description)
+				|| (typeof ed.text === 'string' && ed.text)
+				|| (typeof ed.message === 'string' && ed.message);
+			if (desc && desc.trim()) {
+				message = desc.trim();
+			}
+		}
+
+		// Fallback to top line of stack if message is missing
+		const rawStack = record.stack || (record as { stacktrace?: string }).stacktrace;
+		const stack = typeof rawStack === 'string' && rawStack.trim() ? rawStack.trim() : undefined;
+		if (!message && stack) {
+			const firstLine = stack.split(/\r?\n/)[0]?.trim();
+			if (firstLine && firstLine !== name) {
+				message = name && firstLine.startsWith(`${name}: `) ? firstLine.slice(name.length + 2).trim() : firstLine;
+			}
+		}
+
+		// 3. Resolve code / status
+		const rawCode = record.code !== undefined ? record.code : (record.status !== undefined ? record.status : record.statusCode);
+		const code = (typeof rawCode === 'string' || typeof rawCode === 'number') && String(rawCode).trim() ? String(rawCode).trim() : undefined;
+
+		// 4. Resolve structured details and causes
 		const details: string[] = [];
-		for (const key of ['cause', 'error', 'details', 'data', 'errors']) {
+		const detailKeys = ['cause', 'error', 'reason', 'details', 'data', 'errors', 'target', 'response'];
+		for (const key of detailKeys) {
 			const detail = record[key];
-			if (detail === undefined || (key === 'error' && detail === message)) {
+			if (detail === undefined || detail === null) {
 				continue;
 			}
+			if (key === 'error' && (detail === message || detail === value)) {
+				continue;
+			}
+			if (key === 'reason' && detail === message) {
+				continue;
+			}
+
+			if (key === 'target' && isRecord(detail)) {
+				const tag = (typeof detail.nodeName === 'string' && detail.nodeName)
+					|| (detail.constructor && typeof detail.constructor.name === 'string' && detail.constructor.name);
+				if (tag) {
+					details.push(`target: <${tag.toLowerCase()}>`);
+					continue;
+				}
+			}
+
 			details.push(`${key}: ${render(detail, depth + 1)}`);
 		}
+
+		if (record.message !== undefined && typeof record.message !== 'string' && record.message !== null) {
+			details.push(`message: ${render(record.message, depth + 1)}`);
+		}
+
+		if (typeof record.type === 'string') {
+			if (!name && (record.type === 'error' || record.type.includes('error'))) {
+				name = ctorName || 'ErrorEvent';
+			}
+			if (record.filename !== undefined || record.lineno !== undefined) {
+				const loc = [record.filename, record.lineno, record.colno].filter(v => v !== undefined).join(':');
+				if (loc) {
+					details.push(`location: ${loc}`);
+				}
+			}
+		}
+
+		if (depth === 0 && stack) {
+			const origin = extractOrigin(stack);
+			if (origin) {
+				details.push(`origin: ${origin}`);
+			}
+		}
+
+		// 5. Construct label
 		const label = [name && message ? `${name}: ${message}` : name ?? message, code ? `code ${code}` : undefined].filter(Boolean).join(' (')
 			+ (code && (name || message) ? ')' : '');
+
 		if (label || details.length > 0) {
 			return [label || 'Structured error', ...details].join('; ');
 		}
 
-		const entries = Object.keys(record).slice(0, 12).map(key => `${key}: ${render(record[key], depth + 1)}`);
-		return entries.length > 0 ? `Structured error { ${entries.join(', ')} }` : 'Unknown object error';
+		// 6. Custom toString() if defined and informative
+		if (typeof record.toString === 'function' && record.toString !== Object.prototype.toString) {
+			try {
+				const str = record.toString();
+				if (typeof str === 'string' && str.trim() && str !== '[object Object]' && str !== '[object Error]') {
+					return str.trim();
+				}
+			} catch { }
+		}
+
+		// 7. Non-enumerable properties & property names (captures hidden error fields)
+		const propNames = Object.getOwnPropertyNames(record).filter(k => k !== 'constructor');
+		const ownKeys = propNames.length > 0 ? propNames : Object.keys(record);
+		const entries = ownKeys.slice(0, 12).map(key => `${key}: ${render(record[key], depth + 1)}`);
+		if (entries.length > 0) {
+			return `Structured error { ${entries.join(', ')} }`;
+		}
+
+		// 8. Specialized class instance without enumerable properties
+		if (ctorName && ctorName !== 'Object') {
+			return `[${ctorName}]`;
+		}
+
+		return 'Empty error object (no enumerable details or message properties)';
 	};
 
 	try {

@@ -454,7 +454,7 @@ function asExtensionIdOrVSIX(inputs: string[] | undefined) {
 }
 
 function fatal(message: string, err: unknown): void {
-	console.error('Unable to connect to VS Code server: ' + message);
+	console.error('Unable to connect to Dardcor Code server: ' + message);
 	console.error(err);
 	process.exit(1);
 }

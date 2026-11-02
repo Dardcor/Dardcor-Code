@@ -27,11 +27,13 @@ export async function GET() {
     for (const connection of connections) {
       const locks = getActiveModelLocks(connection);
       for (const lock of locks) {
+        const remainingSec = Math.max(Math.ceil((new Date(lock.until).getTime() - Date.now()) / 1000), 0);
         models.push({
           provider: connection.provider,
           model: lock.model,
           status: "cooldown",
           until: lock.until,
+          remainingSec,
           connectionId: connection.id,
           connectionName: connection.name || connection.email || connection.id,
           lastError: connection.lastError || null,

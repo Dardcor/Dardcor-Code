@@ -48,6 +48,7 @@ import { getTarget, mapClaudeModels, mapClaudeTools } from '../languageProviders
 import { getCanonicalPluginCommandId, IAgentPlugin, IAgentPluginService } from '../../plugins/agentPluginService.js';
 import { isContributionEnabled } from '../../enablement.js';
 import { assertNever } from '../../../../../../base/common/assert.js';
+import { getBuiltinSkillPromptPaths, isBuiltinSkillUri, getBuiltinSkillContent } from '../builtin/builtinSkills.js';
 import { ExtensionPromptFileService } from './extensionPromptFileService.js';
 import { COPILOT_ALLOW_MANAGED_HOOKS_ONLY_CONFIG, COPILOT_STRICT_PLUGIN_ONLY_CUSTOMIZATION_CONFIG } from '../../../../../../platform/policy/common/copilotManagedSettings.js';
 import { isPromptTypeBlocked, StrictPluginOnlyCustomization } from '../../customizationLockdown.js';
@@ -385,6 +386,9 @@ export class PromptsService extends Disposable implements IPromptsService {
 	}
 
 	protected async getBuiltinPromptFiles(type: PromptsType, token: CancellationToken): Promise<readonly IBuiltinPromptPath[]> {
+		if (type === PromptsType.skill) {
+			return getBuiltinSkillPromptPaths();
+		}
 		return [];
 	}
 
@@ -708,6 +712,13 @@ export class PromptsService extends Disposable implements IPromptsService {
 		const model = this.modelService.getModel(uri);
 		if (model) {
 			return this.getParsedPromptFile(model);
+		}
+
+		if (isBuiltinSkillUri(uri)) {
+			const builtinContent = getBuiltinSkillContent(uri);
+			if (builtinContent !== undefined) {
+				return new PromptFileParser().parse(uri, builtinContent);
+			}
 		}
 
 		const fileContent = await this.fileService.readFile(uri);
@@ -1336,7 +1347,10 @@ export class PromptsService extends Disposable implements IPromptsService {
 		if (skill.source === PromptFileSource.ExtensionContribution) {
 			return 4;
 		}
-		return 5;
+		if (skill.storage === PromptsStorage.builtIn) {
+			return 5;
+		}
+		return 6;
 	}
 
 	private async computeSkillDiscoveryInfo(token: CancellationToken): Promise<IPromptFileDiscoveryResult[]> {

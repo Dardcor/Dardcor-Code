@@ -5,13 +5,14 @@ import { NextResponse } from "next/server";
 const REGISTRY_URL = "https://api.anthropic.com/mcp-registry/v0/servers";
 const VISIBILITY = "commercial,gsuite,gsuite-google";
 const CACHE_TTL_MS = 60 * 60 * 1000;
-const G_KEY = "__dardcor-codeCoworkMcpRegistryCache";
+const G_KEY = "__dardcorRouterCoworkMcpRegistryCache";
 
 function gcache() {
   if (!globalThis[G_KEY]) globalThis[G_KEY] = { ts: 0, data: null };
   return globalThis[G_KEY];
 }
 
+// Filter out claude.ai-mediated servers (broken in 3p) and tenant-required entries.
 function isDirectConnect(url) {
   if (!url || typeof url !== "string") return false;
   if (/^https?:\/\/[^/]*\bmcp\.claude\.com\b/i.test(url)) return false;
@@ -52,6 +53,7 @@ async function fetchAll() {
     cursor = j.metadata?.nextCursor;
     if (!cursor) break;
   }
+  // Dedupe by url
   const seen = new Set();
   return out.filter((s) => (seen.has(s.url) ? false : (seen.add(s.url), true)));
 }

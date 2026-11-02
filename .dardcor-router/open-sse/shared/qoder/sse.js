@@ -1,9 +1,25 @@
+/**
+ * Qoder SSE is OpenAI-shaped inside `{statusCodeValue, body}` envelopes, but
+ * usage arrives on a later `choices: []` frame — after finish_reason, which
+ * itself often lives on `delta.finish_reason` rather than the choice.
+ *
+ * Downstream (Claude translator, OpenAI clients, Claude Code) look for usage
+ * on the finish chunk or drop `choices: []` entirely. Dardcor Router's own dashboard
+ * still sees tokens because extractUsage runs on every forwarded frame.
+ *
+ * Coalesce: hold empty finish + usage-only frames, then emit one OpenAI
+ * include_usage-style chunk: `{choices:[{delta:{}, finish_reason}], usage}`.
+ */
 
 function num(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Normalize Qoder/OpenAI usage into the shape stream.js + Claude translation
+ * already understand (prompt_tokens + prompt_tokens_details.cached_tokens).
+ */
 export function canonicalizeQoderUsage(usage) {
   if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
 
@@ -80,6 +96,12 @@ function parseInner(inner) {
   }
 }
 
+/**
+ * @param {object} opts
+ * @param {string} opts.model
+ * @param {TextEncoder} opts.encoder
+ * @param {string} opts.sseDone  "data: [DONE]\\n\\n"
+ */
 export function createQoderSseCoalescer({ model, encoder, sseDone }) {
   let pendingFinish = null;
   let pendingUsage = null;
@@ -148,9 +170,11 @@ export function createQoderSseCoalescer({ model, encoder, sseDone }) {
 
     const finish = finishReasonOf(parsed);
     if (hasValuableDelta(parsed)) {
+      // Stream content as-is (preserves upstream JSON for tests/clients).
       emitRaw(controller, typeof inner === "string" ? inner : JSON.stringify(parsed));
       if (finish) {
         finishAlreadyForwarded = true;
+        // Keep finish around only if we still need a usage trailer.
         pendingFinish = pendingUsage ? finish : null;
       }
       if (pendingFinish && pendingUsage) {
@@ -163,6 +187,8 @@ export function createQoderSseCoalescer({ model, encoder, sseDone }) {
 
     if (finish) pendingFinish = finish;
 
+    // Empty finish and/or usage-only: emit as soon as we have both (Qoder
+    // order is finish then usage). Don't wait for the later [DONE]/keepalive.
     if ((pendingFinish || finishAlreadyForwarded) && pendingUsage) {
       if (!pendingFinish) pendingFinish = "stop";
       emitTerminal(controller);

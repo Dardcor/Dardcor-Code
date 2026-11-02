@@ -111,7 +111,8 @@ async function fetchKiroCatalogRaw(credentials, signal) {
 
   const headers = {
     ...buildKiroFingerprintHeaders(credentials),
-    "Authorization": `Bearer ${credentials?.accessToken || ""}`
+    "Authorization": `Bearer ${credentials?.accessToken || ""}`,
+    ...(credentials?.accessToken ? { "x-amz-sso-bearer": credentials.accessToken } : {}),
   };
 
   const controller = new AbortController();
@@ -166,6 +167,7 @@ export async function resolveKiroModels(credentials, options = {}) {
   if (!options.forceRefresh) {
     const cached = catalogCache.get(key);
     if (cached && cached.expiresAt > now) {
+      if (cached.failed) return null;
       return { models: cached.models, rawModels: cached.rawModels };
     }
   }
@@ -174,8 +176,12 @@ export async function resolveKiroModels(credentials, options = {}) {
   try {
     raw = await fetchKiroCatalogRaw(credentials, options.signal);
   } catch (err) {
-    if (err && err.status === 401 && credentials.refreshToken) {
-      options.log?.info?.("KIRO_MODELS", "Got 401 from Kiro; refreshing token");
+    const isAuthError = err && (
+      err.status === 401 ||
+      (err.status === 403 && /bearer token|expired|invalid/i.test(`${err.body || ""} ${err.message || ""}`))
+    );
+    if (isAuthError && credentials.refreshToken) {
+      options.log?.info?.("KIRO_MODELS", `Got ${err.status} from Kiro; refreshing token`);
       const refreshed = await refreshKiroToken(
         credentials.refreshToken,
         credentials.providerSpecificData,
@@ -194,14 +200,17 @@ export async function resolveKiroModels(credentials, options = {}) {
           if (next.refreshToken) credentials.refreshToken = next.refreshToken;
         } catch (err2) {
           options.log?.warn?.("KIRO_MODELS", `Retry after refresh failed: ${err2?.message || err2}`);
+          catalogCache.set(key, { expiresAt: Date.now() + 60_000, failed: true, models: [], rawModels: [] });
           return null;
         }
       } else {
         options.log?.warn?.("KIRO_MODELS", "Token refresh did not return accessToken");
+        catalogCache.set(key, { expiresAt: Date.now() + 60_000, failed: true, models: [], rawModels: [] });
         return null;
       }
     } else {
       options.log?.warn?.("KIRO_MODELS", `ListAvailableModels failed: ${err?.message || err}`);
+      catalogCache.set(key, { expiresAt: Date.now() + 60_000, failed: true, models: [], rawModels: [] });
       return null;
     }
   }

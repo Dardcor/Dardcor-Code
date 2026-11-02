@@ -1422,7 +1422,8 @@ export class ChatService extends Disposable implements IChatService {
 					const initialAgent = agentPart?.agent ?? defaultAgent ?? this.chatAgentService.getActivatedAgents()[0] ?? ChatService._dardcorFallbackAgent;
 					const initialCommand = agentSlashCommandPart?.command;
 					const initVariableData: IChatRequestVariableData = { variables: [] };
-					request = preservedRequest ?? model.addRequest(parsedRequest, initVariableData, attempt, options?.modeInfo, initialAgent, initialCommand, options?.confirmation, options?.locationData, options?.attachedContext, undefined, options?.userSelectedModelId, options?.userSelectedTools?.get(), requestId, options?.isSystemInitiated, options?.systemInitiatedLabel, options?.terminalExecutionId, isTerminalCommand);
+					const effectiveModelId = options?.userSelectedModelId ?? preservedRequest?.modelId ?? model.getRequests().slice().reverse().find(r => r.modelId && r.modelId !== 'auto' && !r.modelId.endsWith('/auto') && !r.modelId.endsWith('/no-model-selected'))?.modelId;
+					request = preservedRequest ?? model.addRequest(parsedRequest, initVariableData, attempt, options?.modeInfo, initialAgent, initialCommand, options?.confirmation, options?.locationData, options?.attachedContext, undefined, effectiveModelId, options?.userSelectedTools?.get(), requestId, options?.isSystemInitiated, options?.systemInitiatedLabel, options?.terminalExecutionId, isTerminalCommand);
 					preservedRequest?.response?.reopen();
 					const thisRequest = request;
 					completeResponseCreated();
@@ -1468,10 +1469,11 @@ export class ChatService extends Disposable implements IChatService {
 							acceptedConfirmationData: options?.acceptedConfirmationData,
 							rejectedConfirmationData: options?.rejectedConfirmationData,
 							agentHostSessionConfig: options?.agentHostSessionConfig,
-							userSelectedModelId: options?.userSelectedModelId,
-							modelConfiguration: options?.userSelectedModelConfiguration ?? (options?.userSelectedModelId ? this.languageModelsService.getModelConfiguration(options.userSelectedModelId) : undefined),
+							userSelectedModelId: effectiveModelId,
+							modelConfiguration: options?.userSelectedModelConfiguration ?? (effectiveModelId ? this.languageModelsService.getModelConfiguration(effectiveModelId) : undefined),
 							userSelectedTools: options?.userSelectedTools?.get(),
 							modeInstructions: options?.modeInfo?.modeInstructions,
+							modeInfo: options?.modeInfo,
 							permissionLevel: options?.modeInfo?.permissionLevel,
 							editedFileEvents: thisRequest.editedFileEvents,
 							hooks: collectedHooks,
@@ -1602,6 +1604,7 @@ export class ChatService extends Disposable implements IChatService {
 							completeResponseCreated();
 						}
 						const thisReq = request;
+						const fallbackEffectiveModelId = options?.userSelectedModelId ?? model.getRequests().slice().reverse().find(r => r.modelId && r.modelId !== 'auto' && !r.modelId.endsWith('/auto') && !r.modelId.endsWith('/no-model-selected'))?.modelId;
 						const agentRequest: IChatAgentRequest = {
 							sessionResource: model.sessionResource,
 							requestId: thisReq.id,
@@ -1612,7 +1615,7 @@ export class ChatService extends Disposable implements IChatService {
 							attempt,
 							location,
 							locationData: thisReq.locationData,
-							userSelectedModelId: options?.userSelectedModelId,
+							userSelectedModelId: fallbackEffectiveModelId,
 						};
 						rawResult = await this.chatAgentService.invokeAgent(fallbackAgent.id, agentRequest, progressCallback, [], token);
 					} else {

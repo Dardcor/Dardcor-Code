@@ -11,6 +11,17 @@ export function checkFallbackError(status, errorText, backoffLevel = 0) {
     ? (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase()
     : "";
 
+  const isClientAbort = status === 499 ||
+    lowerError.includes("aborted by client") ||
+    lowerError.includes("request aborted") ||
+    lowerError.includes("aborterror") ||
+    lowerError.includes("signal is aborted") ||
+    lowerError.includes("client closed request");
+
+  if (isClientAbort) {
+    return { shouldFallback: false, cooldownMs: 0, newBackoffLevel: backoffLevel };
+  }
+
   for (const rule of ERROR_RULES) {
     if (rule.text && lowerError && lowerError.includes(rule.text)) {
       if (rule.backoff) {

@@ -2,12 +2,22 @@ import http from "http";
 import { URL } from "url";
 import { CODEX_CONFIG, TRAE_CONFIG, WINDSURF_CONFIG, ZED_HOSTED_CONFIG } from "../constants/oauth.js";
 
+// Loopback origin guard for local callback proxies.
+// Legit OAuth redirects are top-level navigations (no `Origin` header); a cross-site
+// page issuing `fetch(..., {mode:"no-cors"})` to scan + hit 127.0.0.1 always sends
+// `Origin: https://attacker`. Reject any non-loopback Origin to block login-CSRF.
 function isLoopbackOrigin(origin) {
-  if (!origin) return true;
+  if (!origin) return true; // navigation redirect — allow
   return /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin);
 }
 
 
+/**
+ * Start a local HTTP server to receive OAuth callback
+ * @param {Function} onCallback - Called with query params when callback received
+ * @param {number} fixedPort - Optional fixed port number (default: random)
+ * @returns {Promise<{server: http.Server, port: number, close: Function}>}
+ */
 export function startLocalServer(onCallback, fixedPort = null) {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
@@ -16,6 +26,7 @@ export function startLocalServer(onCallback, fixedPort = null) {
       if (url.pathname === "/callback" || url.pathname === "/auth/callback") {
         const params = Object.fromEntries(url.searchParams);
 
+        // Send success response to browser with auto-close attempt
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         res.end(`<!DOCTYPE html>
 <html>
@@ -56,6 +67,7 @@ export function startLocalServer(onCallback, fixedPort = null) {
 </body>
 </html>`);
 
+        // Call callback with params
         onCallback(params);
       } else {
         res.writeHead(404);
@@ -63,6 +75,7 @@ export function startLocalServer(onCallback, fixedPort = null) {
       }
     });
 
+    // Listen on fixed port or find available port
     const portToUse = fixedPort || 0;
     server.listen(portToUse, "127.0.0.1", () => {
       const { port } = server.address();
@@ -83,6 +96,11 @@ export function startLocalServer(onCallback, fixedPort = null) {
   });
 }
 
+/**
+ * Wait for callback with timeout
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<Object>} - Callback params
+ */
 export function waitForCallback(timeoutMs = 300000) {
   return new Promise((resolve, reject) => {
     let resolved = false;
@@ -102,18 +120,25 @@ export function waitForCallback(timeoutMs = 300000) {
       }
     };
 
+    // Return the callback function
     resolve.__onCallback = onCallback;
   });
 }
 
+// Singleton proxy server for Codex OAuth callback on fixed port
 let codexProxyServer = null;
 let codexProxyTimeout = null;
 
-const CODEX_PROXY_TIMEOUT_MS = 300000;
+const CODEX_PROXY_TIMEOUT_MS = 300000; // 5 minutes
 const CODEX_PORT = CODEX_CONFIG.fixedPort;
 
+// Pending exchange sessions keyed by state — used by server-side exchange mode
 const pendingExchanges = new Map();
 
+/**
+ * Register a pending exchange session for server-side mode.
+ * Modal client calls this before opening popup.
+ */
 export function registerCodexSession({ state, codeVerifier, redirectUri }) {
   if (!state || !codeVerifier || !redirectUri) return false;
   pendingExchanges.set(state, {
@@ -125,10 +150,16 @@ export function registerCodexSession({ state, codeVerifier, redirectUri }) {
   return true;
 }
 
+/**
+ * Read session status (modal polls this).
+ */
 export function getCodexSessionStatus(state) {
   return pendingExchanges.get(state) || null;
 }
 
+/**
+ * Clear a session (called after modal consumes status).
+ */
 export function clearCodexSession(state) {
   pendingExchanges.delete(state);
 }
@@ -155,6 +186,11 @@ function renderCodexResultPage(success, message) {
 </div></body></html>`;
 }
 
+/**
+ * Start Codex proxy on fixed port 1455.
+ * Mode A (server-side): if any session was registered, proxy auto-exchanges + saves DB.
+ * Mode B (channel fallback): if no session, proxy 302 redirects to app port for legacy channel-based flow.
+ */
 export function startCodexProxy(appPort) {
   return new Promise((resolve) => {
     if (codexProxyServer) {
@@ -176,6 +212,7 @@ export function startCodexProxy(appPort) {
       const errorParam = url.searchParams.get("error");
       const session = state ? pendingExchanges.get(state) : null;
 
+      // Mode A: server-side exchange (session registered)
       if (session) {
         try {
           if (errorParam) {
@@ -183,6 +220,7 @@ export function startCodexProxy(appPort) {
           }
           if (!code) throw new Error("No authorization code received");
 
+          // Lazy import to avoid circular deps
           const { exchangeTokens } = await import("../providers.js");
           const { createProviderConnection } = await import("@/models");
 
@@ -220,6 +258,7 @@ export function startCodexProxy(appPort) {
         return;
       }
 
+      // Mode B: legacy channel fallback — 302 redirect to app /callback
       const redirectUrl = `http://localhost:${appPort}/callback${url.search}`;
       res.writeHead(302, { Location: redirectUrl });
       res.end();
@@ -242,6 +281,9 @@ export function startCodexProxy(appPort) {
   });
 }
 
+/**
+ * Stop the Codex proxy server and cleanup
+ */
 export function stopCodexProxy() {
   if (codexProxyTimeout) {
     clearTimeout(codexProxyTimeout);
@@ -253,10 +295,15 @@ export function stopCodexProxy() {
   }
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// xAI fixed-port proxy on 127.0.0.1:56121
+// Same shape as the Codex proxy. Kept as a parallel implementation rather than
+// generalizing the Codex one to keep the codex hot-path byte-equivalent.
+// ───────────────────────────────────────────────────────────────────────────
 
 let xaiProxyServer = null;
 let xaiProxyTimeout = null;
-const XAI_PROXY_TIMEOUT_MS = 300000;
+const XAI_PROXY_TIMEOUT_MS = 300000; // 5 minutes
 const XAI_PROXY_PORT = 56121;
 const xaiPendingExchanges = new Map();
 
@@ -283,6 +330,11 @@ function renderXaiResultPage(success, message) {
   return renderCodexResultPage(success, message);
 }
 
+/**
+ * Start xAI proxy on fixed port 56121.
+ * Mode A (server-side): if any session was registered, proxy auto-exchanges + saves DB.
+ * Mode B (channel fallback): if no session, proxy 302 redirects to app port.
+ */
 export function startXaiProxy(appPort) {
   return new Promise((resolve) => {
     if (xaiProxyServer) {
@@ -303,6 +355,7 @@ export function startXaiProxy(appPort) {
       const errorParam = url.searchParams.get("error");
       const session = state ? xaiPendingExchanges.get(state) : null;
 
+      // Mode A: server-side exchange
       if (session) {
         try {
           if (errorParam) {
@@ -347,6 +400,7 @@ export function startXaiProxy(appPort) {
         return;
       }
 
+      // Mode B: legacy fallback redirect
       const redirectUrl = `http://localhost:${appPort}/callback${url.search}`;
       res.writeHead(302, { Location: redirectUrl });
       res.end();
@@ -380,6 +434,10 @@ export function stopXaiProxy() {
   }
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Trae dynamic-port proxy. Singleton session (one connect at a time per provider).
+// Callback path = /callback with params refreshToken + loginHost.
+// ───────────────────────────────────────────────────────────────────────────
 
 let traeProxyServer = null;
 let traeProxyTimeout = null;
@@ -419,6 +477,8 @@ export function startTraeProxy() {
         res.end(renderCodexResultPage(false, "No active Trae login session"));
         return;
       }
+      // Anti-CSRF: reject cross-origin fetches (legit redirects send no Origin),
+      // and reject state mismatch when state is present.
       if (!isLoopbackOrigin(req.headers.origin)) {
         res.writeHead(403, { "Content-Type": "text/html; charset=utf-8" });
         res.end(renderCodexResultPage(false, "Cross-origin callback rejected"));
@@ -433,6 +493,7 @@ export function startTraeProxy() {
         stopTraeProxy();
         return;
       }
+      // Pass the raw callback query to exchangeTokens → parseTraeCallback
       const rawCallback = `${url.pathname}?${url.searchParams.toString()}`;
       try {
         const { exchangeTokens } = await import("../providers.js");
@@ -477,6 +538,10 @@ export function stopTraeProxy() {
   traeProxyPort = null;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Windsurf dynamic-port proxy. Singleton session.
+// Callback path = /windsurf-auth-callback with params access_token (firebase JWT) + state.
+// ───────────────────────────────────────────────────────────────────────────
 
 let windsurfProxyServer = null;
 let windsurfProxyTimeout = null;
@@ -516,6 +581,7 @@ export function startWindsurfProxy() {
         res.end(renderCodexResultPage(false, "No active Windsurf login session"));
         return;
       }
+      // Anti-CSRF: reject cross-origin fetches, and require state present + matching.
       if (!isLoopbackOrigin(req.headers.origin)) {
         res.writeHead(403, { "Content-Type": "text/html; charset=utf-8" });
         res.end(renderCodexResultPage(false, "Cross-origin callback rejected"));
@@ -571,15 +637,26 @@ export function stopWindsurfProxy() {
   windsurfProxyPort = null;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Zed RSA native-app proxy. Singleton session.
+// Callback: GET http://127.0.0.1:<port>/?user_id=...&access_token=<RSA-encrypted>
+// The proxy decrypts the access token using the private key stored in session.codeVerifier.
+// ───────────────────────────────────────────────────────────────────────────
 
 let zedProxyServer = null;
 let zedProxyTimeout = null;
 let zedProxyPort = null;
 let zedSession = null;
 
-export function registerZedSession({ state, codeVerifier }) {
+export function registerZedSession({ state, codeVerifier, systemId }) {
   if (!state || !codeVerifier) return false;
-  zedSession = { state, codeVerifier, status: "pending", createdAt: Date.now() };
+  zedSession = {
+    state,
+    codeVerifier,
+    systemId: systemId || null,
+    status: "pending",
+    createdAt: Date.now(),
+  };
   return true;
 }
 export function getZedSessionStatus(state) {
@@ -594,11 +671,16 @@ export function clearZedSession(state) {
 export function startZedProxy(preferredPort = 0) {
   return new Promise((resolve) => {
     if (zedProxyServer) {
+      // Reuse the live listener, but renew its idle timeout so a previous
+      // flow's deadline can never kill the flow that just adopted the port.
+      if (zedProxyTimeout) clearTimeout(zedProxyTimeout);
+      zedProxyTimeout = setTimeout(() => { console.log("[Zed proxy] timeout, stopping"); stopZedProxy(); }, ZED_HOSTED_CONFIG.oauthTimeoutMs);
       resolve({ success: true, port: zedProxyPort, callbackUrl: `http://127.0.0.1:${zedProxyPort}/` });
       return;
     }
     const server = http.createServer(async (req, res) => {
       const url = new URL(req.url, "http://localhost");
+      // Log path + redacted params (access_token is the RSA-encrypted credential).
       const redacted = Object.fromEntries(url.searchParams);
       for (const k of ["access_token", "user_id", "code_verifier", "state"]) {
         if (redacted[k]) redacted[k] = "<redacted>";
@@ -615,16 +697,41 @@ export function startZedProxy(preferredPort = 0) {
         res.end(renderCodexResultPage(false, "No active Zed login session"));
         return;
       }
+      // Anti-CSRF: Zed tokens are RSA-encrypted to our keypair so they can't be
+      // forged cross-site, but still reject cross-origin fetches for defense-in-depth.
       if (!isLoopbackOrigin(req.headers.origin)) {
         res.writeHead(403, { "Content-Type": "text/html; charset=utf-8" });
         res.end(renderCodexResultPage(false, "Cross-origin callback rejected"));
         return;
       }
+      // A genuine Zed redirect always carries user_id + access_token. Anything
+      // else (probe, prefetch, stray navigation, favicon-style miss) is NOT
+      // the callback: answer without touching the session and WITHOUT
+      // stopping the server, so the real redirect can still land afterwards.
+      const qp = url.searchParams;
+      const hasZedParams =
+        qp.has("user_id") || qp.has("userId") ||
+        qp.has("access_token") || qp.has("accessToken") || qp.has("token");
+      if (!hasZedParams) {
+        console.log(`[Zed proxy] ignoring non-callback ${req.method} ${url.pathname} (session kept, server kept)`);
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(renderCodexResultPage(false, "Waiting for Zed sign-in — this request carried no login data."));
+        return;
+      }
+      // Pass raw callback path+query to exchangeTokens → parseZedCallbackPayload.
+      // codeVerifier carries the encoded RSA private key for decryption.
       const rawCallback = url.search ? `${url.pathname}?${url.searchParams.toString()}` : url.pathname;
       try {
         const { exchangeTokens } = await import("../providers.js");
         const { createProviderConnection } = await import("@/models");
-        const tokenData = await exchangeTokens("zed", rawCallback, null, session.codeVerifier, session.state);
+        const tokenData = await exchangeTokens(
+          "zed",
+          rawCallback,
+          null,
+          session.codeVerifier,
+          session.state,
+          session.systemId ? { systemId: session.systemId } : undefined,
+        );
         const connection = await createProviderConnection({
           provider: "zed",
           authType: "oauth",
@@ -636,17 +743,21 @@ export function startZedProxy(preferredPort = 0) {
         session.email = connection.email;
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         res.end(renderCodexResultPage(true, "You can close this window."));
+        stopZedProxy();
       } catch (err) {
         session.status = "error";
         session.error = err.message;
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         res.end(renderCodexResultPage(false, err.message));
-      } finally {
-        stopZedProxy();
+        // Intentionally NOT stopping here: the failure may belong to a
+        // superseded attempt (e.g. an older popup landing after "Try Again"
+        // registered a new keypair). The live attempt's genuine callback must
+        // still land. The idle timeout + modal close bound the listener.
       }
     });
     const tryPort = Number(preferredPort) || 0;
     server.on("error", (err) => {
+      // If the preferred port (e.g. 58443) is busy, fall back to a random port.
       if (err.code === "EADDRINUSE" && tryPort !== 0) {
         console.log(`[Zed proxy] port ${tryPort} busy, falling back to random`);
         server.listen(0, "127.0.0.1", () => {
@@ -678,6 +789,10 @@ export function stopZedProxy() {
   zedProxyPort = null;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Xiaomi MiMo Desktop OAuth callback proxy
+// Receives the ECDH-encrypted `u` param, decrypts it, stores the session.
+// ───────────────────────────────────────────────────────────────────────────
 
 let xiaomiMimoProxyServer = null;
 let xiaomiMimoProxyPort = null;
@@ -698,6 +813,7 @@ export function registerXiaomiMimoSession({ state, privateKeyDer }) {
 export function getXiaomiMimoSessionStatus(state) {
   const s = xiaomiMimoSessions.get(state);
   if (!s) return null;
+  // Don't leak the private key to the client
   return { status: s.status, result: s.result || null, error: s.error || null };
 }
 
@@ -724,13 +840,17 @@ function renderXiaomiMimoResultPage(success, message) {
   <div class="container">
     <div class="icon">${icon}</div>
     <h1>${title}</h1>
-    <p>${message || (success ? "You can close this tab and return to Dardcor Code." : "Please try again.")}</p>
+    <p>${message || (success ? "You can close this tab and return to Dardcor Router." : "Please try again.")}</p>
     ${success ? "<script>setTimeout(() => window.close(), 3000);</script>" : ""}
   </div>
 </body>
 </html>`;
 }
 
+/**
+ * Start the Xiaomi Desktop OAuth callback proxy.
+ * @returns {Promise<{success: boolean, port?: number, callbackUrl?: string, reason?: string}>}
+ */
 export function startXiaomiMimoProxy() {
   return new Promise((resolve) => {
     if (xiaomiMimoProxyServer) {
@@ -743,6 +863,7 @@ export function startXiaomiMimoProxy() {
     }
 
     const server = http.createServer(async (req, res) => {
+      // Origin guard
       if (!isLoopbackOrigin(req.headers.origin)) {
         res.writeHead(403);
         res.end("Forbidden");
@@ -758,6 +879,8 @@ export function startXiaomiMimoProxy() {
         return;
       }
 
+      // Try each pending session's private key — the callback URL carries no
+      // state param, so we attempt decryption with every pending key.
       const pendingSessions = [...xiaomiMimoSessions.entries()]
         .filter(([, s]) => s.status === "pending");
 
@@ -778,6 +901,7 @@ export function startXiaomiMimoProxy() {
             matchedState = state;
             break;
           } catch {
+            // Wrong key for this session — try next
           }
         }
 
@@ -789,6 +913,7 @@ export function startXiaomiMimoProxy() {
           throw new Error("Decrypted payload missing sk (API key)");
         }
 
+        // Store result only in the matched session
         const session = xiaomiMimoSessions.get(matchedState);
         if (session) {
           session.status = "done";
@@ -840,6 +965,9 @@ export function stopXiaomiMimoProxy() {
   if (xiaomiMimoProxyTimeout) { clearTimeout(xiaomiMimoProxyTimeout); xiaomiMimoProxyTimeout = null; }
   if (xiaomiMimoProxyServer) { xiaomiMimoProxyServer.close(); xiaomiMimoProxyServer = null; }
   xiaomiMimoProxyPort = null;
+  // No callback can arrive once the listener is down, so drop every pending
+  // session — each holds an X25519 private key and they would otherwise
+  // accumulate for the process lifetime (one per /authorize call).
   xiaomiMimoSessions.clear();
 }
 

@@ -607,6 +607,22 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		}
 	}
 
+	function onPointerUpdate(event) {
+		if (!event.isTrusted || event.pointerType !== 'mouse') return;
+		wakeOverlay();
+		setCursorPosition(event.clientX, event.clientY);
+		if (cursorEl) {
+			cursorEl.classList.toggle('pressed', event.buttons !== 0);
+		}
+		if (event.type === 'pointerdown') {
+			spawnRipple(event.clientX, event.clientY);
+		}
+	}
+
+	window.addEventListener('pointermove', onPointerUpdate, { capture: true, passive: true });
+	window.addEventListener('pointerdown', onPointerUpdate, { capture: true, passive: true });
+	window.addEventListener('pointerup', onPointerUpdate, { capture: true, passive: true });
+
 	async function animateCursorTo(targetX, targetY, actionLabel, targetRect, durationMs = 340) {
 		wakeOverlay(actionLabel);
 		if (targetRect) {
@@ -802,16 +818,11 @@ const DARDCOR_BROWSER_AGENT_RUNTIME_SCRIPT = `
 		].join(',');
 
 		const rawNodes = Array.from(document.querySelectorAll(candidateSelector));
-		const allElements = document.querySelectorAll('div, span, li');
-		for (let i = 0; i < allElements.length && rawNodes.length < 220; i++) {
-			const node = allElements[i];
-			if (rawNodes.includes(node)) continue;
-			const st = window.getComputedStyle(node);
-			if (st.cursor === 'pointer') {
-				const txt = (node.innerText || '').trim();
-				if (txt.length > 0 && txt.length < 60 && node.children.length <= 3) {
-					rawNodes.push(node);
-				}
+		const clickables = document.querySelectorAll('[style*="cursor: pointer"], [style*="cursor:pointer"], [onclick], [data-action], [data-click]');
+		for (let i = 0; i < clickables.length && rawNodes.length < 240; i++) {
+			const node = clickables[i];
+			if (!rawNodes.includes(node)) {
+				rawNodes.push(node);
 			}
 		}
 
@@ -2169,6 +2180,7 @@ export class DardcorBrowserAgentController {
 					const timeoutMs = Math.min(15000, Math.max(500, Number(args?.timeoutMs) || 5000));
 					const selector = typeof args?.selector === 'string' ? args.selector.trim() : '';
 					const text = typeof args?.text === 'string' ? args.text.trim() : '';
+					const loadState = typeof args?.loadState === 'string' ? args.loadState.trim().toLowerCase() : '';
 
 					await evaluate(`window.__dardcorBrowserAgentRuntime.wakeOverlay('Waiting for page condition...')`);
 
@@ -2177,6 +2189,13 @@ export class DardcorBrowserAgentController {
 					let readinessFailure: string | undefined;
 
 					while (Date.now() - startTime < timeoutMs) {
+						if (loadState === 'networkidle' || loadState === 'load' || loadState === 'domcontentloaded') {
+							const readyState = await evaluate<string>(`document.readyState`).catch(() => '');
+							if (readyState === 'complete' || (loadState === 'domcontentloaded' && readyState === 'interactive')) {
+								conditionMet = true;
+								break;
+							}
+						}
 						if (!selector && !text) {
 							const remainingMs = timeoutMs - (Date.now() - startTime);
 							try {

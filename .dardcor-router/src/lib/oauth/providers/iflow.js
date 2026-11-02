@@ -14,6 +14,7 @@ const iflow = {
     return `${config.authorizeUrl}?${params.toString()}`;
   },
   exchangeToken: async (config, code, redirectUri) => {
+    // Create Basic Auth header
     const basicAuth = Buffer.from(
       `${config.clientId}:${config.clientSecret}`
     ).toString("base64");
@@ -42,6 +43,7 @@ const iflow = {
     return await response.json();
   },
   postExchange: async (tokens) => {
+    // Fetch user info (MUST succeed to get API key)
     const userInfoRes = await fetch(
       `${IFLOW_CONFIG.userInfoUrl}?accessToken=${encodeURIComponent(tokens.access_token)}`,
       {
@@ -63,10 +65,12 @@ const iflow = {
 
     const userInfo = result.data || {};
 
+    // Validate API key (critical for iFlow)
     if (!userInfo.apiKey || userInfo.apiKey.trim() === "") {
       throw new Error("Empty API key returned from iFlow");
     }
 
+    // Validate email/phone
     const email = userInfo.email?.trim() || userInfo.phone?.trim();
     if (!email) {
       throw new Error("Missing account email/phone in user info");

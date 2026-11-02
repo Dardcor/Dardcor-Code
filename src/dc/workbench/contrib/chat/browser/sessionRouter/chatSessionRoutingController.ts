@@ -846,7 +846,7 @@ export class ChatSessionRoutingController extends Disposable {
 				}
 				result = await this._sendRequest(target, utterance, {
 					...requestOptions,
-					userSelectedModelId: undefined,
+					userSelectedModelId: requestOptions.userSelectedModelId ?? ref.object.lastRequest?.modelId,
 					agentIdSilent: getChatSessionType(target),
 					queue: ChatRequestQueueKind.Queued,
 				});

@@ -174,7 +174,7 @@ export function preprocessError(error?: string): string | undefined {
 
 	return error.replace(
 		/See https:\/\/github\.com\/Squirrel\/Squirrel\.Mac\/issues\/182 for more information/,
-		'This might mean the application was put on quarantine by macOS. See [this link](https://github.com/microsoft/vscode/issues/7426#issuecomment-425093469) for more information'
+		'This might mean the application was put on quarantine by macOS. See [this link](https://github.com/dardcor/dardcor-code/issues/7426#issuecomment-425093469) for more information'
 	);
 }
 

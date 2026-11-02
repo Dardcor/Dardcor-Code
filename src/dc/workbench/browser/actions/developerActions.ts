@@ -711,7 +711,7 @@ function managedSettingsPipeline(rawLabel: string, raw: unknown | undefined, nor
 	content += raw === undefined ? `*${rawUnavailableMessage ?? 'Unavailable'}*\n\n` : jsonBlock(raw);
 	content += '**Normalized bag**\n\n';
 	content += jsonBlock(normalized);
-	content += '**VS Code policy projection**\n\n';
+	content += '**Dardcor Code policy projection**\n\n';
 	content += jsonBlock(projected);
 	return content;
 }
@@ -760,7 +760,7 @@ class PolicyDiagnosticsAction extends Action2 {
 
 		const configurationRegistry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
 
-		let content = '# VS Code Policy Diagnostics\n\n';
+		let content = '# Dardcor Code Policy Diagnostics\n\n';
 		content += '*WARNING: This file may contain sensitive information.*\n\n';
 		content += '## System Information\n\n';
 		content += PROPERTY_VALUE_TABLE_HEADER;
@@ -877,8 +877,8 @@ class PolicyDiagnosticsAction extends Action2 {
 			const fileProjected = projectChannel('file', fileManagedSettings);
 			const effective = projectManagedSettings(pick.values, declaredDefinitions, message => parseErrors.push({ stage: 'effective: project', message }));
 
-			content += '### VS Code Managed-Settings Schema\n\n';
-			content += '*Only keys declared here can reach VS Code policy callbacks. Runtime-owned keys may still be enforced by the Copilot runtime even when absent from the projections below.*\n\n';
+			content += '### Dardcor Code Managed-Settings Schema\n\n';
+			content += '*Only keys declared here can reach Dardcor Code policy callbacks. Runtime-owned keys may still be enforced by the Copilot runtime even when absent from the projections below.*\n\n';
 			content += jsonBlock(declaredDefinitions);
 
 			content += '### Native MDM\n\n';
@@ -925,7 +925,7 @@ class PolicyDiagnosticsAction extends Action2 {
 			content += '### Effective Resolution\n\n';
 			content += '**Merged normalized bag**\n\n';
 			content += jsonBlock(pick.values);
-			content += '**Effective VS Code policy bag**\n\n';
+			content += '**Effective Dardcor Code policy bag**\n\n';
 			content += jsonBlock(effective);
 			content += '**Per-key precedence**\n\n';
 			if (pick.resolutions.size > 0) {
@@ -950,7 +950,7 @@ class PolicyDiagnosticsAction extends Action2 {
 			}
 
 			content += '### Agent Runtime Resolution\n\n';
-			content += '*Resolved independently by each provider through its own SDK/runtime. This may include runtime-owned keys that VS Code does not declare as configuration policies.*\n\n';
+			content += '*Resolved independently by each provider through its own SDK/runtime. This may include runtime-owned keys that Dardcor Code does not declare as configuration policies.*\n\n';
 			if (!agentHostEnablementService.enabled.get()) {
 				content += '*Agent Host is disabled; runtime managed-settings diagnostics were not queried.*\n\n';
 			} else {

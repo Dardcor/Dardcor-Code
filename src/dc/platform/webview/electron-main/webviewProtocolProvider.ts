@@ -34,8 +34,12 @@ export class WebviewProtocolProvider implements IDisposable {
 			const uri = URI.parse(request.url);
 			const entry = WebviewProtocolProvider.validWebviewFilePaths.get(uri.path);
 			if (entry) {
-				const relativeResourcePath: AppResourcePath = `vs/workbench/contrib/webview/browser/pre${uri.path}`;
-				const url = FileAccess.asFileUri(relativeResourcePath);
+				let relativeResourcePath: AppResourcePath = `dc/workbench/contrib/webview/browser/pre${uri.path}`;
+				let url = FileAccess.asFileUri(relativeResourcePath);
+				if (!await this._fileService.exists(url)) {
+					relativeResourcePath = `vs/workbench/contrib/webview/browser/pre${uri.path}`;
+					url = FileAccess.asFileUri(relativeResourcePath);
+				}
 
 				const content = await this._fileService.readFile(url);
 				return new Response(content.value.buffer as ArrayBufferView<ArrayBuffer>, {
@@ -48,7 +52,8 @@ export class WebviewProtocolProvider implements IDisposable {
 			} else {
 				return new Response(null, { status: 403 });
 			}
-		} catch {
+		} catch (err) {
+			console.error('[WebviewProtocolProvider] Failed to handle webview request:', request.url, err);
 		}
 		return new Response(null, { status: 500 });
 	}

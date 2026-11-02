@@ -1,6 +1,7 @@
 "use server";
 
 import { NextResponse } from "next/server";
+import { resolveCliApiKey } from "../resolveApiKey.js";
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
@@ -9,11 +10,12 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-const PROVIDER_NAME = "dardcor-code";
+const PROVIDER_NAME = "dardcor-router";
 
 const getDeepSeekDir = () => path.join(os.homedir(), ".deepseek");
 const getDeepSeekConfigPath = () => path.join(getDeepSeekDir(), "config.toml");
 
+// Simple TOML parser for key = "value" and [section] patterns
 const parseToml = (content) => {
     const result = {};
     let currentSection = result;
@@ -21,8 +23,10 @@ const parseToml = (content) => {
     const lines = content.split(/\r?\n/);
     for (const line of lines) {
         const trimmed = line.trim();
+        // Skip empty lines and comments
         if (!trimmed || trimmed.startsWith("#")) continue;
 
+        // Section header: [section] or [section.subsection]
         const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
         if (sectionMatch) {
             const sectionName = sectionMatch[1];
@@ -31,12 +35,14 @@ const parseToml = (content) => {
             continue;
         }
 
+        // Key = "value" or key = value
         const keyValueMatch = trimmed.match(/^(\w+)\s*=\s*"([^"]*)"$/);
         if (keyValueMatch) {
             currentSection[keyValueMatch[1]] = keyValueMatch[2];
             continue;
         }
 
+        // Key = value (unquoted)
         const unquotedMatch = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
         if (unquotedMatch) {
             currentSection[unquotedMatch[1]] = unquotedMatch[2].trim();
@@ -46,7 +52,8 @@ const parseToml = (content) => {
     return result;
 };
 
-const buildDardcorCodeConfig = (baseUrl, apiKey, model) => {
+// Build TOML config for Dardcor Router (openai provider mode)
+const buildDardcorRouterConfig = (baseUrl, apiKey, model) => {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     return `provider = "openai"
 
@@ -57,6 +64,7 @@ model = "${model}"
 `;
 };
 
+// Default DeepSeek config (reset state)
 const DEFAULT_CONFIG = `provider = "deepseek"
 `;
 
@@ -85,7 +93,8 @@ const readConfigToml = async () => {
     }
 };
 
-const hasDardcorCodeConfig = (config) => {
+// Detect Dardcor Router by checking if provider is "openai" and base_url points to localhost/127.0.0.1
+const hasDardcorRouterConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;
     if (provider !== "openai") return false;
@@ -105,7 +114,7 @@ export async function GET() {
         return NextResponse.json({
             installed: true,
             settings: config,
-            hasDardcorCode: hasDardcorCodeConfig(config),
+            hasDardcorRouter: hasDardcorRouterConfig(config),
             configPath: getDeepSeekConfigPath(),
         });
     } catch (error) {
@@ -124,7 +133,7 @@ export async function POST(request) {
         const dir = getDeepSeekDir();
         await fs.mkdir(dir, { recursive: true });
 
-        const newConfig = buildDardcorCodeConfig(baseUrl, apiKey || "sk_dardcor-code", model);
+        const newConfig = buildDardcorRouterConfig(baseUrl, await resolveCliApiKey(apiKey), model);
         await fs.writeFile(getDeepSeekConfigPath(), newConfig);
 
         return NextResponse.json({

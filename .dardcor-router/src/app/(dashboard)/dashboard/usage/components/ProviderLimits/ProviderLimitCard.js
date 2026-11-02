@@ -37,6 +37,7 @@ export default function ProviderLimitCard({
     }
   };
 
+  // Get provider info from config
   const getProviderColor = () => {
     const colors = {
       github: "#000000",
@@ -44,6 +45,7 @@ export default function ProviderLimitCard({
       codex: "#10A37F",
       kiro: "#FF9900",
       qoder: "#EC4899",
+      "qoder-cn": "#EC4899",
       claude: "#D97757",
     };
     return colors[provider?.toLowerCase()] || "#6B7280";
@@ -54,10 +56,10 @@ export default function ProviderLimitCard({
 
   return (
     <Card padding="md" className="flex flex-col gap-4">
-      {}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {}
+          {/* Provider Logo */}
           <div
             className="size-10 rounded-lg flex items-center justify-center p-1.5"
             style={{ backgroundColor: `${providerColor}15` }}
@@ -87,7 +89,7 @@ export default function ProviderLimitCard({
           </div>
         </div>
 
-        {}
+        {/* Refresh Button */}
         <button
           onClick={handleRefresh}
           disabled={refreshing || loading}
@@ -104,7 +106,7 @@ export default function ProviderLimitCard({
         </button>
       </div>
 
-      {}
+      {/* Loading State */}
       {loading && (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -118,7 +120,7 @@ export default function ProviderLimitCard({
         </div>
       )}
 
-      {}
+      {/* Error State */}
       {!loading && error && (
         <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
           <div className="flex items-start gap-2">
@@ -130,7 +132,7 @@ export default function ProviderLimitCard({
         </div>
       )}
 
-      {}
+      {/* Info Message (for providers without API) */}
       {!loading && !error && message && (
         <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <div className="flex items-start gap-2">
@@ -144,10 +146,11 @@ export default function ProviderLimitCard({
         </div>
       )}
 
-      {}
+      {/* Quota Progress Bars */}
       {!loading && !error && !message && quotas?.length > 0 && (
         <div className="space-y-4">
           {quotas.map((quota, index) => {
+            // For Antigravity, use remainingPercentage if available, otherwise calculate
             const percentage =
               quota.remainingPercentage !== undefined
                 ? Math.round(((quota.total - quota.used) / quota.total) * 100)
@@ -170,7 +173,7 @@ export default function ProviderLimitCard({
         </div>
       )}
 
-      {}
+      {/* Empty State */}
       {!loading && !error && !message && quotas?.length === 0 && (
         <div className="text-center py-8 text-text-muted">
           <span className="material-symbols-outlined text-[48px] opacity-20">

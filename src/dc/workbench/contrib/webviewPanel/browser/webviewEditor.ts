@@ -157,27 +157,38 @@ export class WebviewEditor extends EditorPane {
 	}
 
 	private claimWebview(input: WebviewInput): void {
-		input.claim(this, this.window, this.scopedContextKeyService);
-
-		if (this._element) {
-			this._element.setAttribute('aria-flowto', input.webview.container.id);
-			DOM.setParentFlowTo(input.webview.container, this._element);
+		if (input.isDisposed()) {
+			return;
 		}
 
-		const modalEditorContainer = this._editorGroupsService.activeModalEditorPart?.modalElement;
-		const isModal = isHTMLElement(modalEditorContainer) && this._element && modalEditorContainer.contains(this._element);
-		this._clippingContainer = isModal ? undefined : this._workbenchLayoutService.getContainer(this.window, Parts.EDITOR_PART);
+		input.claim(this, this.window, this.scopedContextKeyService);
 
-		this._webviewVisibleDisposables.clear();
+		try {
+			const container = input.webview?.container;
+			if (this._element && container) {
+				this._element.setAttribute('aria-flowto', container.id);
+				DOM.setParentFlowTo(container, this._element);
+			}
 
-		this._webviewVisibleDisposables.add(this._editorGroupsService.createEditorDropTarget(input.webview.container, {
-			containsGroup: (group) => this.group.id === group.id
-		}));
+			const modalEditorContainer = this._editorGroupsService.activeModalEditorPart?.modalElement;
+			const isModal = isHTMLElement(modalEditorContainer) && this._element && modalEditorContainer.contains(this._element);
+			this._clippingContainer = isModal ? undefined : this._workbenchLayoutService.getContainer(this.window, Parts.EDITOR_PART);
 
-		this._webviewVisibleDisposables.add(new WebviewWindowDragMonitor(this.window, () => this.webview));
+			this._webviewVisibleDisposables.clear();
 
-		this.setWebviewAnchorElement(input.webview);
-		this._webviewVisibleDisposables.add(this.trackFocus(input.webview));
+			if (container) {
+				this._webviewVisibleDisposables.add(this._editorGroupsService.createEditorDropTarget(container, {
+					containsGroup: (group) => this.group.id === group.id
+				}));
+			}
+
+			this._webviewVisibleDisposables.add(new WebviewWindowDragMonitor(this.window, () => this.webview));
+
+			this.setWebviewAnchorElement(input.webview);
+			this._webviewVisibleDisposables.add(this.trackFocus(input.webview));
+		} catch (err) {
+			console.error('[WebviewEditor] Error claiming webview:', err);
+		}
 	}
 
 	private setWebviewAnchorElement(webview: IOverlayWebview) {

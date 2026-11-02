@@ -1,14 +1,14 @@
 import crypto from "crypto";
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
-import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
+import { MEMORY_CONFIG, HTTP_STATUS } from "../config/runtimeConfig.js";
 import { getThinkingLevels } from "../providers/thinkingLevels.js";
 import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { isMuseSparkModel } from "../providers/models/helpers.js";
 import { applyFingerprintTools } from "../utils/opencodeFingerprint.js";
+import { opencodeTlsFetch } from "../services/opencodeTlsClient.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
-import { opencodeEgressMesh, buildCloakedHeaders } from "../services/opencodeEgressMesh.js";
 import {
   normalizeResponsesInput,
   clampResponsesCallId,
@@ -16,24 +16,22 @@ import {
   coerceResponsesOutput,
 } from "../translator/formats/responsesApi.js";
 
-const OPENCODE_UA = "opencode/1.19.0 ai-sdk/provider-utils/4.0.40 runtime/bun/1.3.14";
+// OpenCode v2 UA shape: opencode/<channel>/<version>/<client>. Upstream rejects
+// the v1 "opencode/1.18.x" form with 403 FreeTierError since 2026-10-14.
+const OPENCODE_UA = "opencode/latest/2.0.26/cli";
+const OPENCODE_CLIENT = "cli";
 const MAX_SESSION_LENGTH = 256;
 const MAX_TOOL_NAME_LEN = 128;
 const SESSION_HEADER = "x-opencode-session";
 const SESSION_FIELD = "_opencodeSession";
-const REQ_FIELD = "_opencodeRequest";
 export const OPENCODE_SESSION_RE = /^ses_[0-9a-f]{12}[0-9A-Za-z]{14}$/;
-export const OPENCODE_REQUEST_RE = /^msg_[0-9a-f]{12}[0-9A-Za-z]{14}$/;
 const BASE62_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 function hasValidOpencodeVersion(ua) {
-  const m = String(ua || "").match(/opencode\/(?:stable\/)?(\d+)\.(\d+)(?:\.(\d+))?/i);
-  if (!m) return false;
-  const major = parseInt(m[1], 10);
-  const minor = parseInt(m[2], 10);
-  return major > 1 || (major === 1 && minor >= 17);
+  const m = String(ua || "").match(/^opencode\/[a-z0-9-]+\/(\d+)\.\d+\.\d+\/[a-z0-9-]+$/i);
+  return !!m && parseInt(m[1], 10) >= 2;
 }
-
+// Models served by /inference/v1/responses; every other model stays on /chat/completions.
 const RESPONSES_MODELS = new Set([
   "muse-spark-1.2-contributor-free",
   "muse-spark-1.3-contributor-free",
@@ -52,62 +50,194 @@ function unstableRandom() {
   return randomPart;
 }
 
+// Session prefix = 12 hex of ~(timeMs * 0x1000 + counter), low 48 bits, like the CLI.
+// Upstream decodes it and rejects a non-small counter with 403 FreeTierError
+// (live probes: counter 0–16 pass, >=100 fail), so the counter must stay real.
+const SESSION_PREFIX_MASK = (1n << 48n) - 1n;
+
+function descendingTimeHex(time, counterValue) {
+  return (~(BigInt(time) * 0x1000n + BigInt(counterValue)) & SESSION_PREFIX_MASK)
+    .toString(16)
+    .padStart(12, "0");
+}
+
 export function generateSessionId(timestamp = Date.now()) {
   if (timestamp !== lastTimestamp) {
     lastTimestamp = timestamp;
     counter = 0;
   }
   counter++;
-
-  const current = BigInt(timestamp) * 0x1000n + BigInt(counter);
-  const value = ~current;
-  const time = Array.from({ length: 6 }, (_, index) =>
-    Number((value >> BigInt(40 - 8 * index)) & 0xffn)
-      .toString(16)
-      .padStart(2, "0")
-  ).join("");
-  return `ses_${time}${unstableRandom()}`;
-}
-
-export function generateRequestId(timestamp = Date.now()) {
-  if (timestamp !== lastTimestamp) {
+  if (counter > 15) {
+    timestamp = Date.now() + 1;
     lastTimestamp = timestamp;
-    counter = 0;
+    counter = 1;
   }
-  counter++;
-
-  const current = BigInt(timestamp) * 0x1000n + BigInt(counter);
-  const value = current;
-  const time = Array.from({ length: 6 }, (_, index) =>
-    Number((value >> BigInt(40 - 8 * index)) & 0xffn)
-      .toString(16)
-      .padStart(2, "0")
-  ).join("");
-  return `msg_${time}${unstableRandom()}`;
+  return `ses_${descendingTimeHex(timestamp, counter)}${unstableRandom()}`;
 }
+
+const PACING_MIN_INTERVAL_MS = parseInt(process.env.OPENCODE_PACING_MIN_INTERVAL_MS || "1300", 10);
+const PACING_MAX_CONCURRENT = parseInt(process.env.OPENCODE_PACING_MAX_CONCURRENT || "1", 10);
+
+class OpencodePacer {
+  constructor(minIntervalMs = PACING_MIN_INTERVAL_MS, maxConcurrent = PACING_MAX_CONCURRENT) {
+    this.minIntervalMs = minIntervalMs;
+    this.maxConcurrent = maxConcurrent;
+    this.lastDispatchTime = 0;
+    this.activeCount = 0;
+    this.queue = [];
+  }
+
+  async acquire(signal) {
+    if (signal?.aborted) {
+      throw signal.reason || new Error("Request aborted before dispatch");
+    }
+
+    return new Promise((resolve, reject) => {
+      const item = { resolve, reject, signal, timer: null, onAbort: null };
+
+      if (signal) {
+        item.onAbort = () => {
+          if (item.timer) clearTimeout(item.timer);
+          const idx = this.queue.indexOf(item);
+          if (idx !== -1) this.queue.splice(idx, 1);
+          signal.removeEventListener("abort", item.onAbort);
+          reject(signal.reason || new Error("Request aborted"));
+        };
+        signal.addEventListener("abort", item.onAbort, { once: true });
+      }
+
+      this.queue.push(item);
+      this._processQueue();
+    });
+  }
+
+  _processQueue() {
+    if (this.queue.length === 0) return;
+    if (this.activeCount >= this.maxConcurrent) return;
+
+    const now = Date.now();
+    const timeSinceLast = now - this.lastDispatchTime;
+    const waitMs = Math.max(0, this.minIntervalMs - timeSinceLast);
+
+    const next = this.queue[0];
+    if (!next) return;
+
+    if (waitMs > 0) {
+      if (!next.timer) {
+        next.timer = setTimeout(() => {
+          next.timer = null;
+          this._processQueue();
+        }, waitMs);
+      }
+      return;
+    }
+
+    this.queue.shift();
+    if (next.onAbort && next.signal) {
+      next.signal.removeEventListener("abort", next.onAbort);
+    }
+
+    this.activeCount++;
+    this.lastDispatchTime = Date.now();
+
+    const release = () => {
+      this.activeCount = Math.max(0, this.activeCount - 1);
+      this.lastDispatchTime = Date.now();
+      this._processQueue();
+    };
+
+    next.resolve(release);
+  }
+}
+
+export const opencodePacer = new OpencodePacer();
+
+const quarantinedSessions = new Map();
+const QUARANTINE_MS = 15 * 60 * 1000;
+
+function isQuarantined(sessionId) {
+  if (!sessionId) return false;
+  const expiry = quarantinedSessions.get(sessionId);
+  if (!expiry) return false;
+  if (Date.now() > expiry) {
+    quarantinedSessions.delete(sessionId);
+    return false;
+  }
+  return true;
+}
+
+export function rotateOpencodeSession({ credentials, body, clientTool, providerSessionId } = {}) {
+  const currentSession = credentials?.[SESSION_FIELD];
+  if (currentSession) {
+    quarantinedSessions.set(currentSession, Date.now() + QUARANTINE_MS);
+  }
+
+  const idKey = identityKey(credentials);
+  stableOpencodeSessions.delete(idKey);
+
+  const headers = credentials?.rawHeaders || {};
+  let hinted = null;
+  for (const [k, v] of Object.entries(headers)) {
+    if (k.toLowerCase() === SESSION_HEADER) {
+      hinted = normalizeSession(v);
+      break;
+    }
+  }
+  hinted = hinted || normalizeSession(providerSessionId);
+  if (hinted) {
+    translatedOpencodeSessions.delete(`${clientTool || "generic"}\0${hinted}`);
+  }
+
+  const freshSession = generateSessionId(Date.now());
+  stableOpencodeSessions.set(idKey, { sessionId: freshSession, lastUsed: Date.now() });
+  if (hinted) {
+    translatedOpencodeSessions.set(`${clientTool || "generic"}\0${hinted}`, {
+      sessionId: freshSession,
+      lastUsed: Date.now(),
+    });
+  }
+
+  if (credentials) {
+    credentials[SESSION_FIELD] = freshSession;
+  }
+
+  return freshSession;
+}
+
+// Upstream decodes the prefix timestamp and refuses sessions whose time is in
+// the future or older than the free-tier window (live probes 2026-10-26: a
+// Date.now() session passed 10/10 while digest-derived ones passed 1/10). A
+// digest is uniform over 2^36 ms, so most translated ids were refused even
+// though their shape matched. Mint with the current time and memoize per
+// conversation so a conversation keeps one stable, valid session.
+const translatedOpencodeSessions = new Map();
+const MAX_TRANSLATED_SESSIONS = 5000;
+const translatedSessionCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of translatedOpencodeSessions) {
+    if (now - entry.lastUsed > MEMORY_CONFIG.sessionTtlMs) {
+      translatedOpencodeSessions.delete(key);
+    }
+  }
+}, MEMORY_CONFIG.sessionCleanupIntervalMs);
+if (translatedSessionCleanup.unref) translatedSessionCleanup.unref();
 
 export function translateSessionId(sessionId, clientTool = "") {
   if (typeof sessionId === "string" && OPENCODE_SESSION_RE.test(sessionId.trim())) {
     return sessionId.trim();
   }
-  const timestamp = Date.now();
-  const current = BigInt(timestamp) * 0x1000n + 1n;
-  const value = ~current;
-  const time = Array.from({ length: 6 }, (_, index) =>
-    Number((value >> BigInt(40 - 8 * index)) & 0xffn)
-      .toString(16)
-      .padStart(2, "0")
-  ).join("");
-
-  const digest = crypto
-    .createHash("sha256")
-    .update(`opencode\0${clientTool || "generic"}\0${sessionId || ""}`)
-    .digest();
-  let randomPart = "";
-  for (let i = 0; i < 14; i++) {
-    randomPart += BASE62_CHARS[digest[i] % 62];
+  const key = `${clientTool || "generic"}\0${sessionId || ""}`;
+  const existing = translatedOpencodeSessions.get(key);
+  if (existing) {
+    existing.lastUsed = Date.now();
+    return existing.sessionId;
   }
-  return `ses_${time}${randomPart}`;
+  const translated = `ses_${descendingTimeHex(Date.now(), 1)}${unstableRandom()}`;
+  if (translatedOpencodeSessions.size >= MAX_TRANSLATED_SESSIONS) {
+    translatedOpencodeSessions.delete(translatedOpencodeSessions.keys().next().value);
+  }
+  translatedOpencodeSessions.set(key, { sessionId: translated, lastUsed: Date.now() });
+  return translated;
 }
 
 function normalizeSession(value) {
@@ -128,7 +258,12 @@ function nativeSession(headers) {
   return null;
 }
 
-
+// Upstream free-tier quota is accounted per session. Minting a fresh
+// x-opencode-session on every request burns through it and surfaces as
+// 429 FreeUsageLimitError with growing reset-after delays, while the real
+// CLI reuses one long-lived canonical session per conversation. Mirror
+// that: one stable canonical session per downstream identity, evicted
+// after MEMORY_CONFIG.sessionTtlMs like the other session stores.
 const stableOpencodeSessions = new Map();
 const MAX_STABLE_SESSIONS = 1000;
 const stableSessionCleanup = setInterval(() => {
@@ -141,73 +276,20 @@ const stableSessionCleanup = setInterval(() => {
 }, MEMORY_CONFIG.sessionCleanupIntervalMs);
 if (stableSessionCleanup.unref) stableSessionCleanup.unref();
 
-function firstUserText(body) {
-  try {
-    if (!body || typeof body !== "object") return "";
-    const arr = Array.isArray(body.messages)
-      ? body.messages
-      : Array.isArray(body.input)
-        ? body.input
-        : null;
-    if (!arr) return "";
-    for (const msg of arr) {
-      if (msg?.role === "user") {
-        const content = msg.content;
-        if (typeof content === "string" && content.trim()) return content.trim().slice(0, 300);
-        if (Array.isArray(content)) {
-          const text = content
-            .map((part) => (typeof part === "string" ? part : part?.text || part?.input_text || ""))
-            .join(" ")
-            .trim();
-          if (text) return text.slice(0, 300);
-        }
-      }
-    }
-  } catch {
-    return "";
-  }
-  return "";
-}
-
-function identityKey(credentials, body = null) {
-  const connectionId = credentials?.connectionId || credentials?.id || credentials?.threadId || credentials?._chatThreadId;
+function identityKey(credentials) {
+  const connectionId = credentials?.connectionId || credentials?.id;
   if (connectionId) return `opencode:conn:${String(connectionId).slice(0, 128)}`;
   const raw = credentials?.rawHeaders || {};
-  const threadHeader = raw["x-session-id"] || raw["x-thread-id"] || raw["x-conversation-id"] || raw["x-request-id"];
-  if (threadHeader) {
-    const digest = crypto.createHash("sha256").update(String(threadHeader)).digest("hex").slice(0, 32);
-    return `opencode:thread:${digest}`;
-  }
   const auth = raw.authorization || raw.Authorization || raw["x-api-key"] || raw["X-Api-Key"] || "";
   if (auth) {
     const digest = crypto.createHash("sha256").update(String(auth)).digest("hex").slice(0, 32);
     return `opencode:auth:${digest}`;
   }
-  if (body) {
-    const seed = firstUserText(body);
-    if (seed) {
-      const digest = crypto.createHash("sha256").update(seed).digest("hex").slice(0, 32);
-      return `opencode:seed:${digest}`;
-    }
-  }
   return "opencode:default";
 }
 
-export function evictOpencodeSession(credentials, body = null) {
-  const key = identityKey(credentials, body);
-  stableOpencodeSessions.delete(key);
-}
-
-export function setOpencodeSession(credentials, sessionId, body = null) {
-  const key = identityKey(credentials, body);
-  if (stableOpencodeSessions.size >= MAX_STABLE_SESSIONS) {
-    stableOpencodeSessions.delete(stableOpencodeSessions.keys().next().value);
-  }
-  stableOpencodeSessions.set(key, { sessionId, lastUsed: Date.now() });
-}
-
-export function stableSessionId(credentials, body = null) {
-  const key = identityKey(credentials, body);
+export function stableSessionId(credentials) {
+  const key = identityKey(credentials);
   const existing = stableOpencodeSessions.get(key);
   if (existing) {
     existing.lastUsed = Date.now();
@@ -221,65 +303,6 @@ export function stableSessionId(credentials, body = null) {
   }
   stableOpencodeSessions.set(key, { sessionId, lastUsed: Date.now() });
   return sessionId;
-}
-
-function lastUserText(body) {
-  try {
-    if (!body || typeof body !== "object") return "";
-    const arr = Array.isArray(body.messages)
-      ? body.messages
-      : Array.isArray(body.input)
-        ? body.input
-        : null;
-    if (!arr) return typeof body.input === "string" ? body.input.slice(-600) : "";
-    for (let i = arr.length - 1; i >= 0; i--) {
-      const msg = arr[i];
-      if (!msg) continue;
-      if (msg.role && msg.role !== "user") continue;
-      const content = msg.content;
-      if (typeof content === "string" && content.trim()) return content.trim().slice(-600);
-      if (Array.isArray(content)) {
-        const text = content
-          .map((part) => (typeof part === "string" ? part : part?.text || part?.input_text || ""))
-          .join(" ")
-          .trim();
-        if (text) return text.slice(-600);
-      }
-    }
-  } catch {
-    return "";
-  }
-  return "";
-}
-
-
-export function deriveRequestId(sessionId, body) {
-  const text = lastUserText(body);
-  if (!text) return generateRequestId();
-  const timestamp = Date.now();
-  const current = BigInt(timestamp) * 0x1000n + 1n;
-  const time = Array.from({ length: 6 }, (_, index) =>
-    Number((current >> BigInt(40 - 8 * index)) & 0xffn)
-      .toString(16)
-      .padStart(2, "0")
-  ).join("");
-  const digest = crypto
-    .createHash("sha256")
-    .update(`opencode-req\0${sessionId || ""}\0${text}`)
-    .digest();
-  let randomPart = "";
-  for (let i = 0; i < 14; i++) {
-    randomPart += BASE62_CHARS[digest[i] % 62];
-  }
-  const id = `msg_${time}${randomPart}`;
-  return OPENCODE_REQUEST_RE.test(id) ? id : generateRequestId();
-}
-
-function normalizeRequestId(value) {
-  if (typeof value !== "string") return null;
-  const normalized = value.trim();
-  if (!normalized || normalized.length > MAX_SESSION_LENGTH) return null;
-  return OPENCODE_REQUEST_RE.test(normalized) ? normalized : null;
 }
 
 function bodyHasSessionHints(body) {
@@ -314,6 +337,7 @@ function bodyHasSessionHints(body) {
   }
 }
 
+// Strip the thinking suffix "model(level)" so registry lookups hit the base id.
 function baseModelId(model) {
   return String(model || "").replace(/\([^()]+\)\s*$/, "").trim();
 }
@@ -358,19 +382,7 @@ function resolveOpencodeSession(body, credentials, providerSessionId, clientTool
     if (viaManager) return translateSessionId(viaManager, clientTool);
   }
 
-  return stableSessionId(credentials, body);
-}
-
-function resolveOpencodeRequestId(body, credentials, sessionId) {
-  const raw = credentials?.rawHeaders || {};
-  for (const [key, value] of Object.entries(raw)) {
-    if (key.toLowerCase() === "x-opencode-request") {
-      const normalized = normalizeRequestId(value);
-      if (normalized) return normalized;
-      break;
-    }
-  }
-  return generateRequestId();
+  return stableSessionId(credentials);
 }
 
 function normalizeResponsesTools(body) {
@@ -403,11 +415,20 @@ function normalizeResponsesTools(body) {
   }
 }
 
-
 function sanitizeResponsesItems(body) {
   if (!Array.isArray(body.input)) return;
   body.input = body.input.filter((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return true;
+    // Strip prior-turn reasoning items: OpenCode Free uses public/pooled credentials
+    // (`Bearer public`) routing to an upstream OpenAI/Console account pool.
+    // OpenAI Responses API strictly enforces that reasoning `encrypted_content`
+    // can only be decrypted by the exact caller/account that issued it; sending it
+    // across different accounts or rotating proxy relays triggers:
+    // [invalid_request_error] reasoning `encrypted_content` was not issued to this caller (400).
+    // Furthermore, under stateless mode (store=false), omitting encrypted_content
+    // causes OpenAI to reject the referenced reasoning item as "not found or was deleted".
+    // Dropping prior reasoning items allows multi-turn conversations and tool-calling
+    // loops to succeed cleanly.
     if (item.type === "reasoning") return false;
     delete item.encrypted_content;
     delete item.reasoning_encrypted_content;
@@ -450,32 +471,173 @@ function normalizeOpencodeReasoning(model, body) {
   delete body.reasoning_effort;
 }
 
+// Chat Completions lane: the free backend validates reasoning_effort against the
+// plain OpenAI enum (none|minimal|low|medium|high|xhigh|max) and answers 400
+// "Invalid option" for anything else — including "auto", which adaptive thinking
+// (Claude Code's thinking:{type:"adaptive"}) arrives as. Omitting the field lets
+// the upstream pick its own default, which is what adaptive means; same rationale
+// as the Responses path above, which rejects "unknown variant `auto`".
+function dropAdaptiveReasoningEffort(body) {
+  if (body?.reasoning_effort === "auto") delete body.reasoning_effort;
+}
+
+const OPENCODE_MAX_RETRY_DELAY_MS = 30000;
+const OPENCODE_MIN_RETRY_DELAY_MS = 1000;
+
 export class OpenCodeExecutor extends BaseExecutor {
   constructor() {
-    super("opencode", PROVIDERS.opencode);
+    const baseConfig = PROVIDERS.opencode || {};
+    super("opencode", {
+      ...baseConfig,
+      retry: {
+        429: {
+          attempts: parseInt(process.env.OPENCODE_RETRY_429_ATTEMPTS || "4", 10),
+          delayMs: parseInt(process.env.OPENCODE_RETRY_429_DELAY_MS || "2000", 10),
+        },
+        502: { attempts: 3, delayMs: 2000 },
+        503: { attempts: 3, delayMs: 2000 },
+        504: { attempts: 2, delayMs: 3000 },
+        ...(baseConfig.retry || {}),
+      },
+    });
   }
 
   prepareRequestCredentials({ body, credentials, providerSessionId, clientTool } = {}) {
     const sourceCredentials = credentials || {};
-    const session = resolveOpencodeSession(body, sourceCredentials, providerSessionId, clientTool);
+    let session = resolveOpencodeSession(body, sourceCredentials, providerSessionId, clientTool);
+
+    if (isQuarantined(session)) {
+      session = rotateOpencodeSession({
+        credentials: sourceCredentials,
+        body,
+        clientTool,
+        providerSessionId,
+      });
+    }
 
     return {
       ...sourceCredentials,
       [SESSION_FIELD]: session,
-      [REQ_FIELD]: resolveOpencodeRequestId(body, sourceCredentials, session),
     };
   }
 
-  transformRequest(model, body, stream, credentials) {
-    const cleanModel = baseModelId(model || body?.model).replace(/^(?:opencode|oc)\//i, "").trim();
-    if (body && typeof body === "object") {
-      body.model = cleanModel;
+  parseRetryHeaders(headers) {
+    if (!headers?.get) return null;
 
-      body.stream = true;
+    const retryAfter = headers.get("retry-after");
+    if (retryAfter) {
+      const seconds = parseFloat(retryAfter);
+      if (!isNaN(seconds) && seconds > 0) {
+        return Math.ceil(seconds * 1000);
+      }
+      const date = new Date(retryAfter);
+      if (!isNaN(date.getTime())) {
+        const diff = date.getTime() - Date.now();
+        return diff > 0 ? diff : null;
+      }
     }
-    if (isResponsesModel(cleanModel) && body && typeof body === "object") {
+
+    const resetAfter = headers.get("x-ratelimit-reset-after");
+    if (resetAfter) {
+      const seconds = parseFloat(resetAfter);
+      if (!isNaN(seconds) && seconds > 0) {
+        return Math.ceil(seconds * 1000);
+      }
+    }
+
+    const resetTimestamp = headers.get("x-ratelimit-reset");
+    if (resetTimestamp) {
+      const ts = parseFloat(resetTimestamp);
+      if (!isNaN(ts) && ts > 0) {
+        const ms = ts < 1e11 ? ts * 1000 : ts;
+        const diff = ms - Date.now();
+        return diff > 0 ? diff : null;
+      }
+    }
+
+    const retryAfterMs = headers.get("retry-after-ms");
+    if (retryAfterMs) {
+      const ms = parseInt(retryAfterMs, 10);
+      if (!isNaN(ms) && ms > 0) return ms;
+    }
+
+    return null;
+  }
+
+  parseRetryFromBody(errorMessage) {
+    if (!errorMessage || typeof errorMessage !== "string") return null;
+
+    const matchHms = errorMessage.match(/reset after (?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
+    if (matchHms && (matchHms[1] || matchHms[2] || matchHms[3])) {
+      let totalMs = 0;
+      if (matchHms[1]) totalMs += parseInt(matchHms[1], 10) * 3600 * 1000;
+      if (matchHms[2]) totalMs += parseInt(matchHms[2], 10) * 60 * 1000;
+      if (matchHms[3]) totalMs += parseInt(matchHms[3], 10) * 1000;
+      if (totalMs > 0) return totalMs;
+    }
+
+    const matchSec = errorMessage.match(/(?:try again in|wait|retry after)\s+([0-9.]+)\s*(s|sec|seconds|ms|m|minutes)?/i);
+    if (matchSec) {
+      const val = parseFloat(matchSec[1]);
+      const unit = (matchSec[2] || "s").toLowerCase();
+      if (!isNaN(val) && val > 0) {
+        if (unit.startsWith("m") && !unit.startsWith("ms")) return Math.ceil(val * 60 * 1000);
+        if (unit === "ms") return Math.ceil(val);
+        return Math.ceil(val * 1000);
+      }
+    }
+
+    return null;
+  }
+
+  async computeRetryDelay(response, attempt, delayMs, credentials) {
+    if (response.status === 429 || response.status === 502 || response.status === 503) {
+      if (response.status === 429) {
+        const fresh = rotateOpencodeSession({ credentials });
+        credentials[SESSION_FIELD] = fresh;
+      }
+
+      let retryMs = this.parseRetryHeaders(response.headers);
+      if (!retryMs) {
+        try {
+          const bodyText = await response.clone().text();
+          let errorMsg = bodyText;
+          try {
+            const json = JSON.parse(bodyText);
+            errorMsg = json.error?.message || json.message || json.error || bodyText;
+          } catch {}
+          retryMs = this.parseRetryFromBody(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
+        } catch {}
+      }
+
+      const maxDelay = parseInt(process.env.OPENCODE_MAX_RETRY_DELAY_MS || String(OPENCODE_MAX_RETRY_DELAY_MS), 10);
+
+      if (retryMs != null) {
+        if (retryMs > maxDelay) {
+          return false;
+        }
+        const jitter = Math.floor(Math.random() * 350) + 150;
+        return Math.min(Math.max(retryMs + jitter, OPENCODE_MIN_RETRY_DELAY_MS), maxDelay);
+      }
+
+      const base = delayMs || 2000;
+      const expo = Math.min(maxDelay, base * Math.pow(2, attempt - 1));
+      const half = Math.floor(expo / 2);
+      const waitMs = half + Math.floor(Math.random() * half);
+      return Math.min(Math.max(waitMs, OPENCODE_MIN_RETRY_DELAY_MS), maxDelay);
+    }
+    return false;
+  }
+
+  transformRequest(model, body, stream, credentials) {
+    if (body && typeof body === "object" && model && !body.model) body.model = model;
+    // Zen rejects non-streaming requests on free models with 403 FreeTierError;
+    // always stream upstream and let the handler layer aggregate for non-stream clients.
+    if (body && typeof body === "object") body.stream = true;
+    if (isResponsesModel(model || body?.model) && body && typeof body === "object") {
+      // ponytail: chỉ model đã xác nhận auto-only; mở allowlist khi có bằng chứng.
       if ("tool_choice" in body && body.tool_choice !== "auto"
-        && this.config.quirks?.forceAutoToolChoiceModels?.includes(cleanModel)) {
+        && this.config.quirks?.forceAutoToolChoiceModels?.includes(baseModelId(model))) {
         body.tool_choice = "auto";
       }
       const normalized = normalizeResponsesInput(body.input);
@@ -483,158 +645,71 @@ export class OpenCodeExecutor extends BaseExecutor {
       if (!Array.isArray(body.input) || body.input.length === 0) {
         body.input = [{ type: "message", role: "user", content: [{ type: "input_text", text: "..." }] }];
       }
+      // Responses API names the output cap max_output_tokens and takes thinking
+      // as reasoning:{effort,summary} — normalize the Chat fields at this boundary.
       if (body.max_output_tokens === undefined) {
         if (body.max_completion_tokens !== undefined) body.max_output_tokens = body.max_completion_tokens;
         else if (body.max_tokens !== undefined) body.max_output_tokens = body.max_tokens;
       }
       delete body.max_tokens;
       delete body.max_completion_tokens;
-      normalizeOpencodeReasoning(cleanModel, body);
+      normalizeOpencodeReasoning(model, body);
       body.stream = true;
       body.store = false;
       normalizeResponsesTools(body);
       sanitizeResponsesItems(body);
+      // Free-tier fingerprint tools are required even when an agent client
+      // already supplied tools. ZCode/Claude Code requests normally have
+      // non-empty tool arrays; skipping cloaking here triggers 403 FreeTierError.
       applyFingerprintTools(body, true);
     } else if (body && typeof body === "object") {
-      applyFingerprintTools(body, false);
+      dropAdaptiveReasoningEffort(body);
+      applyFingerprintTools(body, false, { claude: isMessagesModel(model || body?.model) });
     }
-    return injectReasoningContent({ provider: this.provider, model: cleanModel, body });
+    return injectReasoningContent({ provider: this.provider, model, body });
   }
 
+  // The free gate keys on the TLS ClientHello, so a native Node fetch is refused
+  // no matter how faithful the body is. Route through the impersonating client
+  // and keep proxy handling on the existing path (proxyAwareFetch delegates to
+  // `directFetch` when no proxy is configured). Fail-open: without wreq-js the
+  // request still goes out on native fetch instead of erroring here.
   async execute(args) {
-    let activeEgress = opencodeEgressMesh.selectEgressRoute();
-    let proxyOptions = args.proxyOptions || activeEgress.proxyOptions;
-
-    const creds = this.prepareRequestCredentials(args);
-    let result = null;
-    let initialError = null;
-
+    const credentials = this.prepareRequestCredentials(args);
+    const release = await opencodePacer.acquire(args.signal);
     try {
-      result = await super.execute({ ...args, credentials: creds, proxyOptions });
-    } catch (err) {
-      initialError = err;
-      const isConnectTimeout = err.message?.includes("connect timeout") || err.name === "AbortError";
-      if (!isConnectTimeout || args?.isRetry || args?.signal?.aborted) {
-        throw err;
-      }
-      result = { _networkError: err, response: { status: 502 } };
-    }
+      const result = await super.execute({
+        ...args,
+        credentials,
+        directFetch: (url, options) => opencodeTlsFetch(url, {
+          method: options.method,
+          headers: options.headers,
+          body: options.body,
+        }, { signal: options.signal }),
+      });
 
-    if ((result?.response?.status === 401 || result?.response?.status === 402 || result?.response?.status === 403) && creds.accessToken && creds.accessToken !== "public") {
-      const publicCreds = { ...creds, accessToken: "public" };
-      try {
-        const fallbackResult = await super.execute({ ...args, credentials: publicCreds, proxyOptions });
-        if (fallbackResult?.response?.status < 400) {
-          return fallbackResult;
-        }
-      } catch {}
-    }
-
-    // Auto-Retry on network timeout, 429 (rate/quota limit), 502, 503, or 504
-    // Resilient Egress + Session Rotation while strictly preserving the user's chosen model!
-    const isEgressFail = result?._networkError ||
-      result?.response?.status === 429 ||
-      result?.response?.status === 502 ||
-      result?.response?.status === 503 ||
-      result?.response?.status === 504;
-
-    if (isEgressFail && !args?.isRetry && !args?.signal?.aborted) {
-      if (activeEgress?.routeId) {
-        opencodeEgressMesh.reportRateLimit(activeEgress.routeId);
-      }
-
-      // Evict old session so subsequent requests won't reuse a dead session
-      evictOpencodeSession(creds, args?.body);
-
-      // Generate a fresh session and assign to cache
-      const freshSession = generateSessionId();
-      setOpencodeSession(creds, freshSession, args?.body);
-
-      // Rotate egress route
-      activeEgress = opencodeEgressMesh.selectEgressRoute();
-      proxyOptions = activeEgress.proxyOptions;
-
-      if (args?.signal?.aborted) {
-        if (initialError) throw initialError;
-        return result;
-      }
-      await new Promise(r => setTimeout(r, 400));
-      if (args?.signal?.aborted) {
-        if (initialError) throw initialError;
-        return result;
-      }
-
-      const retryCreds = {
-        ...creds,
-        [SESSION_FIELD]: freshSession,
-        [REQ_FIELD]: generateRequestId(),
-      };
-
-      try {
-        const retryResult = await super.execute({
-          ...args,
-          credentials: retryCreds,
-          proxyOptions,
-          isRetry: true,
+      if (result?.response?.status === 429) {
+        rotateOpencodeSession({
+          credentials,
+          body: args.body,
+          clientTool: args.clientTool,
+          providerSessionId: args.providerSessionId,
         });
-
-        if (retryResult?.response?.status && retryResult.response.status < 400) {
-          return retryResult;
-        }
-
-        // If retry also hit 429 / 502, try a final attempt with another fresh session and rotated route
-        if (retryResult?.response?.status === 429 || retryResult?.response?.status === 502 || retryResult?.response?.status === 503) {
-          if (activeEgress?.routeId) {
-            opencodeEgressMesh.reportRateLimit(activeEgress.routeId);
-          }
-          evictOpencodeSession(creds, args?.body);
-          const secondFreshSession = generateSessionId();
-          setOpencodeSession(creds, secondFreshSession, args?.body);
-
-          activeEgress = opencodeEgressMesh.selectEgressRoute();
-          proxyOptions = activeEgress.proxyOptions;
-
-          if (args?.signal?.aborted) return retryResult;
-          await new Promise(r => setTimeout(r, 800));
-          if (args?.signal?.aborted) return retryResult;
-
-          const finalRetryCreds = {
-            ...creds,
-            [SESSION_FIELD]: secondFreshSession,
-            [REQ_FIELD]: generateRequestId(),
-          };
-
-          const finalResult = await super.execute({
-            ...args,
-            credentials: finalRetryCreds,
-            proxyOptions,
-            isRetry: true,
-          });
-
-          if (finalResult?.response?.status && finalResult.response.status < 400) {
-            return finalResult;
-          }
-          return finalResult || retryResult;
-        }
-
-        return retryResult;
-      } catch (retryErr) {
-        if (initialError) throw initialError;
-        throw retryErr;
       }
+
+      return result;
+    } finally {
+      release();
     }
-    return result;
   }
 
+  // Free tier moved from /zen/v1 to /inference/v1 (OpenCode v2); /zen/v1 now
+  // answers every free request with 403 FreeTierError.
   buildUrl(model) {
-    const cleanModel = baseModelId(model).replace(/^(?:opencode|oc)\//i, "").trim();
-    if (cleanModel.startsWith("jev")) {
-      throw new Error("Jev is a System One decision model, not an LLM chat completions model. It requires the /systemone endpoint.");
-    }
     const base = this.config.baseUrl;
-    if (isResponsesModel(cleanModel)) return `${base}/zen/v1/responses`;
-    if (isMessagesModel(cleanModel)) return `${base}/zen/v1/messages`;
-    return `${base}/zen/v1/chat/completions`;
+    if (isResponsesModel(model)) return `${base}/inference/v1/responses`;
+    if (isMessagesModel(model)) return `${base}/inference/v1/messages`;
+    return `${base}/inference/v1/chat/completions`;
   }
 
   buildHeaders(credentials, stream = true, url = "") {
@@ -646,42 +721,21 @@ export class OpenCodeExecutor extends BaseExecutor {
     const isOpencodeDownstream = hasValidOpencodeVersion(downstreamUa);
 
     const session = credentials?.[SESSION_FIELD] || this.prepareRequestCredentials({ credentials })[SESSION_FIELD];
-    const downstreamReq = normalizeRequestId(lower["x-opencode-request"]);
-    const requestId = credentials?.[REQ_FIELD] || downstreamReq || generateRequestId();
 
-    const token =
-      credentials?.accessToken ||
-      credentials?.apiKey ||
-      process.env.OPENCODE_ACCESS_TOKEN ||
-      process.env.OPENCODE_API_KEY ||
-      "";
-
-    const baseHeaders = {
+    // Mirrors the v2 CLI. Upstream needs x-opencode-session-id next to
+    // x-opencode-session, and rejects any x-opencode-request (v1 only) with 403.
+    const headers = {
       "Content-Type": "application/json",
+      "Authorization": "Bearer public",
       "User-Agent": isOpencodeDownstream ? downstreamUa : OPENCODE_UA,
-      "x-opencode-client": lower["x-opencode-client"] || "desktop",
+      "x-opencode-client": lower["x-opencode-client"] || OPENCODE_CLIENT,
       "x-opencode-session": session,
       "x-opencode-session-id": session,
       "x-session-affinity": session,
-      "X-Session-Id": session,
-      "x-opencode-request": requestId,
-      "x-opencode-request-id": requestId,
-      "x-opencode-project": lower["x-opencode-project"] || `proj_${crypto.randomBytes(6).toString("hex")}`,
+      "x-session-id": session,
+      "x-opencode-project": lower["x-opencode-project"] || "global",
       "Accept": stream ? "text/event-stream" : "*/*",
     };
-
-    const headers = buildCloakedHeaders(baseHeaders);
-
-    const orgId = credentials?.providerSpecificData?.orgId || credentials?.orgId || lower["x-opencode-org-id"];
-    if (orgId) {
-      headers["x-opencode-org-id"] = orgId;
-    }
-
-    if (token && token !== "public") {
-      headers["Authorization"] = `Bearer ${token}`;
-    } else {
-      headers["Authorization"] = "Bearer public";
-    }
     if (url.endsWith("/messages")) headers["anthropic-version"] = ANTHROPIC_API_VERSION;
     return headers;
   }

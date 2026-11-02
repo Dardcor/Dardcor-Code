@@ -153,7 +153,7 @@ export class DevContainerAgentHostMainService extends Disposable implements IDev
 				serverDataFolderName,
 				quality,
 				commit: this._productService.commit,
-				reportInstalling: () => this._logService.info(`${LOG_PREFIX} Installing VS Code CLI in Dev Container...`),
+				reportInstalling: () => this._logService.info(`${LOG_PREFIX} Installing Dardcor Code CLI in Dev Container...`),
 				logService: this._logService,
 				logPrefix: LOG_PREFIX,
 			});

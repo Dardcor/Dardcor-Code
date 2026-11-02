@@ -620,6 +620,16 @@ export class CodeApplication extends Disposable {
 					resolve(false);
 				});
 			});
+			if (process.env['DARDCOR_ROUTER_MANAGED'] === '1') {
+				for (let i = 0; i < 50; i++) {
+					if (await checkPort(routerPort, 300)) {
+						this.logService.info(`[Dardcor Router] Server is ready on port ${routerPort} (managed by start script).`);
+						return;
+					}
+					await new Promise(r => setTimeout(r, 200));
+				}
+			}
+
 			let isPortListening = await checkPort(routerPort, 600);
 			if (!isPortListening) {
 				await new Promise(r => setTimeout(r, 200));
@@ -633,9 +643,9 @@ export class CodeApplication extends Disposable {
 
 			const candidateDirs = [
 				join(this.environmentMainService.appRoot, '.dardcor-router'),
-				join(this.environmentMainService.appRoot, '.dardcor-provider'),
+				
 				join(dirname(this.environmentMainService.appRoot), '.dardcor-router'),
-				join(dirname(this.environmentMainService.appRoot), '.dardcor-provider')
+				
 			];
 			const dardcorRouterDir = candidateDirs.find(d => existsSync(d)) || candidateDirs[0];
 			const standaloneCandidates = [
@@ -1450,7 +1460,9 @@ export class CodeApplication extends Disposable {
 		const profileStorageListener = disposables.add((new ProfileStorageChangesListenerChannel(accessor.get(IStorageMainService), accessor.get(IUserDataProfilesMainService), this.logService)));
 		sharedProcessClient.then(client => client.registerChannel('profileStorageListener', profileStorageListener));
 
-		const ptyHostChannel = ProxyChannel.fromService(accessor.get(ILocalPtyService), disposables);
+		const ptyHostChannel = ProxyChannel.fromService(accessor.get(ILocalPtyService), disposables, {
+			unbufferedEvents: ['onProcessData', 'onProcessReady', 'onProcessExit', 'onProcessOverrideDimensions', 'onProcessResolvedShellLaunchConfig', 'onProcessTitleChanged', 'onDidChangeProperty']
+		});
 		mainProcessElectronServer.registerChannel(TerminalIpcChannels.LocalPty, ptyHostChannel);
 
 		const externalTerminalChannel = ProxyChannel.fromService(accessor.get(IExternalTerminalMainService), disposables);

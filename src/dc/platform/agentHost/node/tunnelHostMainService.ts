@@ -211,7 +211,7 @@ export class TunnelHostMainService extends Disposable implements ITunnelAgentHos
 
 	private _getTunnelName(): string {
 		const configured = this._configurationService.getValue<string>(CONFIGURATION_KEY_HOST_NAME);
-		return (configured ? normalizeTunnelName(configured) : tunnelNameFromHostname(hostname())) || 'vscode';
+		return (configured ? normalizeTunnelName(configured) : tunnelNameFromHostname(hostname())) || 'dardcor-code';
 	}
 
 	private async _createManagementClient(token: string, authProvider: 'github' | 'microsoft'): Promise<TunnelManagementHttpClient> {

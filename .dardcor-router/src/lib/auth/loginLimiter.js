@@ -46,7 +46,7 @@ export function recordSuccess(ip) {
 
 export function getClientIp(request) {
   if (hasTrustedPeerHeaders(request)) {
-    const realIp = request.headers.get("x-9r-real-ip");
+    const realIp = (request.headers.get("x-dardcor-real-ip") || request.headers.get("x-9r-real-ip"));
     if (realIp) return realIp;
   }
   if (process.env.TRUST_PROXY === "true") {

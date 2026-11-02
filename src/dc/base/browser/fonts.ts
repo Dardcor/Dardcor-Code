@@ -15,13 +15,18 @@ interface FontData {
 
 export const getFonts = async (): Promise<string[]> => {
 	try {
+		if (!mainWindow.document || mainWindow.document.visibilityState !== 'visible' || typeof (mainWindow as any).queryLocalFonts !== 'function') {
+			return [];
+		}
 		// @ts-ignore
 		const fonts = await mainWindow.queryLocalFonts() as FontData[];
 		const fontsArray = [...fonts];
 		const families = fontsArray.map(font => font.family);
 		return families;
-	} catch (error) {
-		console.error(`Failed to query fonts: ${error}`);
+	} catch (error: any) {
+		if (error?.name !== 'SecurityError') {
+			console.error(`Failed to query fonts: ${error}`);
+		}
 		return [];
 	}
 };

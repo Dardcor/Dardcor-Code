@@ -130,6 +130,15 @@ export class BasicExecuteStrategy extends Disposable implements ITerminalExecute
 				this._log.bind(this)
 			);
 
+			const activeBuffer = (xterm as any)?.raw?.buffer?.active;
+			const lineIndex = activeBuffer ? (activeBuffer.baseY + activeBuffer.cursorY) : 0;
+			const currentCursorLine = activeBuffer ? (activeBuffer.getLine(lineIndex)?.translateToString(true) ?? '') : '';
+			if (/^\s*>>/.test(currentCursorLine) || />>\s*$/.test(currentCursorLine) || /^\s*\.{3}/.test(currentCursorLine)) {
+				this._log('Terminal trapped in continuation prompt (>> ), sending SIGINT to reset');
+				await this._instance.sendText('\x03', false);
+				await waitForIdle(this._instance.onData, 150);
+			}
+
 			if (this._hasReceivedUserInput()) {
 				if (this._commandDetection.executingCommandObject !== undefined) {
 					this._log('Previous command still executing with pending input, sending SIGINT before retrying');

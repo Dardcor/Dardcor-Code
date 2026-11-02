@@ -32,7 +32,7 @@ export async function generateCustomizationDebugReport(
 	const lines: string[] = [];
 
 	lines.push(`== Customization Debug: ${section} (${promptType}) ==`);
-	lines.push('Window: Core VS Code');
+	lines.push('Window: Core Dardcor Code');
 	lines.push(`Active root: ${workspaceService.getActiveProjectRoot()?.fsPath ?? '(none)'}`);
 	lines.push(`Sections: [${workspaceService.managementSections.join(', ')}]`);
 

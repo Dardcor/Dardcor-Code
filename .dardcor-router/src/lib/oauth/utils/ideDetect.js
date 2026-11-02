@@ -6,6 +6,7 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
+// Install paths per provider per platform — Trae and standard Windsurf IDE locations.
 const IDE_PATHS = {
   trae: {
     darwin: ["/Applications/Trae.app"],
@@ -42,6 +43,7 @@ async function checkBinary(bin) {
   } catch { return false; }
 }
 
+// Returns { installed: boolean, path: string|null } for the given provider's IDE.
 export async function detectIdeInstalled(providerId) {
   const platform = os.platform();
   const paths = IDE_PATHS[providerId];

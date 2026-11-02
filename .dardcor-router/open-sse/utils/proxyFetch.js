@@ -44,6 +44,7 @@ async function resolveRealIP(hostname) {
 }
 
 function shouldBypassMitmDns(url) {
+  if (process.env.ENABLE_MITM_DNS_BYPASS !== "1") return false;
   try {
     const hostname = new URL(url).hostname;
     return MITM_BYPASS_HOSTS.some(host => hostname.includes(host));
@@ -107,6 +108,23 @@ function resolveConnectionProxyUrl(targetUrl, proxyOptions) {
   return normalizeProxyUrl(proxyUrlRaw);
 }
 
+let globalDirectDispatcher = null;
+
+async function getDirectDispatcher() {
+  if (globalDirectDispatcher) return globalDirectDispatcher;
+  try {
+    const { Agent } = await import("undici");
+    globalDirectDispatcher = new Agent({
+      keepAliveTimeout: 60000,
+      keepAliveMaxTimeout: 120000,
+      pipelining: 1,
+      connections: 100,
+      connect: { timeout: 30000, keepAlive: true, keepAliveInitialDelay: 15000 },
+    });
+  } catch {}
+  return globalDirectDispatcher;
+}
+
 async function getDispatcher(proxyUrl) {
   const normalized = normalizeProxyUrl(proxyUrl);
   if (!normalized) return null;
@@ -116,7 +134,16 @@ async function getDispatcher(proxyUrl) {
       proxyDispatchers.delete(proxyDispatchers.keys().next().value);
     }
     const { ProxyAgent } = await import("undici");
-    proxyDispatchers.set(normalized, new ProxyAgent({ uri: normalized }));
+    proxyDispatchers.set(
+      normalized,
+      new ProxyAgent({
+        uri: normalized,
+        keepAliveTimeout: 60000,
+        keepAliveMaxTimeout: 120000,
+        connections: 50,
+        connect: { timeout: 30000, keepAlive: true, keepAliveInitialDelay: 15000 },
+      })
+    );
   }
 
   return proxyDispatchers.get(normalized);
@@ -219,11 +246,17 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
         throw new Error(`[ProxyFetch] Proxy required but failed (strictProxy=true): ${proxyError.message}`);
       }
       console.warn(`[ProxyFetch] Proxy failed, falling back to direct: ${proxyError.message}`);
-      return originalFetch(url, options);
+      const directDispatcher = options.dispatcher || (await getDirectDispatcher());
+      return originalFetch(url, directDispatcher ? { ...options, dispatcher: directDispatcher } : options);
     }
   }
 
-  return originalFetch(url, options);
+  if (!proxyUrl && options.directFetch) {
+    return await options.directFetch(url, options);
+  }
+
+  const directDispatcher = options.dispatcher || (await getDirectDispatcher());
+  return originalFetch(url, directDispatcher ? { ...options, dispatcher: directDispatcher } : options);
 }
 
 

@@ -172,3 +172,4 @@ function isRunning(name) {
 }
 
 module.exports = { getOrSpawn, registerSession, unregisterSession, sendToChild, isRunning, findPlugin, killAllBridges };
+

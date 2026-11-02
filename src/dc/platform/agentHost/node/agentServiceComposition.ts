@@ -133,7 +133,7 @@ export function createAgentServiceComposition(
 			requestSessionWorkspaceUpdate: (chat, turnId, workspaceFolder, isolation) => {
 				const initiatingClientId = turnTracker.getInitiatorClientId(chat.toString(), turnId);
 				if (!initiatingClientId) {
-					throw new Error('Session workspace conversion requires a turn initiated by a connected VS Code client.');
+					throw new Error('Session workspace conversion requires a turn initiated by a connected Dardcor Code client.');
 				}
 				if (!workspaceConversionService.value) {
 					throw new Error('Session workspace conversion is unavailable.');

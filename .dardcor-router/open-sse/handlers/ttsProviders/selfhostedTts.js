@@ -1,3 +1,9 @@
+// Self-hosted OpenAI-compatible TTS — POST {baseUrl}/v1/audio/speech.
+//
+// A SPECIAL_ADAPTER rather than a genericFormats handler on purpose: the generic
+// dispatcher resolves baseUrl from the static registry entry
+// (`synthesizeViaConfig` reads `cfg.baseUrl`) and never looks at the connection,
+// which is exactly the limitation this provider exists to lift.
 import { Buffer } from "node:buffer";
 
 const DEFAULT_BASE_URL = "http://localhost:8880";
@@ -6,12 +12,28 @@ const DEFAULT_VOICE = "af_heart";
 
 export default {
   async synthesize(text, model, credentials, responseFormat = "mp3") {
+    // Accept either providerSpecificData.baseUrl (how the custom embedding and
+    // STT providers carry it) or a bare credentials.baseUrl (how the OpenAI TTS
+    // adapter does), so a connection configured either way works.
     const raw = credentials?.providerSpecificData?.baseUrl || credentials?.baseUrl || DEFAULT_BASE_URL;
+    // Tolerate a baseUrl given as the full endpoint or with a trailing /v1 —
+    // both are natural things to paste, and silently double-appending the path
+    // would 404 with nothing pointing at the cause.
     const base = String(raw)
       .replace(/\/+$/, "")
       .replace(/\/v1\/audio\/speech$/, "")
       .replace(/\/v1$/, "");
 
+    // The provider prefix is already stripped by getModelInfo, so `model` here is
+    // "kokoro" or "kokoro/af_heart" — NOT "selfhosted-tts/...".
+    //
+    // A bare value is the MODEL, not the voice. The OpenAI adapter reads a bare
+    // value as a voice, which is right for a service whose model is fixed
+    // ("tts-1") and whose voice varies — but wrong here, where the model is the
+    // variable part. Treating it as a voice sent voice="kokoro" upstream and
+    // Kokoro answered 400, so `selfhosted-tts/kokoro` — the obvious way to
+    // address this provider — was the one form that did not work (verified
+    // against a live Kokoro through dardcor-router, 2026-08-03).
     let ttsModel = DEFAULT_MODEL;
     let voice = DEFAULT_VOICE;
     if (model) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
 import PropTypes from "prop-types";
 import {
   ReactFlow,
@@ -14,11 +14,40 @@ import "@xyflow/react/dist/style.css";
 import { AI_PROVIDERS } from "@/shared/constants/providers";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
 
+// Force-stop FE animation if a provider stays active longer than this
 const FE_ACTIVE_TIMEOUT_MS = 60000;
-const FE_ACTIVE_TICK_MS = 1000;
 
-const KAME_PARTICLE_COUNT = 6;
-const SPARK_COUNT = 5;
+// Provider alias mapping so active requests for aliases illuminate correct node
+const PROVIDER_ALIAS_GROUPS = [
+  ["opencode", "oc", "opencode-free"],
+  ["opencode-zen", "ocz"],
+  ["opencode-go", "ocg"],
+  ["antigravity", "ag"],
+  ["codex", "openai", "openai-codex"],
+  ["claude", "anthropic"],
+  ["gemini", "google", "gemini-cli"],
+];
+
+function matchesProvider(set, providerId) {
+  if (!set || set.size === 0 || !providerId) return false;
+  const target = providerId.toLowerCase().trim();
+  if (set.has(target)) return true;
+  for (const group of PROVIDER_ALIAS_GROUPS) {
+    if (group.includes(target)) {
+      for (const alias of group) {
+        if (set.has(alias)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function extractProviderId(p) {
+  if (!p) return null;
+  if (typeof p === "string") return p.toLowerCase().trim();
+  const id = p.provider || p.id;
+  return id ? String(id).toLowerCase().trim() : null;
+}
 
 function getProviderConfig(providerId) {
   return AI_PROVIDERS[providerId] || { color: "#6b7280", name: providerId };
@@ -28,9 +57,11 @@ function getProviderImageUrl(providerId) {
   return getProviderIconSrc(providerId);
 }
 
-function ProviderNode({ data }) {
+// Custom provider node - memoized to prevent re-rendering when other nodes change
+const ProviderNode = memo(function ProviderNode({ data }) {
   const { label, color, imageUrl, textIcon, active } = data;
   const [imgError, setImgError] = useState(false);
+
   return (
     <div
       className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-2 transition-all duration-300 bg-bg"
@@ -40,12 +71,12 @@ function ProviderNode({ data }) {
         minWidth: "150px",
       }}
     >
-      <Handle type="target" position={Position.Top} id="top" className="!bg-transparent !border-0 !w-0 !h-0" />
-      <Handle type="target" position={Position.Bottom} id="bottom" className="!bg-transparent !border-0 !w-0 !h-0" />
-      <Handle type="target" position={Position.Left} id="left" className="!bg-transparent !border-0 !w-0 !h-0" />
-      <Handle type="target" position={Position.Right} id="right" className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle type="target" position={Position.Top} id="top" className="!opacity-0 !pointer-events-none" />
+      <Handle type="target" position={Position.Bottom} id="bottom" className="!opacity-0 !pointer-events-none" />
+      <Handle type="target" position={Position.Left} id="left" className="!opacity-0 !pointer-events-none" />
+      <Handle type="target" position={Position.Right} id="right" className="!opacity-0 !pointer-events-none" />
 
-      {}
+      {/* Provider icon */}
       <div
         className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
         style={{ backgroundColor: `${color}15` }}
@@ -68,7 +99,7 @@ function ProviderNode({ data }) {
         )}
       </div>
 
-      {}
+      {/* Provider name */}
       <span
         className="text-base font-medium truncate"
         style={{ color: active ? color : "var(--color-text)" }}
@@ -76,7 +107,7 @@ function ProviderNode({ data }) {
         {label}
       </span>
 
-      {}
+      {/* Active indicator */}
       {active && (
         <span className="relative flex h-2 w-2 shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: color }} />
@@ -85,13 +116,14 @@ function ProviderNode({ data }) {
       )}
     </div>
   );
-}
+});
 
 ProviderNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-function RouterNode({ data }) {
+// Center Dardcor Router node - memoized
+const RouterNode = memo(function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (
     <div
@@ -101,15 +133,15 @@ function RouterNode({ data }) {
           : "border-primary bg-primary/5 shadow-md"
       }`}
     >
-      <Handle type="source" position={Position.Top} id="top" className="!bg-transparent !border-0 !w-0 !h-0" />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-transparent !border-0 !w-0 !h-0" />
-      <Handle type="source" position={Position.Left} id="left" className="!bg-transparent !border-0 !w-0 !h-0" />
-      <Handle type="source" position={Position.Right} id="right" className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle type="source" position={Position.Top} id="top" className="!opacity-0 !pointer-events-none" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!opacity-0 !pointer-events-none" />
+      <Handle type="source" position={Position.Left} id="left" className="!opacity-0 !pointer-events-none" />
+      <Handle type="source" position={Position.Right} id="right" className="!opacity-0 !pointer-events-none" />
 
       <img
-        src="/dardcor-code.png"
+        src="/apple-icon.png"
         alt="Dardcor Router"
-        className={`w-6 h-6 mr-2 object-contain ${powering ? "topology-router-icon" : ""}`}
+        className={`w-6 h-6 mr-2 ${powering ? "topology-router-icon" : ""}`}
         loading="lazy"
         decoding="async"
       />
@@ -123,13 +155,14 @@ function RouterNode({ data }) {
       )}
     </div>
   );
-}
+});
 
 RouterNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-function TopologyEdge({
+// GPU-accelerated Kame / Electric cable edge - memoized
+const TopologyEdge = memo(function TopologyEdge({
   id,
   sourceX,
   sourceY,
@@ -140,6 +173,10 @@ function TopologyEdge({
   style = {},
   data,
 }) {
+  if (!Number.isFinite(sourceX) || !Number.isFinite(sourceY) || !Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+    return null;
+  }
+
   const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
@@ -148,9 +185,9 @@ function TopologyEdge({
     targetY,
     targetPosition,
   });
+
   const active = !!data?.active;
   const stroke = style.stroke || "var(--color-border)";
-  const filterId = `topo-electric-${id}`;
 
   if (!active) {
     return <BaseEdge id={id} path={edgePath} style={{ ...style, stroke }} />;
@@ -158,26 +195,17 @@ function TopologyEdge({
 
   return (
     <g className="topology-edge-electric">
-      <defs>
-        <filter id={filterId} x="-40%" y="-40%" width="180%" height="180%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="2" result="noise">
-            <animate attributeName="baseFrequency" values="0.8;1.4;0.8" dur="0.25s" repeatCount="indefinite" />
-          </feTurbulence>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </defs>
-      {}
+      {/* Outer electric halo (GPU-accelerated CSS flicker) */}
       <path
         d={edgePath}
         fill="none"
         stroke="#22d3ee"
-        strokeWidth={10}
+        strokeWidth={9}
         strokeOpacity={0.35}
         strokeLinecap="round"
-        filter={`url(#${filterId})`}
         className="topology-edge-halo"
       />
-      {}
+      {/* Mid plasma (GPU-accelerated CSS dash + flicker) */}
       <path
         d={edgePath}
         fill="none"
@@ -185,59 +213,28 @@ function TopologyEdge({
         strokeWidth={5}
         strokeOpacity={0.85}
         strokeLinecap="round"
-        filter={`url(#${filterId})`}
         className="topology-edge-plasma"
       />
-      {}
+      {/* Hot white core */}
       <BaseEdge
         id={id}
         path={edgePath}
         style={{ stroke: "#f8fafc", strokeWidth: 2.2, opacity: 1 }}
         className="topology-edge-kame"
       />
-      {}
-      {Array.from({ length: KAME_PARTICLE_COUNT }, (_, i) => (
-        <circle
-          key={`${id}-p-${i}`}
-          r={i % 2 === 0 ? 4 : 2.5}
-          fill={i % 3 === 0 ? "#fde047" : i % 3 === 1 ? "#67e8f9" : "#fff"}
-          opacity={0.95}
-          style={{ filter: "drop-shadow(0 0 4px #22d3ee)" }}
-        >
-          <animateMotion
-            dur={`${0.4 + i * 0.08}s`}
-            repeatCount="indefinite"
-            path={edgePath}
-            begin={`${i * 0.09}s`}
-          />
-        </circle>
-      ))}
-      {}
-      {Array.from({ length: SPARK_COUNT }, (_, i) => (
-        <circle
-          key={`${id}-s-${i}`}
-          r={1.8}
-          fill="#e0f2fe"
-          opacity={0}
-        >
-          <animate
-            attributeName="opacity"
-            values="0;1;0;0;1;0"
-            dur={`${0.35 + (i % 3) * 0.1}s`}
-            begin={`${i * 0.07}s`}
-            repeatCount="indefinite"
-          />
-          <animateMotion
-            dur={`${0.28 + i * 0.05}s`}
-            repeatCount="indefinite"
-            path={edgePath}
-            begin={`${i * 0.11}s`}
-          />
-        </circle>
-      ))}
+      {/* Smooth flowing Kame energy orbs */}
+      <circle r={3.8} fill="#fde047" opacity={0.95}>
+        <animateMotion dur="0.8s" repeatCount="indefinite" path={edgePath} />
+      </circle>
+      <circle r={2.6} fill="#67e8f9" opacity={0.9}>
+        <animateMotion dur="0.6s" repeatCount="indefinite" path={edgePath} begin="0.25s" />
+      </circle>
+      <circle r={3.2} fill="#ffffff" opacity={0.95}>
+        <animateMotion dur="1.0s" repeatCount="indefinite" path={edgePath} begin="0.5s" />
+      </circle>
     </g>
   );
-}
+});
 
 TopologyEdge.propTypes = {
   id: PropTypes.string,
@@ -254,62 +251,37 @@ TopologyEdge.propTypes = {
 const nodeTypes = { provider: ProviderNode, router: RouterNode };
 const edgeTypes = { topology: TopologyEdge };
 
-const PROVIDER_ALIAS_GROUPS = [
-  ["opencode", "oc", "opencode-free"],
-  ["opencode-zen", "ocz"],
-  ["opencode-go", "ocg"],
-  ["antigravity", "ag"],
-  ["codex", "openai", "openai-codex"],
-  ["claude", "anthropic"],
-  ["gemini", "google", "gemini-cli"],
-];
-
-function setMatchesProvider(set, providerId) {
-  if (!set || set.size === 0 || !providerId) return false;
-  const target = providerId.toLowerCase();
-  if (set.has(target)) return true;
-  for (const group of PROVIDER_ALIAS_GROUPS) {
-    if (group.includes(target)) {
-      for (const alias of group) {
-        if (set.has(alias)) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function buildLayout(providers, activeSet, lastSet, errorSet) {
+// Place N nodes evenly along an ellipse around the router center
+function buildLayout(uniqueProviders, activeSet, lastSet, errorSet) {
   const nodeW = 180;
-  const nodeH = 30;
-  const routerW = 120;
-  const routerH = 44;
-  const nodeGap = 24;
+  const nodeH = 44;
+  const routerW = 140;
+  const routerH = 48;
+  const nodeGap = 28;
 
-  const seenIds = new Set((providers || []).map((p) => (p.provider || "").toLowerCase()));
-  const effectiveProviders = [...(providers || [])];
-  for (const set of [activeSet, lastSet, errorSet]) {
-    if (set && set.size > 0) {
-      for (const p of set) {
-        const lower = (p || "").toLowerCase();
-        if (lower && !seenIds.has(lower)) {
-          seenIds.add(lower);
-          effectiveProviders.push({ provider: lower, name: AI_PROVIDERS[lower]?.name || lower });
-        }
-      }
-    }
-  }
+  const count = uniqueProviders.length;
 
-  const count = effectiveProviders.length;
-
-  const minRx = ((nodeW + nodeGap) * count) / (2 * Math.PI);
-  const rx = Math.max(320, minRx);
-  const ry = Math.max(200, rx * 0.55);
   if (count === 0) {
     return {
-      nodes: [{ id: "router", type: "router", position: { x: 0, y: 0 }, data: { activeCount: 0 }, draggable: false }],
+      nodes: [
+        {
+          id: "router",
+          type: "router",
+          position: { x: -routerW / 2, y: -routerH / 2 },
+          width: routerW,
+          height: routerH,
+          data: { activeCount: 0 },
+          draggable: false,
+        },
+      ],
       edges: [],
     };
   }
+
+  // Safe radius calculation with guaranteed lower bounds
+  const minRx = ((nodeW + nodeGap) * count) / (2 * Math.PI);
+  const rx = Math.max(count === 1 ? 260 : 320, minRx);
+  const ry = Math.max(count === 1 ? 160 : 200, rx * 0.55);
 
   const nodes = [];
   const edges = [];
@@ -318,6 +290,8 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
     id: "router",
     type: "router",
     position: { x: -routerW / 2, y: -routerH / 2 },
+    width: routerW,
+    height: routerH,
     data: { activeCount: activeSet.size },
     draggable: false,
   });
@@ -326,42 +300,54 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
     if (error) return { stroke: "#ef4444", strokeWidth: 2.5, opacity: 0.9 };
     if (active) return { stroke: "#22d3ee", strokeWidth: 3.5, opacity: 1 };
     if (last) return { stroke: "#f59e0b", strokeWidth: 2, opacity: 0.7 };
-    return { stroke: "var(--color-border)", strokeWidth: 1, opacity: 0.3 };
+    return { stroke: "var(--color-border)", strokeWidth: 1, opacity: 0.35 };
   };
 
-  effectiveProviders.forEach((p, i) => {
-    const config = getProviderConfig(p.provider);
-    const active = setMatchesProvider(activeSet, p.provider);
-    const last = !active && setMatchesProvider(lastSet, p.provider);
-    const error = !active && setMatchesProvider(errorSet, p.provider);
-    const nodeId = `provider-${p.provider}`;
+  uniqueProviders.forEach((p, i) => {
+    const providerId = p.provider;
+    const config = getProviderConfig(providerId);
+    const active = matchesProvider(activeSet, providerId);
+    const last = !active && matchesProvider(lastSet, providerId);
+    const error = !active && matchesProvider(errorSet, providerId);
+    const nodeId = `provider-${providerId}`;
+
     const data = {
-      label: (config.name !== p.provider ? config.name : null) || p.nodeName || p.name || p.provider,
+      label: (config.name !== providerId ? config.name : null) || p.nodeName || p.name || providerId,
       color: config.color || "#6b7280",
-      imageUrl: getProviderImageUrl(p.provider),
-      textIcon: config.textIcon || (p.provider || "?").slice(0, 2).toUpperCase(),
+      imageUrl: getProviderImageUrl(providerId),
+      textIcon: config.textIcon || (providerId || "?").slice(0, 2).toUpperCase(),
       active,
     };
 
-    const angle = -Math.PI / 2 + (2 * Math.PI * i) / count;
+    // Calculate angle: count === 1 placed at top (-PI/2), otherwise distributed evenly
+    const angle = count === 1 ? -Math.PI / 2 : -Math.PI / 2 + (2 * Math.PI * i) / count;
     const cx = rx * Math.cos(angle);
     const cy = ry * Math.sin(angle);
 
+    // Pick handles based on normalized quadrant angle
+    const norm = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     let sourceHandle, targetHandle;
-    if (Math.abs(angle + Math.PI / 2) < Math.PI / 4 || Math.abs(angle - 3 * Math.PI / 2) < Math.PI / 4) {
-      sourceHandle = "top"; targetHandle = "bottom";
-    } else if (Math.abs(angle - Math.PI / 2) < Math.PI / 4) {
-      sourceHandle = "bottom"; targetHandle = "top";
+
+    if (Math.abs(norm - (3 * Math.PI) / 2) < Math.PI / 4) {
+      sourceHandle = "top";
+      targetHandle = "bottom";
+    } else if (Math.abs(norm - Math.PI / 2) < Math.PI / 4) {
+      sourceHandle = "bottom";
+      targetHandle = "top";
     } else if (cx > 0) {
-      sourceHandle = "right"; targetHandle = "left";
+      sourceHandle = "right";
+      targetHandle = "left";
     } else {
-      sourceHandle = "left"; targetHandle = "right";
+      sourceHandle = "left";
+      targetHandle = "right";
     }
 
     nodes.push({
       id: nodeId,
       type: "provider",
       position: { x: cx - nodeW / 2, y: cy - nodeH / 2 },
+      width: nodeW,
+      height: nodeH,
       data,
       draggable: false,
     });
@@ -382,92 +368,159 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
   return { nodes, edges };
 }
 
-export default function ProviderTopology({ providers = [], activeRequests = [], lastProvider = "", errorProvider = "" }) {
+export default function ProviderTopology({
+  providers = [],
+  activeRequests = [],
+  lastProvider = "",
+  errorProvider = "",
+}) {
+  // Deduplicate and normalize providers securely (prevents duplicate key collisions)
+  const uniqueProviders = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    for (const p of providers || []) {
+      const id = extractProviderId(p);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      result.push({
+        ...p,
+        provider: id,
+      });
+    }
+    return result;
+  }, [providers]);
+
+  // Stable string keys for active/recent states
   const activeKey = useMemo(
     () => activeRequests.map((r) => r.provider?.toLowerCase()).filter(Boolean).sort().join(","),
     [activeRequests]
   );
-  const lastKey = lastProvider?.toLowerCase() || "";
-  const errorKey = errorProvider?.toLowerCase() || "";
+  const lastKey = lastProvider?.toLowerCase().trim() || "";
+  const errorKey = errorProvider?.toLowerCase().trim() || "";
 
   const rawActiveSet = useMemo(() => new Set(activeKey ? activeKey.split(",") : []), [activeKey]);
   const lastSet = useMemo(() => new Set(lastKey ? [lastKey] : []), [lastKey]);
   const errorSet = useMemo(() => new Set(errorKey ? [errorKey] : []), [errorKey]);
 
-  const firstSeenRef = useRef({});
-  const [tick, setTick] = useState(0);
+  // Handle provider active timeouts (> 60s) via targeted timeouts (Zero 1-sec tick re-render lag)
+  const [timedOutProviders, setTimedOutProviders] = useState(() => new Set());
+  const activeTimersRef = useRef(new Map());
 
   useEffect(() => {
-    const seen = firstSeenRef.current;
-    const now = Date.now();
+    const currentTimers = activeTimersRef.current;
+
     for (const p of rawActiveSet) {
-      if (!seen[p]) seen[p] = now;
+      if (!currentTimers.has(p)) {
+        const timerId = setTimeout(() => {
+          setTimedOutProviders((prev) => new Set(prev).add(p));
+        }, FE_ACTIVE_TIMEOUT_MS);
+        currentTimers.set(p, timerId);
+      }
     }
-    for (const p of Object.keys(seen)) {
-      if (!rawActiveSet.has(p)) delete seen[p];
+
+    for (const [p, timerId] of currentTimers.entries()) {
+      if (!rawActiveSet.has(p)) {
+        clearTimeout(timerId);
+        currentTimers.delete(p);
+        setTimedOutProviders((prev) => {
+          if (!prev.has(p)) return prev;
+          const next = new Set(prev);
+          next.delete(p);
+          return next;
+        });
+      }
     }
   }, [rawActiveSet]);
 
   useEffect(() => {
-    if (rawActiveSet.size === 0) return;
-    const id = setInterval(() => setTick((t) => t + 1), FE_ACTIVE_TICK_MS);
-    return () => clearInterval(id);
-  }, [rawActiveSet]);
+    const timers = activeTimersRef.current;
+    return () => {
+      for (const timerId of timers.values()) {
+        clearTimeout(timerId);
+      }
+      timers.clear();
+    };
+  }, []);
 
   const activeSet = useMemo(() => {
-    const now = Date.now();
     const filtered = new Set();
     for (const p of rawActiveSet) {
-      const ts = firstSeenRef.current[p];
-      if (!ts || now - ts < FE_ACTIVE_TIMEOUT_MS) filtered.add(p);
+      if (!timedOutProviders.has(p)) {
+        filtered.add(p);
+      }
     }
     return filtered;
-  }, [rawActiveSet, tick]);
+  }, [rawActiveSet, timedOutProviders]);
 
   const { nodes, edges } = useMemo(
-    () => buildLayout(providers, activeSet, lastSet, errorSet),
-    [providers, activeSet, lastSet, errorSet]
-  );
-
-  const providersKey = useMemo(
-    () => providers.map((p) => p.provider).sort().join(","),
-    [providers]
+    () => buildLayout(uniqueProviders, activeSet, lastSet, errorSet),
+    [uniqueProviders, activeSet, lastSet, errorSet]
   );
 
   const rfInstance = useRef(null);
   const containerRef = useRef(null);
-  const fitOpts = { padding: 0.2, duration: 200 };
+  const initialFitDone = useRef(false);
+  const prevCountRef = useRef(0);
+  const fitOpts = { padding: 0.25, duration: 250 };
+
   const onInit = useCallback((instance) => {
     rfInstance.current = instance;
-    setTimeout(() => instance.fitView(fitOpts), 50);
+    setTimeout(() => {
+      instance.fitView({ padding: 0.25, duration: 200 });
+      initialFitDone.current = true;
+    }, 50);
   }, []);
 
+  // Re-fit view ONLY when provider count actually changes (e.g. initial load 0 -> N)
+  useEffect(() => {
+    if (!rfInstance.current || uniqueProviders.length === 0) return;
+
+    if (prevCountRef.current !== uniqueProviders.length) {
+      prevCountRef.current = uniqueProviders.length;
+      const timer = setTimeout(() => {
+        rfInstance.current?.fitView(fitOpts);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [uniqueProviders.length]);
+
+  // ResizeObserver: Only perform initial fit when container gets non-zero dimensions
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => {
-      if (rfInstance.current) rfInstance.current.fitView(fitOpts);
+
+    let resizeTimer;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0 && !initialFitDone.current && rfInstance.current) {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            rfInstance.current?.fitView({ padding: 0.25, duration: 0 });
+            initialFitDone.current = true;
+          }, 50);
+        }
+      }
     });
+
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      clearTimeout(resizeTimer);
+      ro.disconnect();
+    };
   }, []);
 
-  useEffect(() => {
-    if (rfInstance.current) {
-      const id = setTimeout(() => rfInstance.current.fitView(fitOpts), 50);
-      return () => clearTimeout(id);
-    }
-  }, [nodes.length]);
-
   return (
-    <div ref={containerRef} className="h-[320px] w-full min-w-0 rounded-lg border border-border bg-bg-subtle/30 sm:h-[480px]">
-      {providers.length === 0 ? (
+    <div
+      ref={containerRef}
+      className="h-[320px] w-full min-w-0 rounded-lg border border-border bg-bg-subtle/30 sm:h-[480px]"
+    >
+      {uniqueProviders.length === 0 ? (
         <div className="h-full flex items-center justify-center text-text-muted text-sm">
           No providers connected
         </div>
       ) : (
         <ReactFlow
-          key={providersKey}
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
@@ -495,16 +548,20 @@ export default function ProviderTopology({ providers = [], activeRequests = [], 
 }
 
 ProviderTopology.propTypes = {
-  providers: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string,
-    provider: PropTypes.string,
-    name: PropTypes.string,
-  })),
-  activeRequests: PropTypes.arrayOf(PropTypes.shape({
-    provider: PropTypes.string,
-    model: PropTypes.string,
-    account: PropTypes.string,
-  })),
+  providers: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      provider: PropTypes.string,
+      name: PropTypes.string,
+    })
+  ),
+  activeRequests: PropTypes.arrayOf(
+    PropTypes.shape({
+      provider: PropTypes.string,
+      model: PropTypes.string,
+      account: PropTypes.string,
+    })
+  ),
   lastProvider: PropTypes.string,
   errorProvider: PropTypes.string,
 };

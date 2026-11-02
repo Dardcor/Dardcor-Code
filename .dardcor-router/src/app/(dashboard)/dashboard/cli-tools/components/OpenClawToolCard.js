@@ -30,19 +30,19 @@ export default function OpenClawToolCard({
   const [message, setMessage] = useState(null);
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [agentModels, setAgentModels] = useState({});
-  const [agentModalFor, setAgentModalFor] = useState(null);
+  const [agentModels, setAgentModels] = useState({}); // { [agentId]: modelId }
+  const [agentModalFor, setAgentModalFor] = useState(null); // agentId opening modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
 
-  const currentBaseUrl = openclawStatus?.settings?.models?.providers?.["dardcor-code"]?.baseUrl || "";
+  const currentBaseUrl = openclawStatus?.settings?.models?.providers?.["dardcor-router"]?.baseUrl || "";
 
   const getConfigStatus = () => {
     if (!openclawStatus?.installed) return null;
-    const currentProvider = openclawStatus.settings?.models?.providers?.["dardcor-code"];
+    const currentProvider = openclawStatus.settings?.models?.providers?.["dardcor-router"];
     if (!currentProvider) return "not_configured";
     return matchKnownEndpoint(currentProvider.baseUrl, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
@@ -79,14 +79,15 @@ export default function OpenClawToolCard({
   useEffect(() => {
     if (openclawStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
-      const provider = openclawStatus.settings?.models?.providers?.["dardcor-code"];
+      const provider = openclawStatus.settings?.models?.providers?.["dardcor-router"];
       if (provider) {
         const primaryModel = openclawStatus.settings?.agents?.defaults?.model?.primary;
-        if (primaryModel) setSelectedModel(primaryModel.replace("dardcor-code/", ""));
+        if (primaryModel) setSelectedModel(primaryModel.replace("dardcor-router/", ""));
         if (provider.apiKey && apiKeys?.some(k => k.key === provider.apiKey)) {
           setSelectedApiKey(provider.apiKey);
         }
       }
+      // Init per-agent models from enriched agents list
       const agentList = openclawStatus.agents || [];
       const initAgentModels = {};
       agentList.forEach((agent) => {
@@ -115,7 +116,7 @@ export default function OpenClawToolCard({
     if (typeof window !== "undefined") {
       return normalizeLocalhost(window.location.origin);
     }
-    return "http://127.0.0.1:21128";
+    return "http://127.0.0.1:25128";
   };
 
   const getEffectiveBaseUrl = () => {
@@ -148,6 +149,7 @@ export default function OpenClawToolCard({
       });
       const data = await res.json();
       if (res.ok) {
+        // Remember the endpoint so it stays selectable next time
         rememberEndpoint(getEffectiveBaseUrl(), { tunnelPublicUrl, tailscaleUrl });
         setMessage({ type: "success", text: "Settings applied successfully!" });
         checkOpenclawStatus();
@@ -201,13 +203,13 @@ export default function OpenClawToolCard({
       agents: {
         defaults: {
           model: {
-            primary: `dardcor-code/${selectedModel || "provider/model-id"}`,
+            primary: `dardcor-router/${selectedModel || "provider/model-id"}`,
           },
         },
       },
       models: {
         providers: {
-          "dardcor-code": {
+          "dardcor-router": {
             baseUrl: getEffectiveBaseUrl(),
             apiKey: keyToUse,
             api: "openai-completions",
@@ -266,7 +268,7 @@ export default function OpenClawToolCard({
                   <span className="material-symbols-outlined text-yellow-500">warning</span>
                   <div className="flex-1">
                     <p className="font-medium text-yellow-600 dark:text-yellow-400">Open Claw CLI not detected locally</p>
-                    <p className="text-sm text-text-muted">Manual configuration is still available if dardcor-code is deployed on a remote server.</p>
+                    <p className="text-sm text-text-muted">Manual configuration is still available if Dardcor Router is deployed on a remote server.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-9">
@@ -282,7 +284,7 @@ export default function OpenClawToolCard({
           {!checkingOpenclaw && openclawStatus?.installed && (
             <>
               <div className="flex flex-col gap-2">
-                {}
+                {/* Endpoint (selector) */}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -298,25 +300,25 @@ export default function OpenClawToolCard({
                   />
                 </div>
 
-                {}
-                {openclawStatus?.settings?.models?.providers?.["dardcor-code"]?.baseUrl && (
+                {/* Current configured */}
+                {openclawStatus?.settings?.models?.providers?.["dardcor-router"]?.baseUrl && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {openclawStatus.settings.models.providers["dardcor-code"].baseUrl}
+                      {openclawStatus.settings.models.providers["dardcor-router"].baseUrl}
                     </span>
                   </div>
                 )}
 
-                {}
+                {/* API Key */}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
-                {}
+                {/* Default Model */}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Default Model</span>
                   <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
@@ -327,7 +329,7 @@ export default function OpenClawToolCard({
                   <button onClick={() => { setAgentModalFor(null); setModalOpen(true); }} disabled={!hasActiveProviders} className={`w-full sm:w-auto rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 whitespace-nowrap sm:shrink-0 ${hasActiveProviders ? "bg-surface border-border text-text-main hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}>Select</button>
                 </div>
 
-                {}
+                {/* Per-agent model overrides */}
                 {(openclawStatus.agents || []).filter(a => a.agentDir).map((agent) => (
                   <div key={agent.id} className="flex items-center gap-2 pl-4">
                     <span className="w-32 shrink-0 text-xs text-primary text-right truncate" title={agent.name || agent.id}>Agent {agent.name || agent.id}</span>
@@ -358,7 +360,7 @@ export default function OpenClawToolCard({
                 <Button variant="primary" size="sm" onClick={handleApplySettings} disabled={!selectedModel} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!openclawStatus?.hasDardcorCode} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!openclawStatus?.hasDardcorRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

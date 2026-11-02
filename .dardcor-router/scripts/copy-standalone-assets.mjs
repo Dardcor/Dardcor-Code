@@ -44,6 +44,13 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     console.log(`[standalone-assets] Copied custom-server.js to ${serverWrapperDestination}`);
   }
 
+  const openSseSource = resolve(projectRoot, "open-sse");
+  const openSseDestination = resolve(standaloneDir, "open-sse");
+  if (existsSync(openSseSource)) {
+    cpSync(openSseSource, openSseDestination, { recursive: true, force: true });
+    console.log(`[standalone-assets] Copied open-sse to ${openSseDestination}`);
+  }
+
   const packageJsonSource = resolve(projectRoot, "package.json");
   const packageJsonDestination = resolve(standaloneDir, "package.json");
   if (existsSync(packageJsonSource)) {

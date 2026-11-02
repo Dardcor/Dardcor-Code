@@ -5,6 +5,9 @@ import { formatResetTime, getRemainingPercentage } from "./utils";
 
 const PAGE_SIZE = 10;
 
+/**
+ * Format reset time display (Today, 12:00 PM)
+ */
 function formatResetTimeDisplay(resetTime) {
   if (!resetTime) return null;
 
@@ -36,6 +39,9 @@ function formatResetTimeDisplay(resetTime) {
   }
 }
 
+/**
+ * Get color classes based on remaining percentage
+ */
 function getColorClasses(remainingPercentage) {
   if (remainingPercentage > 70) {
     return {
@@ -75,6 +81,9 @@ function sortQuotas(quotas, sortMode) {
   return quotas;
 }
 
+/**
+ * Quota Table Component - Table-based display for quota data
+ */
 export default function QuotaTable({
   quotas = [],
   compact = false,
@@ -142,18 +151,57 @@ export default function QuotaTable({
       <div className="space-y-px">
         {currentPageRows.map((quota) => {
           const isUnlimited = quota.unlimited === true;
-          const colors = getColorClasses(quota.remaining);
-          const countdown = formatResetTime(quota.resetAt);
-          const resetDisplay = formatResetTimeDisplay(quota.resetAt);
+          const isCreditBalance = quota.isCreditBalance === true;
+          const colors = isCreditBalance
+            ? { text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500", bgLight: "bg-blue-500/10", emoji: "💰" }
+            : getColorClasses(quota.colorPercentage ?? quota.remaining);
+          // Qoder flags open-ended plans with `neverExpires` (its API reports a
+          // year-9999 sentinel). Return "-"/"Never expires" rather than an empty
+          // countdown: the render below branches on `countdown !== "-"`, so an
+          // empty string would fall through to the "in " label.
+          const countdown = quota.neverExpires ? "-" : formatResetTime(quota.resetAt);
+          // Providers that expose a detail page but no per-bucket reset date
+          // (Qoder add-on grants) get a pointer to it instead of a bare "N/A".
+          const seeDetails = !quota.neverExpires && !quota.resetAt && Boolean(quota.detailUrl);
+          const resetDisplay = quota.emptyMessage
+            ? quota.emptyMessage
+            : quota.neverExpires
+            ? "Never expires"
+            : seeDetails
+              ? "See details"
+              : formatResetTimeDisplay(quota.resetAt);
+          const resetSecondaryText = seeDetails && quota.detailUrl ? quota.detailUrl : resetDisplay;
+          // recurring defaults true: a missing flag means the quota
+          // refreshes at resetAt. Bonus/one-shot packs set recurring:false
+          // and their resetAt is a hard expiry, so word it as "expires".
           const recurring = quota.recurring !== false;
           const countdownLabel = recurring ? `in ${countdown}` : `expires in ${countdown}`;
+
+          // "See details" rows are a link to the provider's own usage page —
+          // used where the API exposes no per-bucket date (Qoder add-on grants).
+          const renderResetCell = (className) =>
+            seeDetails ? (
+              <a
+                href={quota.detailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${className} inline-flex items-center gap-0.5 hover:text-text-primary hover:underline`}
+                title={`Open usage details: ${resetSecondaryText}`}
+                aria-label={`Open usage details for ${quota.name}`}
+              >
+                {resetDisplay}
+                <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+              </a>
+            ) : (
+              resetDisplay
+            );
 
           return (
             <div
               key={`${quota.name}-${quota.index}`}
               className={`flex items-center gap-2 border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${cellPad}`}
             >
-              {}
+              {/* Name */}
               <div className="flex w-36 min-w-0 items-center gap-1.5">
                 <span className="text-[10px] shrink-0">{colors.emoji}</span>
                 <span className={`${nameText} font-medium text-text-primary truncate`}>
@@ -161,9 +209,9 @@ export default function QuotaTable({
                 </span>
               </div>
 
-              {}
+              {/* Progress + used/total */}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                {!isUnlimited && (
+                {!isUnlimited && !isCreditBalance && (
                 <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden border ${colors.bgLight} ${
                   quota.remaining === 0 ? "border-black/10 dark:border-white/10" : "border-transparent"
                 }`}>
@@ -180,28 +228,34 @@ export default function QuotaTable({
                     title={
                       isUnlimited
                         ? `${quota.used.toLocaleString()} used · Unlimited`
+                        : isCreditBalance
+                        ? `Credit balance: ${quota.total.toFixed(2)} ${quota.currency || ""}`
                         : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`
                     }
                   >
                     {isUnlimited
                       ? `${quota.used.toLocaleString()} used · Unlimited`
-                      : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`}
+                      : isCreditBalance
+                      ? `Credit: ${quota.total.toFixed(2)} ${quota.currency || ""}`
+                      : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}${
+                          quota.unit ? ` ${quota.unit}` : ""
+                        }`}
                   </span>
-                  <span className={`font-medium ${isUnlimited ? "text-green-600 dark:text-green-400" : colors.text} shrink-0`}>
-                    {isUnlimited ? "Unlimited" : `${quota.remaining}%`}
+                  <span className={`font-medium ${isUnlimited ? "text-green-600 dark:text-green-400" : isCreditBalance ? "text-blue-600 dark:text-blue-400" : colors.text} shrink-0`}>
+                    {isUnlimited ? "Unlimited" : isCreditBalance ? "" : `${quota.remaining}%`}
                   </span>
                 </div>
               </div>
 
-              {}
+              {/* Reset time */}
               <div className="min-w-0 shrink">
                 {countdown !== "-" || resetDisplay ? (
                   compact ? (
                     <div
                       className={`${resetPrimary} text-text-primary font-medium truncate`}
-                      title={resetDisplay || ""}
+                      title={resetSecondaryText || ""}
                     >
-                      {countdown !== "-" ? countdownLabel : resetDisplay}
+                      {countdown !== "-" ? countdownLabel : renderResetCell(resetPrimary)}
                     </div>
                   ) : (
                     <div className="min-w-0 space-y-0.5">
@@ -212,7 +266,7 @@ export default function QuotaTable({
                       )}
                       {resetDisplay && (
                         <div className={`${resetSecondary} text-text-muted truncate`}>
-                          {resetDisplay}
+                          {renderResetCell(resetSecondary)}
                         </div>
                       )}
                     </div>
@@ -222,7 +276,7 @@ export default function QuotaTable({
                 )}
               </div>
 
-              {}
+              {/* Hide action */}
               {hasHideAction && (
                 <button
                   type="button"

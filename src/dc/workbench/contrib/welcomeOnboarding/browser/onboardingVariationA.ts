@@ -114,7 +114,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	private readonly footerFocusableElements: HTMLElement[] = [];
 	private readonly stepFocusableElements: HTMLElement[] = [];
 	private selectedThemeId = 'dark-2026';
-	private selectedKeymapId = 'vscode';
+	private selectedKeymapId = 'dardcor';
 	private _detectedEditorIds: Set<string> | undefined;
 	private _userSignedIn = false;
 	private selectedAiMode: AiCollaborationMode = AiCollaborationMode.Balanced;
@@ -857,7 +857,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 			this._createKbd(localize('onboarding.personalize.tip.shift', "Shift")),
 			'+',
 			this._createKbd(localize('onboarding.personalize.tip.p', "P")),
-			localize('onboarding.personalize.tip.suffix', " to access all VS Code commands."),
+			localize('onboarding.personalize.tip.suffix', " to access all Dardcor Code commands."),
 		);
 	}
 
@@ -933,11 +933,11 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 		const keymapOptions = this._detectedEditorIds
 			? (product.onboardingKeymaps ?? []).filter(k => this._detectedEditorIds!.has(k.id))
 			: [];
-		return keymapOptions.some(k => k.id !== 'vscode');
+		return keymapOptions.some(k => k.id !== 'dardcor' && k.id !== 'vscode');
 	}
 
 	private async _detectInstalledEditors(): Promise<Set<string>> {
-		const detected = new Set<string>(['vscode']);
+		const detected = new Set<string>(['dardcor', 'vscode']);
 		const home = this.pathService.userHome({ preferLocal: true });
 
 		interface EditorCheck { id: string; paths: URI[] }
