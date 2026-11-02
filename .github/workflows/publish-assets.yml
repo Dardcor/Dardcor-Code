@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository for Scripts
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
@@ -92,7 +92,7 @@ jobs:
           fi
 
       - name: Upload All 25 Assets to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ env.RELEASE_TITLE }}
           tag_name: ${{ inputs.tag_name }}

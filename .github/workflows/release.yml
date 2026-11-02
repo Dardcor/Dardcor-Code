@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
           echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -92,7 +92,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -111,7 +111,7 @@ jobs:
           sudo apt-get install --yes pkg-config libxkbfile-dev libkrb5-dev libsecret-1-dev rpm dpkg fakeroot zip
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -166,7 +166,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -180,7 +180,7 @@ jobs:
           node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("product.json","utf8"));p.dardcorVersion=process.argv[1];fs.writeFileSync("product.json",JSON.stringify(p,null,"\t")+"\n")' "$version"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -254,7 +254,7 @@ jobs:
       actions: read
     steps:
       - name: Checkout release source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -277,7 +277,7 @@ jobs:
           path: release_assets
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -293,7 +293,7 @@ jobs:
           echo "RELEASE_TITLE=Dardcor Code v${version}" >> "$GITHUB_ENV"
 
       - name: Publish release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ env.RELEASE_TITLE }}
           tag_name: ${{ github.ref_name }}

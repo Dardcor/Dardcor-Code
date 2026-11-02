@@ -12,8 +12,8 @@ jobs:
     name: Compile
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - id: cache-node-modules
@@ -46,7 +46,7 @@ jobs:
           mkdir -p .build
           node build/azure-pipelines/common/computeBuiltInDepsCacheKey.ts > .build/builtindepshash
       - id: cache-builtin-extensions
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           enableCrossOsArchive: true
           path: .build/builtInExtensions
@@ -63,8 +63,8 @@ jobs:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - id: cache-node-modules
@@ -122,8 +122,8 @@ jobs:
       NPM_ARCH: arm64
       VSCODE_ARCH: arm64
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - id: cache-node-modules
@@ -170,8 +170,8 @@ jobs:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - id: node-modules-cache
@@ -215,8 +215,8 @@ jobs:
     name: Dardcor (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: extensions/dardcor/.nvmrc
       - id: cache-node-modules
@@ -237,8 +237,8 @@ jobs:
     name: Dardcor (Windows)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: extensions/dardcor/.nvmrc
       - id: cache-node-modules
