@@ -36,6 +36,19 @@ const TOOL_ALIASES: Record<string, string> = {
 	todo: 'manage_todo_list',
 	todo_list: 'manage_todo_list',
 	update_todo_list: 'manage_todo_list',
+	multi_edit: 'multi_edit_file',
+	batch_edit: 'batch_edit_files',
+	read_files: 'read_multiple_files',
+	goto_definition: 'go_to_definition',
+	find_references: 'find_symbol_references',
+	call_hierarchy: 'get_call_hierarchy',
+	checkpoint: 'create_checkpoint',
+	rollback_checkpoint: 'restore_checkpoint',
+	git_status: 'git_intelligence',
+	self_introspect: 'introspect_self',
+	memory: 'manage_knowledge_memory',
+	swarm: 'spawn_agent_swarm',
+	audit_page: 'audit_page_visual_and_network',
 };
 
 export interface IDardcorParsedToolCall {
@@ -85,6 +98,11 @@ export function parseDardcorAgentToolArguments(
 		find_files: { pattern: ['query', 'glob'] },
 		search_code: { query: ['pattern', 'text'] },
 		rename_file: { oldFilePath: ['oldPath'], newFilePath: ['newPath'] },
+		multi_edit_file: { filePath: ['path', 'file_path', 'targetFile', 'target_file', 'filename', 'file'] },
+		go_to_definition: { filePath: ['path', 'file_path', 'file'], symbol: ['name', 'identifier', 'query'] },
+		find_symbol_references: { symbol: ['name', 'identifier', 'query'], filePath: ['path', 'file_path', 'file'] },
+		get_call_hierarchy: { symbol: ['name', 'identifier', 'query'], filePath: ['path', 'file_path', 'file'] },
+		restore_checkpoint: { checkpointId: ['id', 'checkpoint_id'] },
 	};
 	for (const [target, aliases] of Object.entries(argumentAliases[canonicalName] ?? {})) {
 		if (args[target] === undefined) {
@@ -197,10 +215,12 @@ export function requiresDardcorCommandConfirmation(
 }
 
 const DARDCORE_READ_ONLY_TOOLS = new Set([
-	'read_file', 'list_directory', 'find_files', 'search_code', 'grep_search',
-	'get_diagnostics', 'get_file_outline', 'get_terminal_output', 'terminal_selection',
-	'terminal_last_command', 'get_task_output', 'read_browser_page', 'read_page',
-	'get_browser_console_logs', 'screenshot_browser_page', 'screenshot_page', 'wait_for_browser',
+	'read_file', 'read_multiple_files', 'list_directory', 'find_files', 'search_code', 'grep_search',
+	'get_diagnostics', 'get_file_outline', 'go_to_definition', 'find_symbol_references', 'get_call_hierarchy',
+	'git_intelligence', 'introspect_self', 'manage_knowledge_memory', 'create_checkpoint',
+	'get_terminal_output', 'terminal_selection', 'terminal_last_command', 'get_task_output',
+	'read_browser_page', 'read_page', 'get_browser_console_logs', 'screenshot_browser_page',
+	'screenshot_page', 'wait_for_browser', 'audit_page_visual_and_network',
 	'manage_todo_list', 'ask_questions', 'review_plan', 'task_completed',
 ]);
 
@@ -210,10 +230,12 @@ const DARDCORE_COMMAND_TOOLS = new Set([
 ]);
 
 const DARDCORE_STATEFUL_TOOLS = new Set([
-	'write_file', 'edit_file', 'delete_file', 'rename_file', 'fetch_web_page', 'open_browser_page',
-	'navigate_browser', 'navigate_page', 'click_element', 'type_in_page', 'scroll_browser_page',
-	'hover_element', 'press_key', 'select_option', 'drag_and_drop', 'execute_browser_script',
-	'handle_browser_dialog', 'set_artifacts', 'set_artifact_rules', 'run_subagent', 'confirm_terminal_command',
+	'write_file', 'edit_file', 'multi_edit_file', 'batch_edit_files', 'delete_file', 'rename_file',
+	'restore_checkpoint', 'synthesize_skill', 'spawn_agent_swarm',
+	'fetch_web_page', 'open_browser_page', 'navigate_browser', 'navigate_page', 'click_element',
+	'type_in_page', 'scroll_browser_page', 'hover_element', 'press_key', 'select_option',
+	'drag_and_drop', 'execute_browser_script', 'handle_browser_dialog', 'set_artifacts',
+	'set_artifact_rules', 'run_subagent', 'confirm_terminal_command',
 ]);
 
 
@@ -285,6 +307,20 @@ export function summarizeDardcorToolAction(toolName: string, args: Record<string
 		handle_browser_dialog: ['pageId', 'accept', 'promptText'],
 		set_artifacts: ['artifacts'],
 		set_artifact_rules: ['rules'],
+		multi_edit_file: ['filePath', 'edits'],
+		batch_edit_files: ['operations'],
+		read_multiple_files: ['files'],
+		go_to_definition: ['symbol', 'filePath', 'line'],
+		find_symbol_references: ['symbol', 'filePath'],
+		get_call_hierarchy: ['symbol', 'filePath'],
+		create_checkpoint: ['label', 'files'],
+		restore_checkpoint: ['checkpointId'],
+		git_intelligence: ['operation', 'filePath', 'ref'],
+		introspect_self: ['action', 'hypothesis', 'status', 'evidence'],
+		manage_knowledge_memory: ['action', 'category', 'title', 'content', 'query'],
+		synthesize_skill: ['name', 'description', 'instructions'],
+		spawn_agent_swarm: ['tasks'],
+		audit_page_visual_and_network: ['pageId', 'checkOverflow', 'correlateBackendLogs'],
 	};
 	const toolFields = fieldsByTool[toolName] ?? [];
 	const metaKeys = ['explanation', 'goal', 'mode', 'reason', 'description'];

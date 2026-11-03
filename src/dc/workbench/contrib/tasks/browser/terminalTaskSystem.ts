@@ -32,7 +32,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
-import { IShellLaunchConfig, WaitOnExitValue } from '../../../../platform/terminal/common/terminal.js';
+import { IShellLaunchConfig, TerminalLocation, WaitOnExitValue } from '../../../../platform/terminal/common/terminal.js';
 import { formatMessageForTerminal } from '../../../../platform/terminal/common/terminalStrings.js';
 import { IViewDescriptorService, ViewContainerLocation } from '../../../common/views.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
@@ -1403,9 +1403,9 @@ export class TerminalTaskSystem extends Disposable implements ITaskSystem {
 			this._logService.trace('reconnected to task and terminal', task._id);
 			return reconnectedTerminal;
 		}
-		if (group) {
+		if (group && !launchConfigs.hideFromUser) {
 			for (const terminal of Object.values(this._terminals)) {
-				if (terminal.group === group) {
+				if (terminal.group === group && !terminal.terminal.shellLaunchConfig.hideFromUser) {
 					this._logService.trace(`Found terminal to split for group ${group}`);
 					const originalInstance = terminal.terminal;
 					const result = await this._terminalService.createTerminal({ location: { parentTerminal: originalInstance }, config: launchConfigs });
@@ -1417,7 +1417,10 @@ export class TerminalTaskSystem extends Disposable implements ITaskSystem {
 			}
 			this._logService.trace(`No terminal found to split for group ${group}`);
 		}
-		const createdTerminal = await this._terminalService.createTerminal({ config: launchConfigs });
+		const createdTerminal = await this._terminalService.createTerminal({
+			config: launchConfigs,
+			location: launchConfigs.hideFromUser ? TerminalLocation.Panel : undefined
+		});
 		registerOnDisposed(createdTerminal);
 		return createdTerminal;
 	}
@@ -1499,6 +1502,11 @@ export class TerminalTaskSystem extends Disposable implements ITaskSystem {
 				return [undefined, new TaskError(Severity.Error, nls.localize('TerminalTaskSystem', 'Can\'t execute a shell command on an UNC drive using cmd.exe.'), TaskErrors.UnknownError)];
 			}
 		}
+		const isAgentTask = (task as any).runSource === TaskRunSource.ChatAgent || presentationOptions.reveal === RevealKind.Never;
+		if (isAgentTask && launchConfigs) {
+			launchConfigs.hideFromUser = true;
+			launchConfigs.isFeatureTerminal = true;
+		}
 		const prefersSameTerminal = presentationOptions.panel === PanelKind.Dedicated;
 		const allowsSharedTerminal = presentationOptions.panel === PanelKind.Shared;
 		const group = presentationOptions.group;
@@ -1508,15 +1516,22 @@ export class TerminalTaskSystem extends Disposable implements ITaskSystem {
 		if (prefersSameTerminal) {
 			const terminalId = this._sameTaskTerminals[taskKey];
 			if (terminalId) {
-				terminalToReuse = this._terminals[terminalId];
-				delete this._sameTaskTerminals[taskKey];
+				const candidate = this._terminals[terminalId];
+				if (candidate && Boolean(candidate.terminal.shellLaunchConfig.hideFromUser) === isAgentTask) {
+					terminalToReuse = candidate;
+					delete this._sameTaskTerminals[taskKey];
+				}
 			}
 		} else if (allowsSharedTerminal) {
-			let terminalId = this._idleTaskTerminals.remove(taskKey);
-			if (!terminalId) {
+			let terminalId = this._idleTaskTerminals.get(taskKey);
+			if (terminalId && this._terminals[terminalId] && Boolean(this._terminals[terminalId].terminal.shellLaunchConfig.hideFromUser) === isAgentTask) {
+				this._idleTaskTerminals.remove(taskKey);
+			} else {
+				terminalId = undefined;
 				for (const taskId of this._idleTaskTerminals.keys()) {
 					const idleTerminalId = this._idleTaskTerminals.get(taskId)!;
-					if (idleTerminalId && this._terminals[idleTerminalId] && this._terminals[idleTerminalId].group === group) {
+					const candidate = idleTerminalId ? this._terminals[idleTerminalId] : undefined;
+					if (candidate && candidate.group === group && Boolean(candidate.terminal.shellLaunchConfig.hideFromUser) === isAgentTask) {
 						terminalId = this._idleTaskTerminals.remove(taskId);
 						break;
 					}

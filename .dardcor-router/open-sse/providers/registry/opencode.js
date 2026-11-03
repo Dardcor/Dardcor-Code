@@ -40,7 +40,7 @@ export default {
     { id: "mimo-v2.6-flash-free", name: "MiMo-V2.6-Flash Free" },
     { id: "nemotron-3.5-lightning-free", name: "Nemotron 3.5 Lightning Free" },
     { id: "nemotron-3.5-super-vl-free", name: "Nemotron 3.5 Super VL Free" },
-    { id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free" },
+    { id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free", upstreamModelId: "deepseek-v4.1-flash-free" },
     { id: "mimo-v2-flash-free", name: "MiMo V2 Flash Free" },
     { id: "mimo-v2.5-free", name: "MiMo V2.5 Free" },
     { id: "glm-5-free", name: "GLM-5 Free" },

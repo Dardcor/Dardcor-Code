@@ -60,6 +60,9 @@ import { createChatAgentRunState, IChatAgentRunState, IChatAgentRunStateService,
 import { commandApprovalKey, compactDardcorAgentMessages, DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS, detectDardcorLanguage, formatDardcorVerificationLabel, getDardcorAutonomousMomentumDirective, getDardcorAutonomousSelfCorrectionDirective, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorLanguageName, getDardcorLocaleStrings, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorAutonomousTask, isDardcorBrowserTest, isDardcorContinuation, isDardcorLowRiskCommand, parseDardcorAgentToolArguments, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction } from './dardcorAgentRunPolicy.js';
 import { DardcorAgentToolRuntime, formatAgentToolError, isAgentToolExecutionStatus } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
 import type { AgentToolExecutionStatus, AgentToolRisk, AgentToolSource } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
+import { applyIntelligentFuzzyEdit, createWorkspaceCheckpoint, formatConsciousnessTelemetry, getMetacognitivePivotDirective, listWorkspaceCheckpoints, recordConsciousToolAction, restoreWorkspaceCheckpoint, upsertHypothesis } from './dardcorConsciousnessEngine.js';
+import { findMatchingEpisodicErrorLessons, getDardcorMemoryPromptContext, hydrateDardcorSelfImprovingMemory, queryDardcorSelfImprovingMemory, storeDardcorEpisodicErrorLesson, storeDardcorKnowledgeInsight, synthesizeAndPersistDardcorSkill } from '../tools/dardcorSelfImprovingMemoryService.js';
+import { executeDardcorAgentSwarm } from './dardcorSwarmOrchestrator.js';
 
 type DardcorRouterToolDefinition = {
 	type: 'function';
@@ -104,6 +107,211 @@ function parseAgentCommandExitCode(output: string): number | undefined {
 	}
 	const failure = output.match(/(?:Command failed with exit code|Exit code:)\s*(-?\d+)/i);
 	return failure ? Number(failure[1]) : undefined;
+}
+
+function stripAnsiSequences(text: string): string {
+	return text
+		.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n');
+}
+
+function isLongRunningDaemonCommand(command: string): boolean {
+	const trimmed = command.trim();
+	if (!trimmed) {
+		return false;
+	}
+	if (/\b(--version|-v|--help|-h|build|lint|typecheck|check|test|migrate|seed|install|ci|audit)\b/i.test(trimmed) && !/\b(--watch|-w|serve|dev|runserver)\b/i.test(trimmed)) {
+		return false;
+	}
+	return /\b(php\s+artisan\s+serve|php\s+-S\s+|npm\s+(?:run\s+)?(?:dev|start|serve|watch)|pnpm\s+(?:run\s+)?(?:dev|start|serve|watch)|yarn\s+(?:run\s+)?(?:dev|start|serve|watch)|bun\s+(?:run\s+)?(?:dev|start|serve|watch)|npx\s+(?:vite|next\s+dev|live-server|http-server|serve|nodemon|ts-node-dev|tsx\s+watch)|vite(?:\s+dev|\s+preview|\s*$|(?:\s+--))|next\s+(?:dev|start)|nuxt\s+(?:dev|preview)|astro\s+(?:dev|preview)|ng\s+serve|svelte-kit\s+dev|webpack\s+serve|live-server\b|http-server\b|python(?:3)?\s+manage\.py\s+runserver|python(?:3)?\s+-m\s+http\.server|uvicorn\b|gunicorn\b|flask\s+run|fastapi\s+(?:dev|run)|cargo\s+watch|nodemon\b|docker(?:\s+compose|-compose)\s+up(?!\s+.*-d\b)|tsc\s+.*(?:--watch|-w)\b)\b/i.test(trimmed);
+}
+
+interface IStealthAgentTerminalRecord {
+	readonly id: string;
+	readonly sessionKey: string;
+	readonly label: string;
+	readonly command: string;
+	readonly instance: any;
+	outputBuffer: string;
+	exitCode?: number;
+	readonly createdAt: number;
+	readonly disposable: IDisposable;
+}
+
+const _sessionLastBuiltinTerminalIds = new Map<string, string>();
+const _stealthAgentTerminals = new Map<string, IStealthAgentTerminalRecord>();
+
+function findLatestStealthAgentTerminal(termService: any, sessionKey?: string, requestedId?: string): { record?: IStealthAgentTerminalRecord; instance?: any } {
+	const cleanId = (requestedId || '').trim();
+	if (cleanId) {
+		const direct = _stealthAgentTerminals.get(cleanId);
+		if (direct && !direct.instance?.isDisposed) {
+			return { record: direct, instance: direct.instance };
+		}
+		for (const rec of _stealthAgentTerminals.values()) {
+			if (!rec.instance?.isDisposed && (String(rec.instance?.instanceId) === cleanId || rec.label === cleanId)) {
+				return { record: rec, instance: rec.instance };
+			}
+		}
+	}
+
+	let latestRecord: IStealthAgentTerminalRecord | undefined;
+	for (const rec of _stealthAgentTerminals.values()) {
+		if (rec.instance?.isDisposed) {
+			_stealthAgentTerminals.delete(rec.id);
+			continue;
+		}
+		if (sessionKey && rec.sessionKey === sessionKey) {
+			if (!latestRecord || rec.createdAt >= latestRecord.createdAt) {
+				latestRecord = rec;
+			}
+		}
+	}
+	if (!latestRecord) {
+		for (const rec of _stealthAgentTerminals.values()) {
+			if (!rec.instance?.isDisposed && (!latestRecord || rec.createdAt >= latestRecord.createdAt)) {
+				latestRecord = rec;
+			}
+		}
+	}
+	if (latestRecord) {
+		return { record: latestRecord, instance: latestRecord.instance };
+	}
+
+	// Fallback: search ONLY hidden background agent terminals (hideFromUser === true), NEVER user terminals
+	const allInstances: any[] = Array.isArray(termService?.instances) ? termService.instances : [];
+	for (let i = allInstances.length - 1; i >= 0; i--) {
+		const inst = allInstances[i];
+		if (inst && !inst.isDisposed && inst.shellLaunchConfig?.hideFromUser === true) {
+			if (!cleanId || String(inst.instanceId) === cleanId || inst.title === cleanId) {
+				return { instance: inst };
+			}
+		}
+	}
+	return {};
+}
+
+function readStealthTerminalOutput(target: { record?: IStealthAgentTerminalRecord; instance?: any }, maxLines = 100): string {
+	const xterm = target.instance?.xterm;
+	if (xterm && xterm.raw?.buffer?.active) {
+		const buffer = xterm.raw.buffer.active;
+		const lines: string[] = [];
+		for (let i = Math.max(0, buffer.length - maxLines); i < buffer.length; i++) {
+			const line = buffer.getLine(i);
+			if (line) {
+				lines.push(line.translateToString(true));
+			}
+		}
+		const fromXterm = lines.join('\n').trim();
+		if (fromXterm) {
+			return fromXterm;
+		}
+	}
+	if (target.record?.outputBuffer) {
+		const clean = stripAnsiSequences(target.record.outputBuffer).trim();
+		const lines = clean.split('\n');
+		return lines.slice(-maxLines).join('\n').trim();
+	}
+	return '';
+}
+
+async function runStealthBackgroundDaemon(
+	termService: any,
+	command: string,
+	label: string,
+	cwd: string | undefined,
+	sessionKey: string,
+	token: CancellationToken,
+): Promise<string> {
+	if (!termService?.createTerminal) {
+		return 'Stealth background terminal service is unavailable.';
+	}
+	const isWin = isWindows;
+	let effectiveCmd = command.trim();
+	if (isWin) {
+		effectiveCmd = effectiveCmd
+			.replace(/\s*&&\s*/g, ' ; ')
+			.replace(/\s*2>\s*\/dev\/null/g, ' 2>$null')
+			.replace(/\s*>\s*\/dev\/null/g, ' >$null');
+	}
+	const executable = isWin ? 'powershell.exe' : '/bin/sh';
+	const shellArgs = isWin
+		? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd]
+		: ['-c', effectiveCmd];
+
+	const term = await termService.createTerminal({
+		config: {
+			name: label || 'Dardcor Stealth Daemon',
+			hideFromUser: true,
+			isFeatureTerminal: true,
+			forcePersist: false,
+			cwd,
+			executable,
+			args: shellArgs,
+		}
+	});
+
+	const store = new DisposableStore();
+	const id = `stealth-bg-${term.instanceId ?? Date.now()}`;
+	const record: IStealthAgentTerminalRecord = {
+		id,
+		sessionKey,
+		label: label || 'Dardcor Stealth Daemon',
+		command: command.trim(),
+		instance: term,
+		outputBuffer: '',
+		createdAt: Date.now(),
+		disposable: store,
+	};
+	_stealthAgentTerminals.set(id, record);
+
+	if (term.onData) {
+		store.add(term.onData((chunk: string) => {
+			record.outputBuffer += chunk;
+			if (record.outputBuffer.length > 65536) {
+				record.outputBuffer = record.outputBuffer.slice(-49152);
+			}
+		}));
+	}
+	if (term.onExit) {
+		store.add(term.onExit((code: any) => {
+			record.exitCode = typeof code === 'number' ? code : (code && typeof code === 'object' ? (code.code ?? -1) : -1);
+		}));
+	}
+	if (term.onDisposed) {
+		store.add(term.onDisposed(() => {
+			_stealthAgentTerminals.delete(id);
+			store.dispose();
+		}));
+	}
+
+	// Wait briefly for server readiness (port/URL bound) or early exit without blocking or touching UI
+	await new Promise<void>(resolve => {
+		const maxWaitTimer = setTimeout(resolve, 4500);
+		const checkInterval = setInterval(() => {
+			if (token.isCancellationRequested || record.exitCode !== undefined) {
+				clearTimeout(maxWaitTimer);
+				clearInterval(checkInterval);
+				resolve();
+				return;
+			}
+			const currentClean = stripAnsiSequences(record.outputBuffer);
+			if (/(localhost:\d+|127\.0\.0\.1:\d+|0\.0\.0\.0:\d+|http:\/\/[^\s]+|ready in \d+|Server running|Development Server.*started|Listening on|started server on)/i.test(currentClean)) {
+				clearTimeout(maxWaitTimer);
+				clearInterval(checkInterval);
+				resolve();
+			}
+		}, 200);
+	});
+
+	const initialOutput = stripAnsiSequences(record.outputBuffer).trim();
+	if (record.exitCode !== undefined && record.exitCode !== 0) {
+		try { term.dispose?.(); } catch { }
+		_stealthAgentTerminals.delete(id);
+		return `Background process '${record.label}' exited early with code ${record.exitCode}.\nCommand: ${command.trim()}\nOutput:\n${initialOutput || '(no output)'}`;
+	}
+	return `Background process '${record.label}' is running in an isolated hidden background terminal (ID: ${id}).\nCommand: ${command.trim()}\nInitial Output:\n${initialOutput || '(Process started in hidden background terminal; no initial stdout emitted yet)'}`;
 }
 
 const ROUTER_PORT = (typeof process !== 'undefined' && process.env?.DARDCOR_PORT) ? Number(process.env.DARDCOR_PORT) : 25128;
@@ -605,12 +813,13 @@ export const DARDCOR_AGENT_TOOLS = [
 		type: 'function',
 		function: {
 			name: 'run_in_terminal',
-			description: 'Run a shell command in the workspace integrated terminal (e.g. "npm run build", "npm test", "npm run dev"). Runs in Windows PowerShell on Windows or bash/zsh on Linux/macOS.',
+			description: 'Run a shell command in an isolated background agent terminal (e.g. "npm run build", "npm test", "php artisan serve"). Never touches or interrupts the user\'s open terminal.',
 			parameters: {
 				type: 'object',
 				properties: {
-					command: { type: 'string', description: 'Command line string to execute in the integrated terminal' },
-					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' }
+					command: { type: 'string', description: 'Command line string to execute in the background agent terminal' },
+					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' },
+					isBackground: { type: 'boolean', description: 'Set to true for long-running dev servers or watchers so they run asynchronously in the background' }
 				}
 			}
 		}
@@ -619,12 +828,13 @@ export const DARDCOR_AGENT_TOOLS = [
 		type: 'function',
 		function: {
 			name: 'run_command',
-			description: 'Run a shell command in the workspace integrated terminal (e.g. "npm run build", "npm test", "npm run dev"). Runs in Windows PowerShell on Windows or bash/zsh on Linux/macOS.',
+			description: 'Run a shell command in an isolated background agent terminal (e.g. "npm run build", "npm test", "php artisan serve"). Never touches or interrupts the user\'s open terminal.',
 			parameters: {
 				type: 'object',
 				properties: {
-					command: { type: 'string', description: 'Command line string to execute in the integrated terminal' },
-					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' }
+					command: { type: 'string', description: 'Command line string to execute in the background agent terminal' },
+					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' },
+					isBackground: { type: 'boolean', description: 'Set to true for long-running dev servers or watchers so they run asynchronously in the background' }
 				}
 			}
 		}
@@ -633,11 +843,12 @@ export const DARDCOR_AGENT_TOOLS = [
 		type: 'function',
 		function: {
 			name: 'send_to_terminal',
-			description: 'Send input or text to an active integrated terminal.',
+			description: 'Send input or text to an active background agent terminal.',
 			parameters: {
 				type: 'object',
 				properties: {
-					text: { type: 'string', description: 'Text or input string to send to the terminal' }
+					id: { type: 'string', description: 'Optional ID of the background agent terminal. Defaults to the latest background terminal started by the agent.' },
+					text: { type: 'string', description: 'Text or input string to send to the background agent terminal' }
 				},
 				required: ['text']
 			}
@@ -647,10 +858,12 @@ export const DARDCOR_AGENT_TOOLS = [
 		type: 'function',
 		function: {
 			name: 'get_terminal_output',
-			description: 'Get the latest output text from the active integrated terminal.',
+			description: 'Get the latest output text from an active background agent terminal.',
 			parameters: {
 				type: 'object',
-				properties: {}
+				properties: {
+					id: { type: 'string', description: 'Optional ID of the background agent terminal. Defaults to the latest background terminal started by the agent.' }
+				}
 			}
 		}
 	},
@@ -658,10 +871,12 @@ export const DARDCOR_AGENT_TOOLS = [
 		type: 'function',
 		function: {
 			name: 'kill_terminal',
-			description: 'Terminate the active integrated terminal process.',
+			description: 'Terminate an active background agent terminal process.',
 			parameters: {
 				type: 'object',
-				properties: {}
+				properties: {
+					id: { type: 'string', description: 'Optional ID of the background agent terminal to terminate. Defaults to the latest background terminal started by the agent.' }
+				}
 			}
 		}
 	},
@@ -1296,6 +1511,273 @@ export const DARDCOR_AGENT_TOOLS = [
 				required: ['summary']
 			}
 		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'multi_edit_file',
+			description: 'Apply multiple non-contiguous search-and-replace edits to a single file in one atomic operation using the 4-tier intelligent fuzzy & anchor-aware patch engine.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Path to the file to edit' },
+					edits: {
+						type: 'array',
+						description: 'Ordered list of search/replace blocks to apply to the file',
+						items: {
+							type: 'object',
+							properties: {
+								searchContent: { type: 'string', description: 'Existing code block to locate' },
+								replaceContent: { type: 'string', description: 'Replacement code block' }
+							},
+							required: ['searchContent', 'replaceContent']
+						}
+					}
+				},
+				required: ['filePath', 'edits']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'batch_edit_files',
+			description: 'Apply coordinated edits across multiple files in a single atomic transaction.',
+			parameters: {
+				type: 'object',
+				properties: {
+					operations: {
+						type: 'array',
+						description: 'List of file edit operations across the workspace',
+						items: {
+							type: 'object',
+							properties: {
+								filePath: { type: 'string', description: 'Target file path' },
+								searchContent: { type: 'string', description: 'Existing code snippet to replace' },
+								replaceContent: { type: 'string', description: 'Replacement code snippet' }
+							},
+							required: ['filePath', 'searchContent', 'replaceContent']
+						}
+					}
+				},
+				required: ['operations']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'read_multiple_files',
+			description: 'Read up to 15 workspace files in parallel in a single turn, with optional line ranges per file.',
+			parameters: {
+				type: 'object',
+				properties: {
+					files: {
+						type: 'array',
+						description: 'List of file paths or file range objects ({ filePath, startLine, endLine }) to read concurrently',
+						items: {
+							type: 'object',
+							properties: {
+								filePath: { type: 'string', description: 'Path to the file' },
+								startLine: { type: 'number', description: 'Optional 1-based start line' },
+								endLine: { type: 'number', description: 'Optional 1-based end line' }
+							},
+							required: ['filePath']
+						}
+					}
+				},
+				required: ['files']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'go_to_definition',
+			description: 'Locate the declaration/definition of a symbol (class, function, interface, method, type, or variable) across the workspace and return its file path, line number, and code context.',
+			parameters: {
+				type: 'object',
+				properties: {
+					symbol: { type: 'string', description: 'Name of the symbol to find the definition for' },
+					filePath: { type: 'string', description: 'Optional hint file path where the symbol is referenced or declared' }
+				},
+				required: ['symbol']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'find_symbol_references',
+			description: 'Find all references, imports, and usages of a symbol across the entire workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					symbol: { type: 'string', description: 'Exact symbol identifier to search references for' },
+					subPath: { type: 'string', description: 'Optional subdirectory to scope the reference search' }
+				},
+				required: ['symbol']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_call_hierarchy',
+			description: 'Trace incoming callers and outgoing callees of a function or method across the codebase.',
+			parameters: {
+				type: 'object',
+				properties: {
+					symbol: { type: 'string', description: 'Function or method name to analyze call hierarchy for' },
+					filePath: { type: 'string', description: 'Optional file path where the function is defined' }
+				},
+				required: ['symbol']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'create_checkpoint',
+			description: 'Create an instant Time-Machine workspace checkpoint of specified files before attempting a complex or risky refactoring.',
+			parameters: {
+				type: 'object',
+				properties: {
+					label: { type: 'string', description: 'Descriptive label for the checkpoint' },
+					files: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'List of file paths to snapshot in this checkpoint'
+					}
+				},
+				required: ['label', 'files']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'restore_checkpoint',
+			description: 'Roll back workspace files to a previously created Time-Machine checkpoint ID.',
+			parameters: {
+				type: 'object',
+				properties: {
+					checkpointId: { type: 'string', description: 'The checkpoint ID returned by create_checkpoint (or "latest")' }
+				},
+				required: ['checkpointId']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'git_intelligence',
+			description: 'Inspect structured Git repository state (status, diff, log, blame, branches, show) in a hidden background process without touching user terminals.',
+			parameters: {
+				type: 'object',
+				properties: {
+					operation: { type: 'string', enum: ['status', 'diff', 'log', 'blame', 'branches', 'show'], description: 'Git intelligence operation to perform' },
+					filePath: { type: 'string', description: 'Optional file path for diff or blame' },
+					ref: { type: 'string', description: 'Optional commit ref or branch name' }
+				},
+				required: ['operation']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'introspect_self',
+			description: 'Metacognitive self-awareness & hypothesis engine: inspect your current confidence score, thrashing/oscillation index, and register or update root-cause hypotheses.',
+			parameters: {
+				type: 'object',
+				properties: {
+					action: { type: 'string', enum: ['status', 'add_hypothesis', 'update_hypothesis'], description: 'Introspection action' },
+					hypothesis: { type: 'string', description: 'Root-cause hypothesis statement or ID' },
+					status: { type: 'string', enum: ['testing', 'confirmed', 'refuted'], description: 'Status of the hypothesis' },
+					evidence: { type: 'string', description: 'Concrete evidence supporting or refuting the hypothesis' }
+				},
+				required: ['action']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'manage_knowledge_memory',
+			description: 'Read or write persistent self-improving project memory (~/.dardcor/memory/brain/): store architectural conventions, framework gotchas, or episodic error-fix lessons across sessions.',
+			parameters: {
+				type: 'object',
+				properties: {
+					action: { type: 'string', enum: ['store_insight', 'store_error_lesson', 'query'], description: 'Memory operation' },
+					category: { type: 'string', enum: ['architecture', 'convention', 'framework', 'testing', 'gotcha', 'preference'], description: 'Insight category' },
+					title: { type: 'string', description: 'Short title for the insight or error pattern' },
+					content: { type: 'string', description: 'Detailed architectural insight or verified solution' },
+					rootCause: { type: 'string', description: 'Root cause (when action is store_error_lesson)' },
+					query: { type: 'string', description: 'Search query (when action is query)' },
+					tags: { type: 'array', items: { type: 'string' }, description: 'Optional tags' }
+				},
+				required: ['action']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'synthesize_skill',
+			description: 'Autonomously synthesize and permanently register a new reusable /skill in ~/.dardcor/memory/skills/ so Dardcor Code permanently evolves its capabilities.',
+			parameters: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', description: 'Slash-command skill name (e.g. "laravel-sanctum-auth")' },
+					description: { type: 'string', description: 'Concise description of when and how to use this skill' },
+					instructions: { type: 'string', description: 'Comprehensive Markdown instructions, patterns, and verification steps for the skill' },
+					triggers: { type: 'array', items: { type: 'string' }, description: 'Optional trigger keywords' }
+				},
+				required: ['name', 'description', 'instructions']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'spawn_agent_swarm',
+			description: 'Launch up to 6 specialized sub-agents in parallel (architect, researcher, coder, tester, security, vision) to analyze or solve complex multi-faceted engineering tasks simultaneously.',
+			parameters: {
+				type: 'object',
+				properties: {
+					tasks: {
+						type: 'array',
+						description: 'Parallel sub-agent assignments (max 6)',
+						items: {
+							type: 'object',
+							properties: {
+								role: { type: 'string', enum: ['architect', 'researcher', 'coder', 'tester', 'security', 'vision'], description: 'Specialist role' },
+								task: { type: 'string', description: 'Specific objective for this specialist sub-agent' },
+								targetFiles: { type: 'array', items: { type: 'string' }, description: 'Optional workspace files to preload into the sub-agent context' }
+							},
+							required: ['role', 'task']
+						}
+					}
+				},
+				required: ['tasks']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'audit_page_visual_and_network',
+			description: 'Perform a full-stack visual, DOM layout (horizontal overflow, broken images, zero-size interactive elements), console error, and stealth backend server log correlation audit on the active Integrated Browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' },
+					checkOverflow: { type: 'boolean', description: 'Check for horizontal overflow and clipped elements (default: true)' },
+					correlateBackendLogs: { type: 'boolean', description: 'Correlate browser state with recent stealth background server logs (default: true)' }
+				}
+			}
+		}
 	}
 ];
 
@@ -1304,7 +1786,7 @@ const DARDCOR_BROWSER_VERIFICATION_TOOL_NAMES = new Set([
 	'click_element', 'click_browser', 'type_in_page', 'type_browser', 'scroll_browser_page', 'scroll_page',
 	'hover_element', 'hover_browser', 'press_key', 'select_option', 'drag_and_drop', 'wait_for_browser',
 	'execute_browser_script', 'get_browser_console_logs', 'handle_browser_dialog',
-	'screenshot_browser_page', 'screenshot_page',
+	'screenshot_browser_page', 'screenshot_page', 'audit_page_visual_and_network',
 ]);
 
 export interface IDardcorSystemPromptOptions {
@@ -1462,6 +1944,8 @@ Tool execution adheres to active session access policy:
    - **How to Run & Test**: Explicit step-by-step shell commands for the developer to launch, test, or verify the solution locally.`;
 	}
 
+	const persistentMemoryBlock = getDardcorMemoryPromptContext(snapshot.rootPath);
+
 	return `${personaBlock}
 
 === ACTIVE WORKSPACE PROJECT CONTEXT ===
@@ -1474,43 +1958,67 @@ ${snapshot.activeFileExcerpt ? `\n--- Excerpt of Active File (${snapshot.activeF
 - Project Structure & Files:
 ${snapshot.fileTree || 'No files found'}
 ${stackSpecialization ? `\n--- Dynamic Architecture Intelligence ---${stackSpecialization}` : ''}
+${persistentMemoryBlock ? `\n${persistentMemoryBlock}\n` : ''}
 ` : `- No folder is currently open in the workspace.${browserContextLine}`}
 
 ${autonomyProtocol}
 
-=== STRICT TOOL DEFINITIONS & INTEGRITY (EXACTLY 31 TOOLS) ===
-NEVER hallucinate or invoke non-existent tools such as 'bash', 'probe', 'sh', 'cmd', 'terminal', 'exec', or 'str_replace_editor'. To run shell commands, ALWAYS use 'run_command'. To read or inspect files, use 'read_file', 'grep_search', or 'find_files'.
+=== DARDCOR OMEGA METACOGNITIVE SELF-AWARENESS & SELF-IMPROVEMENT PROTOCOL ===
+1. Metacognitive Anti-Thrashing: Never repeat an identical failing tool call. If an edit or command fails, inspect the root cause, use 'introspect_self' to track hypotheses, or use 'create_checkpoint' / 'restore_checkpoint' for safe experimentation.
+2. High-Velocity Super-Tools:
+   - Use 'read_multiple_files' to inspect up to 15 files in parallel in a single turn.
+   - Use 'multi_edit_file' for multiple non-contiguous edits in one file, or 'batch_edit_files' for atomic changes across multiple files.
+   - Use 'go_to_definition', 'find_symbol_references', and 'get_call_hierarchy' for exact code graph navigation.
+   - Use 'spawn_agent_swarm' to dispatch up to 6 parallel specialist sub-agents (architect, researcher, coder, tester, security, vision) on complex multi-file tasks.
+   - Use 'manage_knowledge_memory' and 'synthesize_skill' to permanently store architectural insights, error-fix lessons, and reusable /skills across sessions.
+
+=== STRICT TOOL DEFINITIONS & INTEGRITY (45 OMEGA TOOLS) ===
+NEVER hallucinate or invoke non-existent tools such as 'bash', 'probe', 'sh', 'cmd', 'terminal', 'exec', or 'str_replace_editor'. To run shell commands, ALWAYS use 'run_command'. To read or inspect files, use 'read_file', 'read_multiple_files', 'grep_search', or 'find_files'.
 1. read_file(filePath, startLine, endLine): Read file contents with line numbers.
 2. write_file(filePath, content): Create new files or overwrite existing files.
-3. edit_file(filePath, searchContent, replaceContent): Replace specific code snippets in files.
-4. delete_file(filePath, recursive): Delete a file or directory.
-5. rename_file(oldFilePath, newFilePath, overwrite): Rename or move files/directories.
-6. list_directory(dirPath): List files and directories.
-7. find_files(pattern): Search for files by filename or glob pattern.
-8. search_code(query): Search code keywords across the codebase.
-9. grep_search(pattern, subPath, isRegex, caseInsensitive): Fast regex or pattern search with line numbers.
-10. get_file_outline(filePath): Extract symbols, functions, classes, and code structure of a file.
-11. get_diagnostics(filePath, severity): Check active compiler, linter, or syntax errors and warnings.
-12. run_command(command): Run commands in the workspace integrated terminal (build, test, install, git, dev). The terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
-13. manage_todo_list(todoList): Manage and track task checklist (not-started, in-progress, completed).
-14. fetch_web_page(url): Fetch web page content or API documentation.
-15. open_browser_page(url, forceNew): Open or focus a URL in the Dardcor Code Integrated Browser with the Dardcor cursor and return its interactive DOM snapshot.
-16. read_browser_page(pageId): Scan the active browser tab, indexing all interactive elements with Vercel-style refs (@e1, @e2, ...) and Set-of-Mark IDs [1..N], visible text, scroll state, and console errors.
-17. navigate_browser(url, pageId): Navigate the active browser tab to a new URL and return the new DOM snapshot.
-18. click_element(ref, elementId, selector, text, x, y, doubleClick): Move the Dardcor cursor to a target button, link, or tab using its Vercel-style ref (e.g. ref: "@e1" or elementId: "@e1" or "1"), selector, or coordinates and click it with Playwright.
-19. type_in_page(text, ref, elementId, selector, clearFirst, pressEnter): Move the Dardcor cursor to an input/textarea using its Vercel-style ref (e.g. ref: "@e2" or elementId: "@e2" or "2"), type with Playwright, and optionally press Enter.
-20. scroll_browser_page(direction, amount, selector, ref, elementId): Scroll the browser page (down/up/top/bottom) or scroll directly to an element using its Vercel-style ref (e.g. ref: "@e1").
-21. hover_element(ref, elementId, selector, text, x, y): Move the Dardcor cursor over an element using its Vercel-style ref (e.g. ref: "@e1" or "1") to trigger hover menus or tooltips.
-22. press_key(key): Press keyboard keys ("Enter", "Escape", "Tab", "ArrowDown", "Backspace", etc.) in the browser.
-23. select_option(ref, elementId, selector, value, optionText, index): Select an option from a <select> dropdown in the browser using its Vercel-style ref (e.g. ref: "@e6").
-24. drag_and_drop(sourceRef, sourceElementId, targetRef, targetElementId): Drag and drop elements in the browser using Vercel-style refs (e.g. sourceRef: "@e1", targetRef: "@e2").
-25. wait_for_browser(selector, text, timeoutMs): Wait for an element, text, or DOM stability in the browser.
-26. execute_browser_script(script): Execute custom JavaScript inside the active browser page and inspect the returned result.
-27. get_browser_console_logs(pageId): Read console logs, warnings, and runtime JavaScript errors from the browser page.
-28. handle_browser_dialog(accept, promptText): Accept or dismiss browser alert/confirm/prompt dialogs.
-29. screenshot_browser_page(pageId): Capture a live screenshot and full DOM snapshot of the active browser page.
-30. task_completed(summary, verificationSteps, filesChanged): Request completion review with an Antigravity-style final synthesis report in the user's language. Runtime checks require completed checklist items and verified evidence.
-31. review_plan(title, content, actions): Present a structured implementation plan to the user in the center editor and wait for review and approval before making changes. Automatically saves to editor memory and opens directly in the center editor.
+3. edit_file(filePath, searchContent, replaceContent): Replace code snippets using the 4-tier intelligent fuzzy & anchor-aware patch engine.
+4. multi_edit_file(filePath, edits): Apply multiple non-contiguous search/replace blocks to a single file atomically.
+5. batch_edit_files(operations): Apply coordinated search/replace edits across multiple files atomically.
+6. read_multiple_files(files): Read up to 15 workspace files in parallel in one turn.
+7. delete_file(filePath, recursive): Delete a file or directory.
+8. rename_file(oldFilePath, newFilePath, overwrite): Rename or move files/directories.
+9. list_directory(dirPath): List files and directories.
+10. find_files(pattern): Deep workspace file search (up to 25 directory levels).
+11. search_code(query): Deep keyword search across the codebase.
+12. grep_search(pattern, subPath, isRegex, caseInsensitive): Deep regex/pattern search with line numbers across the codebase.
+13. get_file_outline(filePath): Extract symbols, functions, classes, and code structure of a file.
+14. go_to_definition(symbol, filePath): Locate the declaration/definition of any symbol across the workspace.
+15. find_symbol_references(symbol, subPath): Find all references, imports, and callers of a symbol across the workspace.
+16. get_call_hierarchy(symbol, filePath): Trace incoming callers and outgoing callees of a function or method.
+17. get_diagnostics(filePath, severity): Check active compiler, linter, or syntax errors and warnings.
+18. create_checkpoint(label, files): Snapshot workspace files into a Time-Machine checkpoint before risky edits.
+19. restore_checkpoint(checkpointId): Instantly roll back workspace files to a saved checkpoint.
+20. git_intelligence(operation, filePath, ref): Structured background Git inspection (status, diff, log, blame, branches, show).
+21. introspect_self(action, hypothesis, status, evidence): Metacognitive confidence telemetry & hypothesis ledger.
+22. manage_knowledge_memory(action, category, title, content, rootCause, query, tags): Persistent self-improving project brain & episodic error-fix ledger.
+23. synthesize_skill(name, description, instructions, triggers): Permanently synthesize and register a new reusable /skill.
+24. spawn_agent_swarm(tasks): Launch up to 6 parallel specialist sub-agents (architect, researcher, coder, tester, security, vision).
+25. run_command(command): Run commands in a hidden stealth background terminal (build, test, install, git, dev). The terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
+26. manage_todo_list(todoList): Manage and track task checklist (not-started, in-progress, completed).
+27. fetch_web_page(url): Fetch web page content or API documentation.
+28. open_browser_page(url, forceNew): Open or focus a URL in the Dardcor Code Integrated Browser with the Dardcor cursor and return its interactive DOM snapshot.
+29. read_browser_page(pageId): Scan the active browser tab, indexing all interactive elements with Vercel-style refs (@e1, @e2, ...) and Set-of-Mark IDs [1..N], visible text, scroll state, and console errors.
+30. navigate_browser(url, pageId): Navigate the active browser tab to a new URL and return the new DOM snapshot.
+31. click_element(ref, elementId, selector, text, x, y, doubleClick): Move the Dardcor cursor to a target button, link, or tab using its Vercel-style ref (e.g. ref: "@e1" or elementId: "@e1" or "1"), selector, or coordinates and click it with Playwright.
+32. type_in_page(text, ref, elementId, selector, clearFirst, pressEnter): Move the Dardcor cursor to an input/textarea using its Vercel-style ref (e.g. ref: "@e2" or elementId: "@e2" or "2"), type with Playwright, and optionally press Enter.
+33. scroll_browser_page(direction, amount, selector, ref, elementId): Scroll the browser page (down/up/top/bottom) or scroll directly to an element using its Vercel-style ref (e.g. ref: "@e1").
+34. hover_element(ref, elementId, selector, text, x, y): Move the Dardcor cursor over an element using its Vercel-style ref (e.g. ref: "@e1" or "1") to trigger hover menus or tooltips.
+35. press_key(key): Press keyboard keys ("Enter", "Escape", "Tab", "ArrowDown", "Backspace", etc.) in the browser.
+36. select_option(ref, elementId, selector, value, optionText, index): Select an option from a <select> dropdown in the browser using its Vercel-style ref (e.g. ref: "@e6").
+37. drag_and_drop(sourceRef, sourceElementId, targetRef, targetElementId): Drag and drop elements in the browser using Vercel-style refs (e.g. sourceRef: "@e1", targetRef: "@e2").
+38. wait_for_browser(selector, text, timeoutMs): Wait for an element, text, or DOM stability in the browser.
+39. execute_browser_script(script): Execute custom JavaScript inside the active browser page and inspect the returned result.
+40. get_browser_console_logs(pageId): Read console logs, warnings, and runtime JavaScript errors from the browser page.
+41. handle_browser_dialog(accept, promptText): Accept or dismiss browser alert/confirm/prompt dialogs.
+42. screenshot_browser_page(pageId): Capture a live screenshot and full DOM snapshot of the active browser page.
+43. audit_page_visual_and_network(pageId, checkOverflow, correlateBackendLogs): Full-stack visual layout overflow/broken-image audit correlated with console and stealth backend server logs.
+44. task_completed(summary, verificationSteps, filesChanged): Request completion review with an Antigravity-style final synthesis report in the user's language. Runtime checks require completed checklist items and verified evidence.
+45. review_plan(title, content, actions): Present a structured implementation plan to the user in the center editor and wait for review and approval before making changes. Automatically saves to editor memory and opens directly in the center editor.
 
 === RUNTIME ENVIRONMENT & EXECUTION RULES ===
 1. Terminal command execution:
@@ -2805,6 +3313,118 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					formattedInput: typeof args?.summary === 'string' ? 'Summary verified' : JSON.stringify(args ?? {}, null, 2)
 				};
 			}
+			case 'multi_edit_file': {
+				const target = extractAgentFilePath(args) || 'file';
+				const count = Array.isArray(args?.edits) ? args.edits.length : 0;
+				return {
+					invocationMessage: `Multi-editing \`${target}\` (${count} block${count === 1 ? '' : 's'})`,
+					pastTenseMessage: `Multi-edited \`${target}\` (${count} block${count === 1 ? '' : 's'})`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'batch_edit_files': {
+				const count = Array.isArray(args?.operations) ? args.operations.length : 0;
+				return {
+					invocationMessage: `Batch editing ${count} file operation${count === 1 ? '' : 's'}`,
+					pastTenseMessage: `Batch edited ${count} file operation${count === 1 ? '' : 's'}`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'read_multiple_files': {
+				const count = Array.isArray(args?.files) ? args.files.length : 0;
+				return {
+					invocationMessage: `Reading ${count} file${count === 1 ? '' : 's'} in parallel`,
+					pastTenseMessage: `Read ${count} file${count === 1 ? '' : 's'} in parallel`,
+					formattedInput: JSON.stringify(args?.files ?? [], null, 2)
+				};
+			}
+			case 'go_to_definition': {
+				const sym = args?.symbol || 'symbol';
+				return {
+					invocationMessage: `Locating definition of \`${sym}\``,
+					pastTenseMessage: `Located definition of \`${sym}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'find_symbol_references': {
+				const sym = args?.symbol || 'symbol';
+				return {
+					invocationMessage: `Finding workspace references to \`${sym}\``,
+					pastTenseMessage: `Found workspace references to \`${sym}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'get_call_hierarchy': {
+				const sym = args?.symbol || 'symbol';
+				return {
+					invocationMessage: `Tracing call hierarchy for \`${sym}\``,
+					pastTenseMessage: `Traced call hierarchy for \`${sym}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'create_checkpoint': {
+				const lbl = args?.label || 'checkpoint';
+				return {
+					invocationMessage: `Creating workspace checkpoint \`${lbl}\``,
+					pastTenseMessage: `Created workspace checkpoint \`${lbl}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'restore_checkpoint': {
+				const id = args?.checkpointId || 'latest';
+				return {
+					invocationMessage: `Restoring workspace checkpoint \`${id}\``,
+					pastTenseMessage: `Restored workspace checkpoint \`${id}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'git_intelligence': {
+				const op = args?.operation || 'status';
+				return {
+					invocationMessage: `Running Git intelligence (\`${op}\`)`,
+					pastTenseMessage: `Completed Git intelligence (\`${op}\`)`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'introspect_self': {
+				const act = args?.action || 'status';
+				return {
+					invocationMessage: `Executing metacognitive introspection (\`${act}\`)`,
+					pastTenseMessage: `Completed metacognitive introspection (\`${act}\`)`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'manage_knowledge_memory': {
+				const act = args?.action || 'query';
+				return {
+					invocationMessage: `Accessing self-improving memory ledger (\`${act}\`)`,
+					pastTenseMessage: `Updated self-improving memory ledger (\`${act}\`)`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'synthesize_skill': {
+				const name = args?.name || 'skill';
+				return {
+					invocationMessage: `Synthesizing autonomous skill \`/${name}\``,
+					pastTenseMessage: `Synthesized autonomous skill \`/${name}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'spawn_agent_swarm': {
+				const count = Array.isArray(args?.tasks) ? args.tasks.length : 0;
+				return {
+					invocationMessage: `Spawning parallel agent swarm (${count} specialist${count === 1 ? '' : 's'})`,
+					pastTenseMessage: `Synthesized parallel agent swarm (${count} specialist${count === 1 ? '' : 's'})`,
+					formattedInput: JSON.stringify(args?.tasks ?? [], null, 2)
+				};
+			}
+			case 'audit_page_visual_and_network': {
+				return {
+					invocationMessage: 'Auditing browser visual layout, console & backend logs',
+					pastTenseMessage: 'Completed browser visual layout, console & backend audit',
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
 			default: {
 				let formattedInput = typeof args === 'string' ? args : JSON.stringify(args ?? {}, null, 2);
 				if (typeof args === 'string') {
@@ -2852,7 +3472,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					preApproved: approvedByUser ? { type: ToolConfirmKind.UserAction } : undefined,
 				}, async () => 0, token);
 				output = toolContentToA11yString(result.content);
-				const metadata = result.toolMetadata as { exitCode?: unknown; timedOut?: unknown } | undefined;
+				const metadata = result.toolMetadata as { exitCode?: unknown; timedOut?: unknown; id?: unknown; terminalId?: unknown } | undefined;
+				if (typeof metadata?.id === 'string' && metadata.id.trim()) {
+					const termIdStr = metadata.id.trim();
+					_sessionLastBuiltinTerminalIds.set(chatSessionResource.toString(), termIdStr);
+					if (!output.includes(termIdStr)) {
+						output += `${output ? '\n' : ''}[Terminal ID: ${termIdStr}]`;
+					}
+				}
 				if (typeof metadata?.exitCode === 'number') {
 					output += `${output ? '\n' : ''}[Command result: exit code ${metadata.exitCode}]`;
 				}
@@ -2889,17 +3516,19 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 		const resolveUri = (filePath: string | undefined): URI => resolveAgentUri(filePath, rootUri);
 		const workspaceFolder = rootUri?.fsPath;
+		const sessionKey = chatSessionResource?.toString() || 'default';
 		if (toolName === 'run_command' || toolName === 'run_in_terminal' || toolName === 'bash' || toolName === 'execute_command' || toolName === 'cmd' || toolName === 'sh' || toolName === 'powershell' || toolName === 'terminal') {
 			const command = String(args?.command ?? args?.commandLine ?? '').trim();
 			if (!command) {
 				return { output: 'Terminal command was not run: a non-empty command is required.' };
 			}
+			const isBg = Boolean(args?.mode === 'async' || args?.isBackground || isLongRunningDaemonCommand(command));
 			return this._invokeBuiltinAgentTool(TerminalToolId.RunInTerminal, {
 				command,
 				explanation: String(args?.explanation ?? `Run the requested command: ${command}`),
 				goal: String(args?.goal ?? 'Complete the requested workspace action'),
-				mode: args?.mode === 'async' || args?.isBackground ? 'async' : 'sync',
-				isBackground: !!args?.isBackground,
+				mode: isBg ? 'async' : 'sync',
+				isBackground: isBg,
 			}, chatSessionResource, rootUri, requestId, token, approvedByUser);
 		}
 		if (toolName === 'run_task' || toolName === 'get_task_output') {
@@ -2910,31 +3539,48 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			if (!id) {
 				return { output: `Task tool ${toolName} could not run: provide a task label or ID.` };
 			}
-			return this._invokeBuiltinAgentTool(toolName === 'run_task' ? TerminalToolId.RunTask : TerminalToolId.GetTaskOutput, {
-				workspaceFolder,
-				id,
-			}, chatSessionResource, rootUri, requestId, token, approvedByUser);
+			const hasStealthMatch = toolName === 'get_task_output' && Array.from(_stealthAgentTerminals.values()).some(
+				rec => !rec.instance?.isDisposed && (rec.id === id || rec.label === id)
+			);
+			if (!hasStealthMatch) {
+				return this._invokeBuiltinAgentTool(toolName === 'run_task' ? TerminalToolId.RunTask : TerminalToolId.GetTaskOutput, {
+					workspaceFolder,
+					id,
+				}, chatSessionResource, rootUri, requestId, token, approvedByUser);
+			}
 		}
 		if (toolName === 'send_to_terminal') {
-			const id = String(args?.id ?? args?.terminalId ?? '').trim();
-			if (id) {
+			const explicitId = String(args?.id ?? args?.terminalId ?? '').trim();
+			const builtinId = explicitId && !_stealthAgentTerminals.has(explicitId)
+				? explicitId
+				: (!explicitId ? (_sessionLastBuiltinTerminalIds.get(sessionKey) || '') : '');
+			if (builtinId) {
 				return this._invokeBuiltinAgentTool(TerminalToolId.SendToTerminal, {
-					id,
+					id: builtinId,
 					command: String(args?.command ?? args?.commandLine ?? args?.text ?? ''),
 					waitForOutput: args?.waitForOutput === true,
 				}, chatSessionResource, rootUri, requestId, token, approvedByUser);
 			}
 		}
 		if (toolName === 'kill_terminal') {
-			const id = String(args?.id ?? args?.terminalId ?? '').trim();
-			if (id) {
-				return this._invokeBuiltinAgentTool(TerminalToolId.KillTerminal, { id }, chatSessionResource, rootUri, requestId, token, approvedByUser);
+			const explicitId = String(args?.id ?? args?.terminalId ?? '').trim();
+			const builtinId = explicitId && !_stealthAgentTerminals.has(explicitId)
+				? explicitId
+				: (!explicitId ? (_sessionLastBuiltinTerminalIds.get(sessionKey) || '') : '');
+			if (builtinId) {
+				if (_sessionLastBuiltinTerminalIds.get(sessionKey) === builtinId) {
+					_sessionLastBuiltinTerminalIds.delete(sessionKey);
+				}
+				return this._invokeBuiltinAgentTool(TerminalToolId.KillTerminal, { id: builtinId }, chatSessionResource, rootUri, requestId, token, approvedByUser);
 			}
 		}
 		if (toolName === 'get_terminal_output') {
-			const id = String(args?.id ?? args?.terminalId ?? '').trim();
-			if (id) {
-				return this._invokeBuiltinAgentTool(TerminalToolId.GetTerminalOutput, { id }, chatSessionResource, rootUri, requestId, token);
+			const explicitId = String(args?.id ?? args?.terminalId ?? '').trim();
+			const builtinId = explicitId && !_stealthAgentTerminals.has(explicitId)
+				? explicitId
+				: (!explicitId ? (_sessionLastBuiltinTerminalIds.get(sessionKey) || '') : '');
+			if (builtinId) {
+				return this._invokeBuiltinAgentTool(TerminalToolId.GetTerminalOutput, { id: builtinId }, chatSessionResource, rootUri, requestId, token);
 			}
 		}
 
@@ -3051,32 +3697,18 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 					const data = await fileService.readFile(target);
 					const initialContent = new TextDecoder().decode(data.value.buffer);
-					const fileUsesCRLF = initialContent.includes('\r\n');
-					let text = initialContent;
-					const search = (args?.searchContent ?? '').replace(/\r\n/g, '\n');
-					const replace = (args?.replaceContent ?? '').replace(/\r\n/g, '\n');
-					if (!search.trim()) {
-						return { output: `Error: searchContent cannot be empty. Specify the exact existing text to replace in ${targetPath}.` };
+					const search = String(args?.searchContent ?? '');
+					const replace = String(args?.replaceContent ?? '');
+					const patchResult = applyIntelligentFuzzyEdit(initialContent, search, replace);
+					if (!patchResult.matched) {
+						return { output: `Error editing ${targetPath}: ${patchResult.failureReason}` };
 					}
-					const normText = text.replace(/\r\n/g, '\n');
-
-					if (!normText.includes(search)) {
-						const trimmedSearch = search.trim();
-						if (!normText.includes(trimmedSearch)) {
-							return { output: `Error: searchContent not found in ${targetPath}. Ensure searchContent matches the existing file exactly.` };
-						}
-						text = normText.replace(trimmedSearch, replace);
-					} else {
-						text = normText.replace(search, replace);
-					}
-					if (fileUsesCRLF) {
-						text = text.replace(/\r?\n/g, '\r\n');
-					}
+					const text = patchResult.updatedContent;
 
 					await fileService.writeFile(target, VSBuffer.fromString(text));
 					const diff = computeAgentFileDiff(initialContent, text);
 					return {
-						output: `Successfully applied edits to ${targetPath}`,
+						output: `Successfully applied edits to ${targetPath} (Tier: ${patchResult.tier})`,
 						externalEdit: {
 							uri: target,
 							editKind: 'edit',
@@ -3087,6 +3719,110 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				} catch (e: any) {
 					return { output: `Error editing file ${targetPath}: ${formatAgentToolError(e)}` };
 				}
+			}
+			case 'multi_edit_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const edits = Array.isArray(args?.edits) ? args.edits : [];
+				if (edits.length === 0) return { output: 'Error: edits array cannot be empty.' };
+				const target = resolveUri(targetPath);
+				try {
+					const data = await fileService.readFile(target);
+					const initialContent = new TextDecoder().decode(data.value.buffer);
+					let currentText = initialContent;
+					const appliedTiers: string[] = [];
+					for (let i = 0; i < edits.length; i++) {
+						const block = edits[i];
+						const res = applyIntelligentFuzzyEdit(currentText, String(block?.searchContent ?? ''), String(block?.replaceContent ?? ''));
+						if (!res.matched) {
+							return { output: `Error in multi_edit_file on ${targetPath} at edit block #${i + 1}: ${res.failureReason}. No changes were written.` };
+						}
+						currentText = res.updatedContent;
+						appliedTiers.push(`#${i + 1}:${res.tier}`);
+					}
+					await fileService.writeFile(target, VSBuffer.fromString(currentText));
+					const diff = computeAgentFileDiff(initialContent, currentText);
+					return {
+						output: `Successfully applied ${edits.length} edit block(s) to ${targetPath} (${appliedTiers.join(', ')})`,
+						externalEdit: {
+							uri: target,
+							editKind: 'edit',
+							initialContent,
+							diff
+						}
+					};
+				} catch (e: any) {
+					return { output: `Error in multi_edit_file for ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'batch_edit_files': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const operations = Array.isArray(args?.operations) ? args.operations : [];
+				if (operations.length === 0) return { output: 'Error: operations array cannot be empty.' };
+				try {
+					const stagedWrites = new Map<string, { uri: URI; relPath: string; initialContent: string; currentContent: string; count: number }>();
+					for (let i = 0; i < operations.length; i++) {
+						const op = operations[i];
+						const relPath = extractAgentFilePath(op);
+						if (!relPath) {
+							return { output: `Batch edit aborted at operation #${i + 1}: missing filePath.` };
+						}
+						const uri = resolveUri(relPath);
+						const key = uri.toString();
+						let entry = stagedWrites.get(key);
+						if (!entry) {
+							const raw = await fileService.readFile(uri);
+							const text = new TextDecoder().decode(raw.value.buffer);
+							entry = { uri, relPath, initialContent: text, currentContent: text, count: 0 };
+							stagedWrites.set(key, entry);
+						}
+						const patch = applyIntelligentFuzzyEdit(entry.currentContent, String(op?.searchContent ?? ''), String(op?.replaceContent ?? ''));
+						if (!patch.matched) {
+							return { output: `Batch edit aborted cleanly (atomic rollback) at operation #${i + 1} (${relPath}): ${patch.failureReason}` };
+						}
+						entry.currentContent = patch.updatedContent;
+						entry.count++;
+					}
+					const summaries: string[] = [];
+					let primaryExternalEdit: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } | undefined;
+					for (const entry of stagedWrites.values()) {
+						await fileService.writeFile(entry.uri, VSBuffer.fromString(entry.currentContent));
+						const diff = computeAgentFileDiff(entry.initialContent, entry.currentContent);
+						summaries.push(`${entry.relPath} (${entry.count} edit${entry.count === 1 ? '' : 's'}, +${diff.added}/-${diff.removed})`);
+						if (!primaryExternalEdit) {
+							primaryExternalEdit = { uri: entry.uri, editKind: 'edit', initialContent: entry.initialContent, diff };
+						}
+					}
+					return {
+						output: `Successfully applied atomic batch edits across ${stagedWrites.size} file(s):\n- ${summaries.join('\n- ')}`,
+						externalEdit: primaryExternalEdit
+					};
+				} catch (e: any) {
+					return { output: `Error executing batch_edit_files: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'read_multiple_files': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const rawFiles = Array.isArray(args?.files) ? args.files.slice(0, 15) : [];
+				if (rawFiles.length === 0) return { output: 'Error: Provide up to 15 file descriptors in files array.' };
+				const readResults = await Promise.all(rawFiles.map(async (item: any) => {
+					const fPath = typeof item === 'string' ? item.trim() : extractAgentFilePath(item);
+					if (!fPath) return '### [Invalid file entry: missing filePath]';
+					const target = resolveUri(fPath);
+					try {
+						const data = await fileService!.readFile(target);
+						const text = new TextDecoder().decode(data.value.buffer);
+						const lines = text.split('\n');
+						const start = Math.max(1, typeof item?.startLine === 'number' ? item.startLine : 1);
+						const end = Math.min(lines.length, typeof item?.endLine === 'number' ? item.endLine : Math.min(lines.length, start + 249));
+						const numbered = lines.slice(start - 1, end).map((l, idx) => `${start + idx}: ${l}`).join('\n');
+						return `### File: ${fPath} (Lines ${start}-${end} of ${lines.length})\n${numbered || '(File is empty)'}`;
+					} catch (err: any) {
+						return `### File: ${fPath}\nError reading file: ${formatAgentToolError(err)}`;
+					}
+				}));
+				return { output: readResults.join('\n\n---\n\n') };
 			}
 			case 'list_directory': {
 				if (!fileService) return { output: 'Error: fileService unavailable' };
@@ -3106,19 +3842,21 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
 				const matched: string[] = [];
 				const pat = (args.pattern || args.query || args.glob || '').toLowerCase().replace(/^\*+/, '').replace(/\*+$/, '');
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'vendor', 'coverage', '.out']);
 				const scan = async (uri: URI, depth: number) => {
-					if (depth > 4 || matched.length > 40) return;
+					if (depth > 25 || matched.length >= 100) return;
 					try {
 						const res = await fileService!.resolve(uri);
 						if (!res.children) return;
 						for (const c of res.children) {
-							if (c.name === 'node_modules' || c.name === '.git' || c.name === 'dist') continue;
+							if (ignoreDirs.has(c.name)) continue;
 							if (c.isDirectory) {
 								await scan(c.resource, depth + 1);
 							} else {
-								if (c.name.toLowerCase().includes(pat) || c.resource.path.toLowerCase().includes(pat)) {
+								if (!pat || c.name.toLowerCase().includes(pat) || c.resource.path.toLowerCase().includes(pat)) {
 									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
 									matched.push(rel);
+									if (matched.length >= 100) break;
 								}
 							}
 						}
@@ -3132,16 +3870,17 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
 				const results: string[] = [];
 				const qLower = (args.query || args.pattern || args.text || '').toLowerCase();
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'vendor', 'coverage', '.out']);
 				const scan = async (uri: URI, depth: number) => {
-					if (depth > 3 || results.length > 25) return;
+					if (depth > 25 || results.length >= 60) return;
 					try {
 						const res = await fileService!.resolve(uri);
 						if (!res.children) return;
 						for (const c of res.children) {
-							if (c.name === 'node_modules' || c.name === '.git' || c.name === 'dist' || c.name.endsWith('.lock')) continue;
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
 							if (c.isDirectory) {
 								await scan(c.resource, depth + 1);
-							} else if (/\.(tsx?|jsx?|html?|css|json|md|py|rs|go|java|c|cpp)$/i.test(c.name)) {
+							} else if (/\.(tsx?|jsx?|html?|css|scss|json|md|py|rs|go|java|c|cpp|h|php|blade\.php|vue|svelte|yaml|yml|toml|sh|ps1)$/i.test(c.name)) {
 								try {
 									const buf = await fileService!.readFile(c.resource);
 									const txt = new TextDecoder().decode(buf.value.buffer);
@@ -3150,7 +3889,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 										if (lines[i].toLowerCase().includes(qLower)) {
 											const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
 											results.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
-											if (results.length >= 25) break;
+											if (results.length >= 60) break;
 										}
 									}
 								} catch { }
@@ -3175,50 +3914,17 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								return;
 							}
 
-							const isServerCmd = /\b(npm\s+(run\s+)?(dev|start|serve)|npx\s+(vite|next|live-server|http-server)|vite|next\s+dev|nuxt|webpack\s+serve|live-server|http-server|nodemon)\b/i.test(cmdTrim);
+							const isServerCmd = Boolean(args?.isBackground || args?.mode === 'async' || isLongRunningDaemonCommand(cmdTrim));
 
 							if (isServerCmd) {
-								let term = termService.activeInstance;
-								if (!term || term.isDisposed) {
-									term = await termService.createTerminal({
-										config: {
-											name: `Dev Server`,
-											hideFromUser: false,
-											isFeatureTerminal: false,
-											cwd: rootUri ? rootUri.fsPath : undefined,
-										}
-									});
-								}
-								termService.setActiveInstance(term);
-								try { term.focus?.(); } catch { }
-
-								let serverOutput = '';
-								const dataListener = term.onData?.((data: string) => {
-									serverOutput += data;
-								});
-
-								await term.sendText(cmdTrim, true);
-
-								await new Promise<void>(resolve => {
-									const timer = setTimeout(resolve, 4000);
-									const checkInterval = setInterval(() => {
-										if (/(localhost:\d+|127\.0\.0\.1:\d+|ready in \d+|serving at|Local:)/i.test(serverOutput)) {
-											clearTimeout(timer);
-											clearInterval(checkInterval);
-											resolve();
-										}
-									}, 250);
-								});
-
-								try { dataListener?.dispose?.(); } catch { }
-
-								const cleanOutput = serverOutput
-									.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-									.replace(/\r\n/g, '\n')
-									.replace(/\r/g, '\n')
-									.trim();
-
-								outputMsg = `Development server launched in terminal panel.\nCommand: ${cmdTrim}\nInitial Output:\n${cleanOutput || 'Server process started in active terminal.'}`;
+								outputMsg = await runStealthBackgroundDaemon(
+									termService,
+									cmdTrim,
+									'Dardcor Stealth Server',
+									rootUri ? rootUri.fsPath : undefined,
+									sessionKey,
+									token
+								);
 							} else if (termService.createTerminal) {
 								const isWin = isWindows;
 								let effectiveCmd = cmdTrim;
@@ -3231,12 +3937,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 										.replace(/\bls\s+\/app\b/g, 'Get-ChildItem -ErrorAction SilentlyContinue');
 								}
 								const executable = isWin ? 'powershell.exe' : '/bin/sh';
-								const shellArgs = isWin ? ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', cmdTrim];
+								const shellArgs = isWin ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', cmdTrim];
 								const term = await termService.createTerminal({
 									config: {
 										name: 'Agent Task',
 										hideFromUser: true,
 										isFeatureTerminal: true,
+										forcePersist: false,
 										cwd: rootUri ? rootUri.fsPath : undefined,
 										executable,
 										args: shellArgs,
@@ -3280,11 +3987,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								try { dataListener?.dispose?.(); } catch { }
 								try { term.dispose?.(); } catch { }
 
-								let cleanOutput = bufferedOutput
-									.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-									.replace(/\r\n/g, '\n')
-									.replace(/\r/g, '\n')
-									.trim();
+								let cleanOutput = stripAnsiSequences(bufferedOutput).trim();
 
 								if (cleanOutput.length > 25000) {
 									const outLines = cleanOutput.split('\n');
@@ -3308,10 +4011,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								} else {
 									outputMsg = cleanOutput || `Command completed.`;
 								}
-							} else if (termService.getActiveOrCreateInstance) {
-								const term = await termService.getActiveOrCreateInstance({ acceptsInput: true });
-								term.runCommand?.(cmdTrim, true);
-								outputMsg = `Dispatched to terminal: ${cmdTrim}`;
+							} else {
+								outputMsg = 'Background terminal creation is not supported in this environment.';
 							}
 						} catch (err: any) {
 							outputMsg = `Terminal execution error: ${formatAgentToolError(err)}`;
@@ -3333,18 +4034,18 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								outputMsg = 'Terminal service is not available.';
 								return;
 							}
-							const term = termService.activeInstance || (termService.getActiveOrCreateInstance ? await termService.getActiveOrCreateInstance({ acceptsInput: true }) : undefined);
-							if (!term) {
-								outputMsg = 'No active terminal available.';
+							const target = findLatestStealthAgentTerminal(termService, sessionKey, args.id || args.terminalId);
+							if (!target.instance) {
+								outputMsg = 'No active background agent terminal found (user terminals are isolated and never touched).';
 								return;
 							}
-							await term.sendText(textToSend, args.addNewLine !== false);
-							outputMsg = `Sent to terminal: ${textToSend}`;
+							await target.instance.sendText(textToSend, args.addNewLine !== false);
+							outputMsg = `Sent to background agent terminal${target.record ? ` (${target.record.id})` : ''}: ${textToSend}`;
 						} catch (err: any) {
 							outputMsg = `Terminal error: ${formatAgentToolError(err)}`;
 						}
 					});
-					return { output: outputMsg || 'Sent command to terminal' };
+					return { output: outputMsg || 'Sent command to background agent terminal' };
 				} catch (e: any) {
 					return { output: `Error sending to terminal: ${formatAgentToolError(e)}` };
 				}
@@ -3359,23 +4060,13 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								outputMsg = 'Terminal service is not available.';
 								return;
 							}
-							const term = termService.activeInstance;
-							if (!term) {
-								outputMsg = 'No active terminal instance found.';
+							const target = findLatestStealthAgentTerminal(termService, sessionKey, args.id || args.terminalId);
+							if (!target.instance && !target.record) {
+								outputMsg = 'No active background agent terminal instance found.';
 								return;
 							}
-							const xterm = (term as any).xterm;
-							if (xterm && xterm.raw) {
-								const buffer = xterm.raw.buffer.active;
-								const lines: string[] = [];
-								for (let i = Math.max(0, buffer.length - 100); i < buffer.length; i++) {
-									const line = buffer.getLine(i);
-									if (line) lines.push(line.translateToString(true));
-								}
-								outputMsg = lines.join('\n').trim();
-							} else {
-								outputMsg = 'Terminal buffer not accessible or empty.';
-							}
+							const captured = readStealthTerminalOutput(target, 120);
+							outputMsg = captured || '(Background agent terminal has no output yet)';
 						} catch (err: any) {
 							outputMsg = `Error reading terminal output: ${formatAgentToolError(err)}`;
 						}
@@ -3395,18 +4086,22 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								outputMsg = 'Terminal service is not available.';
 								return;
 							}
-							const term = termService.activeInstance;
-							if (!term) {
-								outputMsg = 'No active terminal to kill.';
+							const target = findLatestStealthAgentTerminal(termService, sessionKey, args.id || args.terminalId);
+							if (!target.instance) {
+								outputMsg = 'No active background agent terminal to terminate.';
 								return;
 							}
-							term.dispose();
-							outputMsg = 'Active terminal terminated.';
+							if (target.record) {
+								_stealthAgentTerminals.delete(target.record.id);
+								try { target.record.disposable.dispose(); } catch { }
+							}
+							target.instance.dispose();
+							outputMsg = `Background agent terminal${target.record ? ` (${target.record.id})` : ''} terminated.`;
 						} catch (err: any) {
 							outputMsg = `Error killing terminal: ${formatAgentToolError(err)}`;
 						}
 					});
-					return { output: outputMsg || 'Terminal closed' };
+					return { output: outputMsg || 'Background agent terminal closed' };
 				} catch (e: any) {
 					return { output: `Error terminating terminal: ${formatAgentToolError(e)}` };
 				}
@@ -3659,10 +4354,11 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				const subCandidate = extractAgentFilePath(args?.subPath) || (typeof args?.subPath === 'string' ? args.subPath.trim() : undefined);
 				const searchBase = subCandidate ? resolveUri(subCandidate) : rootUri;
 				const matches: string[] = [];
-				const ignoreList = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage']);
+				const ignoreList = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const contextLines = typeof args?.contextLines === 'number' ? Math.min(5, Math.max(0, args.contextLines)) : 0;
 
 				const scanDir = async (dirUri: URI, depth: number) => {
-					if (depth > 6 || matches.length >= 60) return;
+					if (depth > 25 || matches.length >= 80) return;
 					try {
 						const res = await fileService!.resolve(dirUri);
 						if (!res.children) return;
@@ -3670,7 +4366,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							if (ignoreList.has(c.name) || c.name.endsWith('.lock')) continue;
 							if (c.isDirectory) {
 								await scanDir(c.resource, depth + 1);
-							} else if (/\.(tsx?|jsx?|html?|css|scss|json|md|py|rs|go|java|c|cpp|h|php|yaml|yml|toml|sh|bat|ps1)$/i.test(c.name)) {
+							} else if (/\.(tsx?|jsx?|html?|css|scss|json|md|py|rs|go|java|c|cpp|h|php|blade\.php|vue|svelte|yaml|yml|toml|sh|bat|ps1)$/i.test(c.name)) {
 								try {
 									const buf = await fileService!.readFile(c.resource);
 									const txt = new TextDecoder().decode(buf.value.buffer);
@@ -3678,8 +4374,15 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
 									for (let i = 0; i < lines.length; i++) {
 										if (regex.test(lines[i])) {
-											matches.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
-											if (matches.length >= 60) break;
+											if (contextLines > 0) {
+												const startCtx = Math.max(0, i - contextLines);
+												const endCtx = Math.min(lines.length - 1, i + contextLines);
+												const block = lines.slice(startCtx, endCtx + 1).map((l, idx) => `${startCtx + idx + 1 === i + 1 ? '>' : ' '} ${rel}:${startCtx + idx + 1}: ${l.trimEnd()}`).join('\n');
+												matches.push(block);
+											} else {
+												matches.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											}
+											if (matches.length >= 80) break;
 										}
 									}
 								} catch { }
@@ -3691,8 +4394,364 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				await scanDir(searchBase, 0);
 				return {
 					output: matches.length > 0
-						? `Found ${matches.length} match(es)${matches.length >= 60 ? ' (capped at 60)' : ''}:\n${matches.join('\n')}`
+						? `Found ${matches.length} match(es)${matches.length >= 80 ? ' (capped at 80)' : ''}:\n${matches.join('\n')}`
 						: `No matches found for pattern "${patStr}"`
+				};
+			}
+			case 'go_to_definition': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const symbol = String(args?.symbol ?? args?.name ?? '').trim();
+				if (!symbol) return { output: 'Error: symbol name is required for go_to_definition.' };
+				const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const defRegex = new RegExp(`(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?(?:function|class|interface|type|enum|const|let|var|def|fn|struct|trait|func)\\s+${escaped}\\b|(?:public|private|protected|static|readonly|async)\\s+(?:function\\s+)?${escaped}\\s*[(:=<]`, 'm');
+				const hits: string[] = [];
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const scanDef = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || hits.length >= 15) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanDef(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|py|rs|go|java|c|cpp|h|php|vue|svelte)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									if (!txt.includes(symbol)) continue;
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (defRegex.test(lines[i])) {
+											const start = Math.max(0, i - 2);
+											const end = Math.min(lines.length - 1, i + 12);
+											const snippet = lines.slice(start, end + 1).map((l, idx) => `${start + idx + 1}: ${l}`).join('\n');
+											hits.push(`### Definition in \`${rel}\` (Line ${i + 1})\n\`\`\`\n${snippet}\n\`\`\``);
+											if (hits.length >= 15) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scanDef(rootUri, 0);
+				return {
+					output: hits.length > 0
+						? `Found ${hits.length} definition(s) for \`${symbol}\`:\n\n${hits.join('\n\n')}`
+						: `No explicit declaration found for symbol \`${symbol}\`. Try find_symbol_references or grep_search.`
+				};
+			}
+			case 'find_symbol_references': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const symbol = String(args?.symbol ?? args?.name ?? '').trim();
+				if (!symbol) return { output: 'Error: symbol name is required for find_symbol_references.' };
+				const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const refRegex = new RegExp(`\\b${escaped}\\b`);
+				const subCandidate = extractAgentFilePath(args?.subPath) || (typeof args?.subPath === 'string' ? args.subPath.trim() : undefined);
+				const searchBase = subCandidate ? resolveUri(subCandidate) : rootUri;
+				const refs: string[] = [];
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const scanRefs = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || refs.length >= 80) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanRefs(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|html?|py|rs|go|java|c|cpp|h|php|blade\.php|vue|svelte)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									if (!txt.includes(symbol)) continue;
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (refRegex.test(lines[i])) {
+											refs.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											if (refs.length >= 80) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scanRefs(searchBase, 0);
+				return {
+					output: refs.length > 0
+						? `Found ${refs.length} reference(s) to \`${symbol}\`:\n${refs.join('\n')}`
+						: `No references found for symbol \`${symbol}\`.`
+				};
+			}
+			case 'get_call_hierarchy': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const symbol = String(args?.symbol ?? args?.name ?? '').trim();
+				if (!symbol) return { output: 'Error: symbol is required for get_call_hierarchy.' };
+				const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const callRegex = new RegExp(`\\b${escaped}\\s*\\(`);
+				const defRegex = new RegExp(`(?:function|def|fn|func)\\s+${escaped}\\b|${escaped}\\s*\\([^)]*\\)\\s*(?:[:{]|=>)`);
+				const incomingCallers: string[] = [];
+				const outgoingCallees = new Set<string>();
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const scanCalls = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || incomingCallers.length >= 50) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanCalls(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|py|rs|go|java|c|cpp|h|php|vue|svelte)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									if (!txt.includes(symbol)) continue;
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (defRegex.test(lines[i])) {
+											const bodySlice = lines.slice(i + 1, Math.min(lines.length, i + 45)).join('\n');
+											const calleeMatches = bodySlice.matchAll(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g);
+											for (const m of calleeMatches) {
+												const candidate = m[1];
+												if (!['if', 'for', 'while', 'switch', 'catch', 'return', 'typeof', 'await', symbol].includes(candidate)) {
+													outgoingCallees.add(candidate);
+												}
+											}
+										} else if (callRegex.test(lines[i])) {
+											incomingCallers.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											if (incomingCallers.length >= 50) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scanCalls(rootUri, 0);
+				return {
+					output: [
+						`### Call Hierarchy for \`${symbol}\``,
+						`**Incoming Call Sites (${incomingCallers.length})**:\n${incomingCallers.length > 0 ? incomingCallers.join('\n') : '(No direct call sites found)'}`,
+						`**Outgoing Callees Referenced in Body (${outgoingCallees.size})**:\n${outgoingCallees.size > 0 ? Array.from(outgoingCallees).slice(0, 35).map(c => `\`${c}()\``).join(', ') : '(None detected)'}`,
+					].join('\n\n')
+				};
+			}
+			case 'create_checkpoint': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const label = String(args?.label ?? 'Workspace Checkpoint').trim();
+				const rawFiles = Array.isArray(args?.files) ? args.files : [];
+				if (rawFiles.length === 0) return { output: 'Error: provide at least one file path in files array to snapshot.' };
+				const targetUris = rawFiles.map((f: any) => resolveUri(String(f)));
+				const cp = await createWorkspaceCheckpoint(
+					label,
+					targetUris,
+					fileService
+				);
+				return {
+					output: `Created Time-Machine Checkpoint \`${cp.id}\` ("${cp.label}") snapshotting ${cp.files.size} file(s). Use \`restore_checkpoint({ checkpointId: "${cp.id}" })\` to roll back at any time.`
+				};
+			}
+			case 'restore_checkpoint': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				let checkpointId = String(args?.checkpointId ?? 'latest').trim();
+				if (checkpointId === 'latest') {
+					const list = listWorkspaceCheckpoints();
+					if (list.length === 0) {
+						return { output: 'Error: No checkpoints exist in this session.' };
+					}
+					checkpointId = list[list.length - 1].id;
+				}
+				const restored = await restoreWorkspaceCheckpoint(
+					checkpointId,
+					fileService
+				);
+				if (!restored.restored) {
+					return { output: `Error restoring checkpoint: ${restored.message}` };
+				}
+				return {
+					output: `${restored.message}\n- ${restored.restoredFiles.join('\n- ')}`
+				};
+			}
+			case 'git_intelligence': {
+				const op = String(args?.operation ?? 'status').toLowerCase().trim();
+				const fileArg = typeof args?.filePath === 'string' && args.filePath.trim() ? ` -- "${args.filePath.trim()}"` : '';
+				const refArg = typeof args?.ref === 'string' && args.ref.trim() ? ` ${args.ref.trim()}` : '';
+				let gitCmd = 'git status --short --branch';
+				if (op === 'diff') {
+					gitCmd = `git diff --no-ext-diff${refArg}${fileArg}`;
+				} else if (op === 'log') {
+					gitCmd = `git log -n 15 --oneline --decorate${refArg}${fileArg}`;
+				} else if (op === 'blame' && fileArg) {
+					gitCmd = `git blame -L 1,120${fileArg}`;
+				} else if (op === 'branches') {
+					gitCmd = `git branch -a -v`;
+				} else if (op === 'show') {
+					gitCmd = `git show --stat${refArg || ' HEAD'}`;
+				}
+				return this._executeAgentTool('run_command', { command: gitCmd }, rootUri, chatSessionResource, token, requestId, true);
+			}
+			case 'introspect_self': {
+				const act = String(args?.action ?? 'status').toLowerCase().trim();
+				if (act === 'add_hypothesis' || act === 'update_hypothesis') {
+					const desc = String(args?.hypothesis ?? '').trim();
+					const rawStatus = String(args?.status ?? 'untested').toLowerCase().trim();
+					const status = (rawStatus === 'confirmed' ? 'confirmed' : rawStatus === 'refuted' ? 'refuted' : 'untested') as 'untested' | 'confirmed' | 'refuted';
+					const evidence = typeof args?.evidence === 'string' ? args.evidence : undefined;
+					if (desc) {
+						const hypId = `hyp-${desc.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)}`;
+						upsertHypothesis(sessionKey, hypId, desc, status, evidence);
+					}
+				}
+				const activeDaemons = Array.from(_stealthAgentTerminals.values()).map(r => ({
+					id: r.id,
+					label: r.label,
+					command: r.command,
+				}));
+				return {
+					output: formatConsciousnessTelemetry(sessionKey, {
+						activeStealthTerminals: activeDaemons,
+						activeSkills: ['plan', 'evolve', 'swarm', 'deep-audit', 'architect', 'tdd', 'verify-ui', 'boost'],
+						memorySummary: getDardcorMemoryPromptContext(workspaceFolder),
+						checkpointsCount: listWorkspaceCheckpoints().length,
+					})
+				};
+			}
+			case 'manage_knowledge_memory': {
+				let pathService: IPathService | undefined;
+				try {
+					this.instantiationService.invokeFunction(accessor => {
+						try { pathService = accessor.get(IPathService); } catch { }
+					});
+				} catch { }
+				const act = String(args?.action ?? 'query').toLowerCase().trim();
+				if (act === 'store_insight') {
+					const record = await storeDardcorKnowledgeInsight({
+						workspaceRoot: workspaceFolder,
+						category: args?.category,
+						title: String(args?.title ?? 'Project Insight'),
+						content: String(args?.content ?? ''),
+						tags: Array.isArray(args?.tags) ? args.tags : [],
+					}, fileService, pathService);
+					return {
+						output: `Stored persistent project insight \`${record.id}\` ([${record.category.toUpperCase()}] ${record.title}) in ~/.dardcor/memory/brain/omega-memory-ledger.json.`
+					};
+				}
+				if (act === 'store_error_lesson') {
+					const lesson = await storeDardcorEpisodicErrorLesson({
+						workspaceRoot: workspaceFolder,
+						errorPattern: String(args?.title ?? args?.query ?? 'Error pattern'),
+						rootCause: String(args?.rootCause ?? 'Diagnosed root cause'),
+						verifiedSolution: String(args?.content ?? ''),
+					}, fileService, pathService);
+					return {
+						output: `Stored episodic error-resolution lesson \`${lesson.id}\` in ~/.dardcor/memory/brain/omega-memory-ledger.json.`
+					};
+				}
+				const queried = await queryDardcorSelfImprovingMemory(String(args?.query ?? args?.title ?? ''), workspaceFolder, fileService, pathService);
+				const lines: string[] = [
+					`### Self-Improving Memory Query Results`,
+					`**Project Insights (${queried.insights.length})**:`,
+					...queried.insights.map(i => `- **[${i.category.toUpperCase()}] ${i.title}**: ${i.content}`),
+					`\n**Episodic Error-Resolution Lessons (${queried.lessons.length})**:`,
+					...queried.lessons.map(l => `- **Pattern**: \`${l.errorPattern}\` | **Root Cause**: ${l.rootCause} | **Solution**: ${l.verifiedSolution}`),
+					`\n**Synthesized Autonomous Skills (${queried.skills.length})**:`,
+					...queried.skills.map(s => `- **/${s.name}**: ${s.description}`),
+				];
+				return { output: lines.join('\n') };
+			}
+			case 'synthesize_skill': {
+				let pathService: IPathService | undefined;
+				try {
+					this.instantiationService.invokeFunction(accessor => {
+						try { pathService = accessor.get(IPathService); } catch { }
+					});
+				} catch { }
+				const skill = await synthesizeAndPersistDardcorSkill({
+					name: String(args?.name ?? 'custom-skill'),
+					description: String(args?.description ?? ''),
+					instructions: String(args?.instructions ?? ''),
+					triggers: Array.isArray(args?.triggers) ? args.triggers : [],
+				}, fileService, pathService);
+				return {
+					output: `Synthesized and permanently registered autonomous skill \`/${skill.name}\` in ~/.dardcor/memory/skills/${skill.name}/SKILL.md. It is immediately available via \`/${skill.name}\`.`
+				};
+			}
+			case 'spawn_agent_swarm': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const tasks = Array.isArray(args?.tasks) ? args.tasks : [];
+				if (tasks.length === 0) return { output: 'Error: provide at least one specialist task in tasks array.' };
+				let activeModel = 'auto';
+				try {
+					const modelsData = await getCachedRouterModelsData();
+					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
+						activeModel = modelsData.data[0].id;
+					}
+				} catch { }
+				const swarmOut = await executeDardcorAgentSwarm({
+					tasks,
+					model: activeModel,
+					routerPort: ROUTER_PORT,
+					routerAuthHeader: ROUTER_AUTH_HEADER,
+					resolveTargetUri: (p: string) => resolveUri(p),
+					fileService,
+					token,
+				});
+				return { output: swarmOut.summaryMarkdown };
+			}
+			case 'audit_page_visual_and_network': {
+				const auditScript = `(() => {
+					const vw = window.innerWidth || document.documentElement.clientWidth;
+					const vh = window.innerHeight || document.documentElement.clientHeight;
+					const docScrollWidth = document.documentElement.scrollWidth;
+					const hasHorizontalOverflow = docScrollWidth > vw + 4;
+					const brokenImages = Array.from(document.querySelectorAll('img')).filter(img => !img.complete || img.naturalWidth === 0).map(img => img.getAttribute('src') || img.alt || 'unnamed-img').slice(0, 10);
+					const zeroRectInteractive = Array.from(document.querySelectorAll('button, a, input, select, textarea')).filter(el => {
+						const st = window.getComputedStyle(el);
+						if (st.display === 'none' || st.visibility === 'hidden') return false;
+						const r = el.getBoundingClientRect();
+						return r.width === 0 || r.height === 0;
+					}).map(el => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.textContent ? ':' + el.textContent.trim().slice(0, 24) : ''))).slice(0, 10);
+					return {
+						url: window.location.href,
+						title: document.title,
+						viewport: { width: vw, height: vh, scrollWidth: docScrollWidth },
+						hasHorizontalOverflow,
+						brokenImagesCount: brokenImages.length,
+						brokenImages,
+						zeroRectInteractiveCount: zeroRectInteractive.length,
+						zeroRectInteractive
+					};
+				})()`;
+				const browserAudit = await this._executeAgentTool('execute_browser_script', { script: auditScript, pageId: args?.pageId }, rootUri, chatSessionResource, token, requestId, true);
+				const consoleLogs = await this._executeAgentTool('get_browser_console_logs', { pageId: args?.pageId }, rootUri, chatSessionResource, token, requestId, true);
+				let backendLogs = '';
+				if (args?.correlateBackendLogs !== false) {
+					let termService: any;
+					try {
+						this.instantiationService.invokeFunction(accessor => {
+							try { termService = accessor.get(ITerminalService); } catch { }
+						});
+					} catch { }
+					const stealthTarget = findLatestStealthAgentTerminal(termService, sessionKey);
+					if (stealthTarget.record || stealthTarget.instance) {
+						backendLogs = readStealthTerminalOutput(stealthTarget, 45);
+					}
+				}
+				return {
+					output: [
+						`### Full-Stack Visual, DOM Layout & Backend Correlation Audit`,
+						`#### 1. Visual Layout & Geometry Audit\n${browserAudit.output}`,
+						`#### 2. Browser Console & Runtime Diagnostics\n${consoleLogs.output}`,
+						backendLogs ? `#### 3. Correlated Stealth Background Server Logs\n\`\`\`\n${backendLogs}\n\`\`\`` : `#### 3. Correlated Stealth Background Server Logs\n(No active stealth daemon log output recorded)`,
+					].join('\n\n'),
+					browserImage: browserAudit.browserImage,
+					executionStatus: browserAudit.executionStatus,
 				};
 			}
 			case 'terminal_selection': {
@@ -3701,14 +4760,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					try {
 						const termService = accessor.get(ITerminalService);
 						if (!termService) return;
-						const term = termService.activeInstance;
-						if (term && term.selection) {
-							selection = term.selection;
+						const target = findLatestStealthAgentTerminal(termService, sessionKey, args?.id);
+						if (target.instance && target.instance.selection) {
+							selection = target.instance.selection;
 						}
 					} catch { }
 				});
 				return {
-					output: selection ? `Active terminal selection:\n${selection}` : 'No text is currently selected in the active terminal.'
+					output: selection ? `Background agent terminal selection:\n${selection}` : 'No text is currently selected in the background agent terminal.'
 				};
 			}
 			case 'terminal_last_command': {
@@ -3717,46 +4776,45 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					try {
 						const termService = accessor.get(ITerminalService);
 						if (!termService) return;
-						const term = termService.activeInstance;
-						if (!term) {
-							result = 'No active terminal instance found.';
+						const target = findLatestStealthAgentTerminal(termService, sessionKey, args?.id);
+						const term = target.instance;
+						if (!term && !target.record) {
+							result = 'No active background agent terminal instance found.';
 							return;
 						}
-						const commandDetection = term.capabilities?.get?.(TerminalCapability.CommandDetection);
-						if (commandDetection) {
-							if (commandDetection.executingCommand) {
-								result = `Command currently executing:\n${commandDetection.executingCommand}${commandDetection.cwd ? `\nDirectory: ${commandDetection.cwd}` : ''}`;
-								return;
-							}
-							const commands = commandDetection.commands;
-							if (commands && commands.length > 0) {
-								const lastCmd = commands[commands.length - 1];
-								const lines: string[] = [];
-								if (lastCmd.command) lines.push(`Last command: ${lastCmd.command}`);
-								if (lastCmd.cwd) lines.push(`Directory: ${lastCmd.cwd}`);
-								if (lastCmd.exitCode !== undefined) lines.push(`Exit code: ${lastCmd.exitCode}`);
-								if (lastCmd.hasOutput?.() && lastCmd.getOutput) {
-									const out = lastCmd.getOutput();
-									if (out && out.trim().length > 0) lines.push(`Output:\n${out.trim()}`);
+						if (term) {
+							const commandDetection = term.capabilities?.get?.(TerminalCapability.CommandDetection);
+							if (commandDetection) {
+								if (commandDetection.executingCommand) {
+									result = `Command currently executing:\n${commandDetection.executingCommand}${commandDetection.cwd ? `\nDirectory: ${commandDetection.cwd}` : ''}`;
+									return;
 								}
-								result = lines.join('\n');
-								return;
+								const commands = commandDetection.commands;
+								if (commands && commands.length > 0) {
+									const lastCmd = commands[commands.length - 1];
+									const lines: string[] = [];
+									if (lastCmd.command) lines.push(`Last command: ${lastCmd.command}`);
+									if (lastCmd.cwd) lines.push(`Directory: ${lastCmd.cwd}`);
+									if (lastCmd.exitCode !== undefined) lines.push(`Exit code: ${lastCmd.exitCode}`);
+									if (lastCmd.hasOutput?.() && lastCmd.getOutput) {
+										const out = lastCmd.getOutput();
+										if (out && out.trim().length > 0) lines.push(`Output:\n${out.trim()}`);
+									}
+									result = lines.join('\n');
+									return;
+								}
 							}
 						}
-						const xterm = (term as any).xterm;
-						if (xterm && xterm.raw) {
-							const buffer = xterm.raw.buffer.active;
-							const lines: string[] = [];
-							for (let i = Math.max(0, buffer.length - 30); i < buffer.length; i++) {
-								const line = buffer.getLine(i);
-								if (line) lines.push(line.translateToString(true));
-							}
-							result = lines.join('\n').trim();
+						const out = readStealthTerminalOutput(target, 40);
+						if (target.record) {
+							result = `Last command: ${target.record.command}\n${target.record.exitCode !== undefined ? `Exit code: ${target.record.exitCode}\n` : ''}Output:\n${out || '(no output)'}`;
+						} else {
+							result = out;
 						}
 					} catch { }
 				});
 				return {
-					output: result || 'No command has been run in the active terminal.'
+					output: result || 'No command has been run in the background agent terminal.'
 				};
 			}
 			case 'create_and_run_task': {
@@ -3775,29 +4833,28 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							return;
 						}
 
-						if (termService) {
-							const isBg = !!args.isBackground || /(?:serve|watch|dev|start)\b/i.test(fullCmd);
+						if (termService && termService.createTerminal) {
+							const isBg = Boolean(args.isBackground || isLongRunningDaemonCommand(fullCmd) || /(?:serve|watch|dev|start)\b/i.test(fullCmd));
 							if (isBg) {
-								const term = await (termService.getActiveOrCreateInstance
-									? termService.getActiveOrCreateInstance({ acceptsInput: true })
-									: termService.activeInstance);
-								if (term) {
-									term.focus?.();
-									term.runCommand?.(fullCmd.trim(), true);
-									outputMsg = `Background task '${label}' dispatched to terminal: ${fullCmd.trim()}`;
-								} else {
-									outputMsg = `No terminal instance available to run background task '${label}'.`;
-								}
-							} else if (termService.createTerminal) {
+								outputMsg = await runStealthBackgroundDaemon(
+									termService,
+									fullCmd.trim(),
+									label,
+									rootUri ? rootUri.fsPath : undefined,
+									sessionKey,
+									token
+								);
+							} else {
 								const isWin = isWindows;
 								const effectiveCmd = fullCmd.trim();
 								const executable = isWin ? 'powershell.exe' : '/bin/sh';
-								const shellArgs = isWin ? ['-NoProfile', '-Command', effectiveCmd] : ['-c', fullCmd.trim()];
+								const shellArgs = isWin ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', fullCmd.trim()];
 								const term = await termService.createTerminal({
 									config: {
 										name: label,
 										hideFromUser: true,
 										isFeatureTerminal: true,
+										forcePersist: false,
 										cwd: rootUri ? rootUri.fsPath : undefined,
 										executable,
 										args: shellArgs,
@@ -3828,7 +4885,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 											} else if (code && typeof code === 'object') {
 												exitCode = code.code ?? -1;
 											}
-											cleanup();
+											setTimeout(cleanup, 200);
 										});
 									}
 									if (!term.onExit) {
@@ -3853,11 +4910,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								try { dataListener?.dispose?.(); } catch { }
 								try { term.dispose?.(); } catch { }
 
-								const cleanOutput = bufferedOutput
-									.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-									.replace(/\r\n/g, '\n')
-									.replace(/\r/g, '\n')
-									.trim();
+								const cleanOutput = stripAnsiSequences(bufferedOutput).trim();
 
 								if (timedOut || token.isCancellationRequested) {
 									outputMsg = `Task '${label}' was cancelled or reached the 180-second limit before a final status was available. Its result is inconclusive; inspect the task output before retrying.\nCommand: ${fullCmd}\nOutput:\n${cleanOutput || '(no output)'}`;
@@ -3868,17 +4921,9 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								} else {
 									outputMsg = `Task '${label}' failed with exit code ${exitCode}.\nCommand: ${fullCmd}\nOutput:\n${cleanOutput || '(no output)'}`;
 								}
-							} else {
-								const term = await termService.getActiveOrCreateInstance?.({ acceptsInput: true });
-								if (term) {
-									term.runCommand?.(fullCmd.trim(), true);
-									outputMsg = `Task '${label}' dispatched to terminal: ${fullCmd.trim()}`;
-								} else {
-									outputMsg = `Terminal service unavailable.`;
-								}
 							}
 						} else {
-							outputMsg = `Terminal service unavailable.`;
+							outputMsg = `Background terminal service unavailable.`;
 						}
 					} catch (err: any) {
 						outputMsg = `Error executing task: ${formatAgentToolError(err)}`;
@@ -3902,6 +4947,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							outputMsg = `Task '${label}' not found among available tasks: ${availableTasks?.map(t => t._label).filter(Boolean).join(', ') || 'none'}`;
 							return;
 						}
+						(targetTask as any).runSource = 2; // TaskRunSource.ChatAgent
 						const summary = await taskService.run(targetTask);
 						if (typeof summary?.exitCode !== 'number') {
 							outputMsg = `Task '${label}' finished, but its final exit status is unknown. Success is not confirmed; inspect its terminal output.`;
@@ -3922,11 +4968,17 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					try {
 						const taskService = accessor.get(ITaskService);
 						const termService = accessor.get(ITerminalService);
+						const label = (args.taskLabel || args.label || args.id || '').trim();
+						const stealthTarget = findLatestStealthAgentTerminal(termService, sessionKey, label);
+						if (stealthTarget.record && (!label || stealthTarget.record.label === label || stealthTarget.record.id === label)) {
+							const captured = readStealthTerminalOutput(stealthTarget, 120);
+							outputMsg = captured || `No output captured yet for background task '${label}'.`;
+							return;
+						}
 						if (!taskService || !termService) {
 							outputMsg = 'Task service or terminal service unavailable.';
 							return;
 						}
-						const label = args.taskLabel || args.label || '';
 						const availableTasks = await taskService.tasks();
 						const targetTask = availableTasks?.find(t => t._label === label || (t as any).configurationProperties?.name === label);
 						if (!targetTask) {
@@ -4446,6 +5498,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 				try { runStateService = accessor.get(IChatAgentRunStateService); } catch { }
 			});
 		} catch { }
+		await hydrateDardcorSelfImprovingMemory(fileService, pathService);
+		const failedOverModelsInRun = new Set<string>();
 
 		const openPlanPreview = async (planUri: URI): Promise<void> => {
 			if (planOpenedInEditor) {
@@ -4512,7 +5566,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			if (!taskIsTracked || !runState) {
 				return;
 			}
-			const fileMutation = ['write_file', 'edit_file', 'delete_file', 'rename_file'].includes(toolName);
+			const fileMutation = ['write_file', 'edit_file', 'multi_edit_file', 'batch_edit_files', 'delete_file', 'rename_file', 'restore_checkpoint'].includes(toolName);
 			const commandTool = ['run_command', 'run_in_terminal', 'create_and_run_task', 'run_task', 'send_to_terminal', 'kill_terminal', 'bash', 'execute_command', 'cmd', 'sh', 'powershell', 'terminal'].includes(toolName);
 			const command = String(args?.command ?? args?.commandLine ?? args?.text ?? args?.label ?? args?.taskLabel ?? '');
 			const mutationNotDenied = executionStatus !== 'denied' && executionStatus !== 'rejected'
@@ -4853,6 +5907,19 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const resolved = result ?? { output: `Tool action ${toolName} was interrupted before its result was known; inspect terminal, browser, or workspace state before retrying it.` };
 			if (resolved.browserImage && !shouldAttachDardcorBrowserScreenshot(routerModelCapabilities)) {
 				resolved.output += '\n\nA screenshot was captured in the integrated browser, but it was not attached because Router metadata does not confirm vision support. The DOM and accessibility snapshot remain available.';
+			}
+			const isFailedOutput = /(?:^Error:|\[ERROR\]|Command failed with exit code|Batch edit aborted|Error in multi_edit_file|Error editing|Error reading|Error writing)/i.test(resolved.output);
+			const consciousness = recordConsciousToolAction(request.sessionResource.toString(), runState?.turn ?? 1, toolName, args ?? {}, !isFailedOutput);
+			if (isFailedOutput) {
+				const matchingLessons = findMatchingEpisodicErrorLessons(resolved.output, rootUri?.fsPath);
+				if (matchingLessons.length > 0) {
+					const formattedLessons = matchingLessons.map(l => `- **Error Pattern**: \`${l.errorPattern}\` -> **Verified Fix**: ${l.verifiedSolution}`).join('\n');
+					resolved.output += `\n\n[Dardcor Episodic Memory — Past Verified Solution(s) Found]:\n${formattedLessons}`;
+				}
+			}
+			const pivotDirective = getMetacognitivePivotDirective(detectDardcorLanguage(activeTaskPrompt), consciousness);
+			if (pivotDirective) {
+				resolved.output += `\n\n${pivotDirective}`;
 			}
 			return resolved;
 		};
@@ -5777,6 +6844,33 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							}]);
 							await new Promise(r => setTimeout(r, backoffMs));
 							continue;
+						}
+
+						// Zero-Downtime Autonomous Mid-Turn Model Failover
+						if (taskIsTracked && !token.isCancellationRequested && failedOverModelsInRun.size < 3 && (res.status === 429 || res.status === 402 || res.status === 503 || parsedError.isInsufficientCredits || parsedError.isForbiddenPlan)) {
+							if (modelName) {
+								failedOverModelsInRun.add(modelName.toLowerCase());
+							}
+							try {
+								const routerModels = await getCachedRouterModelsData();
+								const candidateList: any[] = Array.isArray(routerModels?.data) ? routerModels.data : [];
+								const backupModel = candidateList.find(m => m?.id && typeof m.id === 'string' && !failedOverModelsInRun.has(m.id.toLowerCase()) && m.id !== modelName);
+								if (backupModel?.id) {
+									const oldDisplay = formatModelDisplayName(modelName || 'Model');
+									const newDisplay = formatModelDisplayName(backupModel.id);
+									const lang = detectDardcorLanguage(activeTaskPrompt);
+									modelName = backupModel.id;
+									payload.model = modelName;
+									progress([{
+										kind: 'markdownContent',
+										content: new MarkdownString(lang === 'id'
+											? `\n\n> ⚡ *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** mencapai batas kuota/gangguan. Beralih otomatis ke **${newDisplay}** untuk melanjutkan eksekusi tanpa henti...\n\n`
+											: `\n\n> ⚡ *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** reached quota/downtime limit. Automatically failing over to **${newDisplay}** to continue execution seamlessly...\n\n`)
+									}]);
+									responseErrorText = undefined;
+									continue;
+								}
+							} catch { }
 						}
 
 						progress([{

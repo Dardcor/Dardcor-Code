@@ -60,6 +60,13 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
 
   const srcChunksDir = resolve(serverSource, "chunks");
   const dstChunksDir = resolve(serverDestination, "chunks");
+
+  const bunBridgeSource = resolve(projectRoot, "open-sse", "services", "opencodeBunBridge.js");
+  if (existsSync(bunBridgeSource)) {
+    if (existsSync(srcChunksDir)) cpSync(bunBridgeSource, resolve(srcChunksDir, "opencodeBunBridge.js"), { force: true });
+    if (existsSync(dstChunksDir)) cpSync(bunBridgeSource, resolve(dstChunksDir, "opencodeBunBridge.js"), { force: true });
+  }
+
   if (existsSync(srcChunksDir) && existsSync(dstChunksDir)) {
     const srcFiles = new Set(readdirSync(srcChunksDir));
     const dstFiles = new Set(readdirSync(dstChunksDir));

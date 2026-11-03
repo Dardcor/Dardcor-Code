@@ -10,12 +10,31 @@
 // 3. Native fetch fallback.
 
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadRuntimeDep } from "./lazyRuntime.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BRIDGE_SCRIPT = path.join(__dirname, "opencodeBunBridge.js");
+
+function getBridgeScriptPath() {
+  const candidates = [
+    path.join(__dirname, "opencodeBunBridge.js"),
+    path.join(__dirname, "..", "..", "open-sse", "services", "opencodeBunBridge.js"),
+    path.join(__dirname, "..", "open-sse", "services", "opencodeBunBridge.js"),
+    path.join(process.cwd(), "open-sse", "services", "opencodeBunBridge.js"),
+    path.join(process.cwd(), ".next", "standalone", "open-sse", "services", "opencodeBunBridge.js"),
+    path.join(process.cwd(), ".next", "server", "chunks", "opencodeBunBridge.js"),
+    path.join(process.cwd(), ".next", "standalone", ".next", "server", "chunks", "opencodeBunBridge.js"),
+  ];
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) return c;
+    } catch {}
+  }
+  return path.join(__dirname, "opencodeBunBridge.js");
+}
+
 const BRIDGE_PORT = parseInt(process.env.OPENCODE_BUN_BRIDGE_PORT || "25135", 10);
 
 export const OPENCODE_CIPHER_LIST = [
@@ -86,7 +105,9 @@ async function ensureBunBridge() {
 
   bridgeReadyPromise = new Promise((resolve, reject) => {
     try {
-      const proc = spawn("bun", [BRIDGE_SCRIPT], {
+      const bunExe = process.platform === "win32" ? "bun.exe" : "bun";
+      const bridgeScript = getBridgeScriptPath();
+      const proc = spawn(bunExe, [bridgeScript], {
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,
         env: { ...process.env, OPENCODE_BUN_BRIDGE_PORT: String(BRIDGE_PORT) },
@@ -99,7 +120,7 @@ async function ensureBunBridge() {
           bridgeReadyPromise = null;
           reject(new Error("Bun bridge startup timeout"));
         }
-      }, 3000);
+      }, 6000);
 
       proc.stdout.on("data", (data) => {
         if (data.toString().includes("READY:")) {
@@ -109,7 +130,13 @@ async function ensureBunBridge() {
         }
       });
 
+      proc.stderr.on("data", (data) => {
+        const text = data.toString().trim();
+        if (text) console.error("[opencodeTlsClient] Bun bridge stderr:", text);
+      });
+
       proc.on("error", (err) => {
+        console.error("[opencodeTlsClient] Bun bridge proc error:", err?.message || err);
         if (!resolved) {
           bridgeReadyPromise = null;
           clearTimeout(timeout);
@@ -117,7 +144,12 @@ async function ensureBunBridge() {
         }
       });
 
-      proc.on("exit", () => {
+      proc.on("exit", (code) => {
+        if (!resolved && code !== 0) {
+          bridgeReadyPromise = null;
+          clearTimeout(timeout);
+          reject(new Error(`Bun bridge exited with code ${code}`));
+        }
         bridgeReadyPromise = null;
         bridgeProcess = null;
       });
@@ -186,7 +218,9 @@ export async function opencodeTlsFetch(url, init = {}, { signal, timeoutMs = DEF
       signal: mergedSignal,
     });
     return res;
-  } catch {}
+  } catch (err) {
+    console.warn("[opencodeTlsClient] Bun bridge failed, falling back to native fetch:", err?.message || err);
+  }
 
   // 3. Fallback to native fetch
   return await fetch(url, { ...init, signal });

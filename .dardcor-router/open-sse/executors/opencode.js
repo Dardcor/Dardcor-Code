@@ -18,7 +18,7 @@ import {
 
 // OpenCode v2 UA shape: opencode/<channel>/<version>/<client>. Upstream rejects
 // the v1 "opencode/1.18.x" form with 403 FreeTierError since 2026-10-14.
-const OPENCODE_UA = "opencode/latest/2.0.26/cli";
+const OPENCODE_UA = "opencode/latest/2.2.5/cli";
 const OPENCODE_CLIENT = "cli";
 const MAX_SESSION_LENGTH = 256;
 const MAX_TOOL_NAME_LEN = 128;
@@ -630,10 +630,17 @@ export class OpenCodeExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
-    if (body && typeof body === "object" && model && !body.model) body.model = model;
-    // Zen rejects non-streaming requests on free models with 403 FreeTierError;
-    // always stream upstream and let the handler layer aggregate for non-stream clients.
-    if (body && typeof body === "object") body.stream = true;
+    if (body && typeof body === "object") {
+      let targetModel = model || body.model;
+      if (typeof targetModel === "string") {
+        targetModel = targetModel.replace(/^(opencode|oc)\//i, "");
+        if (targetModel.toLowerCase() === "deepseek-v4-flash-free") {
+          targetModel = "deepseek-v4.1-flash-free";
+        }
+      }
+      body.model = targetModel;
+      body.stream = true;
+    }
     if (isResponsesModel(model || body?.model) && body && typeof body === "object") {
       // ponytail: chỉ model đã xác nhận auto-only; mở allowlist khi có bằng chứng.
       if ("tool_choice" in body && body.tool_choice !== "auto"
@@ -709,7 +716,7 @@ export class OpenCodeExecutor extends BaseExecutor {
     const base = this.config.baseUrl;
     if (isResponsesModel(model)) return `${base}/inference/v1/responses`;
     if (isMessagesModel(model)) return `${base}/inference/v1/messages`;
-    return `${base}/inference/v1/chat/completions`;
+    return `${base}/inference/openai/v1/chat/completions`;
   }
 
   buildHeaders(credentials, stream = true, url = "") {

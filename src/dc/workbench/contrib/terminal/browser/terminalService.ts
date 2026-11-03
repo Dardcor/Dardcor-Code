@@ -953,6 +953,15 @@ export class TerminalService extends Disposable implements ITerminalService {
 
 		await this._resolveCwd(shellLaunchConfig, splitActiveTerminal, options);
 
+		if (shellLaunchConfig.hideFromUser) {
+			this._evaluateLocalCwd(shellLaunchConfig);
+			const instance = this._terminalInstanceService.createInstance(shellLaunchConfig, TerminalLocation.Panel);
+			this._backgroundedTerminalInstances.push({ instance, terminalLocationOptions: TerminalLocation.Panel });
+			this._backgroundedTerminalDisposables.set(instance.instanceId, instance.onDisposed(instance => this._onBackgroundTerminalDisposed(instance)));
+			this._onDidChangeInstances.fire();
+			return instance;
+		}
+
 		if (!shellLaunchConfig.customPtyImplementation && contributedProfile) {
 			const resolvedLocation = await this.resolveLocation(options?.location);
 			let location: TerminalLocation | { viewColumn: number; preserveState?: boolean } | { splitActiveTerminal: boolean } | undefined;

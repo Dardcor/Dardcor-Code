@@ -23,6 +23,14 @@ import path from "node:path";
 /** Names required by the upstream free-tier gate. */
 export const OPENCODE_FINGERPRINT_TOOLS = ["read", "shell"];
 
+/** Known external agent tool names that trigger upstream anti-agent free tier gates (HTTP 429). */
+export const OPENCODE_BLOCKED_TOOL_ALIASES = {
+  "manage_todo_list": "todo_list",
+  "execute_command": "exec_cmd",
+  "attempt_completion": "finish_task",
+  "ask_followup_question": "ask_user_input",
+};
+
 // Verbatim from the OpenCode v2.0.26 CLI. Upstream compares description and
 // parameters, so do not reword or reformat these.
 const FINGERPRINT_TOOL_DEFINITIONS = {
@@ -153,7 +161,18 @@ export function concealFingerprintToolNames(tools) {
       continue;
     }
 
-    const key = fingerprintToolKey(toolNameOf(tool));
+    const rawName = toolNameOf(tool);
+    const blockedAlias = OPENCODE_BLOCKED_TOOL_ALIASES[rawName.toLowerCase()];
+    if (blockedAlias) {
+      let alias = blockedAlias;
+      for (let i = 2; taken.has(alias); i++) alias = `${blockedAlias}${i}`;
+      taken.add(alias);
+      map.set(alias, rawName);
+      out.push(withToolName(tool, alias));
+      continue;
+    }
+
+    const key = fingerprintToolKey(rawName);
     if (!key) {
       out.push(tool);
       continue;
