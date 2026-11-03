@@ -57,7 +57,7 @@ export const OPENCODE_CIPHER_LIST = [
   "AES256-SHA",
 ].join(":");
 
-const DEFAULT_TIMEOUT_MS = 120000;
+const DEFAULT_TIMEOUT_MS = 600000;
 
 let sessionPromise = null;
 let bridgeProcess = null;

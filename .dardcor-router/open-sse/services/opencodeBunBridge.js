@@ -4,9 +4,23 @@
 
 const PORT = parseInt(process.env.OPENCODE_BUN_BRIDGE_PORT || "25135", 10);
 
+const HOP_BY_HOP = new Set([
+  "connection",
+  "keep-alive",
+  "transfer-encoding",
+  "content-encoding",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "upgrade"
+]);
+
 const server = Bun.serve({
   port: PORT,
   hostname: "127.0.0.1",
+  idleTimeout: 0,
+  maxRequestBodySize: 1024 * 1024 * 128,
   async fetch(req) {
     const target = req.headers.get("x-target-url");
     if (!target) {
@@ -34,10 +48,17 @@ const server = Bun.serve({
         proxy
       });
 
+      const responseHeaders = new Headers();
+      for (const [k, v] of upstream.headers.entries()) {
+        if (!HOP_BY_HOP.has(k.toLowerCase())) {
+          responseHeaders.set(k, v);
+        }
+      }
+
       return new Response(upstream.body, {
         status: upstream.status,
         statusText: upstream.statusText,
-        headers: upstream.headers
+        headers: responseHeaders
       });
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message || "Upstream fetch failed" }), {

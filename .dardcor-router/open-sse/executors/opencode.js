@@ -733,7 +733,6 @@ export class OpenCodeExecutor extends BaseExecutor {
     // x-opencode-session, and rejects any x-opencode-request (v1 only) with 403.
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": "Bearer public",
       "User-Agent": isOpencodeDownstream ? downstreamUa : OPENCODE_UA,
       "x-opencode-client": lower["x-opencode-client"] || OPENCODE_CLIENT,
       "x-opencode-session": session,
@@ -743,6 +742,10 @@ export class OpenCodeExecutor extends BaseExecutor {
       "x-opencode-project": lower["x-opencode-project"] || "global",
       "Accept": stream ? "text/event-stream" : "*/*",
     };
+    const authHeader = raw.authorization || raw.Authorization || "";
+    if (authHeader && !authHeader.toLowerCase().includes("sk-dardcor") && !authHeader.toLowerCase().includes("bearer public")) {
+      headers["Authorization"] = authHeader;
+    }
     if (url.endsWith("/messages")) headers["anthropic-version"] = ANTHROPIC_API_VERSION;
     return headers;
   }
