@@ -5470,6 +5470,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 		let activeTaskPrompt = '';
 		const rawRequestPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
 		let isPlanMode = request.command === 'plan' || (request as any)?.mode === 'plan' || /^\s*(?:\/|\[)plan(?:\]|\b)/i.test(rawRequestPrompt);
+		let isSuperIntellegentMode = request.command === 'super-intellegent' || request.command === 'super-intelligent' || /^\s*(?:\/|\[)super-intell(?:egent|igent)(?:\]|\b)/i.test(rawRequestPrompt);
 		let planOpenedInEditor = false;
 		let browserVerificationOnly = false;
 		let consecutiveToolFailures = 0;
@@ -6327,6 +6328,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const hasPlanSkill = activeSkills.some(s => s.name.toLowerCase() === 'plan');
 			const hasPlanVariable = (request.variables?.variables && Array.isArray(request.variables.variables) && (request.variables.variables as any[]).some(v => v?.name?.toLowerCase() === 'plan' || (v?.value?.path && String(v.value.path).includes('plan'))));
 			isPlanMode = isPlanMode || hasPlanSkill || hasPlanVariable || /^\s*(?:\/|\[)plan(?:\]|\b)/i.test(currentPrompt);
+			const hasSuperIntellegentSkill = isSuperIntellegentMode || activeSkills.some(s => s.name.toLowerCase() === 'super-intellegent' || s.name.toLowerCase() === 'super-intelligent') || /^\s*(?:\/|\[)super-intell(?:egent|igent)(?:\]|\b)/i.test(currentPrompt);
 			if (isPlanMode && commandService) {
 				commandService.executeCommand('markdown.api.render', '').catch(() => { });
 			}
@@ -6337,7 +6339,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			const hasExistingIncompleteTodos = existingTodos.some(todo => todo.status !== 'completed');
 			const hasActivePreviousState = !!previousState && ['paused', 'blocked', 'planning', 'working', 'verifying'].includes(previousState.status);
 			const canResume = !isClarificationQuestion && ((isContinuation && hasActivePreviousState) || hasExistingIncompleteTodos || (hasActivePreviousState && isDardcorAutonomousTask(trimmedPrompt)));
-			taskIsTracked = !isPlanMode && (canResume || isDardcorAutonomousTask(trimmedPrompt));
+			taskIsTracked = !isPlanMode && (hasSuperIntellegentSkill || canResume || isDardcorAutonomousTask(trimmedPrompt));
 			activeTaskPrompt = canResume && previousState?.taskPrompt
 				? (isContinuation ? previousState.taskPrompt : `${previousState.taskPrompt}\n\n[User Update / Path & Requirement Correction]: ${trimmedPrompt}`.slice(0, 12000))
 				: trimmedPrompt;
@@ -6375,6 +6377,16 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					`3. FORMULATE THE PLAN: Call the review_plan tool with your detailed implementation plan. Calling review_plan automatically saves the plan to editor memory and opens it directly in the center editor tab (as a clean GitHub-style Markdown Preview) for the user to review.\n` +
 					`   - In your conversational response to the user, DO NOT duplicate or repeat the whole plan text (since it is already opened in the center editor). Instead, provide a concise, friendly executive summary (2-3 sentences explaining what was analyzed, what was planned, and inviting the user to review the preview tab and click "Approve").\n` +
 					`4. AWAIT APPROVAL: Once the plan is presented, STOP immediately. Do NOT start implementing or modifying code files until the user explicitly reviews the plan and confirms. When approved, the system will immediately authorize you to start implementing the tasks autonomously.\n`;
+			}
+
+			if (hasSuperIntellegentSkill && !isPlanMode) {
+				systemPrompt += `\n\n=== SUPER-INTELLIGENT MODE ACTIVE (/super-intellegent) ===\n` +
+					`You are executing in Unified Super-Intelligent Mode. You possess full autonomy combining Evolve, Swarm, Deep-Audit, Architect, TDD, Verify-UI, and Boost:\n` +
+					`1. METACONSCIOUS INTROSPECTION & MEMORY: Call introspect_self to monitor cognitive depth. Store key insights into persistent memory via manage_knowledge_memory.\n` +
+					`2. PARALLEL DECOMPOSITION: If the task spans multiple independent files or layers, dispatch specialized agents via spawn_agent_swarm.\n` +
+					`3. ZERO-COMPROMISE AUDIT & TDD: Write/update tests first (Red), implement elegant solutions (Green), and verify diagnostics (0 errors).\n` +
+					`4. RUNTIME VERIFICATION: For web/UI apps, verify in Chromium browser (open_browser_page, audit_page_visual_and_network) and inspect background daemon logs.\n` +
+					`5. CHECKPOINT SAFETY: Use create_checkpoint before complex refactoring.\n`;
 			}
 
 			let messages: any[] = [

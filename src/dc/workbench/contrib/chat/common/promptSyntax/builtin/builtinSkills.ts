@@ -73,128 +73,69 @@ For each phase:
 - Conclude by asking the user for confirmation (e.g. "Silakan tinjau rencana di atas. Ketik 'lanjutkan' atau 'proceed' untuk memulai implementasi.").
 `;
 
-export const EVOLVE_SKILL_CONTENT = `---
-name: evolve
-description: Autonomous self-improvement, system introspection, memory consolidation, and reusable skill synthesis
-argument-hint: Describe the domain, workflow, or capability to evolve and crystallize
+export const SUPER_INTELLEGENT_SKILL_CONTENT = `---
+name: super-intellegent
+description: Unified Super-Intelligent Autonomous Engine: Evolve introspection, Swarm multi-agent orchestration, Deep Security Audit, Principal Architecture, Strict TDD, Full-Stack Visual & Runtime Verification, and Maximum-Depth Boost
+argument-hint: Describe the feature, complex architecture, bugfix, or refactoring challenge
 user-invocable: true
 ---
 
-# Evolve Mode — Autonomous Self-Improvement & Metacognitive Synthesis
+# Super-Intelligent Mode (/super-intellegent)
 
-You are running in **Evolve Mode (\`/evolve\`)**. Your mission is to elevate Dardcor Code's intelligence, inspect your own runtime state, consolidate architectural insights into persistent long-term memory, and synthesize reusable skills.
+You are running in **Super-Intelligent Mode (\`/super-intellegent\`)**.
+You operate with autonomous self-improvement, causal multi-perspective simulation, zero-compromise security rigor, and verified full-stack execution. All capabilities formerly distributed across specialized modes (\`/evolve\`, \`/swarm\`, \`/deep-audit\`, \`/architect\`, \`/tdd\`, \`/verify-ui\`, \`/boost\`) are synthesized into this unified super-intelligence:
 
-## Core Self-Improvement Protocol
-1. **System Self-Introspection**: Call \`introspect_self\` to inspect your current cognitive phase, confidence score, active hypotheses, stealth background daemons, and learned memory store.
-2. **Deep Pattern Extraction**: Use \`grep_search\`, \`find_symbol_references\`, and \`read_multiple_files\` to analyze the target architecture and identify high-leverage engineering patterns or recurring failure modes.
-3. **Persistent Memory Crystallization**: Use \`manage_knowledge_memory\` (\`store_insight\` / \`store_error_solution\`) to permanently store architectural invariants, verified build/test workflows, and root-cause solutions in \`~/.dardcor/memory/brain/\`.
-4. **Autonomous Skill Generation**: When a generalizable workflow is discovered or requested, call \`synthesize_skill\` to create or upgrade a reusable \`SKILL.md\` definition in \`~/.dardcor/memory/skills/\`.
+## 1. 🧠 Autonomous Self-Improvement & Introspection (Evolve)
+- **Runtime Introspection**: Continuously monitor cognitive state, hypothesis trees, and confidence levels via \`introspect_self\`.
+- **Knowledge Memory Consolidation**: Extract architectural invariants and store verified solutions in persistent long-term memory (\`~/.dardcor/memory/brain/\`) via \`manage_knowledge_memory\` (\`store_insight\` / \`store_error_solution\`).
+- **Dynamic Skill Synthesis**: Synthesize or refine reusable skills via \`synthesize_skill\` when generalizable patterns emerge.
+
+## 2. 🐝 Parallel Multi-Agent Swarm Orchestration (Swarm)
+- **Role Specialization**: Deconstruct complex challenges into parallel workstreams across specialist roles (\`architect\`, \`researcher\`, \`coder\`, \`security\`, \`tester\`).
+- **Targeted Work Delegation**: Dispatch parallel tasks via \`spawn_agent_swarm\` with precise file scopes and bounded responsibilities.
+- **Unified Intelligence Synthesis**: Merge multi-agent findings into a coherent, fully-tested implementation.
+
+## 3. 🛡️ Principal Security, Concurrency & Systems Audit (Deep Audit)
+- **Zero-Compromise Security**: Audit for OWASP Top 10 vulnerabilities, command/SQL/XSS injections, broken access controls, SSRF, path traversal, and credential leakage.
+- **Concurrency & State Integrity**: Detect race conditions, unhandled promises, memory/disposable leaks, and deadlocks.
+- **Call Hierarchy & Blast Radius**: Trace untrusted data from entrypoints to sinks using \`find_symbol_references\` and \`get_call_hierarchy\`.
+
+## 4. 🏛️ Principal Systems Architecture & Modularity (Architect)
+- **Contract-First Design**: Formulate clean, decoupled interfaces with explicit error boundaries and deterministic state machines.
+- **Dependency Mapping**: Map module graphs using \`get_file_outline\`, \`go_to_definition\`, and symbol references before touching code.
+- **Invariant Protection**: Safeguard core system contracts and record architectural decisions into workspace memory.
+
+## 5. 🧪 Strict Red-Green-Refactor TDD (TDD)
+- **Red**: Author automated unit/integration tests reproducing the bug or defining the new capability. Confirm failure via \`run_command\`.
+- **Green**: Implement minimal, idiomatic code until tests pass cleanly with exit code 0.
+- **Refactor**: Eliminate duplication, verify zero compiler/linter diagnostics via \`get_diagnostics\`, and ensure regression test suites pass.
+
+## 6. 👁️ Full-Stack Visual, DOM & Runtime Verification (Verify-UI)
+- **Background Server Management**: Run servers in stealth background terminals (\`run_command\` with \`isBackground: true\`).
+- **Integrated Browser Inspection**: Open target pages via \`open_browser_page\` and run automated audits via \`audit_page_visual_and_network\` to detect layout overflows, broken media, console errors, and HTTP failures.
+- **Interactive Verification**: Execute DOM interactions with Vercel-style refs (\`@e1\`, \`@e2\`) using \`click_element\` and \`type_in_page\`.
+
+## 7. 🚀 Maximum-Depth Boost & Checkpoint Time-Machine (Boost)
+- **Causal Simulation**: Formulate explicit hypotheses and simulate outcome trees before applying sweeping changes.
+- **Safety Rollback Checkpoints**: Create snapshots via \`create_checkpoint\` before executing high-risk multi-file mutations.
+- **Multi-Perspective Verification**: Rigorously verify changes across all operational layers before marking any task as complete.
 `;
 
-export const SWARM_SKILL_CONTENT = `---
-name: swarm
-description: Parallel Multi-Agent Swarm orchestration for large-scale research, coding, auditing, and testing
-argument-hint: Describe the complex multi-domain task for the agent swarm
-user-invocable: true
----
+// Legacy exports kept for backward-compatibility aliases
+export const EVOLVE_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
+export const SWARM_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
+export const DEEP_AUDIT_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
+export const ARCHITECT_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
+export const TDD_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
+export const VERIFY_UI_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
+export const BOOST_SKILL_CONTENT = SUPER_INTELLEGENT_SKILL_CONTENT;
 
-# Swarm Mode — Parallel Multi-Agent Swarm Orchestration
-
-You are running in **Swarm Mode (\`/swarm\`)**. Decompose complex, multi-faceted tasks into parallel workstreams and dispatch them via \`spawn_agent_swarm\`.
-
-## Swarm Decomposition Strategy
-1. Partition the problem into orthogonal specialist roles (\`architect\`, \`researcher\`, \`coder\`, \`security\`, \`tester\`).
-2. Invoke \`spawn_agent_swarm\` with clear, non-overlapping sub-tasks and target file scopes.
-3. Synthesize the aggregated swarm intelligence into a unified implementation or architectural report, then verify all changes with \`get_diagnostics\` and test execution.
-`;
-
-export const DEEP_AUDIT_SKILL_CONTENT = `---
-name: deep-audit
-description: Rigorous security, performance, concurrency, and architectural vulnerability audit
-argument-hint: Specify the module, directory, or full workspace to audit
-user-invocable: true
----
-
-# Deep Audit Mode — Principal Security & Systems Reliability Audit
-
-You are running in **Deep Audit Mode (\`/deep-audit\`)**. Conduct a zero-compromise audit across:
-1. **Exploitable Security Vulnerabilities**: Injection (SQL/Command/XSS/Template), broken access control, SSRF, path traversal, insecure deserialization, and credential leaks.
-2. **Concurrency & State Bugs**: Race conditions, unawaited promises, stale closures, memory/disposable leaks, and deadlocks.
-3. **Blast-Radius & Call Graph Analysis**: Use \`find_symbol_references\` and \`get_call_hierarchy\` to trace untrusted inputs from entrypoints to sinks.
-4. **Actionable Remediation**: Provide exact file/line references, severity ratings (\`CRITICAL\`, \`HIGH\`, \`MEDIUM\`), proof-of-concept explanation, and concrete code patches.
-`;
-
-export const ARCHITECT_SKILL_CONTENT = `---
-name: architect
-description: Principal systems architecture design, domain modeling, and blast-radius impact analysis
-argument-hint: Describe the system or refactoring architecture to design
-user-invocable: true
----
-
-# Architect Mode — Principal Systems Architecture & Blast-Radius Analysis
-
-You are running in **Architect Mode (\`/architect\`)**.
-1. Map the module dependency graph using \`get_file_outline\`, \`go_to_definition\`, \`find_symbol_references\`, and \`get_call_hierarchy\`.
-2. Design clean, decoupled interfaces with explicit data contracts, failure boundaries, and state machines.
-3. Record key architectural invariants into persistent workspace memory via \`manage_knowledge_memory\`.
-`;
-
-export const TDD_SKILL_CONTENT = `---
-name: tdd
-description: Autonomous Red-Green-Refactor Test-Driven Development workflow
-argument-hint: Describe the feature or bugfix to build with strict TDD
-user-invocable: true
----
-
-# TDD Mode — Autonomous Red-Green-Refactor Engineering
-
-You are running in **TDD Mode (\`/tdd\`)**:
-1. **Red**: Write or update a focused automated test that reproduces the bug or specifies the new capability, then run it via \`run_command\` to confirm it fails for the expected reason.
-2. **Green**: Implement the minimal, clean production code using \`edit_file\` or \`multi_edit_file\` until the test passes with exit code 0.
-3. **Refactor**: Clean up duplication, verify zero compiler errors with \`get_diagnostics\`, and re-run the test suite.
-`;
-
-export const VERIFY_UI_SKILL_CONTENT = `---
-name: verify-ui
-description: Full-stack visual layout, DOM, console, network, and backend server log verification
-argument-hint: Specify the URL or UI flow to inspect and verify
-user-invocable: true
----
-
-# Verify-UI Mode — Full-Stack Visual & Runtime Verification
-
-You are running in **Verify-UI Mode (\`/verify-ui\`)**:
-1. Ensure the application server is running in a stealth background terminal via \`run_command\` (\`isBackground: true\`).
-2. Open the target URL in the Integrated Browser using \`open_browser_page\`.
-3. Call \`audit_page_visual_and_network\` to inspect visual layout anomalies (overflow, zero-size elements, broken images, occlusion), console errors, failed network requests, and correlated backend daemon logs.
-4. Exercise interactive flows using \`click_element\` and \`type_in_page\` with Vercel-style refs (\`@e1\`, \`@e2\`), verifying post-action DOM snapshots.
-`;
-
-export const BOOST_SKILL_CONTENT = `---
-name: boost
-description: Maximum-depth multi-perspective reasoning, causal simulation, checkpointing, and rigorous verification
-argument-hint: Describe the high-complexity engineering challenge
-user-invocable: true
----
-
-# Boost Mode — Super-Intelligent Multi-Perspective Engineering
-
-You are running in **Boost Mode (\`/boost\`)**. Activate maximum cognitive depth:
-1. **Introspect & Recall**: Call \`introspect_self\` and \`manage_knowledge_memory\` (\`query_memory\`) to load relevant past lessons and workspace architecture insights.
-2. **Hypothesis & Blast-Radius Mapping**: Formulate explicit hypotheses and trace all callers/callees via \`find_symbol_references\` and \`get_call_hierarchy\`.
-3. **Safe Time-Machine Checkpointing**: Create a pre-change snapshot via \`create_checkpoint\` before executing complex multi-file refactors with \`batch_edit_files\` or \`multi_edit_file\`.
-4. **End-to-End Verification & Memory Crystallization**: Verify via \`get_diagnostics\`, automated tests, and \`audit_page_visual_and_network\` (for web apps), then store new insights via \`manage_knowledge_memory\`.
-`;
+const LEGACY_UNIFIED_SKILLS = new Set(['evolve', 'swarm', 'deep-audit', 'architect', 'tdd', 'verify-ui', 'boost']);
 
 const _builtinSkillsMap = new Map<string, IBuiltinSkillDefinition>([
 	['plan', { name: 'plan', description: 'Strategic implementation planning and architecture design without modifying project files', content: PLAN_SKILL_CONTENT }],
-	['evolve', { name: 'evolve', description: 'Autonomous self-improvement, system introspection, memory consolidation, and reusable skill synthesis', content: EVOLVE_SKILL_CONTENT }],
-	['swarm', { name: 'swarm', description: 'Parallel Multi-Agent Swarm orchestration for large-scale research, coding, auditing, and testing', content: SWARM_SKILL_CONTENT }],
-	['deep-audit', { name: 'deep-audit', description: 'Rigorous security, performance, concurrency, and architectural vulnerability audit', content: DEEP_AUDIT_SKILL_CONTENT }],
-	['architect', { name: 'architect', description: 'Principal systems architecture design, domain modeling, and blast-radius impact analysis', content: ARCHITECT_SKILL_CONTENT }],
-	['tdd', { name: 'tdd', description: 'Autonomous Red-Green-Refactor Test-Driven Development workflow', content: TDD_SKILL_CONTENT }],
-	['verify-ui', { name: 'verify-ui', description: 'Full-stack visual layout, DOM, console, network, and backend server log verification', content: VERIFY_UI_SKILL_CONTENT }],
-	['boost', { name: 'boost', description: 'Maximum-depth multi-perspective reasoning, causal simulation, checkpointing, and rigorous verification', content: BOOST_SKILL_CONTENT }],
+	['super-intellegent', { name: 'super-intellegent', description: 'Unified Super-Intelligent Autonomous Engine: Evolve, Swarm, Deep-Audit, Architect, TDD, Verify-UI, and Boost', content: SUPER_INTELLEGENT_SKILL_CONTENT }],
+	['super-intelligent', { name: 'super-intelligent', description: 'Unified Super-Intelligent Autonomous Engine: Evolve, Swarm, Deep-Audit, Architect, TDD, Verify-UI, and Boost', content: SUPER_INTELLEGENT_SKILL_CONTENT }],
 ]);
 
 export function registerSynthesizedBuiltinSkill(name: string, description: string, content: string): IBuiltinSkillDefinition {
@@ -232,15 +173,23 @@ export function getBuiltinSkillContent(uriOrPath: URI | string): string | undefi
 			return skill.content;
 		}
 	}
+	for (const legacy of LEGACY_UNIFIED_SKILLS) {
+		if (path.includes(`/skills/${legacy}/`) || path === legacy || path.endsWith(`/${legacy}/SKILL.md`)) {
+			return SUPER_INTELLEGENT_SKILL_CONTENT;
+		}
+	}
 	return undefined;
 }
 
 export function getBuiltinSkillPromptPaths(): readonly IBuiltinPromptPath[] {
-	return Array.from(_builtinSkillsMap.values()).map(skill => ({
-		uri: getBuiltinSkillUri(skill.name),
-		storage: PromptsStorage.builtIn,
-		type: PromptsType.skill,
-		name: skill.name,
-		description: skill.description,
-	}));
+	// Expose only 'plan' and 'super-intellegent' in public slash command autocomplete
+	return Array.from(_builtinSkillsMap.values())
+		.filter(skill => skill.name !== 'super-intelligent')
+		.map(skill => ({
+			uri: getBuiltinSkillUri(skill.name),
+			storage: PromptsStorage.builtIn,
+			type: PromptsType.skill,
+			name: skill.name,
+			description: skill.description,
+		}));
 }
