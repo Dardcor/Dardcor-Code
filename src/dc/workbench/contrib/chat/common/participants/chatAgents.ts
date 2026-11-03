@@ -4160,7 +4160,39 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						};
 					}
 
-					const list = normalized.items;
+					const isExplicitReplace = args?.replace === true || args?.operation === 'replace' || args?.action === 'replace';
+					let list: IChatTodo[];
+
+					if (existingTodos.length > 0 && !isExplicitReplace && normalized.items.length < existingTodos.length) {
+						// Smart merge: update matching items by ID or title similarity, or append new items
+						const merged: IChatTodo[] = existingTodos.map(existing => ({ ...existing }));
+						for (const item of normalized.items) {
+							let match = merged.find(m => m.id === item.id);
+							if (!match) {
+								const cleanTitle = item.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+								match = merged.find(m => {
+									const existingClean = m.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+									return existingClean === cleanTitle || existingClean.includes(cleanTitle) || cleanTitle.includes(existingClean);
+								});
+							}
+							if (match) {
+								match.status = item.status;
+								if (item.title && item.title.length > 3) {
+									match.title = item.title;
+								}
+							} else {
+								merged.push({
+									id: merged.length + 1,
+									title: item.title,
+									status: item.status
+								});
+							}
+						}
+						list = merged.map((item, idx) => ({ ...item, id: idx + 1 }));
+					} else {
+						list = normalized.items.map((item, idx) => ({ ...item, id: idx + 1 }));
+					}
+
 					todoService.setTodos(chatSessionResource, list);
 					const rendered = list.map(item => {
 						const icon = item.status === 'completed' ? '[x]' : item.status === 'in-progress' ? '[~]' : '[ ]';
@@ -6464,21 +6496,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					&& !!getDardcorBrowserVerificationRequirement(activeTaskPrompt, previousState);
 			}
 			if (taskIsTracked) {
-				if (canResume) {
+				const existingSessionTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+				if (canResume || existingSessionTodos.length > 0) {
 					const baseState = previousState ?? createChatAgentRunState('working');
 					runState = {
 						...baseState,
 						verificationPending: []
 					};
 					saveRunState({ status: 'working', stalledTurns: 0, lastError: undefined, taskPrompt: activeTaskPrompt, nextStep: baseState.nextStep || 'Review the checklist and continue from its first incomplete item.' });
-					const pendingTodos = todoListService?.getTodos(request.sessionResource) ?? [];
 					messages.push({
 						role: 'system',
-						content: `[Resumable Task Checkpoint]: Continue the saved task: ${activeTaskPrompt}. Prior status=${baseState.status}; completed agent turns=${baseState.turn}; current verification evidence=${baseState.verificationEvidence.filter(item => item.workspaceRevision === baseState.workspaceRevision).map(item => item.message).join(' | ') || 'none'}; stale historical evidence=${baseState.verificationEvidence.filter(item => item.workspaceRevision !== baseState.workspaceRevision).map(item => item.message).join(' | ') || 'none'}; workspace revision=${baseState.workspaceRevision}; unresolved verification failures=${baseState.verificationFailures.join(' | ') || 'none'}; browser actions=${baseState.browserActions}; last issue=${baseState.lastError || 'none'}; next step=${baseState.nextStep || 'review the checklist and continue from its first incomplete item'}. Current checklist: ${JSON.stringify(pendingTodos)}. Preserve completed work, apply any user path or requirement correction immediately, update the checklist, and continue from the first unfinished item until all checklist items are 100% completed.`
+						content: `[Resumable Task Checkpoint]: Continue the task: ${activeTaskPrompt}. Prior status=${baseState.status}; completed agent turns=${baseState.turn}; current verification evidence=${baseState.verificationEvidence.filter(item => item.workspaceRevision === baseState.workspaceRevision).map(item => item.message).join(' | ') || 'none'}; stale historical evidence=${baseState.verificationEvidence.filter(item => item.workspaceRevision !== baseState.workspaceRevision).map(item => item.message).join(' | ') || 'none'}; workspace revision=${baseState.workspaceRevision}; unresolved verification failures=${baseState.verificationFailures.join(' | ') || 'none'}; browser actions=${baseState.browserActions}; last issue=${baseState.lastError || 'none'}; next step=${baseState.nextStep || 'review the checklist and continue from its first incomplete item'}. Current checklist: ${JSON.stringify(existingSessionTodos)}. CRITICAL: Preserve completed work. If the user provided additional tasks, revisions, or questions, use manage_todo_list to append new tasks or update existing tasks, keeping completed items completed.`
 					});
 				} else {
 					runState = createChatAgentRunState('planning');
-					try { todoListService?.setTodos(request.sessionResource, []); } catch { }
 					saveRunState({ taskPrompt: trimmedPrompt.slice(0, 12000), nextStep: 'Create a checklist from the user requirements, then begin the first incomplete item.' });
 				}
 			}

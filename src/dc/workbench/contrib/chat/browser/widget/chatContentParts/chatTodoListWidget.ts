@@ -258,9 +258,7 @@ export class ChatTodoListWidget extends Disposable {
 			return;
 		}
 
-		const currentTodos = this.chatTodoListService.getTodos(sessionResource);
-		const shouldClear = force || (currentTodos.length > 0 && !currentTodos.some(todo => todo.status !== 'completed'));
-		if (shouldClear) {
+		if (force) {
 			this.clearAllTodos();
 		}
 	}

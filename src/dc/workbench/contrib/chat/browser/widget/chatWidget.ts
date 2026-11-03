@@ -2471,7 +2471,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		if (this.viewModel?.editing) {
 			this.finishedEditing();
 		}
-		this.inputPart?.clearTodoListWidget(model.sessionResource, false);
 		this.inputPart?.clearArtifactsWidget();
 		this.chatSuggestNextWidget.hide();
 		this.chatTipService.resetSession();
@@ -2563,7 +2562,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				this._updateAgentCapabilitiesContextKeys(e.agent);
 			}
 			if (e.kind === 'addRequest') {
-				this.inputPart?.clearTodoListWidget(this.viewModel?.sessionResource, false);
 				this._sessionIsEmptyContextKey.set(false);
 				this.chatSuggestNextWidget.hide();
 			}
@@ -2573,11 +2571,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				this._sessionIsEmptyContextKey.set((this.viewModel?.model.getRequests().length ?? 0) === 0);
 			}
 			if (e.kind === 'completedRequest') {
-				const lastRequest = this.viewModel?.model.getRequests().at(-1);
-				const wasCancelled = lastRequest?.response?.isCanceled ?? false;
-				if (wasCancelled) {
-					this.inputPart?.clearTodoListWidget(this.viewModel?.sessionResource, true);
-				}
 				this.renderChatSuggestNextWidget();
 
 			}
