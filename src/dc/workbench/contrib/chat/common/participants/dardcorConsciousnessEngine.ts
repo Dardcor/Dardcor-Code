@@ -138,7 +138,6 @@ export function recordConsciousToolAction(
 		state.actionHistory.splice(0, state.actionHistory.length - 80);
 	}
 
-	// Track file content hashes to detect ABAB / ABA edit oscillation
 	let fileOscillating = false;
 	if (isWriteOrEdit && target && typeof newFileContent === 'string') {
 		const contentHash = fastSemanticHash(newFileContent);
@@ -153,7 +152,6 @@ export function recordConsciousToolAction(
 		state.fileStateHashes.set(target, history);
 	}
 
-	// 1. Check identical failing tool call loop
 	const recent = state.actionHistory.slice(-6);
 	const identicalRecentFailures = recent.filter(a => !a.succeeded && a.fingerprint === fingerprint).length;
 	if (!succeeded && identicalRecentFailures >= 2) {
@@ -168,7 +166,6 @@ export function recordConsciousToolAction(
 		};
 	}
 
-	// 2. Check repeated edit failures on the same file or ABA content oscillation
 	const recentFileFailures = recent.filter(a => !a.succeeded && a.target === target && isWriteOrEdit).length;
 	if (fileOscillating || recentFileFailures >= 2) {
 		state.thrashCount++;
@@ -184,7 +181,6 @@ export function recordConsciousToolAction(
 		};
 	}
 
-	// 3. Check unfocused exploration loop (>10 consecutive read/search tools without hypothesis or action)
 	const recent10 = state.actionHistory.slice(-10);
 	const allReadOnly = recent10.length === 10 && recent10.every(a =>
 		['read_file', 'list_directory', 'find_files', 'search_code', 'grep_search'].includes(a.toolName)
@@ -225,9 +221,6 @@ function recalculateConfidence(state: IDardcorConsciousnessState): void {
 export function getMetacognitivePivotDirective(lang: DardcorSupportedLanguage, detection: IDardcorThrashDetection): string {
 	if (!detection.isThrashing) {
 		return '';
-	}
-	if (lang === 'id') {
-		return `\n[KESADARAN METAKOGNITIF DARDCOR — DETEKSI SIKLUS (${detection.kind})]:\nSistem kesadaran internal mendeteksi pola pengulangan tidak efektif pada "${detection.target ?? 'aksi terakhir'}" (${detection.repeatCount}x). DILARANG mengulangi pemanggilan alat dengan argumen yang sama. Arahan strategis: ${detection.recommendation}`;
 	}
 	return `\n[DARDCOR METACOGNITIVE CONSCIOUSNESS — THRASH DETECTED (${detection.kind})]:\nInternal self-awareness detected an unproductive loop on "${detection.target ?? 'recent action'}" (${detection.repeatCount}x). Do NOT repeat the identical tool invocation. Strategic pivot: ${detection.recommendation}`;
 }
@@ -272,7 +265,7 @@ export function formatConsciousnessTelemetry(
 	);
 
 	return [
-		`### 🧠 Dardcor Omega Self-Awareness & Introspection Telemetry`,
+		`### Dardcor Omega Self-Awareness & Introspection Telemetry`,
 		`- **Cognitive Phase**: \`${state.phase}\``,
 		`- **Metacognitive Confidence Score**: \`${(state.confidenceScore * 100).toFixed(0)}%\` (${state.successfulActionsCount} succeeded / ${state.failedActionsCount} failed / ${state.thrashCount} thrash pivots)`,
 		`- **Active Model Engine**: \`${extraContext.activeModel || 'Dardcor Cognitive Router Auto'}\``,
@@ -285,10 +278,6 @@ export function formatConsciousnessTelemetry(
 		extraContext.memorySummary ? `\n${extraContext.memorySummary}` : '',
 	].filter(Boolean).join('\n');
 }
-
-// ============================================================================
-// 4-Tier Intelligent Fuzzy & Anchor-Aware Patch Engine
-// ============================================================================
 
 export interface IFuzzyEditResult {
 	readonly matched: boolean;
@@ -314,7 +303,6 @@ export function applyIntelligentFuzzyEdit(
 	const normalizeEOL = (s: string) => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 	const restoreEOL = (s: string) => usesCRLF ? s.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : s;
 
-	// Tier 1: Exact substring match
 	const exactIdx = originalContent.indexOf(searchContent);
 	if (exactIdx !== -1) {
 		const updated = originalContent.slice(0, exactIdx)
@@ -323,7 +311,6 @@ export function applyIntelligentFuzzyEdit(
 		return { matched: true, tier: 'exact', updatedContent: updated };
 	}
 
-	// Tier 2: EOL-normalized exact match (\r\n <-> \n)
 	const normOrig = normalizeEOL(originalContent);
 	const normSearch = normalizeEOL(searchContent);
 	const normReplace = normalizeEOL(replaceContent);
@@ -340,7 +327,6 @@ export function applyIntelligentFuzzyEdit(
 		};
 	}
 
-	// Tier 3: Line-by-line trailing-whitespace & indentation-normalized match
 	const origLines = normOrig.split('\n');
 	const searchLines = normSearch.split('\n');
 	while (searchLines.length > 0 && searchLines[0].trim() === '') {
@@ -369,7 +355,6 @@ export function applyIntelligentFuzzyEdit(
 
 		if (matchIndices.length === 1) {
 			const startLineIdx = matchIndices[0];
-			// Preserve indentation delta on replacement lines if consistent
 			const origIndentMatch = origLines[startLineIdx].match(/^([ \t]*)/);
 			const searchIndentMatch = searchLines[0].match(/^([ \t]*)/);
 			const origLead = origIndentMatch ? origIndentMatch[1] : '';
@@ -398,7 +383,6 @@ export function applyIntelligentFuzzyEdit(
 		}
 	}
 
-	// Tier 4: Anchor-context fuzzy match (first & last non-empty lines + >= 80% middle similarity)
 	if (searchLines.length >= 3 && searchLines.length <= origLines.length) {
 		const firstTrimmed = searchLines[0].trim();
 		const lastTrimmed = searchLines[searchLines.length - 1].trim();
@@ -408,7 +392,6 @@ export function applyIntelligentFuzzyEdit(
 			if (origLines[i].trim() !== firstTrimmed) {
 				continue;
 			}
-			// Allow slight line count drift (-2 to +2 lines)
 			const minLen = Math.max(2, searchLines.length - 2);
 			const maxLen = Math.min(origLines.length - i, searchLines.length + 2);
 			for (let len = minLen; len <= maxLen; len++) {
@@ -416,7 +399,6 @@ export function applyIntelligentFuzzyEdit(
 				if (origLines[endIdx].trim() !== lastTrimmed) {
 					continue;
 				}
-				// Score internal line similarity
 				let matches = 2;
 				const sliceTrimmed = origLines.slice(i + 1, endIdx).map(l => l.trim()).filter(Boolean);
 				const searchInner = searchLines.slice(1, -1).map(l => l.trim()).filter(Boolean);
@@ -454,10 +436,6 @@ export function applyIntelligentFuzzyEdit(
 		failureReason: 'searchContent was not found in the file across all 4 matching tiers (Exact, EOL-Normalized, Indentation-Normalized, and Anchor-Fuzzy). Read the target section with read_file first to get the current lines.',
 	};
 }
-
-// ============================================================================
-// Shadow Time-Machine Checkpoint Manager
-// ============================================================================
 
 export interface IDardcorFileSnapshot {
 	readonly uri: URI;
@@ -512,7 +490,6 @@ export async function createWorkspaceCheckpoint(
 	};
 	_workspaceCheckpoints.set(id, checkpoint);
 
-	// Keep max 25 checkpoints in memory
 	if (_workspaceCheckpoints.size > 25) {
 		const oldestKey = _workspaceCheckpoints.keys().next().value;
 		if (oldestKey) {

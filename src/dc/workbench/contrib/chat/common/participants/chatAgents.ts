@@ -48,7 +48,7 @@ import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel
 import { ILanguageModelsService } from '../languageModels.js';
 import { ChatPerfMark, markChat } from '../chatPerf.js';
 import { IMarkerService, MarkerSeverity } from '../../../../../platform/markers/common/markers.js';
-import { formatDardcorRouterError, parseDardcorRouterError, parseResetSeconds, cleanMessageText, formatModelDisplayName, diagnoseProviderIssue } from './dardcorRouterError.js';
+import { formatDardcorRouterError, parseDardcorRouterError, cleanMessageText, formatModelDisplayName, diagnoseProviderIssue } from './dardcorRouterError.js';
 import { ChatQuestionCarouselData } from '../model/chatProgressTypes/chatQuestionCarouselData.js';
 import { ChatPlanReviewData } from '../model/chatProgressTypes/chatPlanReviewData.js';
 import { TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
@@ -57,7 +57,7 @@ import { IBrowserViewWorkbenchService } from '../../../browserView/common/browse
 import { linesDiffComputers } from '../../../../../editor/common/diff/linesDiffComputers.js';
 import { type IChatTodo, IChatTodoListService, normalizeTodoListArgs } from '../tools/chatTodoListService.js';
 import { createChatAgentRunState, IChatAgentRunState, IChatAgentRunStateService, updateChatAgentRunState } from '../tools/agentRunStateService.js';
-import { commandApprovalKey, compactDardcorAgentMessages, DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS, detectDardcorLanguage, formatDardcorVerificationLabel, getDardcorAutonomousMomentumDirective, getDardcorAutonomousSelfCorrectionDirective, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorLanguageName, getDardcorLocaleStrings, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorAutonomousTask, isDardcorBrowserTest, isDardcorContinuation, isDardcorLowRiskCommand, parseDardcorAgentToolArguments, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction } from './dardcorAgentRunPolicy.js';
+import { commandApprovalKey, compactDardcorAgentMessages, DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS, DARDCOR_AGENT_MAX_CONTEXT_CHARS, DARDCOR_AGENT_TARGET_CONTEXT_CHARS, detectDardcorLanguage, formatDardcorVerificationLabel, getDardcorAutonomousMomentumDirective, getDardcorAutonomousSelfCorrectionDirective, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorLanguageName, getDardcorLocaleStrings, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, isDardcorAutonomousTask, isDardcorBrowserTest, isDardcorContinuation, isDardcorLowRiskCommand, parseDardcorAgentToolArguments, requiresDardcorToolConfirmation, revalidateDardcorCompletion, summarizeDardcorToolAction } from './dardcorAgentRunPolicy.js';
 import { DardcorAgentToolRuntime, formatAgentToolError, isAgentToolExecutionStatus } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
 import type { AgentToolExecutionStatus, AgentToolRisk, AgentToolSource } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
 import { applyIntelligentFuzzyEdit, createWorkspaceCheckpoint, formatConsciousnessTelemetry, getMetacognitivePivotDirective, listWorkspaceCheckpoints, recordConsciousToolAction, restoreWorkspaceCheckpoint, upsertHypothesis } from './dardcorConsciousnessEngine.js';
@@ -5872,7 +5872,6 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					&& isFullAccessActive();
 				if (hasFatalModelOrRouterError || isBlocked) {
 					const diagnosis = diagnoseProviderIssue(0, blocker || runState?.lastError || '', modelName, lang);
-					const badgeIcon = diagnosis.category === 'DOWN' ? '🔴' : diagnosis.category === 'LIMIT' ? '⏳' : '⚠️';
 					const categoryName = diagnosis.category === 'DOWN'
 						? (lang === 'id' ? 'SERVER PROVIDER DOWN' : 'PROVIDER SERVER DOWN')
 						: diagnosis.category === 'LIMIT'
@@ -5881,17 +5880,17 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 					lines.push(
 						'',
-						`> ${badgeIcon} **[${categoryName}] ${diagnosis.provider} — ${diagnosis.model}**`,
+						`> **[${categoryName}] ${diagnosis.provider} — ${diagnosis.model}**`,
 						`> *${diagnosis.description}*`,
 						'',
-						`> 💡 ${lang === 'id'
+						`> ${lang === 'id'
 							? 'Pilih model lain pada pemilih model di kanan bawah — tugas akan **otomatis dilanjutkan** seketika tanpa perlu mengetik continue.'
 							: 'Select another model in the bottom-right model picker — the task will **auto-resume** immediately without manual typing.'}`
 					);
 				} else if (shouldAutoResumeIncompleteTodos) {
 					lines.push('', `> **${i18n.autoContinueActive}**`);
 				} else {
-					lines.push('', `> 💡 ${lang === 'id' ? 'Tugas dijeda sementara. Pilih model lain untuk melanjutkan otomatis.' : 'Task paused. Select another model to auto-resume.'}`);
+					lines.push('', `> ${lang === 'id' ? 'Tugas dijeda sementara. Pilih model lain untuk melanjutkan otomatis.' : 'Task paused. Select another model to auto-resume.'}`);
 				}
 			}
 
@@ -6497,7 +6496,12 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 			}
 			if (taskIsTracked) {
 				const existingSessionTodos = todoListService?.getTodos(request.sessionResource) ?? [];
-				if (canResume || existingSessionTodos.length > 0) {
+				const allTodosCompleted = existingSessionTodos.length > 0 && existingSessionTodos.every(t => t.status === 'completed');
+				if (allTodosCompleted && !isContinuation) {
+					activeTaskPrompt = trimmedPrompt;
+					runState = createChatAgentRunState('planning');
+					saveRunState({ status: 'working', taskPrompt: activeTaskPrompt.slice(0, 12000), nextStep: 'Analyze the new user request and begin execution.' });
+				} else if (canResume || existingSessionTodos.length > 0) {
 					const baseState = previousState ?? createChatAgentRunState('working');
 					runState = {
 						...baseState,
@@ -6696,8 +6700,14 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 					}
 					const guardReason = getDardcorRunGuardReason(contextChars);
 					if (guardReason) {
-						saveRunState({ status: 'paused', lastError: guardReason, nextStep: 'Resume this task after reviewing the saved checklist and first unfinished item.' });
-						break;
+						const forceCompaction = compactDardcorAgentMessages(messages, DARDCOR_AGENT_TARGET_CONTEXT_CHARS, 1);
+						if (forceCompaction.compactedChars < DARDCOR_AGENT_MAX_CONTEXT_CHARS) {
+							messages = forceCompaction.messages;
+							contextChars = forceCompaction.compactedChars;
+						} else {
+							saveRunState({ status: 'paused', lastError: guardReason, nextStep: 'Resume this task after reviewing the saved checklist and first unfinished item.' });
+							break;
+						}
 					}
 				}
 				turn++;
@@ -6845,8 +6855,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 
 						const retryHeader = res.headers?.get?.('Retry-After');
 						const cooldownSec = parsedError.resetAfterSec
-							|| (retryHeader ? parseInt(retryHeader, 10) : undefined)
-							|| parseResetSeconds(errorText);
+							|| (retryHeader ? parseInt(retryHeader, 10) : undefined);
 
 						const isTransientCooldown = !isNonRetryable && cooldownSec !== undefined && cooldownSec > 0 && cooldownSec <= 120;
 
@@ -6854,8 +6863,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							const lang = detectDardcorLanguage(activeTaskPrompt);
 							const modelDisplayName = formatModelDisplayName(parsedError.model || modelName || 'Model');
 							const waitNotice = lang === 'id'
-								? `⏳ *[Sistem Menunggu]* Kuota model **${modelDisplayName}** sedang cooldown oleh provider. Menunggu otomatis selama **${cooldownSec} detik** sebelum melanjutkan... (Auto-resume aktif)`
-								: `⏳ *[System Waiting]* Model **${modelDisplayName}** is currently on provider cooldown. Waiting **${cooldownSec}s** before automatically resuming... (Auto-resume active)`;
+								? `*[Sistem Menunggu]* Kuota model **${modelDisplayName}** sedang cooldown oleh provider. Menunggu otomatis selama **${cooldownSec} detik** sebelum melanjutkan... (Auto-resume aktif)`
+								: `*[System Waiting]* Model **${modelDisplayName}** is currently on provider cooldown. Waiting **${cooldownSec}s** before automatically resuming... (Auto-resume active)`;
 
 							progress([{
 								kind: 'markdownContent',
@@ -6907,8 +6916,8 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 									progress([{
 										kind: 'markdownContent',
 										content: new MarkdownString(lang === 'id'
-											? `\n\n> ⚡ *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** mencapai batas kuota/gangguan. Beralih otomatis ke **${newDisplay}** untuk melanjutkan eksekusi tanpa henti...\n\n`
-											: `\n\n> ⚡ *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** reached quota/downtime limit. Automatically failing over to **${newDisplay}** to continue execution seamlessly...\n\n`)
+											? `\n\n> *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** mencapai batas kuota/gangguan. Beralih otomatis ke **${newDisplay}** untuk melanjutkan eksekusi tanpa henti...\n\n`
+											: `\n\n> *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** reached quota/downtime limit. Automatically failing over to **${newDisplay}** to continue execution seamlessly...\n\n`)
 									}]);
 									responseErrorText = undefined;
 									continue;
@@ -7102,7 +7111,26 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							throw new Error('Router stream contained malformed frames alongside tool calls; partial actions were not executed.');
 						}
 						if (toolCallsMap.size > 0 && !sawStreamTerminal && !token.isCancellationRequested) {
-							throw new Error('Router stream ended before a terminal frame; partial tool calls were not executed.');
+							const invalidIndices: number[] = [];
+							for (const [idx, call] of toolCallsMap.entries()) {
+								if (!call.name || !call.name.trim()) {
+									invalidIndices.push(idx);
+									continue;
+								}
+								try {
+									if (call.arguments) JSON.parse(call.arguments);
+								} catch {
+									invalidIndices.push(idx);
+								}
+							}
+							for (const idx of invalidIndices) {
+								toolCallsMap.delete(idx);
+							}
+							if (toolCallsMap.size > 0 || streamedAssistantText.trim().length > 0) {
+								sawStreamTerminal = true;
+							} else {
+								throw new Error('Router stream ended before a terminal frame; partial tool calls were not executed.');
+							}
 						}
 						streamSucceeded = true;
 					} catch (streamErr: any) {
@@ -7134,7 +7162,18 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 						: `The Router response stream did not complete after ${MAX_STREAM_RETRIES} attempts${lastStreamError instanceof Error ? `: ${lastStreamError.message}` : '.'}`;
 					if (taskIsTracked) {
 						const status = token.isCancellationRequested ? 'paused' : 'blocked';
-						saveRunState({ status, lastError: reason, nextStep: 'Periksa koneksi router atau pilih model lain, lalu kirim continue.' });
+						const turnLang = detectDardcorLanguage(activeTaskPrompt);
+						const localizedNextStep: Record<string, string> = {
+							id: 'Periksa koneksi router atau pilih model lain, lalu lanjutkan.',
+							ja: 'ルーターの接続を確認するか、別のモデルを選択して再開してください。',
+							zh: '请检查路由器连接或选择其他模型，然后继续。',
+							ko: '라우터 연결을 확인하거나 다른 모델을 선택한 후 다시 시작하십시오.',
+							es: 'Verifique la conexión del enrutador o seleccione otro modelo y luego reanude.',
+							fr: 'Vérifiez la connexion du routeur ou sélectionnez un autre modèle, puis reprenez.',
+							de: 'Überprüfen Sie die Router-Verbindung oder wählen Sie ein anderes Modell und setzen Sie fort.',
+							en: 'Check router connection or select another model, then resume.'
+						};
+						saveRunState({ status, lastError: reason, nextStep: localizedNextStep[turnLang] || localizedNextStep['en'] });
 					} else {
 						progress([{ kind: 'markdownContent', content: new MarkdownString(`Router response was incomplete and no partial tool call was executed. ${reason}`) }]);
 					}
@@ -7195,9 +7234,20 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 								parseError: undefined
 							});
 						}
+						const turnLang = detectDardcorLanguage(activeTaskPrompt);
+						const localizedInitText: Record<string, string> = {
+							id: '\n\n*(Inisialisasi agen otonom & sinkronisasi workspace...)*\n\n',
+							ja: '\n\n*(自律エージェントの初期化とワークスペースの同期中...)*\n\n',
+							zh: '\n\n*(初始化自主代理并同步工作区...)*\n\n',
+							ko: '\n\n*(자율 에이전트 초기化 및 워크스페이스 동기화 중...)*\n\n',
+							es: '\n\n*(Inicializando agente autónomo y sincronizando espacio de trabajo...)*\n\n',
+							fr: '\n\n*(Initialisation de l\'agent autonome et synchronisation de l\'espace de travail...)*\n\n',
+							de: '\n\n*(Autonomer Agent wird initialisiert und Arbeitsbereich synchronisiert...)*\n\n',
+							en: '\n\n*(Initializing autonomous agent & syncing workspace...)*\n\n'
+						};
 						progress([{
 							kind: 'markdownContent',
-							content: new MarkdownString('\n\n*(Memaksa inisialisasi agen otonom & sinkronisasi workspace...)*\n\n')
+							content: new MarkdownString(localizedInitText[turnLang] || localizedInitText['en'])
 						}]);
 					}
 				}
@@ -7813,9 +7863,7 @@ export class ChatAgentService extends Disposable implements IChatAgentService {
 							});
 							const isMonologue = isInternalThinkingMonologue(streamedAssistantText);
 							const directive = isMonologue
-								? (userLang === 'id'
-									? `[System Autonomous Guard]: Anda menuliskan rencana pemikiran internal ("${streamedAssistantText.slice(0, 150)}...") tetapi belum memanggil tool. Tugas "${nextItem.title}" belum selesai (${allTodos.length - incompleteTodos.length}/${allTodos.length} selesai). Anda WAJIB langsung mengeksekusi tool (write_file, edit_file, run_command, dll.) sekarang tanpa menunda.`
-									: `[System Autonomous Guard]: You outputted internal scratchpad thoughts ("${streamedAssistantText.slice(0, 150)}...") but did NOT invoke a tool. Task "${nextItem.title}" is still unfinished (${allTodos.length - incompleteTodos.length}/${allTodos.length} done). You MUST invoke an action tool (write_file, edit_file, run_command, etc.) right now to perform the implementation.`)
+								? `[System Autonomous Guard]: You outputted internal scratchpad thoughts ("${streamedAssistantText.slice(0, 150)}...") but did NOT invoke a tool. Task "${nextItem.title}" is still unfinished (${allTodos.length - incompleteTodos.length}/${allTodos.length} done). You MUST invoke an action tool (write_file, edit_file, run_command, etc.) right now to perform the implementation.`
 								: getDardcorAutonomousMomentumDirective(userLang, allTodos.length - incompleteTodos.length, allTodos.length, nextItem);
 							messages.push({
 								role: 'user',

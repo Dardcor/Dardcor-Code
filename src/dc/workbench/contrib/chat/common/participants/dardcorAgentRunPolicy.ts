@@ -395,10 +395,6 @@ export interface IDardcorCompactionResult {
 	readonly compactedItemsCount: number;
 }
 
-/**
- * In-flight compaction of past tool results and large payloads in messages array,
- * keeping the conversation lean, fast, and safely within context budget.
- */
 export function compactDardcorAgentMessages(
 	messages: readonly any[],
 	targetChars: number = DARDCOR_AGENT_TARGET_CONTEXT_CHARS,
@@ -440,7 +436,6 @@ export function compactDardcorAgentMessages(
 		return `${head}\n\n... [${content.length - 350} chars compacted from older ${toolHint} tool output to preserve context budget]\n${preservedMetadata}`.trim();
 	};
 
-	// Pass 1: Prune multimodal base64 screenshots in older turns
 	for (let i = 1; i < cutoffIndex; i++) {
 		const msg = cloned[i];
 		if (Array.isArray(msg?.content)) {
@@ -464,7 +459,6 @@ export function compactDardcorAgentMessages(
 		return { messages: cloned, originalChars, compactedChars: currentChars, compactedItemsCount: compactedCount };
 	}
 
-	// Pass 2: Compact older tool messages ('role: tool') and text-tool fallback user messages
 	for (let i = 1; i < cutoffIndex; i++) {
 		const msg = cloned[i];
 		if (msg?.role === 'tool' && typeof msg.content === 'string') {
@@ -487,7 +481,6 @@ export function compactDardcorAgentMessages(
 		return { messages: cloned, originalChars, compactedChars: currentChars, compactedItemsCount: compactedCount };
 	}
 
-	// Pass 3: Compact large file contents in older assistant tool_calls arguments (e.g. write_file/edit_file)
 	for (let i = 1; i < cutoffIndex; i++) {
 		const msg = cloned[i];
 		if (msg?.role === 'assistant' && Array.isArray(msg.tool_calls)) {
@@ -507,6 +500,24 @@ export function compactDardcorAgentMessages(
 	}
 
 	currentChars = JSON.stringify(cloned).length;
+	if (currentChars <= targetChars) {
+		return { messages: cloned, originalChars, compactedChars: currentChars, compactedItemsCount: compactedCount };
+	}
+
+	if (currentChars > targetChars && cutoffIndex > 2) {
+		const head = cloned.slice(0, 2);
+		const tail = cloned.slice(cutoffIndex);
+		const summaryMsg = {
+			role: 'user',
+			content: `[Historical Conversation Checkpoint Summary]: Prior conversation turns and intermediate steps (${cutoffIndex - 2} messages) have been compacted into memory. Active workspace state, file modifications, and ongoing checklist items are preserved.`
+		};
+		const rolled = [...head, summaryMsg, ...tail];
+		const rolledChars = JSON.stringify(rolled).length;
+		if (rolledChars < currentChars) {
+			return { messages: rolled, originalChars, compactedChars: rolledChars, compactedItemsCount: compactedCount + (cutoffIndex - 2) };
+		}
+	}
+
 	return { messages: cloned, originalChars, compactedChars: currentChars, compactedItemsCount: compactedCount };
 }
 
@@ -672,7 +683,6 @@ export function formatDardcorVerificationLabel(command: string): string {
 		return '.NET Test Suite';
 	}
 
-	// If the command does not match any recognized test/verification suite, it is NOT verification evidence
 	return '';
 }
 
@@ -783,28 +793,22 @@ export function detectDardcorLanguage(text: string | undefined): DardcorSupporte
 		return 'en';
 	}
 
-	// 1. Script-based high-confidence checks
 	if (/[\u0600-\u06FF]/.test(trimmed)) {
 		return 'ar';
 	}
-	// Japanese: Hiragana or Katakana presence is unique to Japanese
 	if (/[\u3040-\u309F\u30A0-\u30FF]/.test(trimmed)) {
 		return 'ja';
 	}
-	// Korean: Hangul syllables or jamo
 	if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(trimmed)) {
 		return 'ko';
 	}
-	// Russian / Cyrillic
 	if (/[\u0400-\u04FF]/.test(trimmed)) {
 		return 'ru';
 	}
-	// Chinese: CJK Ideographs without Japanese kana
 	if (/[\u4E00-\u9FFF]/.test(trimmed)) {
 		return 'zh';
 	}
 
-	// 2. Lexical scoring for Latin-script languages
 	const scores: Record<DardcorSupportedLanguage, number> = {
 		id: 0, es: 0, fr: 0, de: 0, pt: 0, it: 0, nl: 0, tr: 0, vi: 0, en: 0,
 		ar: 0, ja: 0, ko: 0, ru: 0, zh: 0
@@ -885,7 +889,6 @@ export interface IDardcorLocaleStrings {
 	readonly autoContinueActive: string;
 	readonly sendContinueToResume: string;
 	readonly resumeDefault: string;
-	// Localized tool and action confirmation dialog strings
 	readonly confirmAgentActionHeader: string;
 	readonly confirmTerminalHeader: string;
 	readonly confirmAgentActionQuestion: string;

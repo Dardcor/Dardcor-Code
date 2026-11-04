@@ -402,11 +402,12 @@ export function createSSEStream(options = {}) {
           openAIResponsesTerminalSeen = true;
         }
 
-        if (keepsOpenAIResponsesFormat && !openAIResponsesDoneSent && !streamDoneSent) {
+        const isOpenAIFormat = sourceFormat === FORMATS.OPENAI;
+        if ((keepsOpenAIResponsesFormat || isOpenAIFormat) && !openAIResponsesDoneSent && !streamDoneSent) {
           const doneOutput = "data: [DONE]\n\n";
           reqLogger?.appendConvertedChunk?.(doneOutput);
           controller.enqueue(sharedEncoder.encode(doneOutput));
-          openAIResponsesDoneSent = true;
+          if (keepsOpenAIResponsesFormat) openAIResponsesDoneSent = true;
           streamDoneSent = true;
         }
 

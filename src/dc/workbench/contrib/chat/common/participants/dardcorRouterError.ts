@@ -1,11 +1,16 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
 export function parseResetSeconds(delayStr?: string): number | undefined {
 	if (!delayStr) {
 		return undefined;
 	}
 	const str = delayStr.trim();
-	const hMatch = str.match(/(\d+)\s*h(?:ours?|r)?/i);
-	const mMatch = str.match(/(\d+)\s*m(?:in(?:utes?)?)?/i);
-	const sMatch = str.match(/(\d+(?:\.\d+)?)\s*s(?:ec(?:onds?)?)?/i);
+	const hMatch = str.match(/\b(\d+)\s*(?:h|hours?|hrs?)\b/i);
+	const mMatch = str.match(/\b(\d+)\s*(?:m|min|mins?|minutes?)\b/i);
+	const sMatch = str.match(/\b(\d+(?:\.\d+)?)\s*(?:s|sec|secs?|seconds?)\b/i);
 	if (hMatch || mMatch || sMatch) {
 		const h = hMatch ? parseInt(hMatch[1], 10) : 0;
 		const m = mMatch ? parseInt(mMatch[1], 10) : 0;
@@ -13,18 +18,12 @@ export function parseResetSeconds(delayStr?: string): number | undefined {
 		const total = h * 3600 + m * 60 + Math.ceil(s);
 		return total > 0 ? total : undefined;
 	}
-	const numMatch = str.match(/\b(\d+(?:\.\d+)?)\b/);
-	if (numMatch) {
-		const num = parseFloat(numMatch[1]);
+	if (/^\s*\d+(?:\.\d+)?\s*$/.test(str)) {
+		const num = parseFloat(str);
 		return !isNaN(num) && num > 0 ? Math.ceil(num) : undefined;
 	}
 	return undefined;
 }
-
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Dardcor Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
 
 export interface IParsedRouterError {
 	statusCode: number;
@@ -508,7 +507,6 @@ function formatProviderDisplayName(provider?: string): string {
 	return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
 
-
 export type DardcorProviderIssueCategory = 'DOWN' | 'LIMIT' | 'ERROR';
 
 export interface IDardcorProviderDiagnosis {
@@ -519,87 +517,176 @@ export interface IDardcorProviderDiagnosis {
 	description: string;
 }
 
+const DIAGNOSIS_I18N: Record<string, {
+	downTitle: string;
+	limitTitle: string;
+	errorTitle: string;
+	downDesc: (provider: string, cause: string) => string;
+	limitDesc: (provider: string, model: string, reset: string) => string;
+	errorDesc: (provider: string, cause: string) => string;
+	upstreamUnreachable: string;
+	domainUnreachable: (host: string) => string;
+	timeout: string;
+	refused: string;
+	badGateway: string;
+	gatewayTimeout: string;
+	paidRequired: string;
+	insufficientCredits: string;
+	credentialsExpired: string;
+	modelNotFound: string;
+	configError: string;
+	resetIn: (delay: string) => string;
+}> = {
+	id: {
+		downTitle: 'Server Provider Down',
+		limitTitle: 'Batas Kuota / Rate Limit Tercapai',
+		errorTitle: 'Kendala Provider',
+		downDesc: (p, c) => `Server provider ${p} sedang down atau tidak dapat dijangkau: ${c}.`,
+		limitDesc: (p, m, r) => `Batas kuota atau kecepatan (rate-limit) model ${m} pada provider ${p} telah tercapai${r}.`,
+		errorDesc: (p, c) => `Kendala akses pada provider ${p}: ${c}.`,
+		upstreamUnreachable: 'Server upstream tidak dapat dijangkau',
+		domainUnreachable: (h) => `Domain upstream (${h}) tidak dapat dihubungi atau server sedang down`,
+		timeout: 'Waktu koneksi ke server upstream habis (timeout)',
+		refused: 'Koneksi ditolak oleh server provider',
+		badGateway: 'Gateway provider merespons HTTP 502 Bad Gateway',
+		gatewayTimeout: 'Gateway provider mengalami timeout (HTTP 504)',
+		paidRequired: 'Model ini memerlukan paket berbayar atau langganan aktif',
+		insufficientCredits: 'Saldo akun tidak mencukupi untuk model berbayar',
+		credentialsExpired: 'Kredensial atau token API kedaluwarsa atau tidak valid',
+		modelNotFound: 'Model tidak ditemukan pada provider upstream',
+		configError: 'Terjadi kesalahan konfigurasi atau autentikasi',
+		resetIn: (d) => ` (Reset dalam: ${d})`
+	},
+	en: {
+		downTitle: 'Provider Server Down',
+		limitTitle: 'Quota / Rate Limit Exceeded',
+		errorTitle: 'Provider Error',
+		downDesc: (p, c) => `The ${p} provider server is currently down or unreachable: ${c}.`,
+		limitDesc: (p, m, r) => `The quota or rate-limit for model ${m} on provider ${p} has been reached${r}.`,
+		errorDesc: (p, c) => `Access error on provider ${p}: ${c}.`,
+		upstreamUnreachable: 'Upstream server is unreachable',
+		domainUnreachable: (h) => `Upstream host (${h}) could not be resolved or server is down`,
+		timeout: 'Upstream connection timed out',
+		refused: 'Connection refused by upstream provider',
+		badGateway: 'Gateway responded with HTTP 502 Bad Gateway',
+		gatewayTimeout: 'Gateway timed out (HTTP 504)',
+		paidRequired: 'This model requires a paid plan or active subscription',
+		insufficientCredits: 'Insufficient account credits for this model',
+		credentialsExpired: 'Account credentials or API token expired/invalid',
+		modelNotFound: 'Model not found on upstream provider',
+		configError: 'Configuration or authentication error encountered',
+		resetIn: (d) => ` (Resets in: ${d})`
+	},
+	ja: {
+		downTitle: 'プロバイダーサーバーダウン',
+		limitTitle: 'クォータ / レート制限超過',
+		errorTitle: 'プロバイダーエラー',
+		downDesc: (p, c) => `プロバイダー ${p} のサーバーがダウンしているか接続できません: ${c}。`,
+		limitDesc: (p, m, r) => `プロバイダー ${p} のモデル ${m} のクォータまたはレート制限に達しました${r}。`,
+		errorDesc: (p, c) => `プロバイダー ${p} へのアクセスエラー: ${c}。`,
+		upstreamUnreachable: 'アップストリームサーバーに接続できません',
+		domainUnreachable: (h) => `アップストリームホスト (${h}) に接続できないかサーバーがダウンしています`,
+		timeout: 'アップストリーム接続がタイムアウトしました',
+		refused: 'プロバイダーサーバーにより接続が拒否されました',
+		badGateway: 'HTTP 502 Bad Gateway が返されました',
+		gatewayTimeout: 'ゲートウェイがタイムアウトしました (HTTP 504)',
+		paidRequired: 'このモデルには有料プランまたはアクティブなサブスクリプションが必要です',
+		insufficientCredits: 'このモデルを使用するためのアカウント残高が不足しています',
+		credentialsExpired: '認証情報またはAPIトークンの期限が切れているか無効です',
+		modelNotFound: 'アップストリームプロバイダーでモデルが見つかりません',
+		configError: '設定または認証エラーが発生しました',
+		resetIn: (d) => ` (リセットまで: ${d})`
+	},
+	zh: {
+		downTitle: '提供商服务器宕机',
+		limitTitle: '配额 / 速率限制已超',
+		errorTitle: '提供商错误',
+		downDesc: (p, c) => `提供商 ${p} 服务器当前宕机或无法连接：${c}。`,
+		limitDesc: (p, m, r) => `提供商 ${p} 上的模型 ${m} 配额或速率限制已耗尽${r}。`,
+		errorDesc: (p, c) => `提供商 ${p} 访问错误：${c}。`,
+		upstreamUnreachable: '上游服务器无法访问',
+		domainUnreachable: (h) => `无法解析上游主机 (${h}) 或服务器已宕机`,
+		timeout: '连接上游服务器超时',
+		refused: '上游提供商拒绝连接',
+		badGateway: '网关返回 HTTP 502 Bad Gateway',
+		gatewayTimeout: '网关超时 (HTTP 504)',
+		paidRequired: '该模型需要付费计划或有效订阅',
+		insufficientCredits: '该模型账户积分不足',
+		credentialsExpired: '账户凭证或 API Token 已过期或无效',
+		modelNotFound: '在上游提供商中未找到该模型',
+		configError: '发生配置或身份验证错误',
+		resetIn: (d) => ` (重置时间：${d})`
+	}
+};
+
 export function diagnoseProviderIssue(statusCode: number, rawError: string, modelId?: string, lang: string = 'en'): IDardcorProviderDiagnosis {
 	const parsed = parseDardcorRouterError(statusCode, rawError, modelId);
 	const model = formatModelDisplayName(parsed.model || modelId || 'Unknown Model');
 	const provider = formatProviderDisplayName(parsed.provider);
 	const text = `${rawError || ''} ${parsed.userMessage || ''} ${parsed.technicalDetails || ''}`;
 	const lower = text.toLowerCase();
-	const isIndonesian = lang === 'id';
+	const loc = DIAGNOSIS_I18N[lang] || DIAGNOSIS_I18N.en;
 
-	// 1. DOWN: Server unreachable, DNS failure, 502 Bad Gateway, 504 Gateway Timeout, connection refused/reset, network drops
 	const isDown = statusCode === 502 || statusCode === 504 ||
 		(statusCode === 503 && !parsed.resetDelay && !parsed.resetAfterSec && !parsed.isQuotaExhausted) ||
 		/enotfound|econnrefused|econnreset|etimedout|err_timed_out|connect timeout|fetch failed|server unreachable|bad gateway|gateway error|network error|connection lost/i.test(text);
 
 	if (isDown) {
-		let cause = isIndonesian ? 'Server upstream tidak dapat dijangkau' : 'Upstream server is unreachable';
+		let cause = loc.upstreamUnreachable;
 		const hostMatch = text.match(/enotfound\s+([a-zA-Z0-9_\-\.]+)/i) || text.match(/getaddrinfo\s+enotfound\s+([a-zA-Z0-9_\-\.]+)/i);
 		if (hostMatch) {
-			cause = isIndonesian
-				? `Domain upstream (${hostMatch[1]}) tidak dapat dihubungi atau server sedang down`
-				: `Upstream host (${hostMatch[1]}) could not be resolved or server is down`;
+			cause = loc.domainUnreachable(hostMatch[1]);
 		} else if (lower.includes('connect timeout')) {
-			cause = isIndonesian ? 'Waktu koneksi ke server upstream habis (timeout)' : 'Upstream connection timed out';
+			cause = loc.timeout;
 		} else if (lower.includes('econnrefused')) {
-			cause = isIndonesian ? 'Koneksi ditolak oleh server provider' : 'Connection refused by upstream provider';
+			cause = loc.refused;
 		} else if (statusCode === 502) {
-			cause = isIndonesian ? 'Gateway provider merespons HTTP 502 Bad Gateway' : 'Gateway responded with HTTP 502 Bad Gateway';
+			cause = loc.badGateway;
 		} else if (statusCode === 504) {
-			cause = isIndonesian ? 'Gateway provider mengalami timeout (HTTP 504)' : 'Gateway timed out (HTTP 504)';
+			cause = loc.gatewayTimeout;
 		}
 
 		return {
 			category: 'DOWN',
 			provider,
 			model,
-			title: isIndonesian ? 'Server Provider Down' : 'Provider Server Down',
-			description: isIndonesian
-				? `Server provider ${provider} sedang down atau tidak dapat dijangkau: ${cause}.`
-				: `The ${provider} provider server is currently down or unreachable: ${cause}.`
+			title: loc.downTitle,
+			description: loc.downDesc(provider, cause)
 		};
 	}
 
-	// 2. LIMIT: Quota limit, rate limit, token exhausted, 429
 	const isLimit = statusCode === 429 || parsed.isQuotaExhausted || !!parsed.resetDelay || !!parsed.resetAfterSec ||
 		/quota exceeded|rate_limit|rate limit|too many requests|resource_exhausted|resource has been exhausted|out of tokens|free usage limit|all \d+ accounts locked/i.test(text);
 
 	if (isLimit) {
-		const resetInfo = parsed.resetDelay
-			? (isIndonesian ? ` (Reset dalam: ${parsed.resetDelay})` : ` (Resets in: ${parsed.resetDelay})`)
-			: '';
+		const resetInfo = parsed.resetDelay ? loc.resetIn(parsed.resetDelay) : '';
 		return {
 			category: 'LIMIT',
 			provider,
 			model,
-			title: isIndonesian ? 'Batas Kuota / Rate Limit Tercapai' : 'Quota / Rate Limit Exceeded',
-			description: isIndonesian
-				? `Batas kuota atau kecepatan (rate-limit) model ${model} pada provider ${provider} telah tercapai${resetInfo}.`
-				: `The quota or rate-limit for model ${model} on provider ${provider} has been reached${resetInfo}.`
+			title: loc.limitTitle,
+			description: loc.limitDesc(provider, model, resetInfo)
 		};
 	}
 
-	// 3. ERROR: Authentication failure, plan required, payment, invalid model
 	let errorCause = cleanMessageText(parsed.userMessage);
 	if (parsed.isForbiddenPlan || statusCode === 403 || lower.includes('pricingurl') || lower.includes('subscription')) {
-		errorCause = isIndonesian ? 'Model ini memerlukan paket berbayar atau langganan aktif' : 'This model requires a paid plan or active subscription';
+		errorCause = loc.paidRequired;
 	} else if (parsed.isInsufficientCredits || statusCode === 402 || lower.includes('insufficient_credits')) {
-		errorCause = isIndonesian ? 'Saldo akun tidak mencukupi untuk model berbayar' : 'Insufficient account credits for this model';
+		errorCause = loc.insufficientCredits;
 	} else if (parsed.isUnauthorized || statusCode === 401 || lower.includes('unauthorized')) {
-		errorCause = isIndonesian ? 'Kredensial atau token API kedaluwarsa atau tidak valid' : 'Account credentials or API token expired/invalid';
+		errorCause = loc.credentialsExpired;
 	} else if (statusCode === 404 || lower.includes('model_not_found')) {
-		errorCause = isIndonesian ? 'Model tidak ditemukan pada provider upstream' : 'Model not found on upstream provider';
+		errorCause = loc.modelNotFound;
 	} else if (!errorCause) {
-		errorCause = isIndonesian ? 'Terjadi kesalahan konfigurasi atau autentikasi' : 'Configuration or authentication error encountered';
+		errorCause = loc.configError;
 	}
 
 	return {
 		category: 'ERROR',
 		provider,
 		model,
-		title: isIndonesian ? 'Kendala Provider' : 'Provider Error',
-		description: isIndonesian
-			? `Kendala akses pada provider ${provider}: ${errorCause}.`
-			: `Access error on provider ${provider}: ${errorCause}.`
+		title: loc.errorTitle,
+		description: loc.errorDesc(provider, errorCause)
 	};
 }
