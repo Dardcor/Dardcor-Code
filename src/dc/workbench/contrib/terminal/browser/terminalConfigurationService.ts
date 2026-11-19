@@ -1,0 +1,249 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { Emitter, Event } from '../../../../base/common/event.js';
+import { Disposable, toDisposable } from '../../../../base/common/lifecycle.js';
+import { type IEditorOptions } from '../../../../editor/common/config/editorOptions.js';
+import { EDITOR_FONT_DEFAULTS } from '../../../../editor/common/config/fontInfo.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { ITerminalConfigurationService, LinuxDistro } from './terminal.js';
+import type { IXtermCore } from './xterm-private.js';
+import { DEFAULT_BOLD_FONT_WEIGHT, DEFAULT_COMMANDS_TO_SKIP_SHELL, DEFAULT_FONT_WEIGHT, DEFAULT_LETTER_SPACING, DEFAULT_LINE_HEIGHT, FontWeight, ITerminalConfiguration, MAXIMUM_FONT_WEIGHT, MINIMUM_FONT_WEIGHT, MINIMUM_LETTER_SPACING, TERMINAL_CONFIG_SECTION, type ITerminalFont } from '../common/terminal.js';
+import { isMacintosh } from '../../../../base/common/platform.js';
+import { TerminalLocation, TerminalLocationConfigValue } from '../../../../platform/terminal/common/terminal.js';
+import { isString } from '../../../../base/common/types.js';
+import { clamp } from '../../../../base/common/numbers.js';
+
+
+export class TerminalConfigurationService extends Disposable implements ITerminalConfigurationService {
+	declare _serviceBrand: undefined;
+
+	protected _fontMetrics: TerminalFontMetrics;
+	private _skipTerminalCommands: ReadonlySet<string> = new Set(DEFAULT_COMMANDS_TO_SKIP_SHELL);
+
+	protected _config!: Readonly<ITerminalConfiguration>;
+	get config() { return this._config; }
+
+	get defaultLocation(): TerminalLocation {
+		if (this.config.defaultLocation === TerminalLocationConfigValue.Editor) {
+			return TerminalLocation.Editor;
+		}
+		return TerminalLocation.Panel;
+	}
+
+	private readonly _onConfigChanged = this._register(new Emitter<void>());
+	get onConfigChanged(): Event<void> { return this._onConfigChanged.event; }
+
+	constructor(
+		@IConfigurationService private readonly _configurationService: IConfigurationService,
+	) {
+		super();
+
+		this._fontMetrics = this._register(new TerminalFontMetrics(this, this._configurationService));
+
+		this._register(Event.runAndSubscribe(this._configurationService.onDidChangeConfiguration, e => {
+			if (!e || e.affectsConfiguration(TERMINAL_CONFIG_SECTION)) {
+				this._updateConfig();
+			}
+		}));
+	}
+
+	setPanelContainer(panelContainer: HTMLElement): void { return this._fontMetrics.setPanelContainer(panelContainer); }
+	configFontIsMonospace(): boolean { return this._fontMetrics.configFontIsMonospace(); }
+	getFont(w: Window, xtermCore?: IXtermCore, excludeDimensions?: boolean): ITerminalFont { return this._fontMetrics.getFont(w, xtermCore, excludeDimensions); }
+	shouldCommandSkipShell(commandId: string): boolean { return this._skipTerminalCommands.has(commandId); }
+
+	private _updateConfig(): void {
+		const configValues = { ...this._configurationService.getValue<ITerminalConfiguration>(TERMINAL_CONFIG_SECTION) };
+		configValues.fontWeight = this._normalizeFontWeight(configValues.fontWeight, DEFAULT_FONT_WEIGHT);
+		configValues.fontWeightBold = this._normalizeFontWeight(configValues.fontWeightBold, DEFAULT_BOLD_FONT_WEIGHT);
+		this._config = configValues;
+		const skipTerminalCommands = new Set(DEFAULT_COMMANDS_TO_SKIP_SHELL);
+		const commandsToSkipShell = configValues.commandsToSkipShell ?? [];
+		for (let i = 0; i < commandsToSkipShell.length; i++) {
+			const command = commandsToSkipShell[i];
+			if (command[0] === '-') {
+				skipTerminalCommands.delete(command.slice(1));
+				continue;
+			}
+			skipTerminalCommands.add(command);
+		}
+		this._skipTerminalCommands = skipTerminalCommands;
+		this._onConfigChanged.fire();
+	}
+
+	private _normalizeFontWeight(input: FontWeight, defaultWeight: FontWeight): FontWeight {
+		if (input === 'normal' || input === 'bold') {
+			return input;
+		}
+		return clampInt(input, MINIMUM_FONT_WEIGHT, MAXIMUM_FONT_WEIGHT, defaultWeight);
+	}
+}
+
+
+
+const enum FontConstants {
+	MinimumFontSize = 6,
+	MaximumFontSize = 100,
+}
+
+export class TerminalFontMetrics extends Disposable {
+	private _panelContainer: HTMLElement | undefined;
+	private _charMeasureElement: HTMLElement | undefined;
+	private _lastFontMeasurement: ITerminalFont | undefined;
+
+	linuxDistro: LinuxDistro = LinuxDistro.Unknown;
+
+	constructor(
+		private readonly _terminalConfigurationService: ITerminalConfigurationService,
+		private readonly _configurationService: IConfigurationService,
+	) {
+		super();
+		this._register(toDisposable(() => this._charMeasureElement?.remove()));
+	}
+
+	setPanelContainer(panelContainer: HTMLElement): void {
+		this._panelContainer = panelContainer;
+	}
+
+	configFontIsMonospace(): boolean {
+		const fontSize = 15;
+		const fontFamily = this._terminalConfigurationService.config.fontFamily || this._configurationService.getValue<IEditorOptions>('editor').fontFamily || EDITOR_FONT_DEFAULTS.fontFamily;
+		const iRect = this._getBoundingRectFor('i', fontFamily, fontSize);
+		const wRect = this._getBoundingRectFor('w', fontFamily, fontSize);
+
+		if (!iRect || !wRect || !iRect.width || !wRect.width) {
+			return true;
+		}
+
+		return iRect.width === wRect.width;
+	}
+
+	getFont(w: Window, xtermCore?: IXtermCore, excludeDimensions?: boolean): ITerminalFont {
+		const editorConfig = this._configurationService.getValue<IEditorOptions>('editor');
+
+		let fontFamily = this._terminalConfigurationService.config.fontFamily || editorConfig.fontFamily || EDITOR_FONT_DEFAULTS.fontFamily || 'monospace';
+		let fontSize = clampInt(this._terminalConfigurationService.config.fontSize, FontConstants.MinimumFontSize, FontConstants.MaximumFontSize, EDITOR_FONT_DEFAULTS.fontSize);
+
+		if (!this._terminalConfigurationService.config.fontFamily) {
+			if (this.linuxDistro === LinuxDistro.Fedora) {
+				fontFamily = '\'DejaVu Sans Mono\'';
+			}
+			if (this.linuxDistro === LinuxDistro.Ubuntu) {
+				fontFamily = '\'Ubuntu Mono\'';
+
+				fontSize = clampInt(fontSize + 2, FontConstants.MinimumFontSize, FontConstants.MaximumFontSize, EDITOR_FONT_DEFAULTS.fontSize);
+			}
+		}
+
+		fontFamily += ', monospace';
+
+		if (isMacintosh) {
+			fontFamily += ', AppleBraille';
+		}
+
+		const letterSpacing = this._terminalConfigurationService.config.letterSpacing ? Math.max(Math.floor(this._terminalConfigurationService.config.letterSpacing), MINIMUM_LETTER_SPACING) : DEFAULT_LETTER_SPACING;
+		const lineHeight = this._terminalConfigurationService.config.lineHeight ? Math.max(this._terminalConfigurationService.config.lineHeight, 1) : DEFAULT_LINE_HEIGHT;
+
+		if (excludeDimensions) {
+			return {
+				fontFamily,
+				fontSize,
+				letterSpacing,
+				lineHeight
+			};
+		}
+
+		if (xtermCore?._renderService?._renderer.value) {
+			const cellDims = xtermCore._renderService.dimensions.css.cell;
+			if (cellDims?.width && cellDims?.height) {
+				return {
+					fontFamily,
+					fontSize,
+					letterSpacing,
+					lineHeight,
+					charHeight: cellDims.height / lineHeight,
+					charWidth: cellDims.width - Math.round(letterSpacing) / w.devicePixelRatio
+				};
+			}
+		}
+
+		return this._measureFont(w, fontFamily, fontSize, letterSpacing, lineHeight);
+	}
+
+	private _createCharMeasureElementIfNecessary(): HTMLElement {
+		if (!this._panelContainer) {
+			throw new Error('Cannot measure element when terminal is not attached');
+		}
+		if (!this._charMeasureElement || !this._charMeasureElement.parentElement) {
+			this._charMeasureElement = document.createElement('div');
+			this._panelContainer.appendChild(this._charMeasureElement);
+		}
+		return this._charMeasureElement;
+	}
+
+	private _getBoundingRectFor(char: string, fontFamily: string, fontSize: number): ClientRect | DOMRect | undefined {
+		let charMeasureElement: HTMLElement;
+		try {
+			charMeasureElement = this._createCharMeasureElementIfNecessary();
+		} catch {
+			return undefined;
+		}
+		const style = charMeasureElement.style;
+		style.display = 'inline-block';
+		style.fontFamily = fontFamily;
+		style.fontSize = fontSize + 'px';
+		style.lineHeight = 'normal';
+		charMeasureElement.innerText = char;
+		const rect = charMeasureElement.getBoundingClientRect();
+		style.display = 'none';
+
+		return rect;
+	}
+
+	private _measureFont(w: Window, fontFamily: string, fontSize: number, letterSpacing: number, lineHeight: number): ITerminalFont {
+		const rect = this._getBoundingRectFor('X', fontFamily, fontSize);
+
+		if (this._lastFontMeasurement && (!rect || !rect.width || !rect.height)) {
+			return this._lastFontMeasurement;
+		}
+
+		this._lastFontMeasurement = {
+			fontFamily,
+			fontSize,
+			letterSpacing,
+			lineHeight,
+			charWidth: 0,
+			charHeight: 0
+		};
+
+		if (rect && rect.width && rect.height) {
+			this._lastFontMeasurement.charHeight = Math.ceil(rect.height);
+			if (this._terminalConfigurationService.config.gpuAcceleration === 'off') {
+				this._lastFontMeasurement.charWidth = rect.width;
+			} else {
+				const deviceCharWidth = Math.floor(rect.width * w.devicePixelRatio);
+				const deviceCellWidth = deviceCharWidth + Math.round(letterSpacing);
+				const cssCellWidth = deviceCellWidth / w.devicePixelRatio;
+				this._lastFontMeasurement.charWidth = cssCellWidth - Math.round(letterSpacing) / w.devicePixelRatio;
+			}
+		}
+
+		return this._lastFontMeasurement;
+	}
+}
+
+
+
+function clampInt<T>(source: string | number, minimum: number, maximum: number, fallback: T): number | T {
+	if (source === null || source === undefined) {
+		return fallback;
+	}
+	const r = isString(source) ? parseInt(source, 10) : source;
+	if (isNaN(r)) {
+		return fallback;
+	}
+	return clamp(r, minimum, maximum);
+}

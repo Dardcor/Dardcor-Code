@@ -1,0 +1,24 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { IIgnoreService } from '../../../../../../platform/ignore/common/ignoreService';
+import { URI } from '../../../../../../util/dardcor/base/common/uri';
+import { ServicesAccessor } from '../../../../../../util/dardcor/platform/instantiation/common/instantiation';
+import { TextDocumentIdentifier } from '../textDocument';
+
+export async function isDocumentValid(
+	accessor: ServicesAccessor,
+	document: TextDocumentIdentifier,
+): Promise<{ status: 'valid' } | { status: 'invalid'; reason: string }> {
+	const ignoreService = accessor.get(IIgnoreService);
+	if (await ignoreService.isIgnored(URI.parse(document.uri))) {
+		return {
+			status: 'invalid',
+			reason: 'Document is blocked by repository policy',
+		};
+	}
+
+	return { status: 'valid' };
+}

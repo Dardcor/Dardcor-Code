@@ -1,0 +1,66 @@
+name: Monaco Editor checks
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+  pull_request:
+    branches:
+      - main
+      - release/*
+permissions: {}
+
+jobs:
+  main:
+    name: Monaco Editor checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: nodeModulesCacheKey
+        run: echo "value=$(node build/azure-pipelines/common/computeNodeModulesCacheKey.ts)" >> $GITHUB_OUTPUT
+      - id: cacheNodeModules
+        uses: actions/cache@v6
+        with:
+          path: "**/node_modules"
+          key: ${{ runner.os }}-cacheNodeModules20-${{ steps.nodeModulesCacheKey.outputs.value }}
+          restore-keys: ${{ runner.os }}-cacheNodeModules20-
+      - id: npmCacheDirPath
+        if: ${{ steps.cacheNodeModules.outputs.cache-hit != 'true' }}
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+      - if: ${{ steps.cacheNodeModules.outputs.cache-hit != 'true' }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.npmCacheDirPath.outputs.dir }}
+          key: ${{ runner.os }}-npmCacheDir-${{ steps.nodeModulesCacheKey.outputs.value }}
+          restore-keys: ${{ runner.os }}-npmCacheDir-
+      - if: ${{ steps.cacheNodeModules.outputs.cache-hit != 'true' }}
+        run: |
+          sudo apt update
+          sudo apt install -y libxkbfile-dev pkg-config libkrb5-dev libxss1
+      - if: ${{ steps.cacheNodeModules.outputs.cache-hit != 'true' }}
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+        run: |
+          npm ci
+      - run: npm run monaco-compile-check
+      - run: npm run gulp editor-distro
+      - run: |
+          mkdir typings-test
+      - working-directory: ./typings-test
+        run: |
+          npm init -yp
+          ../node_modules/.bin/tsc --init
+          echo "import '../out-monaco-editor-core';" > a.ts
+          ../node_modules/.bin/tsc --noEmit

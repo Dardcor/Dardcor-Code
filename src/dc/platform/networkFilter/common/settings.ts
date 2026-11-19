@@ -1,0 +1,10 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+export const enum AgentNetworkDomainSettingId {
+	NetworkFilter = 'chat.agent.networkFilter',
+	AllowedNetworkDomains = 'chat.agent.allowedNetworkDomains',
+	DeniedNetworkDomains = 'chat.agent.deniedNetworkDomains',
+}

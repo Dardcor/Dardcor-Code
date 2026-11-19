@@ -1,0 +1,168 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import electron from 'electron';
+import { CancellationToken } from '../../../base/common/cancellation.js';
+import { Event } from '../../../base/common/event.js';
+import { IDisposable } from '../../../base/common/lifecycle.js';
+import { ISerializableCommandAction } from '../../action/common/action.js';
+import { NativeParsedArgs } from '../../environment/common/argv.js';
+import { FocusMode } from '../../native/common/native.js';
+import { IUserDataProfile } from '../../userDataProfile/common/userDataProfile.js';
+import { ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier } from '../../workspace/common/workspace.js';
+import { DEFAULT_AUX_WINDOW_SIZE, DEFAULT_EMPTY_WINDOW_SIZE, DEFAULT_WORKSPACE_WINDOW_SIZE, INativeWindowConfiguration } from '../common/window.js';
+
+export interface IBaseWindow extends IDisposable {
+
+	readonly onDidMaximize: Event<void>;
+	readonly onDidUnmaximize: Event<void>;
+	readonly onDidTriggerSystemContextMenu: Event<{ readonly x: number; readonly y: number }>;
+	readonly onDidEnterFullScreen: Event<void>;
+	readonly onDidLeaveFullScreen: Event<void>;
+	readonly onDidClose: Event<void>;
+
+	readonly id: number;
+	readonly win: electron.BrowserWindow | null;
+
+	readonly lastFocusTime: number;
+	focus(options?: { mode: FocusMode }): void;
+
+	setRepresentedFilename(name: string): void;
+	getRepresentedFilename(): string | undefined;
+
+	setDocumentEdited(edited: boolean): void;
+	isDocumentEdited(): boolean;
+
+	readonly isFullScreen: boolean;
+	toggleFullScreen(): void;
+
+	updateWindowControls(options: { height?: number; backgroundColor?: string; foregroundColor?: string; dimmed?: boolean }): void;
+
+	matches(webContents: electron.WebContents): boolean;
+}
+
+export interface ICodeWindow extends IBaseWindow {
+
+	readonly onWillLoad: Event<ILoadEvent>;
+	readonly onDidSignalReady: Event<void>;
+	readonly onDidDestroy: Event<void>;
+
+	readonly whenClosedOrLoaded: Promise<void>;
+
+	readonly config: INativeWindowConfiguration | undefined;
+
+	readonly openedWorkspace?: IWorkspaceIdentifier | ISingleFolderWorkspaceIdentifier;
+
+	readonly profile?: IUserDataProfile;
+
+	readonly backupPath?: string;
+
+	readonly remoteAuthority?: string;
+
+	readonly isExtensionDevelopmentHost: boolean;
+	readonly isExtensionTestHost: boolean;
+
+	readonly isReady: boolean;
+	ready(): Promise<ICodeWindow>;
+	setReady(): void;
+
+	addTabbedWindow(window: ICodeWindow): void;
+
+	load(config: INativeWindowConfiguration, options?: { isReload?: boolean }): void;
+	reload(cli?: NativeParsedArgs): void;
+
+	close(): void;
+
+	getBounds(): electron.Rectangle;
+
+	send(channel: string, ...args: unknown[]): void;
+	sendWhenReady(channel: string, token: CancellationToken, ...args: unknown[]): void;
+
+	updateTouchBar(items: ISerializableCommandAction[][]): void;
+
+	notifyZoomLevel(zoomLevel: number | undefined): void;
+
+	serializeWindowState(): IWindowState;
+}
+
+export const enum LoadReason {
+
+	INITIAL = 1,
+
+	LOAD,
+
+	RELOAD
+}
+
+export const enum UnloadReason {
+
+	CLOSE = 1,
+
+	QUIT,
+
+	RELOAD,
+
+	LOAD
+}
+
+export interface IWindowState {
+	width?: number;
+	height?: number;
+	x?: number;
+	y?: number;
+	mode?: WindowMode;
+	zoomLevel?: number;
+	readonly display?: number;
+}
+
+export const defaultWindowState = function (mode = WindowMode.Normal, hasWorkspace = false): IWindowState {
+	const size = hasWorkspace ? DEFAULT_WORKSPACE_WINDOW_SIZE : DEFAULT_EMPTY_WINDOW_SIZE;
+	return {
+		width: size.width,
+		height: size.height,
+		mode
+	};
+};
+
+export const defaultAuxWindowState = function (): IWindowState {
+
+
+	const width = DEFAULT_AUX_WINDOW_SIZE.width;
+	const height = DEFAULT_AUX_WINDOW_SIZE.height;
+	const workArea = electron.screen.getPrimaryDisplay().workArea;
+	const x = Math.max(workArea.x + (workArea.width / 2) - (width / 2), 0);
+	const y = Math.max(workArea.y + (workArea.height / 2) - (height / 2), 0);
+
+	return {
+		x,
+		y,
+		width,
+		height,
+		mode: WindowMode.Normal
+	};
+};
+
+export const enum WindowMode {
+	Maximized,
+	Normal,
+	Minimized,
+	Fullscreen
+}
+
+export interface ILoadEvent {
+	readonly workspace: IWorkspaceIdentifier | ISingleFolderWorkspaceIdentifier | undefined;
+	readonly reason: LoadReason;
+}
+
+export const enum WindowError {
+
+	UNRESPONSIVE = 1,
+
+	PROCESS_GONE = 2,
+
+	LOAD = 3,
+
+	RESPONSIVE = 4,
+}

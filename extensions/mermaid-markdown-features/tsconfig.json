@@ -1,0 +1,22 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"types": [
+			"node"
+		],
+		"typeRoots": [
+			"./node_modules/@types"
+		]
+	},
+	"include": [
+		"src/**/*",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.chatOutputRenderer.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.chatParticipantAdditions.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.languageModelThinkingPart.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.chatParticipantPrivate.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.languageModelProxy.d.ts"
+	]
+}

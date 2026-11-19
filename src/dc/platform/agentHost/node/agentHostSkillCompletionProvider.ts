@@ -1,0 +1,120 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { CancellationToken } from '../../../base/common/cancellation.js';
+import { Disposable } from '../../../base/common/lifecycle.js';
+import { URI } from '../../../base/common/uri.js';
+import { SYNCED_CUSTOMIZATION_SCHEME } from '../common/agentHostFileSystemService.js';
+import type { IAgent } from '../common/agent.js';
+import { isCustomizationEnabled, isSkillEligibleForUserInvocation } from '../common/customizationEnablement.js';
+import { CompletionItem, CompletionItemKind, CompletionsParams } from '../common/state/protocol/commands.js';
+import { MessageAttachmentKind } from '../common/state/protocol/state.js';
+import { toSkillCompletionAttachmentMeta } from '../common/meta/agentCompletionAttachmentMeta.js';
+import { buildDefaultChatUri, CustomizationType, DirectoryCustomization, PluginCustomization, SkillCustomization, type Customization } from '../common/state/sessionState.js';
+import { CompletionTriggerCharacter, IAgentHostCompletionItemProvider } from './agentHostCompletions.js';
+import { extractWhitespaceDelimitedSlashToken, matchesSlashCompletion } from './agentHostSlashCompletion.js';
+
+
+
+
+
+
+export class AgentHostSkillCompletionProvider extends Disposable implements IAgentHostCompletionItemProvider {
+
+	readonly kinds: ReadonlySet<CompletionItemKind> = new Set([CompletionItemKind.UserMessage]);
+	readonly triggerCharacters = [CompletionTriggerCharacter.Slash] as const;
+
+	constructor(
+		private readonly _getAgent: (session: URI | string) => IAgent | undefined,
+		private readonly _getHostCustomizations: (session: URI | string) => readonly Customization[] | undefined = () => undefined,
+	) {
+		super();
+	}
+
+	async provideCompletionItems(params: CompletionsParams, token: CancellationToken): Promise<readonly CompletionItem[]> {
+		const leading = extractWhitespaceDelimitedSlashToken(params.text, params.offset);
+		if (!leading) {
+			return [];
+		}
+
+		const sessionUri = typeof params.channel === 'string' ? URI.parse(params.channel) : params.channel;
+		const agent = this._getAgent(sessionUri);
+		if (!agent) {
+			return [];
+		}
+		const candidates = await this._getCandidates(agent, sessionUri);
+		if (token.isCancellationRequested || candidates.length === 0) {
+			return [];
+		}
+
+		const typed = leading.typed;
+		const skillsSeen = new Set<string>();
+		return candidates
+			.filter(skill => {
+				const identity = `${skill.slashCommandName}\0${skill.description ?? ''}`;
+				if (matchesSlashCompletion(typed, skill.slashCommandName) && !skillsSeen.has(identity)) {
+					skillsSeen.add(identity);
+					return true;
+				}
+				return false;
+			})
+			.map(skill => ({
+				insertText: '/' + skill.slashCommandName + ' ',
+				rangeStart: leading.rangeStart,
+				rangeEnd: leading.rangeEnd,
+				attachment: {
+					type: MessageAttachmentKind.Simple,
+					label: '/' + skill.slashCommandName,
+					_meta: toSkillCompletionAttachmentMeta({
+						uri: skill.uri,
+						name: skill.name,
+						displayName: skill.slashCommandName,
+						description: skill.description,
+					}),
+				},
+			}));
+	}
+
+	private async _getCandidates(agent: IAgent, session: URI): Promise<readonly SlashCommmandCandidate[]> {
+		const chat = URI.parse(buildDefaultChatUri(session));
+		const customizations = await agent.getChatCustomizations(chat, { configurationResource: session, resource: session }, this._getHostCustomizations(session));
+		const result: SlashCommmandCandidate[] = [];
+		for (const c of customizations) {
+			if (c.type === CustomizationType.McpServer || (c.type === CustomizationType.Plugin ? !isCustomizationEnabled(c) : !c.enabled) || !c.children) {
+				continue;
+			}
+			for (const child of c.children) {
+				if (child.type === CustomizationType.Skill && isSkillEligibleForUserInvocation(child)) {
+					result.push(this._toSlashCommandCandidate(c, child));
+				}
+			}
+		}
+		return result;
+	}
+
+	private _toSlashCommandCandidate(container: PluginCustomization | DirectoryCustomization, skill: SkillCustomization): SlashCommmandCandidate {
+		let slashCommandName = skill.name;
+		if (container.type === CustomizationType.Plugin && !isSyncedCustomization(container) && skill.name !== container.name) {
+			slashCommandName = `${container.name}:${skill.name}`;
+		}
+		return {
+			slashCommandName: slashCommandName,
+			name: skill.name,
+			description: skill.description,
+			uri: skill.uri,
+		};
+	}
+}
+
+function isSyncedCustomization(container: PluginCustomization): boolean {
+	return container.uri.startsWith(SYNCED_CUSTOMIZATION_SCHEME + ':');
+}
+
+interface SlashCommmandCandidate {
+	readonly slashCommandName: string;
+	readonly name: string;
+	readonly description: string | undefined;
+	readonly uri: string;
+}

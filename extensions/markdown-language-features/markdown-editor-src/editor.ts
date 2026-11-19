@@ -1,0 +1,282 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { CommentModeController, CommentsModel, CommentsView, EditorController, EditorModel, EditorView, GutterMarker, OffsetRange, Selection, StringEdit, StringValue, findNodeOffsetById, taskCheckboxRange } from '@vscode/markdown-editor';
+import { Disposable, autorun, observableValue } from '@vscode/observables';
+import mermaid from 'mermaid';
+import 'katex/dist/katex.min.css';
+import '@vscode/markdown-editor/editor.css';
+import '@vscode/markdown-editor/themes/vscode-default.css';
+import '@vscode/markdown-editor/commentInput.css';
+import '@vscode/markdown-editor/commentWidget.css';
+import './markdownEditor.css';
+import { WebviewSyntaxHighlighter } from './syntaxHighlighter';
+
+interface VsCodeApi {
+	postMessage(message: unknown): void;
+	getState(): unknown;
+	setState(state: unknown): void;
+}
+
+declare function acquireVsCodeApi(): VsCodeApi;
+
+interface PersistedViewState {
+	scrollTop?: number;
+	selection?: { anchor: number; active: number };
+}
+
+class Editor extends Disposable {
+	readonly model = new EditorModel();
+	isUpdatingFromExtension = false;
+	#isUpdatingComments = false;
+	#mermaidCounter = 0;
+	#initialized = false;
+
+	readonly #comments = new CommentsModel();
+	#commentsView: CommentsView | undefined;
+	readonly #acceptsComments = observableValue<boolean>('acceptsComments', false);
+	readonly #vscode = acquireVsCodeApi();
+	readonly #syntaxHighlighter = new WebviewSyntaxHighlighter((message) => this.#vscode.postMessage(message));
+
+	constructor(host: HTMLElement) {
+		super();
+
+		mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+		window.addEventListener('message', (event) => {
+			const message = event.data;
+			if (this.#syntaxHighlighter.handleMessage(message)) {
+				return;
+			}
+			switch (message.type) {
+				case 'init': {
+					if (!this.#initialized) {
+						this.#initialized = true;
+						this.#createView(host, !!message.readonly, message.content);
+					}
+					break;
+				}
+				case 'update': {
+					this.isUpdatingFromExtension = true;
+					this.model.sourceText.set(new StringValue(message.content), undefined);
+					this.isUpdatingFromExtension = false;
+					break;
+				}
+				case 'gutterMarkers': {
+					const markers: GutterMarker[] = message.markers.map((marker: { start: number; endExclusive: number; type: GutterMarker['type'] }) => ({
+						range: OffsetRange.fromTo(marker.start, marker.endExclusive),
+						type: marker.type,
+					}));
+					this.model.gutterMarkers.set(markers, undefined);
+					break;
+				}
+				case 'comments': {
+					this.#isUpdatingComments = true;
+					this.#comments.set(message.comments.map((comment: { id: string; start: number; endExclusive: number; body: string; author?: string }) => ({
+						id: comment.id,
+						range: OffsetRange.fromTo(comment.start, comment.endExclusive),
+						body: comment.body,
+						author: comment.author,
+					})));
+					this.#isUpdatingComments = false;
+					this.#acceptsComments.set(!!message.acceptsComments, undefined);
+					break;
+				}
+				case 'revealComment': {
+					this.#commentsView?.revealComment(message.id);
+					break;
+				}
+			}
+		});
+
+		this.#vscode.postMessage({ type: 'ready' });
+	}
+
+	#createView(host: HTMLElement, readonly: boolean, content: string): void {
+		const model = this.model;
+		const savedViewState = this.#getViewState();
+
+		model.readonlyMode.set(readonly, undefined);
+
+		const view = this._register(new EditorView(model, {
+			classNames: ['md-theme-vscode-default'],
+			syntaxHighlighter: this.#syntaxHighlighter,
+			onOpenLink: (url) => {
+				const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url)?.[1].toLowerCase();
+				if (scheme && scheme !== 'file') {
+					return false;
+				}
+				this.#vscode.postMessage({ type: 'openLink', href: url });
+				return undefined;
+			},
+			onToggleCheckbox: (item, newChecked) => {
+				if (model.readonlyMode.get()) {
+					return;
+				}
+				const doc = model.document.get();
+				const itemOffset = findNodeOffsetById(doc, item);
+				if (itemOffset === undefined) { return; }
+				const range = taskCheckboxRange(item);
+				if (!range) { return; }
+				model.applyEdit(
+					StringEdit.replace(
+						range.delta(itemOffset),
+						newChecked ? '[x]' : '[ ]'
+					)
+				);
+			},
+			renderCustomCodeBlock: (language, content) => {
+				if (language !== 'mermaid') {
+					return undefined;
+				}
+				const div = document.createElement('div');
+				div.className = 'md-mermaid';
+				const id = `mermaid-${this.#mermaidCounter++}`;
+				mermaid
+					.render(id, content)
+					.then(({ svg }) => {
+						div.innerHTML = svg;
+					})
+					.catch(() => {
+						div.textContent = content;
+					});
+				return div;
+			},
+		}));
+
+		this._register(new EditorController(model, view));
+		host.appendChild(view.element);
+
+		this.#commentsView = this._register(new CommentsView(this.#comments, view));
+		let commentController: CommentModeController | undefined;
+		this._register(autorun((reader) => {
+			const accepts = reader.readObservable(this.#acceptsComments);
+			if (accepts && !commentController) {
+				commentController = new CommentModeController(model, view, {
+					onSubmit: ({ text, range }) => {
+						this.#vscode.postMessage({ type: 'addComment', start: range.start, endExclusive: range.endExclusive, text });
+					},
+				});
+			} else if (!accepts && commentController) {
+				commentController.dispose();
+				commentController = undefined;
+			}
+		}));
+		this._register({ dispose: () => commentController?.dispose() });
+
+		let knownCommentIds = new Set(this.#comments.comments.get().map(comment => comment.id));
+		this._register(autorun((reader) => {
+			const currentIds = new Set(reader.readObservable(this.#comments.comments).map(comment => comment.id));
+			if (!this.#isUpdatingComments) {
+				for (const id of knownCommentIds) {
+					if (!currentIds.has(id)) {
+						this.#vscode.postMessage({ type: 'deleteComment', id });
+					}
+				}
+			}
+			knownCommentIds = currentIds;
+		}));
+
+		model.sourceText.set(new StringValue(content), undefined);
+		if (savedViewState.selection) {
+			const max = content.length;
+			const anchor = Math.min(savedViewState.selection.anchor, max);
+			const active = Math.min(savedViewState.selection.active, max);
+			model.selection.set(new Selection(anchor, active), undefined);
+		}
+
+		let scrollSaveScheduled = false;
+		const saveScroll = (): void => {
+			scrollSaveScheduled = false;
+			this.#patchViewState({ scrollTop: host.scrollTop });
+		};
+		const onScroll = (): void => {
+			if (scrollSaveScheduled) { return; }
+			scrollSaveScheduled = true;
+			requestAnimationFrame(saveScroll);
+		};
+		host.addEventListener('scroll', onScroll, { passive: true });
+		this._register({ dispose: () => host.removeEventListener('scroll', onScroll) });
+
+		const onHide = (): void => {
+			if (document.visibilityState === 'hidden') {
+				this.#patchViewState({ scrollTop: host.scrollTop });
+			}
+		};
+		document.addEventListener('visibilitychange', onHide);
+		window.addEventListener('pagehide', saveScroll);
+		this._register({ dispose: () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', saveScroll); } });
+
+		this._register(autorun((reader) => {
+			const sel = reader.readObservable(this.model.selection);
+			this.#patchViewState({ selection: sel ? { anchor: sel.anchor, active: sel.active } : undefined });
+		}));
+
+
+		let firstReadonly = true;
+		this._register(autorun((reader) => {
+			const isReadonly = reader.readObservable(this.model.readonlyMode);
+			if (!firstReadonly) {
+				this.#vscode.postMessage({ type: 'setReadonly', readonly: isReadonly });
+			}
+			firstReadonly = false;
+		}));
+
+		let previousText = this.model.sourceText.get().value;
+		this._register(autorun((reader) => {
+			const text = reader.readObservable(this.model.sourceText).value;
+			if (!this.isUpdatingFromExtension && text !== previousText) {
+				this.#vscode.postMessage({ type: 'edit', ...computeTextEdit(previousText, text) });
+			}
+			previousText = text;
+		}));
+
+		this.#restoreScroll(host, savedViewState.scrollTop);
+	}
+
+	#getViewState(): PersistedViewState {
+		return (this.#vscode.getState() as PersistedViewState | undefined) ?? {};
+	}
+
+	#patchViewState(patch: PersistedViewState): void {
+		this.#vscode.setState({ ...this.#getViewState(), ...patch });
+	}
+
+	#restoreScroll(host: HTMLElement, scrollTop: number | undefined): void {
+		if (typeof scrollTop !== 'number' || scrollTop <= 0) {
+			return;
+		}
+		let tries = 0;
+		const apply = (): void => {
+			host.scrollTop = scrollTop;
+			if (++tries < 6 && Math.abs(host.scrollTop - scrollTop) > 1) {
+				requestAnimationFrame(apply);
+			}
+		};
+		requestAnimationFrame(apply);
+	}
+}
+
+function computeTextEdit(previousText: string, text: string): { start: number; endExclusive: number; text: string } {
+	let start = 0;
+	while (start < previousText.length && start < text.length && previousText.charCodeAt(start) === text.charCodeAt(start)) {
+		start++;
+	}
+
+	let previousEnd = previousText.length;
+	let end = text.length;
+	while (previousEnd > start && end > start && previousText.charCodeAt(previousEnd - 1) === text.charCodeAt(end - 1)) {
+		previousEnd--;
+		end--;
+	}
+
+	return {
+		start,
+		endExclusive: previousEnd,
+		text: text.slice(start, end),
+	};
+}
+
+new Editor(document.getElementById('editor')!);

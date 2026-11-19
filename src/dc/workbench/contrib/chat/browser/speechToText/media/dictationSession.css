@@ -1,0 +1,12 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.monaco-editor.dictation-hide-cursor .cursors-layer {
+	display: none !important;
+}
+
+.monaco-editor .view-line span.dictation-interim-processing {
+	color: var(--vscode-input-placeholderForeground);
+}

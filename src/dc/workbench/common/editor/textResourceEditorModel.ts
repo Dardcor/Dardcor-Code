@@ -1,0 +1,33 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { BaseTextEditorModel } from './textEditorModel.js';
+import { URI } from '../../../base/common/uri.js';
+import { ILanguageService } from '../../../editor/common/languages/language.js';
+import { IModelService } from '../../../editor/common/services/model.js';
+import { ILanguageDetectionService } from '../../services/languageDetection/common/languageDetectionWorkerService.js';
+import { IAccessibilityService } from '../../../platform/accessibility/common/accessibility.js';
+
+export class TextResourceEditorModel extends BaseTextEditorModel {
+
+	constructor(
+		resource: URI,
+		@ILanguageService languageService: ILanguageService,
+		@IModelService modelService: IModelService,
+		@ILanguageDetectionService languageDetectionService: ILanguageDetectionService,
+		@IAccessibilityService accessibilityService: IAccessibilityService,
+	) {
+		super(modelService, languageService, languageDetectionService, accessibilityService, resource);
+	}
+
+	override dispose(): void {
+
+		if (this.textEditorModelHandle) {
+			this.modelService.destroyModel(this.textEditorModelHandle);
+		}
+
+		super.dispose();
+	}
+}

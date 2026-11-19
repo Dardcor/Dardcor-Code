@@ -1,0 +1,279 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import * as dom from '../../../../../../../base/browser/dom.js';
+import { Radio } from '../../../../../../../base/browser/ui/radio/radio.js';
+import { Codicon } from '../../../../../../../base/common/codicons.js';
+import { Event } from '../../../../../../../base/common/event.js';
+import { DisposableStore } from '../../../../../../../base/common/lifecycle.js';
+import { formatTokenCount } from '../../../../../../../base/common/numbers.js';
+import { ThemeIcon } from '../../../../../../../base/common/themables.js';
+import { localize } from '../../../../../../../nls.js';
+import { IOpenerService } from '../../../../../../../platform/opener/common/opener.js';
+import { ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier } from '../../../../common/languageModels.js';
+import { formatModelCost, getCreditsPerMillionTokensLabel, getMaxContextLabel, getModelContextWindowTotal, getModelCostMetrics, renderModelDescription } from './modelPickerDetails.js';
+import { createMessageBanner } from './modelPickerHover.js';
+import { getModelConfigProperty, getModelConfigValueLabel, IModelConfigProperty, IModelConfigurationAccess, isExtendedContext, MODEL_CONFIG_GROUP_CONTEXT, MODEL_CONFIG_GROUP_EFFORT } from './modelPickerModelConfig.js';
+import { getCategoryLabel, getPriceCategoryLabel, isAutoModel, isHighCostCategory, isMultiplierPricing } from './modelPickerPresentation.js';
+import { IModelSpeedVariants } from './modelPickerVariants.js';
+
+export interface IPricingDisclosure {
+	isExpanded(): boolean;
+	setExpanded(expanded: boolean): void;
+	readonly onDidChange: Event<void>;
+}
+
+export interface IModelCardOptions {
+	readonly model: ILanguageModelChatMetadataAndIdentifier;
+	readonly configurationAccess: IModelConfigurationAccess;
+	readonly isUBB: boolean;
+	readonly openerService: IOpenerService;
+	readonly onDidChangeConfiguration?: (group: string, key: string, fromValue: unknown, toValue: unknown) => void;
+	readonly isPinned?: boolean;
+	readonly onTogglePin?: (pinned: boolean) => void;
+	readonly pricingDisclosure?: IPricingDisclosure;
+	readonly speedVariants?: IModelSpeedVariants;
+	readonly onSelectVariant?: (model: ILanguageModelChatMetadataAndIdentifier) => void;
+}
+
+export class ModelCard extends DisposableStore {
+
+	readonly element = dom.$('.chat-model-card');
+
+	private readonly _contentDisposables = this.add(new DisposableStore());
+	private _pricingToggle: HTMLElement | undefined;
+
+	constructor(private readonly _options: IModelCardOptions) {
+		super();
+		if (_options.pricingDisclosure) {
+			this.add(_options.pricingDisclosure.onDidChange(() => this._render()));
+		}
+		this._render();
+	}
+
+	private _configProperty(group: string): IModelConfigProperty | undefined {
+		return getModelConfigProperty(this._options.model, this._options.configurationAccess, group);
+	}
+
+	private async _setValue(group: string, key: string, value: unknown): Promise<void> {
+		const previous = this._configProperty(group)?.value;
+		await this._options.configurationAccess.setModelConfiguration(this._options.model.identifier, { [key]: value });
+		this._render();
+		this._options.onDidChangeConfiguration?.(group, key, previous, value);
+	}
+
+	private _render(): void {
+		this._contentDisposables.clear();
+		dom.clearNode(this.element);
+		this._pricingToggle = undefined;
+
+		const { model, isUBB, openerService } = this._options;
+		const metadata = model.metadata;
+		const isAuto = isAutoModel(model);
+
+		this._renderHeader();
+
+		if (!isAuto) {
+			for (const message of Object.values(metadata.warningText ?? {})) {
+				this.element.appendChild(createMessageBanner(message, 'chat-model-hover-warning-text', Codicon.warningCompact, this._contentDisposables, openerService));
+			}
+			for (const message of Object.values(metadata.infoText ?? {})) {
+				this.element.appendChild(createMessageBanner(message, 'chat-model-hover-info-text', Codicon.info, this._contentDisposables, openerService));
+			}
+		}
+		const promo = !isAuto && ILanguageModelChatMetadata.hasPromoDiscount(metadata) ? metadata.promo : undefined;
+		if (promo) {
+			const endsAtLabel = ILanguageModelChatMetadata.getPromoEndsAtLabel(promo.endsAt);
+			const message = endsAtLabel ? `${promo.message} ${endsAtLabel}` : promo.message;
+			this.element.appendChild(createMessageBanner(message, 'chat-model-hover-promo-text', Codicon.info, this._contentDisposables, openerService));
+		}
+
+		const effort = this._configProperty(MODEL_CONFIG_GROUP_EFFORT);
+		const context = this._configProperty(MODEL_CONFIG_GROUP_CONTEXT);
+
+		if (effort) {
+			this._renderEffortSection(effort, isAuto);
+		}
+		if (context) {
+			this._renderContextSection(context);
+		} else if (!isAuto) {
+			this._renderContextWindow(metadata);
+		}
+		if (!isAuto) {
+			this._renderSpeedSection();
+		}
+		if (!isAuto && isUBB) {
+			this._renderCost(context);
+		} else if (!isAuto && metadata.pricing && isMultiplierPricing(model)) {
+			this._renderSection(localize('models.cost', "Cost: {0}", metadata.pricing));
+		}
+		if (!this.element.firstChild && metadata.tooltip) {
+			this._renderDescription(metadata.tooltip);
+		}
+	}
+
+	private _renderHeader(): void {
+		const metadata = this._options.model.metadata;
+		const isAuto = isAutoModel(this._options.model);
+		const header = dom.append(this.element, dom.$('.chat-model-card-header'));
+		dom.append(header, dom.$('.chat-model-card-name', undefined, metadata.name));
+
+		const badgeLabel = isAuto
+			? metadata.detail
+			: getPriceCategoryLabel(metadata.priceCategory) ?? getCategoryLabel(metadata.category);
+		if (badgeLabel) {
+			const badge = dom.append(header, dom.$('span.chat-model-card-badge', undefined, badgeLabel));
+			badge.classList.toggle('high-cost', !isAuto && isHighCostCategory(metadata.priceCategory));
+		}
+
+		if (this._options.onTogglePin) {
+			const pinned = !!this._options.isPinned;
+			const label = pinned
+				? localize('chat.modelPicker.unpin', "Unpin Model")
+				: localize('chat.modelPicker.pin', "Pin Model");
+			const button = dom.append(header, dom.$<HTMLButtonElement>('button.chat-model-card-pin'));
+			button.type = 'button';
+			button.classList.toggle('checked', pinned);
+			button.setAttribute('aria-pressed', String(pinned));
+			button.ariaLabel = label;
+			button.title = label;
+			dom.append(button, dom.$(`span${ThemeIcon.asCSSSelector(pinned ? Codicon.pinned : Codicon.pin)}`));
+			this._contentDisposables.add(dom.addDisposableListener(button, dom.EventType.CLICK, e => {
+				dom.EventHelper.stop(e, true);
+				this._options.onTogglePin?.(!pinned);
+			}));
+		}
+	}
+
+	private _renderDescription(tooltip: string): void {
+		const element = renderModelDescription(tooltip, this._options.openerService, this._contentDisposables);
+		element.classList.add('chat-model-card-description');
+		this.element.appendChild(element);
+	}
+
+	private _renderSection(title: string): HTMLElement {
+		const section = dom.append(this.element, dom.$('.chat-model-card-section'));
+		const heading = dom.append(section, dom.$('.chat-model-card-section-heading'));
+		dom.append(heading, dom.$('.chat-model-card-section-title', undefined, title));
+		return section;
+	}
+
+	private _renderEffortSection(effort: IModelConfigProperty, isAuto: boolean): void {
+		this._renderChoiceSection(effort, MODEL_CONFIG_GROUP_EFFORT, effort.schema.title ?? (isAuto
+			? localize('models.optimizeFor', "Optimize for")
+			: localize('chat.effort.header', "Thinking Effort")));
+	}
+
+	private _renderContextSection(context: IModelConfigProperty): void {
+		this._renderChoiceSection(context, MODEL_CONFIG_GROUP_CONTEXT, context.schema.title ?? localize('chat.context.header', "Context"));
+	}
+
+	private _renderChoiceSection(property: IModelConfigProperty, group: string, title: string): void {
+		const values = property.schema.enum ?? [];
+		const section = this._renderSection(title);
+		const control = this._contentDisposables.add(new Radio({
+			ariaLabel: title,
+			className: 'segmented',
+			arrowKeyBehavior: 'focus',
+			items: values.map((value, index) => ({
+				text: getModelConfigValueLabel(property.schema, value),
+				tooltip: property.schema.enumDescriptions?.[index],
+				isActive: value === property.value,
+			})),
+		}));
+		this._contentDisposables.add(control.onDidSelect(index => void this._setValue(group, property.key, values[index])));
+		section.appendChild(control.domNode);
+	}
+
+	private _renderSpeedSection(): void {
+		const variants = this._options.speedVariants;
+		if (!variants) {
+			return;
+		}
+		const choices = [
+			{ label: localize('models.speed.standard', "Standard"), model: variants.standard },
+			{ label: localize('models.speed.fast', "Fast"), model: variants.fast },
+		];
+		const title = localize('models.speed', "Speed");
+		const section = this._renderSection(title);
+		const control = this._contentDisposables.add(new Radio({
+			ariaLabel: title,
+			className: 'segmented',
+			arrowKeyBehavior: 'focus',
+			items: choices.map(choice => ({
+				text: choice.label,
+				isActive: choice.model.identifier === this._options.model.identifier,
+			})),
+		}));
+		this._contentDisposables.add(control.onDidSelect(index => {
+			const next = choices[index].model;
+			if (next.identifier !== this._options.model.identifier) {
+				this._options.onSelectVariant?.(next);
+			}
+		}));
+		section.appendChild(control.domNode);
+	}
+
+	private _renderContextWindow(metadata: ILanguageModelChatMetadata): void {
+		const total = getModelContextWindowTotal(metadata);
+		if (!total) {
+			return;
+		}
+		const section = dom.append(this.element, dom.$('.chat-model-card-section'));
+		const heading = dom.append(section, dom.$('.chat-model-card-section-heading'));
+		dom.append(heading, dom.$('.chat-model-card-section-title', undefined, getMaxContextLabel()));
+		dom.append(heading, dom.$('.chat-model-card-section-value', undefined, formatTokenCount(total)));
+	}
+
+	private _renderCost(context: IModelConfigProperty | undefined): void {
+		const metadata = this._options.model.metadata;
+		const metrics = getModelCostMetrics(metadata);
+		if (!metrics.length) {
+			if (metadata.pricing) {
+				this._renderSection(localize('models.cost', "Cost: {0}", metadata.pricing));
+			}
+			return;
+		}
+
+		const useExtended = !!context && isExtendedContext(context);
+		const disclosure = this._options.pricingDisclosure;
+		const expanded = disclosure ? disclosure.isExpanded() : true;
+		const section = dom.append(this.element, dom.$('.chat-model-card-section.chat-model-card-pricing'));
+		const bodyId = `chat-model-card-pricing-${this._options.model.identifier.replace(/[^\w-]/g, '-')}`;
+
+		if (disclosure) {
+			const title = localize('models.pricingDetails', "Pricing details");
+			const toggle = dom.append(section, dom.$<HTMLButtonElement>('button.chat-model-card-pricing-toggle'));
+			toggle.type = 'button';
+			toggle.setAttribute('aria-expanded', String(expanded));
+			toggle.setAttribute('aria-controls', bodyId);
+			dom.append(toggle, dom.$('span.chat-model-card-section-title', undefined, title));
+			dom.append(toggle, dom.$(`span.chat-model-card-pricing-chevron${ThemeIcon.asCSSSelector(expanded ? Codicon.chevronDown : Codicon.chevronRight)}`));
+			this._pricingToggle = toggle;
+			this._contentDisposables.add(dom.addDisposableListener(toggle, dom.EventType.CLICK, e => {
+				dom.EventHelper.stop(e, true);
+				const hadFocus = dom.isActiveElement(toggle);
+				disclosure.setExpanded(!expanded);
+				if (hadFocus) {
+					this._pricingToggle?.focus();
+				}
+			}));
+		}
+		if (!expanded) {
+			return;
+		}
+
+		const body = dom.append(section, dom.$('.chat-model-card-pricing-body'));
+		body.id = bodyId;
+		dom.append(body, dom.$('.chat-model-card-pricing-caption', undefined, getCreditsPerMillionTokensLabel()));
+		for (const metric of metrics) {
+			const cost = useExtended ? metric.extended ?? metric.standard : metric.standard;
+			const row = dom.append(body, dom.$('.chat-model-card-pricing-row'));
+			dom.append(row, dom.$('span.chat-model-card-pricing-label', undefined, metric.label));
+			dom.append(row, dom.$('span.chat-model-card-pricing-value', undefined, formatModelCost(cost)));
+		}
+	}
+
+}

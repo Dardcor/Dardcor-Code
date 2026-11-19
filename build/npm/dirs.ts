@@ -1,0 +1,64 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { existsSync } from 'fs';
+
+
+
+
+export const dirs = [
+	'',
+	'build',
+	'build/rspack',
+	'build/vite',
+	'extensions',
+	'extensions/configuration-editing',
+	'extensions/dardcor',
+	'extensions/css-language-features',
+	'extensions/css-language-features/server',
+	'extensions/debug-auto-launch',
+	'extensions/debug-server-ready',
+	'extensions/emmet',
+	'extensions/extension-editing',
+	'extensions/git',
+	'extensions/git-base',
+	'extensions/github',
+	'extensions/grunt',
+	'extensions/gulp',
+	'extensions/html-language-features',
+	'extensions/html-language-features/server',
+	'extensions/ipynb',
+	'extensions/jake',
+	'extensions/json-language-features',
+	'extensions/json-language-features/server',
+	'extensions/markdown-language-features',
+	'extensions/markdown-math',
+	'extensions/media-preview',
+	'extensions/merge-conflict',
+	'extensions/mermaid-markdown-features',
+	'extensions/notebook-renderers',
+	'extensions/npm',
+	'extensions/php-language-features',
+	'extensions/references-view',
+	'extensions/search-result',
+	'extensions/simple-browser',
+	'extensions/tunnel-forwarding',
+	'extensions/terminal-suggest',
+	'extensions/typescript-language-features',
+	'extensions/dardcor-api-tests',
+	'extensions/dardcor-test-resolver',
+	'remote',
+	'remote/web',
+	'test/automation',
+	'test/integration/browser',
+	'test/smoke',
+
+];
+
+if (existsSync(`${import.meta.dirname}/../../.build/distro/npm`)) {
+	dirs.push('.build/distro/npm');
+	dirs.push('.build/distro/npm/remote');
+	dirs.push('.build/distro/npm/remote/web');
+}

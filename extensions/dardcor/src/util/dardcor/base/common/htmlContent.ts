@@ -1,0 +1,230 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { illegalArgument } from './errors';
+import { escapeIcons } from './iconLabels';
+import { Schemas } from './network';
+import { isEqual } from './resources';
+import { escapeRegExpCharacters } from './strings';
+import { URI, UriComponents } from './uri';
+
+export interface MarkdownStringTrustedOptions {
+	readonly enabledCommands: readonly string[];
+}
+
+export interface IMarkdownString {
+	readonly value: string;
+	readonly isTrusted?: boolean | MarkdownStringTrustedOptions;
+	readonly supportThemeIcons?: boolean;
+	readonly supportHtml?: boolean;
+	readonly supportAlertSyntax?: boolean;
+	readonly baseUri?: UriComponents;
+	uris?: { [href: string]: UriComponents };
+}
+
+export const enum MarkdownStringTextNewlineStyle {
+	Paragraph = 0,
+	Break = 1,
+}
+
+export class MarkdownString implements IMarkdownString {
+
+	public value: string;
+	public isTrusted?: boolean | MarkdownStringTrustedOptions;
+	public supportThemeIcons?: boolean;
+	public supportHtml?: boolean;
+	public supportAlertSyntax?: boolean;
+	public baseUri?: URI;
+	public uris?: { [href: string]: UriComponents } | undefined;
+
+	public static lift(dto: IMarkdownString): MarkdownString {
+		const markdownString = new MarkdownString(dto.value, dto);
+		markdownString.uris = dto.uris;
+		markdownString.baseUri = dto.baseUri ? URI.revive(dto.baseUri) : undefined;
+		return markdownString;
+	}
+
+	constructor(
+		value: string = '',
+		isTrustedOrOptions: boolean | { isTrusted?: boolean | MarkdownStringTrustedOptions; supportThemeIcons?: boolean; supportHtml?: boolean; supportAlertSyntax?: boolean } = false,
+	) {
+		this.value = value;
+		if (typeof this.value !== 'string') {
+			throw illegalArgument('value');
+		}
+
+		if (typeof isTrustedOrOptions === 'boolean') {
+			this.isTrusted = isTrustedOrOptions;
+			this.supportThemeIcons = false;
+			this.supportHtml = false;
+			this.supportAlertSyntax = false;
+		}
+		else {
+			this.isTrusted = isTrustedOrOptions.isTrusted ?? undefined;
+			this.supportThemeIcons = isTrustedOrOptions.supportThemeIcons ?? false;
+			this.supportHtml = isTrustedOrOptions.supportHtml ?? false;
+			this.supportAlertSyntax = isTrustedOrOptions.supportAlertSyntax ?? false;
+		}
+	}
+
+	appendText(value: string, newlineStyle: MarkdownStringTextNewlineStyle = MarkdownStringTextNewlineStyle.Paragraph): MarkdownString {
+		this.value += escapeMarkdownSyntaxTokens(this.supportThemeIcons ? escapeIcons(value) : value)
+			.replace(/([ \t]+)/g, (_match, g1) => '&nbsp;'.repeat(g1.length))
+			.replace(/\>/gm, '\\>')
+			.replace(/\n/g, newlineStyle === MarkdownStringTextNewlineStyle.Break ? '\\\n' : '\n\n');
+
+		return this;
+	}
+
+	appendMarkdown(value: string): MarkdownString {
+		this.value += value;
+		return this;
+	}
+
+	appendCodeblock(langId: string, code: string): MarkdownString {
+		this.value += `\n${appendEscapedMarkdownCodeBlockFence(code, langId)}\n`;
+		return this;
+	}
+
+	appendLink(target: URI | string, label: string, title?: string): MarkdownString {
+		this.value += '[';
+		this.value += this._escape(label, ']');
+		this.value += '](';
+		this.value += this._escape(String(target), ')');
+		if (title) {
+			this.value += ` "${this._escape(this._escape(title, '"'), ')')}"`;
+		}
+		this.value += ')';
+		return this;
+	}
+
+	private _escape(value: string, ch: string): string {
+		const r = new RegExp(escapeRegExpCharacters(ch), 'g');
+		return value.replace(r, (match, offset) => {
+			if (value.charAt(offset - 1) !== '\\') {
+				return `\\${match}`;
+			} else {
+				return match;
+			}
+		});
+	}
+}
+
+export function isEmptyMarkdownString(oneOrMany: IMarkdownString | IMarkdownString[] | null | undefined): boolean {
+	if (isMarkdownString(oneOrMany)) {
+		return !oneOrMany.value;
+	} else if (Array.isArray(oneOrMany)) {
+		return oneOrMany.every(isEmptyMarkdownString);
+	} else {
+		return true;
+	}
+}
+
+export function isMarkdownString(thing: unknown): thing is IMarkdownString {
+	if (thing instanceof MarkdownString) {
+		return true;
+	} else if (thing && typeof thing === 'object') {
+		return typeof (<IMarkdownString>thing).value === 'string'
+			&& (typeof (<IMarkdownString>thing).isTrusted === 'boolean' || typeof (<IMarkdownString>thing).isTrusted === 'object' || (<IMarkdownString>thing).isTrusted === undefined)
+			&& (typeof (<IMarkdownString>thing).supportThemeIcons === 'boolean' || (<IMarkdownString>thing).supportThemeIcons === undefined)
+			&& (typeof (<IMarkdownString>thing).supportAlertSyntax === 'boolean' || (<IMarkdownString>thing).supportAlertSyntax === undefined);
+	}
+	return false;
+}
+
+export function markdownStringEqual(a: IMarkdownString, b: IMarkdownString): boolean {
+	if (a === b) {
+		return true;
+	} else if (!a || !b) {
+		return false;
+	} else {
+		return a.value === b.value
+			&& a.isTrusted === b.isTrusted
+			&& a.supportThemeIcons === b.supportThemeIcons
+			&& a.supportHtml === b.supportHtml
+			&& a.supportAlertSyntax === b.supportAlertSyntax
+			&& (a.baseUri === b.baseUri || !!a.baseUri && !!b.baseUri && isEqual(URI.from(a.baseUri), URI.from(b.baseUri)));
+	}
+}
+
+export function escapeMarkdownSyntaxTokens(text: string): string {
+	return text.replace(/[\\`*_{}[\]()#+\-!~]/g, '\\$&');
+}
+
+export function escapeMarkdownLinkLabel(text: string): string {
+	return text.replace(/[\\\]]/g, '\\$&');
+}
+
+export function appendEscapedMarkdownCodeBlockFence(code: string, langId: string) {
+	const longestFenceLength =
+		code.match(/^`+/gm)?.reduce((a, b) => (a.length > b.length ? a : b)).length ??
+		0;
+	const desiredFenceLength =
+		longestFenceLength >= 3 ? longestFenceLength + 1 : 3;
+
+	return [
+		`${'`'.repeat(desiredFenceLength)}${langId}`,
+		code,
+		`${'`'.repeat(desiredFenceLength)}`,
+	].join('\n');
+}
+
+export function appendEscapedMarkdownInlineCode(text: string): string {
+	const longestBacktickRun = Math.max(0, ...(text.match(/`+/g) ?? []).map(m => m.length));
+	const fence = '`'.repeat(longestBacktickRun + 1);
+	const needsSpace = text.startsWith('`') || text.endsWith('`');
+	const content = needsSpace ? ` ${text} ` : text;
+	return `${fence}${content}${fence}`;
+}
+
+export function escapeDoubleQuotes(input: string) {
+	return input.replace(/"/g, '&quot;');
+}
+
+export function removeMarkdownEscapes(text: string): string {
+	if (!text) {
+		return text;
+	}
+	return text.replace(/\\([\\`*_{}[\]()#+\-.!~])/g, '$1');
+}
+
+export function parseHrefAndDimensions(href: string): { href: string; dimensions: string[] } {
+	const dimensions: string[] = [];
+	const splitted = href.split('|').map(s => s.trim());
+	href = splitted[0];
+	const parameters = splitted[1];
+	if (parameters) {
+		const heightFromParams = /height=(\d+)/.exec(parameters);
+		const widthFromParams = /width=(\d+)/.exec(parameters);
+		const height = heightFromParams ? heightFromParams[1] : '';
+		const width = widthFromParams ? widthFromParams[1] : '';
+		const widthIsFinite = isFinite(parseInt(width));
+		const heightIsFinite = isFinite(parseInt(height));
+		if (widthIsFinite) {
+			dimensions.push(`width="${width}"`);
+		}
+		if (heightIsFinite) {
+			dimensions.push(`height="${height}"`);
+		}
+	}
+	return { href, dimensions };
+}
+
+export function createMarkdownLink(text: string, href: string, title?: string, escapeTokens = true): string {
+	return `[${escapeTokens ? escapeMarkdownSyntaxTokens(text) : text}](${href}${title ? ` "${escapeMarkdownSyntaxTokens(title)}"` : ''})`;
+}
+
+export function createMarkdownCommandLink(command: { text: string; id: string; arguments?: unknown[]; tooltip: string }, escapeTokens = true): string {
+	const uri = createCommandUri(command.id, ...(command.arguments || [])).toString();
+	return createMarkdownLink(command.text, uri, command.tooltip, escapeTokens);
+}
+
+export function createCommandUri(commandId: string, ...commandArgs: unknown[]): URI {
+	return URI.from({
+		scheme: Schemas.command,
+		path: commandId,
+		query: commandArgs.length ? encodeURIComponent(JSON.stringify(commandArgs)) : undefined,
+	});
+}

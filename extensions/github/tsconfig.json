@@ -1,0 +1,24 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"skipLibCheck": true,
+		"types": [
+			"node"
+		],
+		"typeRoots": [
+			"./node_modules/@types"
+		]
+	},
+	"include": [
+		"src/**/*",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.canonicalUriProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.scmHistoryProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.shareProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.timeline.d.ts"
+	]
+}

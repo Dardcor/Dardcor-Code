@@ -1,0 +1,65 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import type { OperatingSystem } from '../../../base/common/platform.js';
+import type { ITerminalSandboxCommand } from './terminalSandboxService.js';
+
+export interface ITerminalSandboxCommandRuleContext {
+	readonly os: OperatingSystem;
+}
+
+export interface ITerminalSandboxCommandRule<T> {
+	readonly keywords: readonly string[];
+	readonly value: T;
+	readonly subcommands?: readonly string[];
+	readonly optionsWithValue?: ReadonlySet<string>;
+	readonly condition?: (context: ITerminalSandboxCommandRuleContext) => boolean;
+	readonly when?: (command: ITerminalSandboxCommand) => boolean;
+}
+
+export function matchesTerminalSandboxCommandRule<T>(command: ITerminalSandboxCommand, rule: ITerminalSandboxCommandRule<T>, context?: ITerminalSandboxCommandRuleContext): boolean {
+	if (!rule.keywords.includes(command.keyword.toLowerCase())) {
+		return false;
+	}
+	if (rule.condition && (!context || !rule.condition(context))) {
+		return false;
+	}
+	if (rule.subcommands) {
+		const subcommand = getCommandSubcommand(command.args, rule.optionsWithValue);
+		if (subcommand === undefined || !rule.subcommands.includes(subcommand)) {
+			return false;
+		}
+	}
+	return rule.when?.(command) ?? true;
+}
+
+
+
+
+
+
+
+
+
+export function getCommandSubcommand(args: readonly string[], optionsWithValue?: ReadonlySet<string>): string | undefined {
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (arg === '--') {
+			return undefined;
+		}
+
+		if (arg.startsWith('-')) {
+			const option = arg.includes('=') ? arg.substring(0, arg.indexOf('=')) : arg;
+			if (!arg.includes('=') && optionsWithValue?.has(option)) {
+				i++;
+			}
+			continue;
+		}
+
+		return arg.toLowerCase();
+	}
+
+	return undefined;
+}

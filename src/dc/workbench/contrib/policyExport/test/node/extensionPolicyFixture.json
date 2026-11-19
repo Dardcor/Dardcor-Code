@@ -1,0 +1,72 @@
+{
+	"extensionConfigurationPolicy": {
+		"github.copilot.nextEditSuggestions.enabled": {
+			"name": "CopilotNextEditSuggestions",
+			"minimumVersion": "1.99",
+			"category": "InteractiveSession",
+			"description": "Whether to enable next edit suggestions (NES). NES can propose a next edit based on your recent changes."
+		},
+		"github.copilot.chat.reviewSelection.enabled": {
+			"name": "CopilotReviewSelection",
+			"minimumVersion": "1.104",
+			"category": "InteractiveSession",
+			"description": "Enables code review on current selection."
+		},
+		"github.copilot.chat.reviewAgent.enabled": {
+			"name": "CopilotReviewAgent",
+			"minimumVersion": "1.104",
+			"category": "InteractiveSession",
+			"description": "Enables the code review agent."
+		},
+		"github.copilot.chat.claudeAgent.enabled": {
+			"policyReference": {
+				"name": "Claude3PIntegration"
+			}
+		},
+		"github.dardcor.chat.otel.enabled": {
+			"policyReference": {
+				"name": "DardcorOtelEnabled"
+			}
+		},
+		"github.dardcor.chat.otel.exporterType": {
+			"policyReference": {
+				"name": "DardcorOtelProtocol"
+			}
+		},
+		"github.dardcor.chat.otel.protocol": {
+			"policyReference": {
+				"name": "DardcorOtelOtlpProtocol"
+			}
+		},
+		"github.dardcor.chat.otel.otlpEndpoint": {
+			"policyReference": {
+				"name": "DardcorOtelEndpoint"
+			}
+		},
+		"github.dardcor.chat.otel.captureContent": {
+			"policyReference": {
+				"name": "DardcorOtelCaptureContent"
+			}
+		},
+		"github.dardcor.chat.otel.serviceName": {
+			"policyReference": {
+				"name": "DardcorOtelServiceName"
+			}
+		},
+		"github.dardcor.chat.otel.resourceAttributes": {
+			"policyReference": {
+				"name": "DardcorOtelResourceAttributes"
+			}
+		},
+		"github.dardcor.chat.otel.headers": {
+			"policyReference": {
+				"name": "DardcorOtelHeaders"
+			}
+		},
+		"github.dardcor.chat.otel.outfile": {
+			"policyReference": {
+				"name": "DardcorOtelOutfile"
+			}
+		}
+	}
+}

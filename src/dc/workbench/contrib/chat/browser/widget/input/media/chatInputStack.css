@@ -1,0 +1,37 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.chat-input-surface-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size40);
+}
+
+.interactive-session .chat-input-surface-stack > .chat-input-surface-stack-slot:empty {
+	display: none;
+}
+
+.interactive-session .chat-input-surface-stack > .chat-input-surface-stack-slot:not(:empty) {
+	margin-block: 0;
+}
+
+.chat-input-stack {
+	gap: 0;
+	--chat-input-stack-radius-outer: var(--chat-input-radius, var(--vscode-cornerRadius-large));
+}
+
+.chat-input-stack > * {
+	--chat-input-stack-radius-top: var(--chat-input-stack-radius-outer);
+}
+
+.chat-input-stack > .chat-input-stack-continues {
+	--chat-input-stack-radius-top: 0px;
+	margin-top: 0;
+}
+
+.chat-input-stack-slot:not(.chat-input-stack-docked):not(.chat-input-stack-standalone) {
+	display: none;
+}

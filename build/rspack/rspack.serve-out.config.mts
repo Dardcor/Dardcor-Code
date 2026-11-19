@@ -1,0 +1,164 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+import { type Configuration, HtmlRspackPlugin, rspack } from '@rspack/core';
+import { ComponentExplorerPlugin } from '@vscode/component-explorer-webpack-plugin';
+import fs from 'fs';
+import net from 'net';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../..');
+const isStaticComponentExplorerBuild = process.env['COMPONENT_EXPLORER_STATIC_BUILD'] === '1';
+
+function findFreePort(startPort: number): Promise<number> {
+	return new Promise(resolve => {
+		const server = net.createServer();
+		server.listen(startPort, 'localhost', () => {
+			server.close(() => resolve(startPort));
+		});
+		server.on('error', () => resolve(findFreePort(startPort + 1)));
+	});
+}
+
+const port = await findFreePort(5123);
+
+export default {
+	context: repoRoot,
+	mode: 'development',
+	target: 'web',
+	devtool: 'source-map',
+	entry: {
+		workbench: fs.existsSync(path.join(repoRoot, 'src', 'dc', 'code', 'browser', 'workbench', 'workbench.ts'))
+			? path.join(repoRoot, 'src', 'dc', 'code', 'browser', 'workbench', 'workbench.ts')
+			: path.join(repoRoot, 'src', 'vs', 'code', 'browser', 'workbench', 'workbench.ts'),
+	},
+	output: {
+		path: path.join(repoRoot, '.build', 'rspack-serve-out'),
+		filename: 'bundled/[name].js',
+		chunkFilename: 'bundled/[name].js',
+		assetModuleFilename: 'bundled/assets/[name][ext][query]',
+		publicPath: isStaticComponentExplorerBuild ? './' : '/',
+		clean: true,
+		devtoolModuleFilenameTemplate: (info: { absoluteResourcePath: string }) => {
+			return `file:///${info.absoluteResourcePath.replace(/\\/g, '/')}`;
+		},
+	},
+	resolve: {
+		extensionAlias: {
+			'.js': ['.ts', '.js'],
+			'.mjs': ['.mts', '.mjs'],
+		},
+		fallback: {
+			path: path.resolve(repoRoot, 'node_modules', 'path-browserify'),
+			fs: false,
+			module: false,
+		},
+	},
+	resolveLoader: {
+		modules: [path.join(__dirname, 'node_modules'), 'node_modules'],
+	},
+	experiments: {
+		css: true,
+	},
+	module: {
+		rules: [
+			{
+				test: /\.ts$/,
+				loader: 'builtin:swc-loader',
+				options: {
+					jsc: {
+						parser: {
+							syntax: 'typescript',
+							decorators: true,
+						},
+						transform: {
+							legacyDecorator: true,
+							decoratorMetadata: false,
+							useDefineForClassFields: false,
+						},
+						target: 'es2022',
+					},
+				},
+				type: 'javascript/auto',
+			},
+			{
+				test: /\.css$/,
+				type: 'css',
+				use: [path.join(__dirname, 'cssSourceMarkerLoader.mts')],
+			},
+			{
+				test: /\.ttf$/,
+				type: 'asset/resource',
+			},
+			{
+				test: /[\\/]extensions[\\/]theme-defaults[\\/]themes[\\/].*\.json$/,
+				type: 'asset/source',
+			},
+		],
+	},
+	plugins: [
+		new ComponentExplorerPlugin({
+			include: 'src/**/*.fixture.ts',
+		}),
+		new rspack.NormalModuleReplacementPlugin(/\.css$/, resource => {
+			if (!resource.request.startsWith('.')) {
+				return;
+			}
+
+			const requestedPath = path.resolve(resource.context, resource.request);
+			for (const prefix of ['dc', 'vs']) {
+				const outSegment = `${path.sep}out${path.sep}${prefix}${path.sep}`;
+				const srcSegment = `${path.sep}src${path.sep}${prefix}${path.sep}`;
+				if (requestedPath.includes(outSegment) && !fs.existsSync(requestedPath)) {
+					const sourceCssPath = requestedPath.replace(outSegment, srcSegment);
+					if (sourceCssPath !== requestedPath && fs.existsSync(sourceCssPath)) {
+						resource.request = sourceCssPath;
+						return;
+					}
+				}
+			}
+		}),
+		new HtmlRspackPlugin({
+			filename: 'index.html',
+			template: path.join(__dirname, 'workbench-rspack.html'),
+			chunks: ['workbench'],
+		}),
+		...(isStaticComponentExplorerBuild ? [new HtmlRspackPlugin({
+			filename: '___explorer.html',
+			templateContent: '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Component Explorer</title><style>*{margin:0;padding:0;box-sizing:border-box}html,body,#root{height:100%;width:100%}</style></head><body><div id="root"></div></body></html>',
+			chunks: ['___explorer'],
+			scriptLoading: 'module',
+		})] : []),
+	],
+	lazyCompilation: false,
+	devServer: {
+		host: 'localhost',
+		port,
+		hot: true,
+		liveReload: true,
+		compress: false,
+		headers: {
+			'Access-Control-Allow-Origin': '*',
+		},
+		devMiddleware: {
+			writeToDisk: false,
+		},
+		static: [
+			{
+				directory: repoRoot,
+				publicPath: '/',
+				watch: false,
+			},
+		],
+		client: {
+			overlay: false,
+		},
+		allowedHosts: 'all',
+	},
+	watchOptions: {
+		ignored: /node_modules/,
+	},
+} satisfies Configuration;

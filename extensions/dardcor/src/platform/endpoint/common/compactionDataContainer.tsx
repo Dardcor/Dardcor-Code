@@ -1,0 +1,37 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+import { BasePromptElementProps, PromptElement, Raw } from '@vscode/prompt-tsx';
+import { OpenAIContextManagementResponse } from '../../networking/common/openai';
+import { CustomDataPartMimeTypes } from './endpointTypes';
+
+interface ICompactionDataOpaque {
+	type: typeof CustomDataPartMimeTypes.ContextManagement;
+	compaction: OpenAIContextManagementResponse;
+}
+
+export interface ICompactionDataContainerProps extends BasePromptElementProps {
+	compaction: OpenAIContextManagementResponse;
+}
+
+export class CompactionDataContainer extends PromptElement<ICompactionDataContainerProps> {
+	render() {
+		const { compaction } = this.props;
+		const container: ICompactionDataOpaque = { type: CustomDataPartMimeTypes.ContextManagement, compaction };
+		return <opaque value={container} />;
+	}
+}
+
+export function rawPartAsCompactionData(part: Raw.ChatCompletionContentPartOpaque): OpenAIContextManagementResponse | undefined {
+	const value = part.value as unknown;
+	if (!value || typeof value !== 'object') {
+		return;
+	}
+
+	const data = value as ICompactionDataOpaque;
+	if (data.type === CustomDataPartMimeTypes.ContextManagement && data.compaction && typeof data.compaction === 'object') {
+		return data.compaction;
+	}
+	return;
+}

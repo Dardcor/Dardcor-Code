@@ -1,0 +1,104 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import * as l10n from '@vscode/l10n';
+import { commands, env, ExtensionContext, ExtensionMode, l10n as vscodeL10n } from 'vscode';
+import { isScenarioAutomation } from '../../../platform/env/common/envService';
+import { isProduction } from '../../../platform/env/common/packagejson';
+import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
+import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
+import { ChatExtGlobalPerfMark, markChatExtGlobal } from '../../../util/common/performance';
+import { IInstantiationServiceBuilder, InstantiationServiceBuilder } from '../../../util/common/services';
+import { IInstantiationService } from '../../../util/dardcor/platform/instantiation/common/instantiation';
+import { CopilotExtensionApi } from '../../api/dardcor/extensionApi';
+import { ContributionCollection, IExtensionContributionFactory } from '../../common/contributions';
+
+
+export interface IExtensionActivationConfiguration {
+	context: ExtensionContext;
+	contributions: IExtensionContributionFactory[];
+	registerServices: (builder: IInstantiationServiceBuilder, extensionContext: ExtensionContext) => void;
+	configureDevPackages?: Function;
+	forceActivation?: boolean;
+}
+
+export async function baseActivate(configuration: IExtensionActivationConfiguration) {
+	markChatExtGlobal(ChatExtGlobalPerfMark.WillActivate);
+	const context = configuration.context;
+	if (context.extensionMode === ExtensionMode.Test && !configuration.forceActivation && !isScenarioAutomation) {
+		return context;
+	}
+
+	const isStableVsCode = !(env.appName.includes('Insiders') || env.appName.includes('Exploration') || env.appName.includes('OSS'));
+	const showSwitchToReleaseViewCtxKey = 'github.dardcor.interactiveSession.switchToReleaseChannel';
+	if (context.extension.packageJSON.isPreRelease && isStableVsCode) {
+		commands.executeCommand('setContext', showSwitchToReleaseViewCtxKey, true);
+		return context;
+	} else {
+		commands.executeCommand('setContext', showSwitchToReleaseViewCtxKey, undefined);
+	}
+
+	if (vscodeL10n.bundle) {
+		l10n.config({ contents: vscodeL10n.bundle });
+	}
+
+	if (!isProduction) {
+		configuration.configureDevPackages?.();
+	}
+
+	const instantiationService = createInstantiationService(configuration);
+
+	await instantiationService.invokeFunction(async accessor => {
+		const expService = accessor.get(IExperimentationService);
+
+		try {
+			await Promise.race([
+				expService.hasTreatments(),
+				new Promise(resolve => setTimeout(resolve, 300))
+			]);
+		} catch { }
+
+		const contributions = instantiationService.createInstance(ContributionCollection, configuration.contributions);
+		context.subscriptions.push(contributions);
+		try {
+			await Promise.race([
+				contributions.waitForActivationBlockers(),
+				new Promise(resolve => setTimeout(resolve, 500))
+			]);
+		} catch { }
+	});
+
+	if (ExtensionMode.Test === context.extensionMode && !isScenarioAutomation) {
+		return instantiationService;
+	}
+
+	const result = {
+		getAPI(version: number) {
+			if (version > CopilotExtensionApi.version) {
+				throw new Error('Invalid Dardcor Chat extension API version. Please upgrade Dardcor Chat.');
+			}
+
+			return instantiationService.createInstance(CopilotExtensionApi);
+		}
+	};
+	markChatExtGlobal(ChatExtGlobalPerfMark.DidActivate);
+	return result;
+}
+
+export function createInstantiationService(configuration: IExtensionActivationConfiguration): IInstantiationService {
+	const accessor = new InstantiationServiceBuilder();
+
+	configuration.registerServices(accessor, configuration.context);
+
+	const instantiationService = accessor.seal();
+	configuration.context.subscriptions.push(instantiationService);
+
+	instantiationService.invokeFunction(accessor => {
+
+		accessor.get(IIgnoreService).init();
+	});
+
+	return instantiationService;
+}

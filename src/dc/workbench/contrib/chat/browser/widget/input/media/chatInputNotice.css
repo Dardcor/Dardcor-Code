@@ -1,0 +1,179 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+
+.chat-input-notice {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size80);
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	padding: var(--vscode-spacing-size120);
+	border: var(--vscode-strokeThickness) solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
+	border-bottom: none;
+	border-radius: var(--chat-input-stack-radius-top, var(--vscode-cornerRadius-large)) var(--chat-input-stack-radius-top, var(--vscode-cornerRadius-large)) 0 0;
+	background-color: var(--vscode-agentsChatInput-background, var(--vscode-input-background));
+	color: var(--vscode-foreground);
+}
+
+.chat-input-notice:focus-visible {
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: calc(-1 * var(--vscode-strokeThickness));
+}
+
+.chat-input-notice.chat-input-notice-tip,
+.chat-input-notice.chat-input-notice-notification {
+	font-size: var(--vscode-chat-font-size-body-s);
+	font-family: var(--vscode-chat-font-family, inherit);
+	color: var(--vscode-descriptionForeground);
+}
+
+.chat-input-notice a:not(.action-label, .monaco-button),
+.chat-input-notice a:visited:not(.action-label, .monaco-button) {
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+	border-radius: var(--vscode-cornerRadius-xSmall);
+}
+
+.chat-input-notice a:hover:not(.action-label, .monaco-button),
+.chat-input-notice a:active:not(.action-label, .monaco-button) {
+	color: var(--vscode-textLink-activeForeground);
+	text-decoration: underline;
+}
+
+.chat-input-notice a:focus-visible:not(.action-label, .monaco-button) {
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
+
+.chat-input-notice.chat-input-notice-tip {
+	flex-direction: row;
+	align-items: flex-start;
+	gap: var(--vscode-spacing-size60);
+	padding: var(--vscode-spacing-size60) var(--vscode-spacing-size80);
+}
+
+.chat-input-notice.chat-input-notice-onboarding {
+	--chat-input-notice-radius: var(--chat-input-stack-radius-outer, var(--vscode-cornerRadius-large));
+	border-bottom: var(--vscode-strokeThickness) solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
+	border-radius: var(--chat-input-stack-radius-top, var(--chat-input-notice-radius)) var(--chat-input-stack-radius-top, var(--chat-input-notice-radius)) var(--chat-input-notice-radius) var(--chat-input-notice-radius);
+	margin-bottom: var(--vscode-spacing-size40);
+}
+
+
+.chat-input-notice.chat-input-notice-notification {
+	gap: var(--vscode-spacing-size20);
+	border-color: var(--chat-input-notice-severity);
+	background-color: color-mix(in srgb, var(--chat-input-notice-severity) 6%, var(--vscode-agentsChatInput-background, var(--vscode-input-background)));
+}
+
+.chat-input-notice.chat-input-notice-notification.severity-info {
+	--chat-input-notice-severity: var(--vscode-focusBorder);
+	border-color: var(--vscode-input-border, transparent);
+}
+
+.chat-input-notice.chat-input-notice-notification.severity-warning {
+	--chat-input-notice-severity: var(--vscode-editorWarning-foreground);
+}
+
+.chat-input-notice.chat-input-notice-notification.severity-error {
+	--chat-input-notice-severity: var(--vscode-editorError-foreground);
+}
+
+
+.chat-input-notice-title {
+	font-size: var(--vscode-fontSize-label1);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.chat-input-notice-description {
+	font-size: var(--vscode-fontSize-label2);
+	color: var(--vscode-descriptionForeground);
+	line-height: 1.4;
+}
+
+
+.chat-input-notice-picker {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--vscode-spacing-size60);
+	box-sizing: border-box;
+	min-width: 0;
+	height: var(--vscode-spacing-size280);
+	padding: 0 var(--vscode-spacing-size80);
+	border: var(--vscode-strokeThickness) solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));
+	border-radius: var(--vscode-cornerRadius-small);
+	background-color: var(--vscode-dropdown-background, var(--vscode-input-background));
+	transition: border-color 100ms ease-out;
+}
+
+.chat-input-notice-picker[hidden] {
+	display: none;
+}
+
+.chat-input-notice-picker:hover {
+	border-color: var(--vscode-focusBorder);
+}
+
+.chat-input-notice-picker:focus-within {
+	border-color: var(--vscode-focusBorder);
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: -2px;
+}
+
+.chat-input-notice-picker .monaco-select-box {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 100%;
+	padding: 0;
+	border: none;
+	border-radius: var(--vscode-cornerRadius-small);
+	background-color: transparent;
+	color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+	font-family: inherit;
+	font-size: var(--vscode-fontSize-label2);
+	text-overflow: ellipsis;
+}
+
+.chat-input-notice-picker .monaco-select-box:focus {
+	outline: none;
+}
+
+
+.chat-input-notice-action {
+	flex-shrink: 0;
+}
+
+.chat-input-notice-action .action-label {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--vscode-spacing-size200);
+	height: var(--vscode-spacing-size200);
+	padding: 0;
+	border-radius: var(--vscode-cornerRadius-small);
+	color: var(--vscode-descriptionForeground);
+}
+
+.chat-input-notice-action .action-label:hover {
+	color: var(--vscode-foreground);
+}
+
+.monaco-workbench .chat-input-notice-action .codicon[class*='codicon-'] {
+	font-size: var(--vscode-codiconFontSize-compact);
+	line-height: 1;
+	color: inherit;
+}
+
+.chat-input-notice.chat-input-notice-onboarding > .chat-input-notice-action {
+	position: absolute;
+	top: var(--vscode-spacing-size80);
+	right: var(--vscode-spacing-size80);
+}

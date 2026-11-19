@@ -1,0 +1,30 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { Emitter } from './event.js';
+
+export class IMEImpl {
+
+	private readonly _onDidChange = new Emitter<void>();
+	public readonly onDidChange = this._onDidChange.event;
+
+	private _enabled = true;
+
+	public get enabled() {
+		return this._enabled;
+	}
+
+	public enable(): void {
+		this._enabled = true;
+		this._onDidChange.fire();
+	}
+
+	public disable(): void {
+		this._enabled = false;
+		this._onDidChange.fire();
+	}
+}
+
+export const IME = new IMEImpl();

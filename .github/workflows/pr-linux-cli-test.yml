@@ -1,0 +1,37 @@
+on:
+  workflow_call:
+    inputs:
+      job_name:
+        type: string
+        required: true
+      rustup_toolchain:
+        type: string
+        required: true
+
+jobs:
+  linux-cli-test:
+    name: ${{ inputs.job_name }}
+    runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: ${{ inputs.rustup_toolchain }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+      - run: |
+          set -e
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: |
+          set -e
+          rustup default $RUSTUP_TOOLCHAIN
+          rustup update $RUSTUP_TOOLCHAIN
+          rustup component add clippy
+      - run: |
+          set -e
+          rustc --version
+          cargo --version
+      - run: cargo clippy -- -D warnings
+        working-directory: cli
+      - run: cargo test
+        working-directory: cli

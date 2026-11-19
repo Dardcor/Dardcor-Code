@@ -1,0 +1,67 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { protocol } from 'electron';
+import { IDisposable } from '../../../base/common/lifecycle.js';
+import { AppResourcePath, COI, FileAccess, Schemas } from '../../../base/common/network.js';
+import { sep } from '../../../base/common/path.js';
+import { URI } from '../../../base/common/uri.js';
+import { IFileService } from '../../files/common/files.js';
+
+export class WebviewProtocolProvider implements IDisposable {
+
+	private static validWebviewFilePaths = new Map<string, { readonly mime: string }>([
+		['/index.html', { mime: 'text/html' }],
+		['/fake.html', { mime: 'text/html' }],
+		['/service-worker.js', { mime: 'application/javascript' }],
+	]);
+
+	constructor(
+		@IFileService private readonly _fileService: IFileService
+	) {
+		const webviewHandler = this.handleWebviewRequest.bind(this);
+		protocol.handle(Schemas.vscodeWebview, webviewHandler);
+	}
+
+	dispose(): void {
+		protocol.unhandle(Schemas.vscodeWebview);
+	}
+
+	private async handleWebviewRequest(request: GlobalRequest): Promise<GlobalResponse> {
+		try {
+			const uri = URI.parse(request.url);
+			const entry = WebviewProtocolProvider.validWebviewFilePaths.get(uri.path);
+			if (entry) {
+				let relativeResourcePath: AppResourcePath = `dc/workbench/contrib/webview/browser/pre${uri.path}`;
+				let url = FileAccess.asFileUri(relativeResourcePath);
+				if (!await this._fileService.exists(url)) {
+					relativeResourcePath = `vs/workbench/contrib/webview/browser/pre${uri.path}`;
+					url = FileAccess.asFileUri(relativeResourcePath);
+				}
+				if (!await this._fileService.exists(url)) {
+					const srcFsPath = url.fsPath.replace(/[\\/]out[\\/](?:dc|vs)[\\/]/, `${sep}src${sep}dc${sep}`);
+					const srcUri = URI.file(srcFsPath);
+					if (await this._fileService.exists(srcUri)) {
+						url = srcUri;
+					}
+				}
+
+				const content = await this._fileService.readFile(url);
+				return new Response(content.value.buffer as ArrayBufferView<ArrayBuffer>, {
+					headers: {
+						'Content-Type': entry.mime,
+						...COI.getHeadersFromQuery(request.url),
+						'Cross-Origin-Resource-Policy': 'cross-origin',
+					}
+				});
+			} else {
+				return new Response(null, { status: 403 });
+			}
+		} catch (err) {
+			console.error('[WebviewProtocolProvider] Failed to handle webview request:', request.url, err);
+		}
+		return new Response(null, { status: 500 });
+	}
+}

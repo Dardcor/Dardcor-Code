@@ -1,0 +1,9573 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import type Anthropic from '@anthropic-ai/sdk';
+import type { AccountInfo, AgentInfo, ForkSessionOptions, ForkSessionResult, GetSessionMessagesOptions, McpSdkServerConfigWithInstance, McpServerStatus, ModelInfo, Options, PermissionMode, Query, SDKControlInterruptResponse, SDKMessage, SDKSessionInfo, SDKUserMessage, SdkMcpToolDefinition, SessionMessage, SessionMutationOptions, Settings, SlashCommand, WarmQuery } from '@anthropic-ai/claude-agent-sdk';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { IDardcorRouterModel } from '../../common/dardcorRouterModel.js';
+
+import assert from 'assert';
+import { isCustomizationEnabled } from '../../common/customizationEnablement.js';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import {
+	makeAssistantMessage,
+	makeContentBlockStartText,
+	makeContentBlockStartThinking,
+	makeContentBlockStartToolUse,
+	makeContentBlockStop,
+	makeMessageStart,
+	makeMessageStop,
+	makeResultSuccess,
+	makeStreamEvent,
+	makeSystemInitMessage,
+	makeTextDelta,
+	makeThinkingDelta,
+	makeUserToolResultMessage,
+} from './claudeMapSessionEventsTestUtils.js';
+import { DeferredPromise, timeout } from '../../../../base/common/async.js';
+import { VSBuffer } from '../../../../base/common/buffer.js';
+import { Emitter, Event } from '../../../../base/common/event.js';
+import { DisposableStore, toDisposable } from '../../../../base/common/lifecycle.js';
+import { URI } from '../../../../base/common/uri.js';
+import { generateUuid, isUUID } from '../../../../base/common/uuid.js';
+import { isCancellationError } from '../../../../base/common/errors.js';
+import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
+import { ServiceCollection } from '../../../instantiation/common/serviceCollection.js';
+import { InstantiationService } from '../../../instantiation/common/instantiationService.js';
+import { IInstantiationService } from '../../../instantiation/common/instantiation.js';
+import { ILogService, NullLogService } from '../../../log/common/log.js';
+import { IProductService } from '../../../product/common/productService.js';
+import { FileService } from '../../../files/common/fileService.js';
+import { IFileService } from '../../../files/common/files.js';
+import { InMemoryFileSystemProvider } from '../../../files/common/inMemoryFilesystemProvider.js';
+import { Schemas } from '../../../../base/common/network.js';
+import { INativeEnvironmentService } from '../../../environment/common/environment.js';
+import { AgentChatMigrationDeferred, IActiveClient, IAgent, IAgentChatContext, IAgentChatDataChange, IAgentChatMetadata, IAgentCreateChatOptions, IAgentCreateChatResult, IAgentCreateSessionConfig, IAgentCreateSessionResult, IAgentMaterializeChatEvent, IAgentSpawnChatEvent, AgentSession, AgentSignal, GITHUB_COPILOT_PROTECTED_RESOURCE } from '../../common/agent.js';
+import { AgentHostAutoApprovePolicyRestrictedConfigKey, AgentHostClaudeMultiRootEnabledConfigKey } from '../../common/agentHostSchema.js';
+const AgentHostGitHubMcpServerEnabledConfigKey = 'githubMcpServerEnabled';
+import { AgentHostConfigKey } from '../../common/agentHostCustomizationConfig.js';
+import { AgentFeedbackAttachmentDisplayKind } from '../../common/meta/agentFeedbackAttachments.js';
+import { ChatInputRequestPurpose, readChatInputRequestPurpose } from '../../common/meta/agentChatInputRequestMeta.js';
+import { toClientPluginMcpDefaultCwdsMeta } from '../../common/meta/clientPluginCustomizationMeta.js';
+import { ActionType } from '../../common/state/sessionActions.js';
+import { CustomizationLoadStatus, CustomizationType, MessageAttachmentKind, MessageKind, ResponsePartKind, ChatInputResponseKind, SessionStatus, ToolResultContentType, buildChatUri, buildDefaultChatUri, buildSubagentChatUri, buildSubagentSessionUri, customizationId, isDefaultChatUri, parseChatUri, parseDefaultChatUri, parseRequiredSessionUriFromChatUri, type ClientPluginCustomization, type Customization, type PluginCustomization } from '../../common/state/sessionState.js';
+import { McpServerStatus as McpCustomizationServerStatus, type ChildCustomization, type CustomizationEnablement, type McpServerCustomization } from '../../common/state/protocol/channels-session/state.js';
+import { ISessionDataService } from '../../common/sessionDataService.js';
+import { AHP_AUTH_REQUIRED, ProtocolError } from '../../common/state/sessionProtocol.js';
+import { ChatOriginKind, CustomizationEnablementKind, ProtectedResourceMetadata, ChatInputAnswerState, ChatInputAnswerValueKind, ToolCallStatus, type SessionConfigState, type ChatInputRequest, type ToolDefinition } from '../../common/state/protocol/state.js';
+import { IAgentHostGitService } from '../../common/agentHostGitService.js';
+import { IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE } from '../../common/agentHostCheckpointService.js';
+import { IAgentServerToolHost } from '../../common/agentServerTools.js';
+import { IAgentHostOTelService } from '../../common/otel/agentHostOTelService.js';
+import { AgentConfigurationService, IAgentConfigurationService } from '../../node/agentConfigurationService.js';
+import { AgentHostStateManager, IAgentHostStateManager } from '../../node/agentHostStateManager.js';
+import { IAgentHostCustomizationEnablementService, type IAgentHostCustomizationEnablementService as ICustomizationEnablementService } from '../../node/agentHostCustomizationEnablementService.js';
+import { AgentHostSessionTitleSignal, IAgentHostSessionTitleSignal } from '../../node/agentHostSessionTitleSignal.js';
+import { IAgentHostGitHubEndpointService } from '../../node/agentHostGitHubEndpointService.js';
+import { IAgentHostAuthenticationService, type IAgentHostAuthTokenChangeEvent } from '../../node/agentHostAuthenticationService.js';
+import { createTestGitHubEndpointService } from './testGitHubEndpointService.js';
+import { createTestAgentService, getTestAgentStateManager, registerTestAgentProvider } from './agentServiceTestUtils.js';
+import { IAgentPluginManager, ISyncedCustomization } from '../../common/agentPluginManager.js';
+import { makeMcpServerCustomization } from '../../../agentPlugins/common/pluginParsers.js';
+import { ClaudeAgent, fromSdkModelInfo } from '../../node/claude/claudeAgent.js';
+import { CLAUDE_PROVIDER_ANTHROPIC, CLAUDE_PROVIDER_DARDCOR_ROUTER } from '../../common/claudeProviders.js';
+import { toClaudeModelSelectionId } from '../../node/claude/claudeModelSelection.js';
+import { ClaudeAgentSession } from '../../node/claude/claudeAgentSession.js';
+import { createClaudeInternalMcpServerCustomization } from '../../node/claude/customizations/claudeSessionCustomizationDiscovery.js';
+import { ClaudeSessionMetadataStore } from '../../node/claude/claudeSessionMetadataStore.js';
+import { ClaudeSessionConfigKey } from '../../common/claudeSessionConfigKeys.js';
+import { ClaudeAgentSdkService, IClaudeAgentSdkService, IClaudeSdkBindings } from '../../node/claude/claudeAgentSdkService.js';
+import { AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY, AGENT_SDK_SETUP_RELOAD_REQUEST_KEY, readAgentSdkSetupInfos } from '../../common/agentSdkSetup.js';
+import { IAgentSdkDownloader } from '../../node/agentSdkDownloader.js';
+import { RecordingAgentSdkDownloader } from './testAgentSdkDownloader.js';
+import { PendingRequestRegistry } from '../../common/pendingRequestRegistry.js';
+import { IClaudeProxyCreditsReport, IClaudeProxyHandle, IClaudeProxyService } from '../../node/claude/claudeProxyService.js';
+import { resolvePromptToContentBlocks } from '../../node/claude/claudePromptResolver.js';
+import { IDardcorRouterService, type IDardcorRouterRequestOptions } from '../../node/shared/dardcorRouterService.js';
+import { createAgentChatContext } from '../../node/agentChatContext.js';
+import { createNoopGitService, createNullSessionDataService, createSessionDataService, RecordingCheckpointService, TestSessionDatabase } from '../common/sessionTestHelpers.js';
+
+
+interface IStartCall {
+	readonly token: string;
+}
+
+function reducerBackedEnablementChangeEvent(stateManager: AgentHostStateManager): Event<{ sessions: readonly string[] }> {
+	return Event.map(
+		Event.filter(stateManager.onDidEmitEnvelope, envelope =>
+			envelope.action.type === ActionType.SessionCustomizationsChanged
+			|| envelope.action.type === ActionType.SessionCustomizationUpdated
+			|| envelope.action.type === ActionType.SessionCustomizationToggled
+		),
+		envelope => ({ sessions: [envelope.channel.toString()] }),
+	);
+}
+
+function listAdditionalChats(agent: ClaudeAgent, session: URI): string[] {
+	const backings = (agent as unknown as { _chatBackings: Map<string, { readonly sdkSessionId: string }> })._chatBackings;
+	return [...backings].flatMap(([chat]) => !isDefaultChatUri(chat) && parseRequiredSessionUriFromChatUri(chat) === session.toString() ? [chat] : []);
+}
+
+function listLiveChats(agent: ClaudeAgent): string[] {
+	const internals = agent as unknown as {
+		_chatBackings: Map<string, { readonly sdkSessionId: string }>;
+		_chatEntriesBySdkId: Map<string, unknown>;
+	};
+	return [...internals._chatBackings].flatMap(([chat, backing]) => internals._chatEntriesBySdkId.has(backing.sdkSessionId) ? [chat] : []);
+}
+
+function listSessionChatBackings(agent: ClaudeAgent): string[] {
+	const index = (agent as unknown as {
+		_chatBackings: Map<string, { readonly sdkSessionId: string }>;
+	})._chatBackings;
+	return [...index].flatMap(([chat]) => isDefaultChatUri(chat) ? [chat] : []);
+}
+
+function defaultChatUri(session: URI): URI {
+	return URI.parse(buildDefaultChatUri(session));
+}
+
+function sessionIdOfChat(chat: URI): string {
+	return AgentSession.id(URI.parse(parseRequiredSessionUriFromChatUri(chat)));
+}
+
+function discoverClaudeCodeChats(agent: ClaudeAgent): Promise<IAgentChatMetadata[] | undefined> {
+	return (agent as unknown as { _listClaudeCodeChats(): Promise<IAgentChatMetadata[] | undefined> })._listClaudeCodeChats();
+}
+
+function chatContext(chat: URI, overrides?: Partial<IAgentChatContext>): IAgentChatContext {
+	const parsed = parseChatUri(chat);
+	const session = parsed ? URI.parse(parsed.session) : chat;
+	return {
+		configurationResource: session,
+		resource: isDefaultChatUri(chat) ? session : chat,
+		...overrides,
+	};
+}
+
+async function createSession(agent: ClaudeAgent, config: IAgentCreateSessionConfig = {}, chatOptions?: IAgentCreateChatOptions): Promise<IAgentCreateSessionResult & { readonly sdkSessionId: string }> {
+	const session = config.session ?? AgentSession.uri('claude', generateUuid());
+	const chat = defaultChatUri(session);
+	const created = await createProviderSession(agent, chat, chatContext(chat), { ...config, session }, chatOptions);
+	return { ...created, sdkSessionId: AgentSession.id(created.chat!.backingSession!) };
+}
+
+async function createProviderSession(agent: ClaudeAgent, chat: URI, context: IAgentChatContext, config: IAgentCreateSessionConfig, chatOptions?: IAgentCreateChatOptions): Promise<IAgentCreateSessionResult> {
+	const result = await agent.chats.createChat(chat, context, {
+		model: config.model,
+		agent: config.agent,
+		workingDirectories: config.workingDirectories,
+		config: config.config,
+		activeClient: config.activeClient,
+		deferBacking: !chatOptions?.fork && !config.importConversation,
+		importConversation: config.importConversation,
+		...chatOptions,
+	});
+	if (!result) {
+		throw new Error('Expected chat backing metadata');
+	}
+	return {
+		session: config.session ?? context.configurationResource,
+		...(result.project ? { project: result.project } : {}),
+		...(result.resolvedWorkingDirectory ? { resolvedWorkingDirectory: result.resolvedWorkingDirectory } : {}),
+		...(result.provisional ? { provisional: true } : {}),
+		chat: result,
+	};
+}
+
+async function releaseDefaultChat(agent: ClaudeAgent, session: URI): Promise<void> {
+	const chat = defaultChatUri(session);
+	await agent.chats.releaseChat(chat, chatContext(chat));
+}
+
+async function disposeSession(agent: ClaudeAgent, session: URI): Promise<void> {
+	const chat = defaultChatUri(session);
+	await agent.chats.disposeChat(chat, chatContext(chat));
+}
+
+async function bindDefaultChat(agent: ClaudeAgent, session: URI): Promise<void> {
+	const chat = defaultChatUri(session);
+	const recovered = await agent.recoverLegacyChat!(chat, chatContext(chat));
+	await agent.materializeChat!(chat, chatContext(chat), recovered.providerData);
+}
+
+function hostCustomizations(stateManager: AgentHostStateManager, session: URI): readonly Customization[] | undefined {
+	return stateManager.getSessionState(session.toString())?.customizations;
+}
+
+function getOrCreateActiveClient(agent: ClaudeAgent, chat: URI, clientId: string, hostCustomizations?: readonly Customization[]): IActiveClient {
+	return agent.getOrCreateActiveClient(chat, chatContext(chat), { clientId }, hostCustomizations);
+}
+
+async function syncClientCustomizations(agent: ClaudeAgent, stateManager: AgentHostStateManager, session: URI, clientId: string, customizations: ClientPluginCustomization[]): Promise<ISyncedCustomization[]> {
+	const chat = defaultChatUri(session);
+	const context = chatContext(chat);
+	agent.getOrCreateActiveClient(chat, context, { clientId }, hostCustomizations(stateManager, session));
+	return agent.syncClientCustomizations(chat, context, clientId, customizations);
+}
+
+function resolvedChatOptions(workingDirectories: readonly URI[] = [URI.file('/work')], config?: Record<string, unknown>): IAgentCreateChatOptions {
+	return { workingDirectories, ...(config ? { config } : {}) };
+}
+
+async function startActiveTurn(disposables: Pick<DisposableStore, 'add'>, ctx: ITestContext, session: URI, sessionId: string): Promise<void> {
+	const turnActive = new DeferredPromise<void>();
+	const finishTurn = new DeferredPromise<void>();
+	ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+	ctx.sdk.queryAdvance = async index => {
+		if (index === 1) {
+			turnActive.complete();
+			await finishTurn.p;
+		}
+	};
+	const sendPromise = ctx.agent.chats.sendMessage(defaultChatUri(session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(session)));
+	await turnActive.p;
+	disposables.add(toDisposable(() => {
+		finishTurn.complete();
+		void sendPromise.catch(() => { });
+	}));
+}
+
+class FakeAgentPluginManager implements IAgentPluginManager {
+	declare readonly _serviceBrand: undefined;
+	readonly basePath = URI.from({ scheme: 'inmemory', path: '/agentPlugins' });
+
+	syncResult: readonly ISyncedCustomization[] | undefined;
+	syncCalls: { clientId: string; customizations: readonly ClientPluginCustomization[] }[] = [];
+
+	async syncCustomizations(
+		clientId: string,
+		customizations: ClientPluginCustomization[],
+		progress?: (status: PluginCustomization) => void,
+	): Promise<ISyncedCustomization[]> {
+		this.syncCalls.push({ clientId, customizations: [...customizations] });
+		if (this.syncResult) {
+			if (progress) {
+				for (const synced of this.syncResult) {
+					progress(synced.customization);
+				}
+			}
+			return [...this.syncResult];
+		}
+		return [];
+	}
+}
+
+class FakeClaudeProxyService implements IClaudeProxyService {
+	declare readonly _serviceBrand: undefined;
+
+	readonly startCalls: IStartCall[] = [];
+	disposeCount = 0;
+
+	startError: Error | undefined;
+
+	readonly onDidReportCreditsEmitter = new Emitter<IClaudeProxyCreditsReport>();
+	readonly onDidReportCredits: Event<IClaudeProxyCreditsReport> = this.onDidReportCreditsEmitter.event;
+
+	async start(token?: string): Promise<IClaudeProxyHandle> {
+		this.startCalls.push({ token: token ?? '' });
+		if (this.startError) {
+			throw this.startError;
+		}
+		return {
+			baseUrl: 'http://127.0.0.1:0',
+			nonce: `nonce-for-${token ?? ''}`,
+			dispose: () => { this.disposeCount++; },
+		};
+	}
+
+	dispose(): void { this.onDidReportCreditsEmitter.dispose(); }
+}
+
+class FakeAgentHostAuthenticationService implements IAgentHostAuthenticationService {
+	declare readonly _serviceBrand: undefined;
+	private readonly _tokens = new Map<string, string>();
+	private readonly _onDidChangeAuthToken = new Emitter<IAgentHostAuthTokenChangeEvent>();
+	readonly onDidChangeAuthToken = this._onDidChangeAuthToken.event;
+
+	setToken(resource: string, token: string): void {
+		const previous = this._tokens.get(resource);
+		if (token) {
+			this._tokens.set(resource, token);
+		} else {
+			this._tokens.delete(resource);
+		}
+		const current = this._tokens.get(resource);
+		if (previous !== current) {
+			this._onDidChangeAuthToken.fire({ resource, scopes: [], token: current });
+		}
+	}
+
+	getAuthToken(request: Parameters<IAgentHostAuthenticationService['getAuthToken']>[0]): string | undefined {
+		return this._tokens.get(request.resource);
+	}
+
+	dispose(): void {
+		this._onDidChangeAuthToken.dispose();
+	}
+}
+
+function connectAuthentication(agent: ClaudeAgent, authenticationService: FakeAgentHostAuthenticationService): void {
+	const authenticate = agent.authenticate.bind(agent);
+	agent.authenticate = async (resource, token) => {
+		const authenticated = await authenticate(resource, token);
+		if (authenticated) {
+			authenticationService.setToken(resource, token);
+		}
+		return authenticated;
+	};
+}
+
+class FakeDardcorRouterService implements IDardcorRouterService {
+	declare readonly _serviceBrand: undefined;
+
+	models: (options?: IDardcorRouterRequestOptions) => Promise<IDardcorRouterModel[]> =
+		async () => [];
+
+	messages(): never { throw new Error('not used in ClaudeAgent tests'); }
+	countTokens(): Promise<Anthropic.MessageTokensCount> { throw new Error('not used in ClaudeAgent tests'); }
+	responses(): Promise<Response> { throw new Error('not used in ClaudeAgent tests'); }
+	utilityChatCompletion(): Promise<never> { throw new Error('not used in ClaudeAgent tests'); }
+}
+
+const FakeProductService: IProductService = {
+	_serviceBrand: undefined,
+	version: '1.0.0-test',
+} as IProductService;
+
+
+class FakeClaudeAgentSdkService implements IClaudeAgentSdkService {
+	declare readonly _serviceBrand: undefined;
+
+	sessionList: readonly SDKSessionInfo[] = [];
+	listSessionsCallCount = 0;
+
+	startupCallCount = 0;
+
+	readonly capturedStartupOptions: Options[] = [];
+
+	startupRejection: Error | undefined;
+
+	nextQueryMessages: SDKMessage[] = [];
+
+	queryAdvance: ((index: number) => Promise<void>) | undefined;
+
+	queryReturnGate: Promise<void> | undefined;
+
+	supportedCommandsResult: SlashCommand[] = [];
+	supportedAgentsResult: AgentInfo[] | undefined = undefined;
+	mcpServerStatusResult: McpServerStatus[] | undefined = undefined;
+	mcpToggleGate: Promise<void> | undefined;
+
+	supportedModelsResult: ModelInfo[] = [];
+	supportedModelsCallCount = 0;
+	readonly supportedModelsOptions: Options[] = [];
+
+	accountInfoResult: AccountInfo = { tokenSource: 'none', apiProvider: 'firstParty' };
+	accountInfoCallCount = 0;
+
+	supportedModelsGate: Promise<void> | undefined;
+
+	supportedModelsRejection: Error | undefined;
+
+	readonly warmQueries: FakeWarmQuery[] = [];
+
+	readonly enumerationQueries: FakeQuery[] = [];
+
+	listSessionsRejection: Error | undefined;
+
+	async listSessions(): Promise<readonly SDKSessionInfo[]> {
+		this.listSessionsCallCount++;
+		if (this.listSessionsRejection) {
+			const err = this.listSessionsRejection;
+			throw err;
+		}
+		return this.sessionList;
+	}
+
+	async canLoadWithoutDownload(): Promise<boolean> {
+		return this.canLoadWithoutDownloadResult;
+	}
+
+	ensureAvailableCalls = 0;
+	async ensureAvailable(): Promise<void> {
+		this.ensureAvailableCalls++;
+		if (this.ensureAvailableRejection) {
+			throw this.ensureAvailableRejection;
+		}
+		await this.ensureAvailableGate;
+	}
+
+	ensureAvailableGate: Promise<void> | undefined;
+
+	ensureAvailableRejection: Error | undefined;
+
+	canLoadWithoutDownloadResult = true;
+
+	getSessionInfoOverride: ((sessionId: string) => Promise<SDKSessionInfo | undefined>) | undefined;
+
+	getSessionInfoCalls: string[] = [];
+
+	async getSessionInfo(sessionId: string): Promise<SDKSessionInfo | undefined> {
+		this.getSessionInfoCalls.push(sessionId);
+		if (this.getSessionInfoOverride) {
+			return this.getSessionInfoOverride(sessionId);
+		}
+		return this.sessionList.find(s => s.sessionId === sessionId);
+	}
+
+	sessionMessagesById = new Map<string, readonly SessionMessage[]>();
+	getSessionMessagesCalls: { sessionId: string; options: GetSessionMessagesOptions | undefined }[] = [];
+	getSessionMessagesRejection: Error | undefined;
+
+	async getSessionMessages(sessionId: string, options?: GetSessionMessagesOptions): Promise<readonly SessionMessage[]> {
+		this.getSessionMessagesCalls.push({ sessionId, options });
+		if (this.getSessionMessagesRejection) {
+			const err = this.getSessionMessagesRejection;
+			throw err;
+		}
+		return this.sessionMessagesById.get(sessionId) ?? [];
+	}
+
+	subagentsBySessionId = new Map<string, readonly string[]>();
+	listSubagentsCalls: { sessionId: string; options: unknown }[] = [];
+	listSubagentsRejection: Error | undefined;
+
+	async listSubagents(sessionId: string, options?: unknown): Promise<readonly string[]> {
+		this.listSubagentsCalls.push({ sessionId, options });
+		if (this.listSubagentsRejection) {
+			throw this.listSubagentsRejection;
+		}
+		return this.subagentsBySessionId.get(sessionId) ?? [];
+	}
+
+	subagentMessagesByKey = new Map<string, readonly SessionMessage[]>();
+	getSubagentMessagesCalls: { sessionId: string; agentId: string; options: unknown }[] = [];
+	getSubagentMessagesRejection: Error | undefined;
+
+	async getSubagentMessages(sessionId: string, agentId: string, options?: unknown): Promise<readonly SessionMessage[]> {
+		this.getSubagentMessagesCalls.push({ sessionId, agentId, options });
+		if (this.getSubagentMessagesRejection) {
+			throw this.getSubagentMessagesRejection;
+		}
+		return this.subagentMessagesByKey.get(`${sessionId}::${agentId}`) ?? [];
+	}
+
+	forkSessionCalls: { sessionId: string; options: ForkSessionOptions | undefined }[] = [];
+	forkSessionResult: ForkSessionResult | undefined;
+	forkSessionRejection: Error | undefined;
+
+	async forkSession(sessionId: string, options?: ForkSessionOptions): Promise<ForkSessionResult> {
+		this.forkSessionCalls.push({ sessionId, options });
+		if (this.forkSessionRejection) {
+			throw this.forkSessionRejection;
+		}
+		return this.forkSessionResult ?? { sessionId: `forked-${sessionId}` };
+	}
+
+	deleteSessionCalls: string[] = [];
+	deleteSessionRejection: Error | undefined;
+
+	async deleteSession(sessionId: string, _options?: SessionMutationOptions): Promise<void> {
+		this.deleteSessionCalls.push(sessionId);
+		if (this.deleteSessionRejection) {
+			throw this.deleteSessionRejection;
+		}
+	}
+
+	async startup(params: { options: Options; initializeTimeoutMs?: number }): Promise<WarmQuery> {
+		this.startupCallCount++;
+		this.capturedStartupOptions.push(params.options);
+		if (this.startupAdvance) {
+			await this.startupAdvance(this.startupCallCount);
+		}
+		if (this.startupRejection) {
+			const err = this.startupRejection;
+			this.startupRejection = undefined;
+			throw err;
+		}
+		const warm = new FakeWarmQuery(this);
+		this.warmQueries.push(warm);
+		return warm;
+	}
+
+	async query(params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }): Promise<Query> {
+		if (params.options) {
+			this.supportedModelsOptions.push(params.options);
+		}
+		if (typeof params.prompt === 'string') {
+			throw new Error('FakeClaudeAgentSdkService.query: enumeration always passes an AsyncIterable prompt');
+		}
+		const query = new FakeQuery(params.prompt, this);
+		this.enumerationQueries.push(query);
+		return query;
+	}
+
+	startupAdvance: ((callIndex: number) => Promise<void>) | undefined;
+
+	readonly toolCalls: Array<{
+		readonly name: string;
+		readonly description: string;
+		readonly inputSchema: Record<string, any>;
+	}> = [];
+	readonly toolHandlers = new Map<string, (args: any, extra: unknown) => Promise<CallToolResult>>();
+	readonly createSdkMcpServerCalls: Array<{
+		readonly name: string;
+		readonly toolNames: readonly string[];
+	}> = [];
+
+	async tool(
+		name: string,
+		description: string,
+		inputSchema: Record<string, any>,
+		_handler: (args: any, extra: unknown) => Promise<CallToolResult>,
+	): Promise<SdkMcpToolDefinition<any>> {
+		this.toolCalls.push({ name, description, inputSchema });
+		this.toolHandlers.set(name, _handler);
+		return { name } as unknown as SdkMcpToolDefinition<any>;
+	}
+
+	async createSdkMcpServer(options: {
+		name: string;
+		tools?: Array<SdkMcpToolDefinition<any>>;
+	}): Promise<McpSdkServerConfigWithInstance> {
+		const toolNames = (options.tools ?? []).map(t => (t as { name: string }).name);
+		this.createSdkMcpServerCalls.push({ name: options.name, toolNames });
+		return {
+			type: 'sdk',
+			name: options.name,
+			instance: {
+				_stubTools: toolNames,
+			},
+		} as unknown as McpSdkServerConfigWithInstance;
+	}
+}
+
+class FakeWarmQuery implements WarmQuery {
+	queryCallCount = 0;
+	asyncDisposeCount = 0;
+	closeCount = 0;
+	produced: FakeQuery | undefined;
+
+	constructor(private readonly _sdk: FakeClaudeAgentSdkService) { }
+
+	query(prompt: string | AsyncIterable<SDKUserMessage>): Query {
+		this.queryCallCount++;
+		if (typeof prompt === 'string') {
+			throw new Error('FakeWarmQuery: agent host always passes an AsyncIterable, never a string prompt');
+		}
+		const q = new FakeQuery(prompt, this._sdk);
+		this.produced = q;
+		return q;
+	}
+
+	close(): void {
+		this.closeCount++;
+	}
+
+	async [Symbol.asyncDispose](): Promise<void> {
+		this.asyncDisposeCount++;
+	}
+}
+
+class FakeQuery implements AsyncGenerator<SDKMessage, void> {
+	readonly capturedPrompt: AsyncIterable<SDKUserMessage>;
+
+	readonly drainedPrompts: SDKUserMessage[] = [];
+
+	interruptCount = 0;
+	returnCount = 0;
+	throwCount = 0;
+	closeCount = 0;
+
+	readonly recordedPermissionModes: PermissionMode[] = [];
+
+	readonly recordedModels: (string | undefined)[] = [];
+
+	readonly recordedFlagSettings: Settings[] = [];
+	readonly mcpToggleCalls: Array<{ serverName: string; enabled: boolean }> = [];
+	readonly mcpReconnectCalls: string[] = [];
+	mcpServerStatusCallCount = 0;
+
+	private _yieldIndex = 0;
+
+	constructor(prompt: AsyncIterable<SDKUserMessage>, private readonly _sdk: FakeClaudeAgentSdkService) {
+		this.capturedPrompt = prompt;
+		const iterator = prompt[Symbol.asyncIterator]();
+		void (async () => {
+			while (true) {
+				const r = await iterator.next();
+				if (r.done) {
+					return;
+				}
+				this.drainedPrompts.push(r.value);
+			}
+		})();
+	}
+
+	[Symbol.asyncIterator](): AsyncGenerator<SDKMessage, void> {
+		return this;
+	}
+
+	async next(): Promise<IteratorResult<SDKMessage, void>> {
+		if (this._sdk.queryAdvance) {
+			await this._sdk.queryAdvance(this._yieldIndex);
+		}
+		if (this._yieldIndex >= this._sdk.nextQueryMessages.length) {
+			return { done: true, value: undefined };
+		}
+		const value = this._sdk.nextQueryMessages[this._yieldIndex++];
+		return { done: false, value };
+	}
+
+	async return(_value: void): Promise<IteratorResult<SDKMessage, void>> {
+		this.returnCount++;
+		if (this._sdk.queryReturnGate) {
+			await this._sdk.queryReturnGate;
+		}
+		return { done: true, value: undefined };
+	}
+
+	async throw(err: unknown): Promise<IteratorResult<SDKMessage, void>> {
+		this.throwCount++;
+		throw err;
+	}
+
+	async interrupt(): Promise<SDKControlInterruptResponse | undefined> {
+		this.interruptCount++;
+		return undefined;
+	}
+
+	async setPermissionMode(mode: PermissionMode): Promise<void> {
+		this.recordedPermissionModes.push(mode);
+	}
+	async setModel(model?: string): Promise<void> { this.recordedModels.push(model); }
+	setMcpPermissionModeOverride(): never { throw new Error('FakeQuery: setMcpPermissionModeOverride not modeled'); }
+	setMaxThinkingTokens(): never { throw new Error('FakeQuery: setMaxThinkingTokens not modeled'); }
+	async applyFlagSettings(s: Settings): Promise<void> { this.recordedFlagSettings.push(s); }
+	updateSettings(): never { throw new Error('FakeQuery: updateSettings not modeled'); }
+	initializationResult(): never { throw new Error('FakeQuery: initializationResult not modeled'); }
+	reinitialize(): never { throw new Error('FakeQuery: reinitialize not modeled'); }
+
+	supportedCommands(): never {
+		return Promise.resolve(this._sdk.supportedCommandsResult) as never;
+	}
+	supportedModels(): Promise<ModelInfo[]> {
+		this._sdk.supportedModelsCallCount++;
+		if (this._sdk.supportedModelsRejection) {
+			return Promise.reject(this._sdk.supportedModelsRejection);
+		}
+		const gate = this._sdk.supportedModelsGate;
+		return gate ? gate.then(() => this._sdk.supportedModelsResult) : Promise.resolve(this._sdk.supportedModelsResult);
+	}
+	supportedAgents(): never {
+		if (this._sdk.supportedAgentsResult === undefined) { throw new Error('FakeQuery: supportedAgents not modeled'); }
+		return Promise.resolve(this._sdk.supportedAgentsResult) as never;
+	}
+	mcpServerStatus(): never {
+		this.mcpServerStatusCallCount++;
+		if (this._sdk.mcpServerStatusResult === undefined) { throw new Error('FakeQuery: mcpServerStatus not modeled'); }
+		return Promise.resolve(this._sdk.mcpServerStatusResult) as never;
+	}
+	getContextUsage(): never { throw new Error('FakeQuery: getContextUsage not modeled'); }
+	usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(): never { throw new Error('FakeQuery: usage_EXPERIMENTAL not modeled'); }
+	reloadPluginsResults: readonly string[][] = [];
+	reloadPluginsCallCount = 0;
+	reloadPlugins(): never {
+		this.reloadPluginsCallCount++;
+		const idx = Math.min(this.reloadPluginsCallCount - 1, this.reloadPluginsResults.length - 1);
+		const names = this.reloadPluginsResults[idx] ?? [];
+		return Promise.resolve({
+			commands: names.map(name => ({ name, description: '', argumentHint: '' })),
+			agents: [],
+			plugins: [],
+			mcpServers: [],
+			error_count: 0,
+		}) as never;
+	}
+	accountInfo(): Promise<AccountInfo> {
+		this._sdk.accountInfoCallCount++;
+		return Promise.resolve(this._sdk.accountInfoResult);
+	}
+	rewindFiles(): never { throw new Error('FakeQuery: rewindFiles not modeled'); }
+	readFile(): never { throw new Error('FakeQuery: readFile not modeled'); }
+	seedReadState(): never { throw new Error('FakeQuery: seedReadState not modeled'); }
+	reconnectMcpServer(serverName: string): never {
+		this.mcpReconnectCalls.push(serverName);
+		return Promise.resolve() as never;
+	}
+	toggleMcpServer(serverName: string, enabled: boolean): never {
+		this.mcpToggleCalls.push({ serverName, enabled });
+		return (async () => {
+			await this._sdk.mcpToggleGate;
+			if (this._sdk.mcpServerStatusResult) {
+				this._sdk.mcpServerStatusResult = this._sdk.mcpServerStatusResult.map(server =>
+					server.name === serverName ? { ...server, status: enabled ? 'connected' : 'disabled' } : server
+				);
+			}
+		})() as never;
+	}
+	setMcpServers(): never { throw new Error('FakeQuery: setMcpServers not modeled'); }
+	streamInput(): never { throw new Error('FakeQuery: streamInput not modeled'); }
+	stopTask(): never { throw new Error('FakeQuery: stopTask not modeled'); }
+	reloadSkills(): never { throw new Error('FakeQuery: reloadSkills not modeled'); }
+	backgroundTasks(): never { throw new Error('FakeQuery: backgroundTasks not modeled'); }
+	close(): void { this.closeCount++; }
+	[Symbol.asyncDispose](): Promise<void> { return Promise.resolve(); }
+}
+
+class RecordingSessionDataService implements ISessionDataService {
+	declare readonly _serviceBrand: undefined;
+
+	openDatabaseCallCount = 0;
+	tryOpenDatabaseCallCount = 0;
+
+	constructor(private readonly _delegate: ISessionDataService) { }
+
+	getSessionDataDir(session: URI) { return this._delegate.getSessionDataDir(session); }
+	getSessionDataDirById(sessionId: string) { return this._delegate.getSessionDataDirById(sessionId); }
+	openDatabase(session: URI) {
+		this.openDatabaseCallCount++;
+		return this._delegate.openDatabase(session);
+	}
+	tryOpenDatabase(session: URI) {
+		this.tryOpenDatabaseCallCount++;
+		return this._delegate.tryOpenDatabase(session);
+	}
+	deleteSessionData(session: URI) { return this._delegate.deleteSessionData(session); }
+	get onWillDeleteSessionData() { return this._delegate.onWillDeleteSessionData; }
+	cleanupOrphanedData(knownSessionIds: Set<string>) { return this._delegate.cleanupOrphanedData(knownSessionIds); }
+	whenIdle() { return this._delegate.whenIdle(); }
+}
+
+
+
+function makeModel(overrides: Partial<IDardcorRouterModel> & { readonly id: string; readonly name: string; readonly vendor: string }): IDardcorRouterModel {
+	return {
+		billing: { is_premium: false, multiplier: 1, restricted_to: [] },
+		capabilities: {
+			limits: { max_context_window_tokens: 200_000, max_output_tokens: 8192, max_prompt_tokens: 200_000 },
+			supports: { tool_calls: true, vision: false },
+		},
+		is_chat_default: false,
+		is_chat_fallback: false,
+		model_picker_price_category: 'Anthropic',
+		model_picker_enabled: true,
+		object: 'model',
+		policy: { state: 'enabled', terms: '' },
+		preview: false,
+		supported_endpoints: ['/v1/messages'],
+		...overrides,
+	};
+}
+
+function makeSupports(extras: { adaptive_thinking?: boolean; reasoning_effort?: readonly string[] } = {}): NonNullable<IDardcorRouterModel['capabilities']>['supports'] {
+	return { tool_calls: true, vision: false, ...extras };
+}
+
+const CLAUDE_OPUS = makeModel({ id: 'claude-opus-4.6', name: 'Claude Opus 4.6', vendor: 'Anthropic' });
+const CLAUDE_SONNET = makeModel({ id: 'claude-sonnet-4.6', name: 'Claude Sonnet 4.6', vendor: 'Anthropic' });
+const NON_ANTHROPIC = makeModel({ id: 'gpt-5', name: 'GPT-5', vendor: 'OpenAI' });
+const ANTHROPIC_NO_MESSAGES_ENDPOINT = makeModel({ id: 'claude-haiku-3.5', name: 'Claude Haiku 3.5', vendor: 'Anthropic', supported_endpoints: ['/chat/completions'] });
+const ANTHROPIC_PICKER_DISABLED = makeModel({ id: 'claude-opus-4.5', name: 'Claude Opus 4.5', vendor: 'Anthropic', model_picker_enabled: false });
+const ANTHROPIC_NO_TOOL_CALLS = makeModel({
+	id: 'claude-sonnet-3.5', name: 'Claude Sonnet 3.5', vendor: 'Anthropic',
+	capabilities: {
+		limits: { max_context_window_tokens: 200_000, max_output_tokens: 8192, max_prompt_tokens: 200_000 },
+		supports: { tool_calls: false, vision: false },
+	},
+});
+const SYNTHETIC_AUTO = makeModel({ id: 'auto', name: 'Auto', vendor: 'dardcor' });
+
+const ALL_MODELS: readonly IDardcorRouterModel[] = [
+	CLAUDE_OPUS, CLAUDE_SONNET, NON_ANTHROPIC,
+	ANTHROPIC_NO_MESSAGES_ENDPOINT, ANTHROPIC_PICKER_DISABLED,
+	ANTHROPIC_NO_TOOL_CALLS, SYNTHETIC_AUTO,
+];
+
+
+
+class RecordingOTelService implements IAgentHostOTelService {
+	readonly _serviceBrand: undefined;
+	readonly titleChanges: Array<{ conversationId: string; sessionUri: string; title: string }> = [];
+	async getSdkTelemetryConfig(): Promise<undefined> { return undefined; }
+	async getNativeSdkTelemetryConfig(): Promise<undefined> { return undefined; }
+	getSessionTraceContext(): undefined { return undefined; }
+	releaseSessionTraceContext(): void { }
+	withTraceContext<T>(_context: undefined, fn: () => T): T { return fn(); }
+	getCurrentTraceContext(): undefined { return undefined; }
+	getSpansDbPath(): undefined { return undefined; }
+	emitSessionTitleChanged(conversationId: string, sessionUri: string, title: string): void {
+		this.titleChanges.push({ conversationId, sessionUri, title });
+	}
+	async flush(): Promise<void> { }
+}
+
+interface ITestContext {
+	readonly agent: ClaudeAgent;
+	readonly proxy: FakeClaudeProxyService;
+	readonly api: FakeDardcorRouterService;
+	readonly sdk: FakeClaudeAgentSdkService;
+	readonly sessionData: RecordingSessionDataService;
+	readonly stateManager: AgentHostStateManager;
+	readonly configService: AgentConfigurationService;
+	readonly otelService: RecordingOTelService;
+	readonly instantiationService: IInstantiationService;
+	readonly fileService: IFileService;
+	readonly sdkDownloader: RecordingAgentSdkDownloader;
+}
+
+class CapturingLogService extends NullLogService {
+	readonly infos: string[] = [];
+	readonly warns: string[] = [];
+	readonly errors: string[] = [];
+	override info(message: string, ...args: unknown[]): void {
+		this.infos.push([message, ...args.map(a => String(a))].join(' '));
+	}
+	override warn(message: string, ...args: unknown[]): void {
+		this.warns.push([message, ...args.map(a => String(a))].join(' '));
+	}
+	override error(message: string | Error, ...args: unknown[]): void {
+		this.errors.push([String(message), ...args.map(a => String(a))].join(' '));
+	}
+}
+
+function createTestContext(
+	disposables: Pick<DisposableStore, 'add'>,
+	overrides?: { logService?: ILogService; database?: TestSessionDatabase; sessionDataService?: ISessionDataService; rootConfig?: Record<string, unknown>; userHome?: URI; gitHubEndpointService?: IAgentHostGitHubEndpointService; checkpointService?: IAgentHostCheckpointService; nativeAccount?: AccountInfo },
+): ITestContext {
+	const proxy = new FakeClaudeProxyService();
+	const api = new FakeDardcorRouterService();
+	api.models = async () => [...ALL_MODELS];
+	const sdk = new FakeClaudeAgentSdkService();
+	if (overrides?.nativeAccount) {
+		sdk.accountInfoResult = overrides.nativeAccount;
+	}
+	const sessionData = new RecordingSessionDataService(
+		overrides?.sessionDataService
+		?? (overrides?.database
+			? createSessionDataService(overrides.database)
+			: createSessionDataService())
+	);
+	const logService = overrides?.logService ?? new NullLogService();
+	const stateManager = disposables.add(new AgentHostStateManager(logService));
+	const configService = disposables.add(new AgentConfigurationService(stateManager, logService));
+	const authenticationService = disposables.add(new FakeAgentHostAuthenticationService());
+
+	const fileService = disposables.add(new FileService(new NullLogService()));
+	disposables.add(fileService.registerProvider(Schemas.file, disposables.add(new InMemoryFileSystemProvider())));
+
+	const otelService = new RecordingOTelService();
+	const sdkDownloader = new RecordingAgentSdkDownloader();
+	const services = new ServiceCollection(
+		[IFileService, fileService],
+		[INativeEnvironmentService, { userHome: overrides?.userHome ?? URI.file('/mock-home') } as INativeEnvironmentService],
+		[ILogService, logService],
+		[IDardcorRouterService, api],
+		[IClaudeProxyService, proxy],
+		[ISessionDataService, sessionData],
+		[IClaudeAgentSdkService, sdk],
+		[IAgentSdkDownloader, sdkDownloader],
+		[IAgentPluginManager, new FakeAgentPluginManager()],
+		[IAgentHostGitService, createNoopGitService()],
+		[IAgentHostCheckpointService, overrides?.checkpointService ?? NULL_CHECKPOINT_SERVICE],
+		[IAgentConfigurationService, configService],
+		[IAgentHostStateManager, stateManager],
+		[IAgentHostCustomizationEnablementService, reducerBackedEnablementService(stateManager)],
+		[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
+		[IAgentHostOTelService, otelService],
+		[IProductService, FakeProductService],
+		[IAgentHostGitHubEndpointService, overrides?.gitHubEndpointService ?? createTestGitHubEndpointService()],
+		[IAgentHostAuthenticationService, authenticationService],
+	);
+	const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+	if (overrides?.rootConfig) {
+		configService.updateRootConfig(overrides.rootConfig);
+	}
+	const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+	connectAuthentication(agent, authenticationService);
+	const toChatContext = (chat: URI, context?: URI | IAgentChatContext): IAgentChatContext => {
+		const explicit = context && !URI.isUri(context) ? context : undefined;
+		const session = explicit?.configurationResource
+			?? (context && URI.isUri(context) ? context : undefined)
+			?? (chat.scheme === 'ahp-chat' ? URI.parse(parseRequiredSessionUriFromChatUri(chat.toString())) : chat);
+		return { ...createAgentChatContext(stateManager, session, chat), ...explicit };
+	};
+	const chats = agent.chats as {
+		createChat: typeof agent.chats.createChat;
+		sendMessage: typeof agent.chats.sendMessage;
+		changeModel: typeof agent.chats.changeModel;
+		changeAgent: typeof agent.chats.changeAgent;
+		getMessages: typeof agent.chats.getMessages;
+	};
+	const createChat = chats.createChat.bind(agent.chats);
+	chats.createChat = (chat, context, options) => createChat(chat, toChatContext(chat, context), options);
+	const sendMessage = chats.sendMessage.bind(agent.chats);
+	chats.sendMessage = (chat, prompt, workingDirectoriesOrDirectory, attachments, turnId, senderClientId, clientTypeOrContext, context) => {
+		const explicitContext = context ?? (typeof clientTypeOrContext === 'string' ? undefined : clientTypeOrContext);
+		const clientType = typeof clientTypeOrContext === 'string' ? clientTypeOrContext : undefined;
+		return sendMessage(chat, prompt, workingDirectoriesOrDirectory, attachments, turnId, senderClientId, clientType, toChatContext(chat, explicitContext));
+	};
+	const changeModel = chats.changeModel.bind(agent.chats);
+	chats.changeModel = (chat, model, context) => changeModel(chat, model, toChatContext(chat, context));
+	const changeAgent = chats.changeAgent.bind(agent.chats);
+	chats.changeAgent = (chat, nextAgent, context) => changeAgent(chat, nextAgent, toChatContext(chat, context));
+	const getMessages = chats.getMessages.bind(agent.chats);
+	chats.getMessages = (chat, context) => getMessages(chat, toChatContext(chat, context));
+	return { agent, proxy, api, sdk, sessionData, stateManager, configService, otelService, instantiationService, fileService, sdkDownloader };
+}
+
+function tick(): Promise<void> {
+	return new Promise(resolve => setImmediate(resolve));
+}
+
+const NATIVE_ACCOUNT: AccountInfo = { tokenSource: 'ANTHROPIC_AUTH_TOKEN', apiProvider: 'firstParty' };
+
+
+function forkSourceMessages(sourceId: string): SessionMessage[] {
+	return [
+		{ type: 'user', uuid: 'u1', session_id: sourceId, parent_tool_use_id: null, parent_agent_id: null, message: { role: 'user', content: [{ type: 'text', text: 'apple' }] } },
+		{ type: 'assistant', uuid: 'a1', session_id: sourceId, parent_tool_use_id: null, parent_agent_id: null, message: { id: 'msg_a1', role: 'assistant', content: [{ type: 'text', text: 'apple!' }] } },
+		{ type: 'user', uuid: 'u2', session_id: sourceId, parent_tool_use_id: null, parent_agent_id: null, message: { role: 'user', content: [{ type: 'text', text: 'banana' }] } },
+		{ type: 'assistant', uuid: 'a2', session_id: sourceId, parent_tool_use_id: null, parent_agent_id: null, message: { id: 'msg_a2', role: 'assistant', content: [{ type: 'text', text: 'banana!' }] } },
+	];
+}
+
+function claudeFileEnvServices(disposables: Pick<DisposableStore, 'add'>): [typeof IFileService | typeof INativeEnvironmentService, IFileService | INativeEnvironmentService][] {
+	const fileService = disposables.add(new FileService(new NullLogService()));
+	disposables.add(fileService.registerProvider(Schemas.file, disposables.add(new InMemoryFileSystemProvider())));
+	return [
+		[IFileService, fileService],
+		[INativeEnvironmentService, { userHome: URI.file('/mock-home') } as INativeEnvironmentService],
+	];
+}
+
+function createTestAgentStateServices(disposables: Pick<DisposableStore, 'add'>): ConstructorParameters<typeof ServiceCollection> {
+	const logService = new NullLogService();
+	const stateManager = disposables.add(new AgentHostStateManager(logService));
+	return [
+		[IAgentConfigurationService, disposables.add(new AgentConfigurationService(stateManager, logService))],
+		[IAgentHostStateManager, stateManager],
+		[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
+		[IAgentHostOTelService, new RecordingOTelService()],
+		[IAgentHostCustomizationEnablementService, reducerBackedEnablementService(stateManager)],
+		[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
+		[INativeEnvironmentService, { userHome: URI.file('/mock-home') } as INativeEnvironmentService],
+	];
+}
+
+function reducerBackedEnablementService(stateManager: AgentHostStateManager): ICustomizationEnablementService {
+	const resolve = (session: string, target: { readonly id: string; readonly name: string; readonly source: URI }) => {
+		const customizations = stateManager.getSessionState(session)?.customizations ?? [];
+		const customization = customizations
+			.flatMap(item => [item, ...(item.type === CustomizationType.McpServer ? [] : item.children ?? [])])
+			.find(item => item.id === target.id || (item.name === target.name && item.uri === target.source.toString()));
+		const enablement = customization?.type === CustomizationType.Plugin || customization?.type === CustomizationType.McpServer
+			? customization.enablement ?? []
+			: [];
+		return {
+			kind: 'resolved' as const,
+			enablement,
+			enabled: isCustomizationEnabled({ enablement }),
+			workingDirectory: { kind: 'workspaceless' as const },
+		};
+	};
+	return {
+		_serviceBrand: undefined,
+		onDidChange: reducerBackedEnablementChangeEvent(stateManager),
+		initializeSession: async () => { },
+		getWorkingDirectoryState: () => ({ kind: 'workspaceless' }),
+		resolve,
+		applyClientGlobalEnablement: resolve,
+		replaceEnablement: resolve,
+		setEnablement: resolve,
+		whenIdle: async () => { },
+	};
+}
+
+
+suite('ClaudeAgent', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('getDescriptor advertises the Claude provider', () => {
+		const { agent } = createTestContext(disposables);
+		const desc = agent.getDescriptor();
+		assert.deepStrictEqual(
+			{ provider: desc.provider, displayName: desc.displayName, hasDescription: desc.description.length > 0, agentHostCapabilities: agent.agentHostCapabilities },
+			{ provider: 'claude', displayName: 'Claude', hasDescription: true, agentHostCapabilities: { workspaceConversion: false } },
+		);
+	});
+
+	test('setWorkingDirectory rejects because Claude does not advertise workspace conversion', async () => {
+		const { agent } = createTestContext(disposables);
+
+		await assert.rejects(
+			() => agent.setWorkingDirectory(URI.parse('claude:/chat'), URI.parse('claude:/session'), URI.file('/workspace')),
+			/Claude does not support changing the working directory/,
+		);
+	});
+
+	test('advertises multipleWorkingDirectories only when the hidden setting is enabled', () => {
+		const { agent, configService } = createTestContext(disposables);
+		const disabledByDefault = agent.getDescriptor().capabilities?.multipleWorkingDirectories;
+		configService.updateRootConfig({ [AgentHostClaudeMultiRootEnabledConfigKey]: true });
+		const whenEnabled = agent.getDescriptor().capabilities?.multipleWorkingDirectories;
+		configService.updateRootConfig({ [AgentHostClaudeMultiRootEnabledConfigKey]: false });
+		const afterDisabling = agent.getDescriptor().capabilities?.multipleWorkingDirectories;
+		assert.deepStrictEqual({ disabledByDefault, whenEnabled, afterDisabling }, {
+			disabledByDefault: undefined,
+			whenEnabled: { immutablePrimary: true },
+			afterDisabling: undefined,
+		});
+	});
+
+	test('selects provider-native autonomous session config and respects policy', () => {
+		const { agent, configService } = createTestContext(disposables);
+		const selected = agent.getAutonomousSessionConfig({});
+		configService.updateRootConfig({ [AgentHostAutoApprovePolicyRestrictedConfigKey]: true });
+		const restricted = agent.getAutonomousSessionConfig({});
+
+		assert.deepStrictEqual({ selected, restricted }, {
+			selected: { [ClaudeSessionConfigKey.PermissionMode]: 'auto' },
+			restricted: undefined,
+		});
+	});
+
+	test('getProtectedResources returns the GitHub resource', () => {
+		const { agent } = createTestContext(disposables);
+		assert.deepStrictEqual(agent.getProtectedResources(), [{
+			resource: 'https://api.github.com',
+			resource_name: 'Dardcor AI',
+			authorization_servers: ['https://github.com/login/oauth'],
+			scopes_supported: ['read:user', 'user:email'],
+			required: false,
+		}, {
+			resource: 'https://api.github.com/repos',
+			resource_name: 'GitHub Repository',
+			authorization_servers: ['https://github.com/login/oauth'],
+			scopes_supported: ['repo'],
+			required: false,
+		}]);
+	});
+
+	test('enterprise: getProtectedResources + authenticate use the computed enterprise resource', async () => {
+		const { agent } = createTestContext(disposables, {
+			gitHubEndpointService: createTestGitHubEndpointService('https://ghe.acme.com'),
+		});
+
+		assert.deepStrictEqual({
+			resources: agent.getProtectedResources().map(r => ({ resource: r.resource, servers: r.authorization_servers })),
+			acceptsEnterpriseCopilot: await agent.authenticate('https://ghe.acme.com/api/v3', 'tok'),
+			rejectsDotCom: await agent.authenticate('https://api.github.com', 'tok'),
+		}, {
+			resources: [
+				{ resource: 'https://ghe.acme.com/api/v3', servers: ['https://ghe.acme.com/login/oauth'] },
+				{ resource: 'https://ghe.acme.com/api/v3/repos', servers: ['https://ghe.acme.com/login/oauth'] },
+			],
+			acceptsEnterpriseCopilot: true,
+			rejectsDotCom: false,
+		});
+	});
+
+	test('models observable is empty before authenticate', () => {
+		const { agent } = createTestContext(disposables);
+		assert.deepStrictEqual(agent.models.get(), []);
+	});
+
+	test('fromSdkModelInfo projects ModelInfo without commercial metadata and reuses the effort schema', () => {
+		const projected = fromSdkModelInfo(
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: 'desc', supportedEffortLevels: ['low', 'high'] },
+			'claude',
+		);
+		assert.deepStrictEqual({
+			provider: projected.provider,
+			id: projected.id,
+			name: projected.name,
+			supportsVision: projected.supportsVision,
+			hasConfigSchema: projected.configSchema !== undefined,
+			hasPolicyState: projected.policyState !== undefined,
+			hasMeta: projected._meta !== undefined,
+		}, {
+			provider: 'claude',
+			id: 'claude-sonnet-4-5-20250929',
+			name: 'Claude Sonnet 4.5',
+			supportsVision: false,
+			hasConfigSchema: true,
+			hasPolicyState: false,
+			hasMeta: false,
+		});
+	});
+
+	test('signed-in probe flips inferred-native to proxy (allowSignedOutWhenUsable)', async () => {
+		const { agent, proxy } = createTestContext(disposables, {
+			rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true },
+			nativeAccount: NATIVE_ACCOUNT,
+		});
+		const before = {
+			resources: agent.getProtectedResources().map(r => ({ resource: r.resource, required: r.required })),
+			proxyStarts: proxy.startCalls.length,
+		};
+
+		await agent.authenticate('https://api.github.com', 'gh-token');
+		await tick();
+
+		assert.deepStrictEqual({
+			before,
+			after: {
+				resources: agent.getProtectedResources().map(r => ({ resource: r.resource, required: r.required })),
+				proxyStarts: proxy.startCalls.length,
+			},
+		}, {
+			before: {
+				resources: [
+					{ resource: 'https://api.github.com', required: false },
+					{ resource: 'https://api.github.com/repos', required: false },
+				],
+				proxyStarts: 0,
+			},
+			after: {
+				resources: [
+					{ resource: 'https://api.github.com', required: false },
+					{ resource: 'https://api.github.com/repos', required: false },
+				],
+				proxyStarts: 1,
+			},
+		});
+	});
+
+	test('coalesces concurrent refreshModels calls onto one CAPI models request', async () => {
+		const { agent, api } = createTestContext(disposables);
+		const gate = new DeferredPromise<void>();
+		let modelsCalls = 0;
+		api.models = async () => { modelsCalls++; await gate.p; return [...ALL_MODELS]; };
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		const first = agent.refreshModels();
+		const second = agent.refreshModels();
+		gate.complete();
+		await Promise.all([first, second]);
+
+		assert.deepStrictEqual({
+			modelsCalls,
+			hasModels: agent.models.get().length > 0,
+		}, {
+			modelsCalls: 1,
+			hasModels: true,
+		});
+	});
+
+	test('keeps the last known-good models only when every attempted source fails', async () => {
+		const { agent, api, sdk } = createTestContext(disposables);
+		api.models = async () => [...ALL_MODELS];
+		await agent.authenticate('https://api.github.com', 'tok');
+		await agent.refreshModels();
+		const populated = agent.models.get().map(model => model.id);
+
+		api.models = async () => { throw new Error('transient failure'); };
+		await agent.refreshModels();
+		const proxyOnlyFailed = agent.models.get().map(model => model.id);
+
+		api.models = async () => [...ALL_MODELS];
+		await agent.refreshModels();
+		const republished = agent.models.get().map(model => model.id);
+		api.models = async () => { throw new Error('transient failure'); };
+		sdk.supportedModelsRejection = new Error('sdk subprocess died');
+		await agent.refreshModels();
+
+		assert.deepStrictEqual({
+			populated,
+			proxyOnlyFailed,
+			republished,
+			bothFailed: agent.models.get().map(model => model.id),
+		}, {
+			populated: [
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'),
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6'),
+			],
+			proxyOnlyFailed: [],
+			republished: [
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'),
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6'),
+			],
+			bothFailed: [
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'),
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6'),
+			],
+		});
+	});
+
+	test('clears models when enumeration for a replacement token fails', async () => {
+		const { agent, api } = createTestContext(disposables);
+		let callCount = 0;
+		api.models = async () => {
+			callCount++;
+			if (callCount > 1) {
+				throw new Error('token B failure');
+			}
+			return [...ALL_MODELS];
+		};
+		await agent.authenticate('https://api.github.com', 'tokA');
+		await agent.refreshModels();
+
+		await agent.authenticate('https://api.github.com', 'tokB');
+		await agent.refreshModels();
+
+		assert.deepStrictEqual(agent.models.get(), []);
+	});
+
+	test('first sign-in keeps the native catalog published while the proxy catalog enumerates', async () => {
+		const { agent, api, sdk } = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '', supportedEffortLevels: ['high'] },
+		];
+		for (let i = 0; i < 100 && agent.models.get().length === 0; i++) {
+			await tick();
+		}
+		const bootstrap = agent.models.get().map(model => model.name);
+
+		const gate = new DeferredPromise<void>();
+		api.models = async () => { await gate.p; return [...ALL_MODELS]; };
+		await agent.authenticate('https://api.github.com', 'tok');
+		const whileEnumerating = agent.models.get().map(model => model.name);
+
+		gate.complete();
+		await agent.refreshModels();
+
+		assert.deepStrictEqual({
+			bootstrap,
+			whileEnumerating,
+			merged: agent.models.get().map(model => model.name),
+		}, {
+			bootstrap: ['Claude Sonnet 4.5'],
+			whileEnumerating: ['Claude Sonnet 4.5'],
+			merged: ['Claude Opus 4.6', 'Claude Sonnet 4.6', 'Claude Sonnet 4.5'],
+		});
+	});
+
+	test('signed out with an SDK-reported account: models populate from supportedModels() with no proxy start and no CAPI models() call', async () => {
+		const { agent, proxy, api, sdk } = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		let capiModelsCalls = 0;
+		api.models = async () => { capiModelsCalls++; return []; };
+		sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '', supportedEffortLevels: ['high'] },
+		];
+		for (let i = 0; i < 100 && sdk.supportedModelsCallCount === 0; i++) {
+			await tick();
+		}
+		await tick();
+		assert.deepStrictEqual({
+			models: agent.models.get().map(m => ({ id: m.id, name: m.name })),
+			proxyStarts: proxy.startCalls.length,
+			supportedModelsCalls: sdk.supportedModelsCallCount,
+			capiModelsCalls,
+		}, {
+			models: [{ id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929'), name: 'Claude Sonnet 4.5' }],
+			proxyStarts: 0,
+			supportedModelsCalls: 1,
+			capiModelsCalls: 0,
+		});
+	});
+
+	test('the SDK default alias row is dropped from the native catalog', async () => {
+		const { agent, sdk } = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		sdk.supportedModelsResult = [
+			{ value: 'default', resolvedModel: 'claude-sonnet-4-5-20250929', displayName: 'Default (recommended)', description: '' },
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '' },
+		];
+		for (let i = 0; i < 100 && sdk.supportedModelsCallCount === 0; i++) {
+			await tick();
+		}
+		await tick();
+		assert.deepStrictEqual(agent.models.get().map(m => ({ id: m.id, name: m.name })), [
+			{ id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929'), name: 'Claude Sonnet 4.5' },
+		]);
+	});
+
+	test('an SDK account report of "nothing configured" publishes an empty catalog instead of the SDK static list', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '' },
+		];
+		for (let i = 0; i < 100 && sdk.accountInfoCallCount === 0; i++) {
+			await tick();
+		}
+		await tick();
+		assert.deepStrictEqual({
+			models: agent.models.get(),
+			accountInfoCalls: sdk.accountInfoCallCount,
+			supportedModelsCalls: sdk.supportedModelsCallCount,
+		}, {
+			models: [],
+			accountInfoCalls: 1,
+			supportedModelsCalls: 1,
+		});
+	});
+
+	test('native model enumeration closes the throwaway query (no leaked subprocess)', async () => {
+		const { sdk } = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '' },
+		];
+		for (let i = 0; i < 100 && sdk.supportedModelsCallCount === 0; i++) {
+			await tick();
+		}
+		await tick();
+		assert.deepStrictEqual({
+			queries: sdk.enumerationQueries.length,
+			closed: sdk.enumerationQueries[0]?.closeCount,
+		}, {
+			queries: 1,
+			closed: 1,
+		});
+	});
+
+	test('native-default authenticate still starts the proxy so Copilot-routed models can run', async () => {
+		const { agent, proxy } = createTestContext(disposables, {
+			rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true },
+			nativeAccount: NATIVE_ACCOUNT,
+		});
+		const accepted = await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		assert.deepStrictEqual({ accepted, proxyStarts: proxy.startCalls.length }, { accepted: true, proxyStarts: 1 });
+	});
+
+	test('a host-default transport flip no longer proactively demands auth (sign-in defers to first send)', async () => {
+		const { agent } = createTestContext(disposables, {
+			rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true },
+			nativeAccount: NATIVE_ACCOUNT,
+		});
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.strictEqual((agent as IAgent).authenticationRequired, undefined);
+	});
+
+	test('construction in proxy mode does not emit auth/required', async () => {
+		const { agent } = createTestContext(disposables);
+
+		await tick();
+
+		assert.strictEqual((agent as IAgent).authenticationRequired, undefined);
+	});
+
+	test('re-authenticating an unchanged token starts the proxy when a prior start left no handle', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+		let failNext = true;
+		proxy.start = async (token: string) => {
+			proxy.startCalls.push({ token });
+			if (failNext) {
+				failNext = false;
+				throw new Error('proxy bind failed');
+			}
+			return { baseUrl: 'http://127.0.0.1:0', nonce: `nonce-for-${token}`, dispose: () => { proxy.disposeCount++; } };
+		};
+
+		await agent.authenticate('https://api.github.com', 'T');
+		await agent.authenticate('https://api.github.com', 'T');
+		await tick();
+
+		assert.deepStrictEqual({
+			startTokens: proxy.startCalls.map(c => c.token),
+			disposeCount: proxy.disposeCount,
+		}, { startTokens: ['T', 'T'], disposeCount: 0 });
+	});
+
+	test('createChat before authenticate throws ProtocolError(AHP_AUTH_REQUIRED) with protected resources', async () => {
+		const { agent } = createTestContext(disposables);
+
+		await assert.rejects(
+			() => createSession(agent, { workingDirectories: [URI.file('/workspace')] }),
+			(err: Error) =>
+				err instanceof ProtocolError &&
+				err.code === AHP_AUTH_REQUIRED &&
+				Array.isArray(err.data) &&
+				(err.data as ProtectedResourceMetadata[])[0]?.resource === 'https://api.github.com',
+		);
+	});
+
+	test('authenticate populates models filtered to Claude family', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+
+		const accepted = await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.deepStrictEqual({
+			accepted,
+			startCalls: proxy.startCalls.map(c => c.token),
+			models: agent.models.get(),
+		}, {
+			accepted: true,
+			startCalls: ['tok'],
+			models: [
+				{ provider: 'claude', id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'), name: 'Claude Opus 4.6', maxContextWindow: 200_000, maxOutputTokens: 8192, maxPromptTokens: 200_000, supportsVision: false, policyState: 'enabled', _meta: { multiplierNumeric: 1, modelGroupId: CLAUDE_PROVIDER_DARDCOR_ROUTER } },
+				{ provider: 'claude', id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6'), name: 'Claude Sonnet 4.6', maxContextWindow: 200_000, maxOutputTokens: 8192, maxPromptTokens: 200_000, supportsVision: false, policyState: 'enabled', _meta: { multiplierNumeric: 1, modelGroupId: CLAUDE_PROVIDER_DARDCOR_ROUTER } },
+			],
+		});
+	});
+
+	test('authenticate populates full pricing metadata from billing tokenPrices', async () => {
+		const modelWithPricing = makeModel({
+			id: 'claude-sonnet-4.6', name: 'Claude Sonnet 4.6', vendor: 'Anthropic',
+			billing: {
+				is_premium: false, multiplier: 2, restricted_to: [],
+				tokenPrices: { inputPrice: 3, cachePrice: 0.3, cacheWritePrice: 3.75, outputPrice: 15, longContext: { inputPrice: 6, cachePrice: 0.6, cacheWritePrice: 7.5, outputPrice: 30 } },
+				priceCategory: 'medium',
+			} as IDardcorRouterModel['billing'],
+		});
+
+		const { agent, api } = createTestContext(disposables);
+		api.models = async () => [modelWithPricing];
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		const models = agent.models.get();
+		assert.strictEqual(models.length, 1);
+		assert.deepStrictEqual(models[0]._meta, {
+			multiplierNumeric: 2,
+			inputCost: 3,
+			cacheCost: 0.3,
+			cacheWriteCost: 3.75,
+			outputCost: 15,
+			longContextInputCost: 6,
+			longContextCacheCost: 0.6,
+			longContextCacheWriteCost: 7.5,
+			longContextOutputCost: 30,
+			priceCategory: 'medium',
+			modelGroupId: CLAUDE_PROVIDER_DARDCOR_ROUTER,
+		});
+	});
+
+	test('authenticate surfaces the CAPI chat-default model first; ties preserve insertion order', async () => {
+		const opus = makeModel({ id: 'claude-opus-4.6', name: 'Claude Opus 4.6', vendor: 'Anthropic' });
+		const sonnetDefault = makeModel({ id: 'claude-sonnet-4.6', name: 'Claude Sonnet 4.6', vendor: 'Anthropic', is_chat_default: true });
+		const haiku = makeModel({ id: 'claude-haiku-4.6', name: 'Claude Haiku 4.6', vendor: 'Anthropic' });
+
+		const { agent, api } = createTestContext(disposables);
+		api.models = async () => [opus, sonnetDefault, haiku];
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.deepStrictEqual(
+			agent.models.get().map(m => m.id),
+			[
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6'),
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'),
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-haiku-4.6'),
+			],
+		);
+	});
+
+	test('authenticate sources configSchema enum from each model\'s reasoning_effort list (Phase 6.1 / Cycle D3 / I5)', async () => {
+		const capsBase = {
+			family: 'test',
+			limits: { max_context_window_tokens: 200_000, max_output_tokens: 8192, max_prompt_tokens: 200_000 },
+			object: 'model_capabilities',
+			tokenizer: 'o200k_base',
+			type: 'chat',
+		} as const;
+		const fullEffortModel = makeModel({
+			id: 'claude-opus-4.6', name: 'Claude Opus 4.6', vendor: 'Anthropic',
+			capabilities: { ...capsBase, supports: makeSupports({ adaptive_thinking: true, reasoning_effort: ['low', 'medium', 'high'] }) },
+		});
+		const highOnlyModel = makeModel({
+			id: 'claude-sonnet-4.6', name: 'Claude Sonnet 4.6', vendor: 'Anthropic',
+			capabilities: { ...capsBase, supports: makeSupports({ adaptive_thinking: true, reasoning_effort: ['high'] }) },
+		});
+		const emptyEffortModel = makeModel({
+			id: 'claude-haiku-4.6', name: 'Claude Haiku 4.6', vendor: 'Anthropic',
+			capabilities: { ...capsBase, supports: makeSupports({ adaptive_thinking: false, reasoning_effort: [] }) },
+		});
+		const unknownEffortModel = makeModel({
+			id: 'claude-opus-4.5', name: 'Claude Opus 4.5', vendor: 'Anthropic',
+			capabilities: { ...capsBase, supports: makeSupports({ adaptive_thinking: true, reasoning_effort: ['low', 'bogus', 'high'] }) },
+		});
+		const noEffortFieldModel = makeModel({
+			id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5', vendor: 'Anthropic',
+		});
+
+		const { agent, api } = createTestContext(disposables);
+		api.models = async () => [fullEffortModel, highOnlyModel, emptyEffortModel, unknownEffortModel, noEffortFieldModel];
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		const schemasById = Object.fromEntries(
+			agent.models.get().map(m => [m.id, m.configSchema] as const),
+		);
+		assert.deepStrictEqual(schemasById, {
+			[toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6')]: {
+				type: 'object',
+				properties: {
+					thinkingLevel: {
+						type: 'string',
+						title: 'Thinking Level',
+						description: 'Controls how much reasoning effort Claude uses.',
+						enum: ['low', 'medium', 'high'],
+						enumLabels: ['Low', 'Medium', 'High'],
+						enumDescriptions: ['Faster responses with less reasoning', 'Balanced reasoning and speed', 'Greater reasoning depth but slower'],
+						default: 'high',
+					},
+				},
+			},
+			[toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6')]: {
+				type: 'object',
+				properties: {
+					thinkingLevel: {
+						type: 'string',
+						title: 'Thinking Level',
+						description: 'Controls how much reasoning effort Claude uses.',
+						enum: ['high'],
+						enumLabels: ['High'],
+						enumDescriptions: ['Greater reasoning depth but slower'],
+						default: 'high',
+					},
+				},
+			},
+			[toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-haiku-4.6')]: undefined,
+			[toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.5')]: {
+				type: 'object',
+				properties: {
+					thinkingLevel: {
+						type: 'string',
+						title: 'Thinking Level',
+						description: 'Controls how much reasoning effort Claude uses.',
+						enum: ['low', 'high'],
+						enumLabels: ['Low', 'High'],
+						enumDescriptions: ['Faster responses with less reasoning', 'Greater reasoning depth but slower'],
+						default: 'high',
+					},
+				},
+			},
+			[toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.5')]: undefined,
+		});
+	});
+
+	test('authenticate rejects non-GitHub resources without disturbing state', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+
+		const rejected = await agent.authenticate('https://other.example.com', 'tok');
+		const accepted = await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.deepStrictEqual({
+			rejected,
+			accepted,
+			startCalls: proxy.startCalls.map(c => c.token),
+			disposeCount: proxy.disposeCount,
+		}, {
+			rejected: false,
+			accepted: true,
+			startCalls: ['tok'],
+			disposeCount: 0,
+		});
+	});
+
+	test('authenticate with the same token does not restart the proxy', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+
+		await agent.authenticate('https://api.github.com', 'tok');
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.deepStrictEqual({
+			startCalls: proxy.startCalls.length,
+			disposeCount: proxy.disposeCount,
+		}, { startCalls: 1, disposeCount: 0 });
+	});
+
+	test('authenticate with a different token restarts the proxy and disposes the old handle', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+
+		await agent.authenticate('https://api.github.com', 'tokA');
+		await agent.authenticate('https://api.github.com', 'tokB');
+		await tick();
+
+		assert.deepStrictEqual({
+			startTokens: proxy.startCalls.map(c => c.token),
+			disposeCount: proxy.disposeCount,
+		}, {
+			startTokens: ['tokA', 'tokB'],
+			disposeCount: 1,
+		});
+	});
+
+	test('revoking authentication disposes the Copilot proxy and clears its models', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		assert.ok(agent.models.get().length > 0);
+
+		const accepted = await agent.authenticate('https://api.github.com', '');
+		await tick();
+
+		assert.deepStrictEqual({
+			accepted,
+			githubToken: (agent as any)['_githubToken'],
+			proxyHandle: (agent as any)['_proxyHandle'],
+			startTokens: proxy.startCalls.map(call => call.token),
+			disposeCount: proxy.disposeCount,
+			models: agent.models.get(),
+		}, {
+			accepted: true,
+			githubToken: undefined,
+			proxyHandle: undefined,
+			startTokens: ['tok'],
+			disposeCount: 1,
+			models: [],
+		});
+	});
+
+	test('authenticate retries proxy startup after a transient failure', async () => {
+		const proxy = new FakeClaudeProxyService();
+		const api = new FakeDardcorRouterService();
+		api.models = async () => [...ALL_MODELS];
+
+		let failNext = true;
+		proxy.start = async (token: string) => {
+			proxy.startCalls.push({ token });
+			if (failNext) {
+				failNext = false;
+				throw new Error('proxy bind failed');
+			}
+			return {
+				baseUrl: 'http://127.0.0.1:0',
+				nonce: `nonce-for-${token}`,
+				dispose: () => { proxy.disposeCount++; },
+			};
+		};
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, api],
+			[IClaudeProxyService, proxy],
+			[ISessionDataService, createNullSessionDataService()],
+			[IClaudeAgentSdkService, new FakeClaudeAgentSdkService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IAgentHostGitService, createNoopGitService()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+
+		const firstAccepted = await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		assert.deepStrictEqual(agent.models.get(), []);
+
+		const accepted = await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.deepStrictEqual({
+			firstAccepted,
+			accepted,
+			startTokens: proxy.startCalls.map(c => c.token),
+			disposeCount: proxy.disposeCount,
+			modelIds: agent.models.get().map(m => m.id),
+		}, {
+			firstAccepted: true,
+			accepted: true,
+			startTokens: ['tok', 'tok'],
+			disposeCount: 0,
+			modelIds: [toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, CLAUDE_OPUS.id), toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, CLAUDE_SONNET.id)],
+		});
+	});
+
+	test('model filter excludes non-Claude entries', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		assert.deepStrictEqual(
+			agent.models.get().map(m => m.id),
+			[
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'),
+				toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4.6'),
+			],
+		);
+	});
+
+	test('AgentSession URI helpers round-trip the claude scheme', () => {
+		const uri = AgentSession.uri('claude', 'abc');
+		assert.deepStrictEqual({
+			scheme: uri.scheme,
+			id: AgentSession.id(uri),
+			provider: AgentSession.provider(uri),
+		}, { scheme: 'claude', id: 'abc', provider: 'claude' });
+	});
+
+	test('dispose disposes the proxy handle and is idempotent', async () => {
+		const proxy = new FakeClaudeProxyService();
+		const api = new FakeDardcorRouterService();
+		api.models = async () => [];
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, api],
+			[IClaudeProxyService, proxy],
+			[ISessionDataService, createNullSessionDataService()],
+			[IClaudeAgentSdkService, new FakeClaudeAgentSdkService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const agent = instantiationService.createInstance(ClaudeAgent);
+
+		await agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		agent.dispose();
+		agent.dispose();
+
+		assert.strictEqual(proxy.disposeCount, 1);
+	});
+
+	test('phase-stub graduation: abortSession + changeModel no longer throw', async () => {
+		const { agent } = createTestContext(disposables);
+		const chat = defaultChatUri(URI.parse('claude:/unknown'));
+		await agent.chats.abort(chat, chatContext(chat));
+		await agent.chats.changeModel(chat, { id: 'claude-opus-4.6' }, chatContext(chat));
+	});
+
+	test('AgentService surfaces the registered ClaudeAgent in the providers map', () => {
+		const { agent } = createTestContext(disposables);
+		const fileService = disposables.add(new FileService(new NullLogService()));
+		const service = disposables.add(createTestAgentService(
+			new NullLogService(),
+			fileService,
+			createNullSessionDataService(),
+			{ _serviceBrand: undefined } as IProductService,
+			createNoopGitService(),
+		));
+
+		registerTestAgentProvider(service, agent);
+
+		const rootAgents = getTestAgentStateManager(service).rootState.agents;
+		assert.deepStrictEqual(
+			rootAgents.map(a => ({ provider: a.provider, displayName: a.displayName })),
+			[{ provider: 'claude', displayName: 'Claude' }],
+		);
+	});
+
+	test('stale model writes from an old token are dropped', async () => {
+		const tokAModels = new DeferredPromise<IDardcorRouterModel[]>();
+		const proxy = new FakeClaudeProxyService();
+		const api = new FakeDardcorRouterService();
+		let callIndex = 0;
+		api.models = () => {
+			callIndex++;
+			return callIndex === 1 ? tokAModels.p : Promise.resolve([CLAUDE_SONNET]);
+		};
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, api],
+			[IClaudeProxyService, proxy],
+			[ISessionDataService, createNullSessionDataService()],
+			[IClaudeAgentSdkService, new FakeClaudeAgentSdkService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+
+		await agent.authenticate('https://api.github.com', 'tokA');
+		await agent.authenticate('https://api.github.com', 'tokB');
+		await tick();
+		assert.deepStrictEqual(agent.models.get().map(m => m.id), [toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, CLAUDE_SONNET.id)]);
+
+		tokAModels.complete([CLAUDE_OPUS]);
+		await tick();
+		assert.deepStrictEqual(agent.models.get().map(m => m.id), [toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, CLAUDE_SONNET.id)]);
+	});
+
+
+	test('createChat (non-fork) mints a claude:/<uuid> backing with provisional: true; no DB or SDK contact', async () => {
+		const { agent, sdk, sessionData } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const result = await createSession(agent, { workingDirectories: [URI.parse('file:///workspace')] });
+
+		assert.deepStrictEqual({
+			scheme: result.session.scheme,
+			provider: AgentSession.provider(result.session),
+			isUuid: isUUID(result.sdkSessionId),
+			workingDirectory: result.resolvedWorkingDirectory?.toString(),
+			provisional: result.provisional,
+			openDatabaseCalls: sessionData.openDatabaseCallCount,
+			tryOpenDatabaseCalls: sessionData.tryOpenDatabaseCallCount,
+			startupCallCount: sdk.startupCallCount,
+			listSessionsCallCount: sdk.listSessionsCallCount,
+		}, {
+			scheme: 'claude',
+			provider: 'claude',
+			isUuid: true,
+			workingDirectory: 'file:///workspace',
+			provisional: true,
+			openDatabaseCalls: 0,
+			tryOpenDatabaseCalls: 0,
+			startupCallCount: 0,
+			listSessionsCallCount: 0,
+		});
+	});
+
+	test('createChat without a workingDirectory materializes in a shared scratch dir (workspace-less quick chat)', async () => {
+		const userHome = URI.file(await fs.mkdtemp(`${os.tmpdir()}/claude-qc-home-`));
+		const { agent, sdk } = createTestContext(disposables, { userHome });
+		try {
+			await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+			const created = await createSession(agent, {});
+			const sessionId = created.sdkSessionId;
+			const expected = URI.joinPath(userHome, '.copilot', 'chats', AgentSession.id(created.session));
+			assert.strictEqual(created.resolvedWorkingDirectory?.fsPath, expected.fsPath);
+			await fs.access(expected.fsPath);
+
+			sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+			await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+			assert.strictEqual(sdk.capturedStartupOptions.at(-1)?.cwd, expected.fsPath);
+		} finally {
+			await fs.rm(userHome.fsPath, { recursive: true, force: true });
+		}
+	});
+
+	test('createProvisional creates a session without SDK startup contact', async () => {
+		const { sdk, instantiationService } = createTestContext(disposables);
+
+		const session = disposables.add(ClaudeAgentSession.createProvisional(
+			'test-session',
+			URI.parse(buildDefaultChatUri(AgentSession.uri('claude', 'test-session'))),
+			URI.file('/workspace'),
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			new PendingRequestRegistry<CallToolResult>(),
+			'default',
+			instantiationService,
+		));
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			sessionId: session.sessionId,
+			chat: session.chatChannelUri.toString(),
+		}, {
+			startupCallCount: 0,
+			sessionId: 'test-session',
+			chat: buildDefaultChatUri(AgentSession.uri('claude', 'test-session')),
+		});
+	});
+
+	test('pipeline methods throw before materialize on provisional sessions', async () => {
+		const { instantiationService } = createTestContext(disposables);
+		const session = disposables.add(ClaudeAgentSession.createProvisional(
+			'test-session',
+			URI.parse(buildDefaultChatUri(AgentSession.uri('claude', 'test-session'))),
+			URI.file('/workspace'),
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			new PendingRequestRegistry<CallToolResult>(),
+			'default',
+			instantiationService,
+		));
+
+		await assert.rejects(
+			session.send({
+				type: 'user',
+				message: { role: 'user', content: [{ type: 'text', text: 'hello' }] },
+				session_id: 'test-session',
+				parent_tool_use_id: null,
+			}, 'turn-1', AgentSession.uri('claude', 'test-session')),
+			/session is not materialized/i,
+		);
+	});
+
+	test('resume keeps the existing overlay model (materialize does not clobber on isResume)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const initialModel = { id: 'claude-sonnet-4.6', config: { thinkingLevel: 'high' } };
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work-resume')], model: initialModel });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const updatedModel = { id: 'claude-opus-4.6', config: { thinkingLevel: 'medium' } };
+		await agent.chats.changeModel(defaultChatUri(created.session), updatedModel, chatContext(defaultChatUri(created.session)));
+
+		await releaseDefaultChat(agent, created.session);
+		sdk.sessionList = [{ sessionId, cwd: '/work-resume', summary: '', lastModified: Date.now() }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'turn 2', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual(
+			{ model: sdk.capturedStartupOptions.at(-1)?.model, effort: sdk.capturedStartupOptions.at(-1)?.effort },
+			{ model: 'claude-opus-4-6', effort: 'medium' },
+			'resume must not clobber the overlay model',
+		);
+	});
+
+	test('captures the baseline checkpoint on fresh materialize but not on resume (parity with Copilot)', async () => {
+		const checkpointService = new RecordingCheckpointService();
+		const { agent, sdk } = createTestContext(disposables, { checkpointService });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const workDir = URI.file('/work-baseline');
+
+		const created = await createSession(agent, { workingDirectories: [workDir] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', [workDir], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		await releaseDefaultChat(agent, created.session);
+		sdk.sessionList = [{ sessionId, cwd: workDir.fsPath, summary: '', lastModified: Date.now() }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'turn 2', [workDir], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual(checkpointService.baselineCalls, [
+			{ session: created.session.toString(), workingDirectories: [workDir.toString()] },
+		]);
+	});
+
+	test('createChat honors the host-minted session URI', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const expected = AgentSession.uri('claude', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+
+		const result = await createSession(agent, { session: expected, workingDirectories: [URI.file('/work')] });
+
+		assert.deepStrictEqual({
+			session: result.session.toString(),
+			provisional: result.provisional,
+		}, {
+			session: expected.toString(),
+			provisional: true,
+		});
+	});
+
+	test('createChat({ fork }) forks at the anchor uuid, then materializes lazily on first sendMessage', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		const sourceUri = AgentSession.uri('claude', 'ah-source');
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const events: IAgentMaterializeChatEvent[] = [];
+		disposables.add(agent.onDidMaterializeChat(e => events.push(e)));
+		await agent.materializeChat(defaultChatUri(sourceUri), { configurationResource: sourceUri, resource: sourceUri }, JSON.stringify({ sdkSessionId: sourceId }));
+
+		const result = await createSession(agent, {}, { fork: { source: defaultChatUri(sourceUri), turnId: 'u1' } });
+		const newUri = result.session;
+
+		const atForkTime = {
+			getMessagesCall: sdk.getSessionMessagesCalls[0],
+			forkCall: sdk.forkSessionCalls[0],
+			materializeCount: events.length,
+			startupCount: sdk.capturedStartupOptions.length,
+			resultSession: result.session.toString(),
+			resultCwd: result.resolvedWorkingDirectory?.fsPath,
+			provisional: result.provisional,
+			forkedSdkId: result.sdkSessionId,
+		};
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(defaultChatUri(newUri), 'next', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(newUri)));
+
+		assert.deepStrictEqual({
+			atForkTime,
+			afterSend: {
+				materializeCount: events.length,
+				materializeUri: events[0]?.chat.toString(),
+				startupResume: sdk.capturedStartupOptions[0]?.resume,
+				startupSessionId: sdk.capturedStartupOptions[0]?.sessionId,
+			},
+		}, {
+			atForkTime: {
+				getMessagesCall: { sessionId: sourceId, options: { includeSystemMessages: true } },
+				forkCall: { sessionId: sourceId, options: { upToMessageId: 'a1' } },
+				materializeCount: 0,
+				startupCount: 0,
+				resultSession: newUri.toString(),
+				resultCwd: URI.file('/work').fsPath,
+				provisional: undefined,
+				forkedSdkId: 'forked-1',
+			},
+			afterSend: {
+				materializeCount: 1,
+				materializeUri: defaultChatUri(newUri).toString(),
+				startupResume: 'forked-1',
+				startupSessionId: undefined,
+			},
+		});
+	});
+
+	test('createChat({ fork }) ignores requested working directories and inherits the live source set', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourcePrimary = URI.file('/source-a');
+		const sourceAdditional = URI.file('/source-b');
+		const requestedPrimary = URI.file('/requested-a');
+		const requestedAdditional = URI.file('/requested-b');
+		const source = await createSession(agent, { workingDirectories: [sourcePrimary, sourceAdditional] });
+		const sourceId = source.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sourceId), makeResultSuccess(sourceId)];
+		await agent.chats.sendMessage(defaultChatUri(source.session), 'seed', [sourcePrimary, sourceAdditional], undefined, 'turn-source', undefined, undefined, chatContext(defaultChatUri(source.session)));
+
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: sourcePrimary.fsPath }];
+		await bindDefaultChat(agent, source.session);
+
+		const forked = await createSession(agent, {
+			workingDirectories: [requestedPrimary, requestedAdditional],
+		}, { fork: { source: defaultChatUri(source.session), turnId: 'u1' } });
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(defaultChatUri(forked.session), 'continue', undefined, undefined, 'turn-fork', undefined, undefined, chatContext(defaultChatUri(forked.session)));
+
+		assert.deepStrictEqual({
+			cwd: sdk.capturedStartupOptions[1]?.cwd,
+			additionalDirectories: sdk.capturedStartupOptions[1]?.additionalDirectories,
+		}, {
+			cwd: sourcePrimary.fsPath,
+			additionalDirectories: [sourceAdditional.fsPath],
+		});
+	});
+
+	test('createChat({ fork }) at the last turn anchors on that turn\'s assistant', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const source = AgentSession.uri('claude', sourceId);
+		await bindDefaultChat(agent, source);
+		await createSession(agent, {}, { fork: { source: defaultChatUri(source), turnId: 'u2' } });
+
+		assert.deepStrictEqual(sdk.forkSessionCalls[0], { sessionId: sourceId, options: { upToMessageId: 'a2' } });
+	});
+
+	test('truncateChat(turnId) resolves the anchor, restarts at it on the same id, and prunes the DB', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk } = createTestContext(disposables, { database });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(sessionId, forkSourceMessages(sessionId));
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await agent.truncateChat(defaultChatUri(created.session), 'u1', chatContext(defaultChatUri(created.session)));
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			rebuildResume: sdk.capturedStartupOptions[1]?.resume,
+			rebuildResumeAt: sdk.capturedStartupOptions[1]?.resumeSessionAt,
+			sameChat: agent.getSessionForTesting(created.session)?.chatChannelUri.toString() === defaultChatUri(created.session).toString(),
+			prunedAfter: database.deleteTurnsAfterCalls,
+			getMessagesCall: sdk.getSessionMessagesCalls.at(-1),
+		}, {
+			startupCount: 2,
+			rebuildResume: sessionId,
+			rebuildResumeAt: 'a1',
+			sameChat: true,
+			prunedAfter: ['u1'],
+			getMessagesCall: { sessionId, options: { includeSystemMessages: true } },
+		});
+	});
+
+	test('truncateChat cold-resumes an unloaded chat, then applies the anchor on the next turn', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(sessionId, forkSourceMessages(sessionId));
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		await releaseDefaultChat(agent, created.session);
+		assert.strictEqual(agent.getSessionForTesting(created.session), undefined, 'unloaded');
+		sdk.sessionList = [{ sessionId, cwd: '/work', summary: '', lastModified: Date.now() }];
+
+		await agent.truncateChat(defaultChatUri(created.session), 'u1', chatContext(defaultChatUri(created.session)));
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const last = sdk.capturedStartupOptions.at(-1);
+		assert.deepStrictEqual({
+			resume: last?.resume,
+			resumeAt: last?.resumeSessionAt,
+			sessionPresent: agent.getSessionForTesting(created.session) !== undefined,
+		}, {
+			resume: sessionId,
+			resumeAt: 'a1',
+			sessionPresent: true,
+		});
+	});
+
+	test('truncateChat throws when the turn is not in the transcript', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(sessionId, forkSourceMessages(sessionId));
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		await assert.rejects(() => agent.truncateChat(defaultChatUri(created.session), 'no-such-turn', chatContext(defaultChatUri(created.session))), /turn no-such-turn not found/);
+	});
+
+	test('truncateChat on a provisional chat is a no-op', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		await agent.truncateChat(defaultChatUri(created.session), 'u1', chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			getMessagesCalls: sdk.getSessionMessagesCalls.length,
+		}, {
+			startupCount: 0,
+			getMessagesCalls: 0,
+		});
+	});
+
+	test('truncateChat() with no turnId clears the chat in place (deleteSession + fresh same id)', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk } = createTestContext(disposables, { database });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		await agent.truncateChat(defaultChatUri(created.session), undefined, chatContext(defaultChatUri(created.session)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const last = sdk.capturedStartupOptions.at(-1);
+		assert.deepStrictEqual({
+			deleted: sdk.deleteSessionCalls,
+			allTurnsPruned: database.deleteAllTurnsCalls,
+			lastSessionId: last?.sessionId,
+			lastResume: last?.resume,
+			lastResumeAt: last?.resumeSessionAt,
+			sessionPresent: agent.getSessionForTesting(created.session) !== undefined,
+		}, {
+			deleted: [sessionId],
+			allTurnsPruned: 1,
+			lastSessionId: sessionId,
+			lastResume: undefined,
+			lastResumeAt: undefined,
+			sessionPresent: true,
+		});
+	});
+
+	test('truncateChat() with no turnId awaits the live query teardown (subprocess exit) before deleteSession', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const exitGate = new DeferredPromise<void>();
+		sdk.queryReturnGate = exitGate.p;
+
+		const truncated = agent.truncateChat(defaultChatUri(created.session), undefined, chatContext(defaultChatUri(created.session)));
+		await timeout(0);
+		assert.deepStrictEqual(sdk.deleteSessionCalls, [], 'deleteSession ran before the subprocess exited');
+
+		exitGate.complete();
+		await truncated;
+		assert.deepStrictEqual(sdk.deleteSessionCalls, [sessionId]);
+	});
+
+	test('truncateChat() with no turnId on an unloaded chat deletes + recreates fresh on the same id, preserving the overlay', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk, instantiationService } = createTestContext(disposables, { database });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		await releaseDefaultChat(agent, created.session);
+		assert.strictEqual(agent.getSessionForTesting(created.session), undefined, 'unloaded');
+		sdk.sessionList = [{ sessionId, cwd: '/work', summary: '', lastModified: Date.now() }];
+
+		const metaStore = instantiationService.createInstance(ClaudeSessionMetadataStore);
+		await metaStore.write(created.session, { permissionMode: 'plan' });
+
+		await agent.truncateChat(defaultChatUri(created.session), undefined, chatContext(defaultChatUri(created.session)));
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const last = sdk.capturedStartupOptions.at(-1);
+		assert.deepStrictEqual({
+			deleted: sdk.deleteSessionCalls,
+			cwdConsulted: sdk.getSessionInfoCalls.includes(sessionId),
+			allTurnsPruned: database.deleteAllTurnsCalls,
+			lastSessionId: last?.sessionId,
+			lastResume: last?.resume,
+			lastResumeAt: last?.resumeSessionAt,
+			permissionMode: last?.permissionMode,
+			sessionPresent: agent.getSessionForTesting(created.session) !== undefined,
+		}, {
+			deleted: [sessionId],
+			cwdConsulted: true,
+			allTurnsPruned: 1,
+			lastSessionId: sessionId,
+			lastResume: undefined,
+			lastResumeAt: undefined,
+			permissionMode: 'plan',
+			sessionPresent: true,
+		});
+	});
+
+	test('createChat({ fork }) inherits the source permissionMode overlay', async () => {
+		const { agent, sdk, instantiationService } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		const sourceUri = AgentSession.uri('claude', sourceId);
+		const metaStore = instantiationService.createInstance(ClaudeSessionMetadataStore);
+		await metaStore.write(sourceUri, { permissionMode: 'plan' });
+
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		await bindDefaultChat(agent, sourceUri);
+
+		const result = await createSession(agent, {}, { fork: { source: defaultChatUri(sourceUri), turnId: 'u1' } });
+		await bindDefaultChat(agent, result.session);
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(defaultChatUri(result.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(result.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.permissionMode, 'plan');
+	});
+
+	test('createChat({ fork }) with a create-config model override persists it on the fork', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		await bindDefaultChat(agent, AgentSession.uri('claude', sourceId));
+
+		const result = await createSession(agent, {
+			model: { id: 'claude-opus-4.6' },
+		}, { fork: { source: defaultChatUri(AgentSession.uri('claude', sourceId)), turnId: 'u1' } });
+
+		await bindDefaultChat(agent, result.session);
+		const forkedId = result.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(forkedId), makeResultSuccess(forkedId)];
+		await agent.chats.sendMessage(defaultChatUri(result.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(result.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions.at(-1)?.model, 'claude-opus-4-6');
+	});
+
+	test('createChat({ fork }) falls back to a fresh conversation when the turnId is not in the transcript', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		await bindDefaultChat(agent, AgentSession.uri('claude', sourceId));
+
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/work')],
+		}, { fork: { source: defaultChatUri(AgentSession.uri('claude', sourceId)), turnId: 'no-such-turn' } });
+
+		assert.deepStrictEqual({
+			forkCalls: sdk.forkSessionCalls.length,
+			inheritedSource: created.sdkSessionId === sourceId,
+			provisional: created.provisional,
+			workingDirectory: created.resolvedWorkingDirectory?.fsPath,
+		}, {
+			forkCalls: 0,
+			inheritedSource: false,
+			provisional: true,
+			workingDirectory: URI.file('/work').fsPath,
+		});
+	});
+
+	test('createChat({ fork }) rejects when the forked session has no working directory', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		await bindDefaultChat(agent, AgentSession.uri('claude', sourceId));
+		await assert.rejects(
+			createSession(agent, {}, { fork: { source: defaultChatUri(AgentSession.uri('claude', sourceId)), turnId: 'u1' } }),
+			/no working directory/,
+		);
+	});
+
+	test('createChat({ fork }) does not classify an unbound source chat by URI shape', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const subagentUri = URI.parse(buildSubagentSessionUri(AgentSession.uri('claude', 'parent').toString(), 'tool-call-1'));
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/work')],
+		}, { fork: { source: defaultChatUri(subagentUri), turnId: 'u1' } });
+		assert.deepStrictEqual({
+			provisional: created.provisional,
+			getMessages: sdk.getSessionMessagesCalls.length,
+			fork: sdk.forkSessionCalls.length,
+		}, { provisional: true, getMessages: 0, fork: 0 });
+	});
+
+	test('createChat({ fork }) falls back to a fresh conversation for a provisional/never-sent source', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const provisional = await createSession(agent, { workingDirectories: [URI.file('/src')] });
+		await bindDefaultChat(agent, provisional.session);
+
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/src')],
+		}, { fork: { source: defaultChatUri(provisional.session), turnId: 'u1' } });
+
+		assert.deepStrictEqual({
+			forkCalls: sdk.forkSessionCalls.length,
+			inheritedSource: created.sdkSessionId === provisional.sdkSessionId,
+			provisional: created.provisional,
+		}, {
+			forkCalls: 0,
+			inheritedSource: false,
+			provisional: true,
+		});
+	});
+
+	test('first sendMessage on a provisional session materializes it (single startup, single materialize event)', async () => {
+		const { agent, sdk, proxy } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		assert.strictEqual(proxy.startCalls.length, 1, 'proxy started by authenticate');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		assert.strictEqual(sdk.startupCallCount, 0, 'createSession does not touch the SDK');
+
+		const events: IAgentMaterializeChatEvent[] = [];
+		assert.ok(agent.onDidMaterializeChat, 'agent must expose onDidMaterializeChat');
+		disposables.add(agent.onDidMaterializeChat(e => events.push(e)));
+
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			materializeEventCount: events.length,
+			eventChat: events[0]?.chat.toString(),
+			eventCwd: events[0]?.workingDirectories?.[0]?.fsPath,
+			startupOptionsCwd: sdk.capturedStartupOptions[0]?.cwd,
+			startupOptionsSessionId: sdk.capturedStartupOptions[0]?.sessionId,
+		}, {
+			startupCallCount: 1,
+			materializeEventCount: 1,
+			eventChat: defaultChatUri(created.session).toString(),
+			eventCwd: URI.file('/work').fsPath,
+			startupOptionsCwd: URI.file('/work').fsPath,
+			startupOptionsSessionId: sessionId,
+		});
+	});
+
+	test('multi-root session passes additionalDirectories to the SDK and emits the full resolved set', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const repoA = URI.file('/repo-a');
+		const repoB = URI.file('/repo-b');
+		const created = await createSession(agent, { workingDirectories: [repoA, repoB] });
+		const sessionId = created.sdkSessionId;
+		const events: IAgentMaterializeChatEvent[] = [];
+		disposables.add(agent.onDidMaterializeChat(e => events.push(e)));
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', [repoA, repoB], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			cwd: sdk.capturedStartupOptions[0]?.cwd,
+			additionalDirectories: sdk.capturedStartupOptions[0]?.additionalDirectories,
+			eventDirs: events[0]?.workingDirectories?.map(d => d.fsPath),
+		}, {
+			cwd: repoA.fsPath,
+			additionalDirectories: [repoB.fsPath],
+			eventDirs: [repoA.fsPath, repoB.fsPath],
+		});
+	});
+
+	test('consecutive send snapshots replace secondary roots before the next prompt', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk } = createTestContext(disposables, { database, rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/repo-a');
+		const originalSecondary = URI.file('/repo-b');
+		const replacementSecondary = URI.file('/repo-c');
+		const created = await createSession(agent, { workingDirectories: [primary, originalSecondary] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', [primary, originalSecondary], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const sessionBeforeRebuild = agent.getSessionForTesting(created.session);
+
+		const persistedBeforeRebuild = JSON.parse((await database.getMetadata('claude.workingDirectories'))!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', [primary, replacementSecondary], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'third', [primary], undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			firstAdditionalDirectories: sdk.capturedStartupOptions[0]?.additionalDirectories,
+			rebuildAdditionalDirectories: sdk.capturedStartupOptions[1]?.additionalDirectories,
+			removalAdditionalDirectories: sdk.capturedStartupOptions[2]?.additionalDirectories,
+			persistedBeforeRebuild,
+			persistedAfterRebuild: JSON.parse((await database.getMetadata('claude.workingDirectories'))!),
+			sameSession: agent.getSessionForTesting(created.session) === sessionBeforeRebuild,
+			sessionAborted: sessionBeforeRebuild?.abortController.signal.aborted,
+		}, {
+			startupCallCount: 3,
+			firstAdditionalDirectories: [originalSecondary.fsPath],
+			rebuildAdditionalDirectories: [replacementSecondary.fsPath],
+			removalAdditionalDirectories: undefined,
+			persistedBeforeRebuild: [primary.toString(), originalSecondary.toString()],
+			persistedAfterRebuild: [primary.toString()],
+			sameSession: true,
+			sessionAborted: false,
+		});
+	});
+
+	test('identical consecutive send snapshots do not rebuild the Claude query', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/repo-a');
+		const secondary = URI.file('/repo-b');
+		const created = await createSession(agent, { workingDirectories: [primary, secondary] });
+		const sessionId = created.sdkSessionId;
+		const nextTurn = new DeferredPromise<void>();
+		sdk.queryAdvance = async index => {
+			if (index === 2) {
+				await nextTurn.p;
+			}
+		};
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', [primary, secondary], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		nextTurn.complete();
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', [primary, secondary], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.startupCallCount, 1);
+	});
+
+	test('a queued send applies changed roots only after the active turn completes', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/repo-a');
+		const originalSecondary = URI.file('/repo-b');
+		const replacementSecondary = URI.file('/repo-c');
+		const created = await createSession(agent, { workingDirectories: [primary, originalSecondary] });
+		const sessionId = created.sdkSessionId;
+		const turnActive = new DeferredPromise<void>();
+		const finishTurn = new DeferredPromise<void>();
+		sdk.queryAdvance = async index => {
+			if (index === 1) {
+				turnActive.complete();
+				await finishTurn.p;
+			}
+		};
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		const firstSend = agent.chats.sendMessage(defaultChatUri(created.session), 'first', [primary, originalSecondary], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await turnActive.p;
+		const liveSession = agent.getSessionForTesting(created.session);
+
+		const secondSend = agent.chats.sendMessage(defaultChatUri(created.session), 'second', [primary, replacementSecondary], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await tick();
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			interruptCount: sdk.warmQueries[0]?.produced?.interruptCount,
+			sessionAborted: liveSession?.abortController.signal.aborted,
+		}, {
+			startupCallCount: 1,
+			interruptCount: 0,
+			sessionAborted: false,
+		});
+
+		finishTurn.complete();
+		await firstSend;
+		await secondSend;
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			additionalDirectories: sdk.capturedStartupOptions[1]?.additionalDirectories,
+			sameSession: agent.getSessionForTesting(created.session) === liveSession,
+		}, {
+			startupCallCount: 2,
+			additionalDirectories: [replacementSecondary.fsPath],
+			sameSession: true,
+		});
+	});
+
+	test('an unloaded single-root session accepts its first secondary root', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/repo-a');
+		const secondary = URI.file('/repo-b');
+		const created = await createSession(agent, { workingDirectories: [primary] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', [primary], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		sdk.sessionList = [{ sessionId, cwd: primary.fsPath, summary: '', lastModified: Date.now() }];
+		await releaseDefaultChat(agent, created.session);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', [primary, secondary], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			resume: sdk.capturedStartupOptions.at(-1)?.resume,
+			additionalDirectories: sdk.capturedStartupOptions.at(-1)?.additionalDirectories,
+		}, {
+			resume: sessionId,
+			additionalDirectories: [secondary.fsPath],
+		});
+	});
+
+	test('failed secondary-root rebuild blocks the prompt and retries on the next send', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/repo-a');
+		const originalSecondary = URI.file('/repo-b');
+		const replacementSecondary = URI.file('/repo-c');
+		const created = await createSession(agent, { workingDirectories: [primary, originalSecondary] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', [primary, originalSecondary], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		sdk.startupRejection = new Error('root rebuild failed');
+
+		await assert.rejects(
+			agent.chats.sendMessage(defaultChatUri(created.session), 'blocked', [primary, replacementSecondary], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session))),
+			/root rebuild failed/,
+		);
+		sdk.startupRejection = undefined;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'retry', [primary, replacementSecondary], undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			retryAdditionalDirectories: sdk.capturedStartupOptions.at(-1)?.additionalDirectories,
+		}, {
+			startupCallCount: 3,
+			retryAdditionalDirectories: [replacementSecondary.fsPath],
+		});
+	});
+
+	test('failed applied-root persistence disposes the rebuilt Claude query', async () => {
+		const database = new TestSessionDatabase();
+		const originalSetMetadata = database.setMetadata.bind(database);
+		let failWorkingDirectoryWrite = false;
+		database.setMetadata = async (key, value) => {
+			if (failWorkingDirectoryWrite && key === 'claude.workingDirectories') {
+				throw new Error('applied roots persist failed');
+			}
+			await originalSetMetadata(key, value);
+		};
+		const { agent, sdk } = createTestContext(disposables, { database, rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/repo-a');
+		const originalSecondary = URI.file('/repo-b');
+		const replacementSecondary = URI.file('/repo-c');
+		const created = await createSession(agent, { workingDirectories: [primary, originalSecondary] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', [primary, originalSecondary], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		failWorkingDirectoryWrite = true;
+		await assert.rejects(
+			agent.chats.sendMessage(defaultChatUri(created.session), 'blocked', [primary, replacementSecondary], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session))),
+			/applied roots persist failed/,
+		);
+		failWorkingDirectoryWrite = false;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'retry', [primary, replacementSecondary], undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			rebuiltQueryDisposed: sdk.warmQueries[1]?.asyncDisposeCount,
+			persistedWorkingDirectories: JSON.parse((await database.getMetadata('claude.workingDirectories'))!),
+			startupCallCount: sdk.startupCallCount,
+		}, {
+			rebuiltQueryDisposed: 1,
+			persistedWorkingDirectories: [primary.toString(), replacementSecondary.toString()],
+			startupCallCount: 3,
+		});
+	});
+
+	test('multi-root session discovers and retains customizations from an additional directory', async () => {
+		const { agent, sdk, fileService, stateManager } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const repoA = URI.file('/repo-a');
+		const repoB = URI.file('/repo-b');
+		const skillUri = URI.joinPath(repoB, '.claude', 'skills', 'from-b', 'SKILL.md');
+		await fileService.writeFile(skillUri, VSBuffer.fromString('---\nname: from-b\ndescription: Skill from B\n---\nbody'));
+		const created = await createSession(agent, { workingDirectories: [repoA, repoB] });
+		const before = await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const sessionId = created.sdkSessionId;
+		sdk.supportedAgentsResult = [];
+		sdk.supportedCommandsResult = [{ name: 'from-b', description: 'Skill from B', argumentHint: '' }];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', [repoA, repoB], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const after = await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const skillContainerUri = URI.joinPath(repoB, '.claude', 'skills').toString();
+		const names = (customizations: readonly Customization[]) => {
+			const container = customizations.find(customization => customization.uri === skillContainerUri);
+			return container?.type === CustomizationType.Directory ? container.children?.map(skill => skill.name) : undefined;
+		};
+
+		assert.deepStrictEqual({
+			before: names(before),
+			after: names(after),
+		}, {
+			before: ['from-b'],
+			after: ['from-b'],
+		});
+	});
+
+	test('cold resume recovers the additional directories from the persisted overlay', async () => {
+		const database = new TestSessionDatabase();
+		const repoA = URI.file('/repo-a');
+		const repoB = URI.file('/repo-b');
+
+		const ctxA = createTestContext(disposables, { database, rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await ctxA.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctxA.agent, { workingDirectories: [repoA, repoB] });
+		const sessionId = created.sdkSessionId;
+		ctxA.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctxA.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', [repoA, repoB], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const ctxB = createTestContext(disposables, { database });
+		await ctxB.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		ctxB.sdk.sessionList = [{ sessionId, summary: 's', lastModified: 1, cwd: repoA.fsPath }];
+		ctxB.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await bindDefaultChat(ctxB.agent, created.session);
+		await ctxB.agent.chats.sendMessage(defaultChatUri(created.session), 'again', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			cwd: ctxB.sdk.capturedStartupOptions[0]?.cwd,
+			additionalDirectories: ctxB.sdk.capturedStartupOptions[0]?.additionalDirectories,
+		}, {
+			cwd: repoA.fsPath,
+			additionalDirectories: [repoB.fsPath],
+		});
+	});
+
+	test('cold resume prefers the complete send snapshot over the persisted root seed', async () => {
+		const database = new TestSessionDatabase();
+		const repoA = URI.file('/repo-a');
+		const staleRepoB = URI.file('/repo-b');
+		const ctxA = createTestContext(disposables, { database, rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await ctxA.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctxA.agent, { workingDirectories: [repoA, staleRepoB] });
+		const sessionId = created.sdkSessionId;
+		ctxA.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctxA.agent.chats.sendMessage(defaultChatUri(created.session), 'first', [repoA, staleRepoB], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const ctxB = createTestContext(disposables, { database });
+		await ctxB.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		ctxB.sdk.sessionList = [{ sessionId, summary: 's', lastModified: 1, cwd: repoA.fsPath }];
+		ctxB.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await bindDefaultChat(ctxB.agent, created.session);
+		await ctxB.agent.chats.sendMessage(defaultChatUri(created.session), 'again', [repoA], undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			additionalDirectories: ctxB.sdk.capturedStartupOptions[0]?.additionalDirectories,
+			persistedWorkingDirectories: JSON.parse((await database.getMetadata('claude.workingDirectories'))!),
+		}, {
+			additionalDirectories: undefined,
+			persistedWorkingDirectories: [repoA.toString()],
+		});
+	});
+
+	test('getChatMetadata hydrates the additional directories from the persisted overlay', async () => {
+		const database = new TestSessionDatabase();
+		const repoA = URI.file('/repo-a');
+		const repoB = URI.file('/repo-b');
+
+		const ctxA = createTestContext(disposables, { database, rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await ctxA.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctxA.agent, { workingDirectories: [repoA, repoB] });
+		const sessionId = created.sdkSessionId;
+		ctxA.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctxA.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', [repoA, repoB], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const ctxB = createTestContext(disposables, { database });
+		await ctxB.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		ctxB.sdk.sessionList = [{ sessionId, summary: 's', lastModified: 1, cwd: repoA.fsPath }];
+
+		const chat = defaultChatUri(created.session);
+		const meta = await ctxB.agent.getChatMetadata(chat, chatContext(chat), created.chat!.providerData);
+
+		assert.deepStrictEqual(
+			meta?.workingDirectories?.map(d => d.fsPath),
+			[repoA.fsPath, repoB.fsPath],
+		);
+	});
+
+	test('a forked peer chat inherits the parent session additional directories', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const repoA = URI.file('/repo-a');
+		const repoB = URI.file('/repo-b');
+		const created = await createSession(agent, { workingDirectories: [repoA, repoB] });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: repoA.fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { model: { id: 'claude-opus-4.6' }, ...resolvedChatOptions([repoA, repoB]), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			cwd: sdk.capturedStartupOptions[0]?.cwd,
+			additionalDirectories: sdk.capturedStartupOptions[0]?.additionalDirectories,
+		}, {
+			cwd: repoA.fsPath,
+			additionalDirectories: [repoB.fsPath],
+		});
+	});
+
+	test('a live peer chat replaces roots from each complete send snapshot', async () => {
+		const { agent, sdk } = createTestContext(disposables, { rootConfig: { [AgentHostClaudeMultiRootEnabledConfigKey]: true } });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const repoA = URI.file('/repo-a');
+		const repoB = URI.file('/repo-b');
+		const repoC = URI.file('/repo-c');
+		const created = await createSession(agent, { workingDirectories: [repoA, repoB] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-live-roots'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions([repoA, repoB]) });
+		sdk.nextQueryMessages = [makeSystemInitMessage('peer'), makeResultSuccess('peer')];
+		await agent.chats.sendMessage(chatUri, 'first', [repoA, repoB], undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+		sdk.nextQueryMessages = [makeSystemInitMessage('peer'), makeResultSuccess('peer')];
+		await agent.chats.sendMessage(chatUri, 'second', [repoA, repoC], undefined, 'turn-2', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual(
+			sdk.capturedStartupOptions.map(options => options.additionalDirectories),
+			[[repoB.fsPath], [repoC.fsPath]],
+		);
+	});
+
+	test('a forked peer chat inherits its never-materialized parent\'s explicit model', async () => {
+		const { agent, sdk, proxy } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')], model: { id: 'claude-opus-4.6' } });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { model: { id: 'claude-opus-4.6' }, ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			model: sdk.capturedStartupOptions[0]?.model,
+			resume: sdk.capturedStartupOptions[0]?.resume,
+			proxyStarts: proxy.startCalls.length,
+		}, {
+			model: 'claude-opus-4-6',
+			resume: 'forked-1',
+			proxyStarts: 1,
+		});
+	});
+
+	test('materializing in a worktree reanchors customization discovery', async () => {
+		const { agent, sdk, fileService, stateManager } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const workspace = URI.file('/workspace');
+		const worktree = URI.file('/workspace.worktrees/session');
+		const created = await createSession(agent, { workingDirectories: [workspace] });
+		const sessionId = created.sdkSessionId;
+		sdk.supportedCommandsResult = [{ name: 'worktree-skill', description: 'Worktree skill', argumentHint: '' }];
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', [worktree], undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		let sessionChanges = 0;
+		let agentChanges = 0;
+		const session = agent.getSessionForTesting(created.session)!;
+		const customizationChanged = Event.toPromise(session.onDidCustomizationsChange, disposables.add(new DisposableStore()));
+		disposables.add(session.onDidCustomizationsChange(() => sessionChanges++));
+		disposables.add(agent.onDidCustomizationsChange(() => agentChanges++));
+		await fileService.writeFile(
+			URI.joinPath(worktree, '.claude', 'skills', 'worktree-skill', 'SKILL.md'),
+			VSBuffer.fromString('---\nname: worktree-skill\ndescription: Worktree skill\n---\nbody'),
+		);
+		await customizationChanged;
+		const customizations = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const skills = customizations.find(customization => customization.uri === URI.joinPath(worktree, '.claude', 'skills').toString());
+
+		assert.deepStrictEqual({
+			sessionChanges,
+			agentChanges,
+			startupCwd: sdk.capturedStartupOptions[0]?.cwd,
+			skills: skills?.type === CustomizationType.Directory ? skills.children?.map(skill => skill.name) : undefined,
+		}, {
+			sessionChanges: 1,
+			agentChanges: 1,
+			startupCwd: worktree.fsPath,
+			skills: ['worktree-skill'],
+		});
+	}).timeout(5_000);
+
+	test('materialize resolves the SDK agent name from the file frontmatter, not the filename', async () => {
+		const { agent, sdk, fileService } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const agentFile = URI.file('/mock-home/.claude/agents/foo.md');
+		await fileService.writeFile(agentFile, VSBuffer.fromString('---\nname: my-real-agent\ndescription: A real agent\n---\nbody'));
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')], agent: { uri: agentFile.toString() } });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, 'my-real-agent');
+	});
+
+	test('materialize resolves a built-in (claude-internal) agent selection to its name', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')], agent: { uri: 'claude-internal:/agent/Explore' } });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, 'Explore');
+	});
+
+	test('materialize event payload includes the exact chat resource', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const cwd = URI.file('/payload-shape');
+		const created = await createSession(agent, { workingDirectories: [cwd] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		const events: IAgentMaterializeChatEvent[] = [];
+		assert.ok(agent.onDidMaterializeChat);
+		disposables.add(agent.onDidMaterializeChat(e => events.push(e)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(events.length, 1, 'event fires exactly once');
+		const ev = events[0];
+		assert.deepStrictEqual({
+			chat: ev.chat.toString(),
+			workingDirectory: ev.workingDirectories?.[0]?.toString(),
+			project: ev.project,
+			keys: Object.keys(ev).sort(),
+		}, {
+			chat: defaultChatUri(created.session).toString(),
+			workingDirectory: cwd.toString(),
+			project: undefined,
+			keys: ['chat', 'project', 'workingDirectories'],
+		});
+	});
+
+	test('createChat model + config.permissionMode flow into Options on first send (M11 / Phase 6.1 C2)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/work')],
+			model: { id: 'claude-sonnet-4.6' },
+			config: { permissionMode: 'plan' },
+		});
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			model: sdk.capturedStartupOptions[0]?.model,
+			permissionMode: sdk.capturedStartupOptions[0]?.permissionMode,
+		}, {
+			model: 'claude-sonnet-4-6',
+			permissionMode: 'plan',
+		});
+	});
+
+	test('createChat model.config.thinkingLevel flows into Options.effort on first send (M11 / Phase 6.1 C2)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/work')],
+			model: { id: 'claude-opus-4.6', config: { thinkingLevel: 'high' } },
+		});
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			model: sdk.capturedStartupOptions[0]?.model,
+			effort: sdk.capturedStartupOptions[0]?.effort,
+		}, {
+			model: 'claude-opus-4-6',
+			effort: 'high',
+		});
+	});
+
+	test('two sendMessage calls reuse the materialized Query', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (idx: number) => {
+			if (idx === 2) {
+				await advance.p;
+			}
+		};
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'turn-1', undefined, undefined, 'turn-id-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const startupCallsAfterTurn1 = sdk.startupCallCount;
+		const queryCallsAfterTurn1 = sdk.warmQueries[0]?.queryCallCount ?? -1;
+
+		const p2 = agent.chats.sendMessage(defaultChatUri(created.session), 'turn-2', undefined, undefined, 'turn-id-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		assert.deepStrictEqual({
+			startupCallsAfterTurn1,
+			startupCallsAfterTurn2: sdk.startupCallCount,
+			queryCallsAfterTurn1,
+			queryCallsAfterTurn2: sdk.warmQueries[0]?.queryCallCount,
+			warmQueryCount: sdk.warmQueries.length,
+			drainedPromptCount: sdk.warmQueries[0]?.produced?.drainedPrompts.length,
+		}, {
+			startupCallsAfterTurn1: 1,
+			startupCallsAfterTurn2: 1,
+			queryCallsAfterTurn1: 1,
+			queryCallsAfterTurn2: 1,
+			warmQueryCount: 1,
+			drainedPromptCount: 2,
+		});
+	});
+
+	test('text content_block emits ChatResponsePart(Markdown) before ChatDelta', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeStreamEvent(sessionId, makeMessageStart()),
+			makeStreamEvent(sessionId, makeContentBlockStartText(0)),
+			makeStreamEvent(sessionId, makeTextDelta(0, 'hello ')),
+			makeStreamEvent(sessionId, makeTextDelta(0, 'world')),
+			makeStreamEvent(sessionId, makeContentBlockStop(0)),
+			makeStreamEvent(sessionId, makeMessageStop()),
+			makeResultSuccess(sessionId),
+		];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const actionSignals = signals.filter(s => s.kind === 'action');
+		const partActions = actionSignals
+			.map((s, i) => ({ s, i }))
+			.filter(({ s }) => s.kind === 'action' && s.action.type === ActionType.ChatResponsePart);
+		const deltaActions = actionSignals
+			.map((s, i) => ({ s, i }))
+			.filter(({ s }) => s.kind === 'action' && s.action.type === ActionType.ChatDelta);
+
+		assert.strictEqual(partActions.length, 1, 'exactly one Markdown response part');
+		assert.strictEqual(deltaActions.length, 2, 'two text deltas');
+
+		const part = partActions[0].s.kind === 'action' && partActions[0].s.action.type === ActionType.ChatResponsePart
+			? partActions[0].s.action
+			: undefined;
+		const firstDelta = deltaActions[0].s.kind === 'action' && deltaActions[0].s.action.type === ActionType.ChatDelta
+			? deltaActions[0].s.action
+			: undefined;
+		const secondDelta = deltaActions[1].s.kind === 'action' && deltaActions[1].s.action.type === ActionType.ChatDelta
+			? deltaActions[1].s.action
+			: undefined;
+
+		assert.ok(part, 'ChatResponsePart action present');
+		assert.ok(firstDelta, 'first ChatDelta action present');
+		assert.ok(secondDelta, 'second ChatDelta action present');
+		assert.strictEqual(part.part.kind, ResponsePartKind.Markdown, 'part kind is Markdown');
+
+		assert.deepStrictEqual({
+			partKindIsMarkdown: part.part.kind === ResponsePartKind.Markdown,
+			partPrecedesDelta: partActions[0].i < deltaActions[0].i,
+			partIdsMatch: part.part.id === firstDelta.partId && part.part.id === secondDelta.partId,
+			turnId: part.turnId,
+			deltaTexts: [firstDelta.content, secondDelta.content],
+			session: partActions[0].s.kind === 'action' ? partActions[0].s.resource.toString() : undefined,
+		}, {
+			partKindIsMarkdown: true,
+			partPrecedesDelta: true,
+			partIdsMatch: true,
+			turnId: 'turn-1',
+			deltaTexts: ['hello ', 'world'],
+			session: buildDefaultChatUri(created.session),
+		});
+	});
+
+	test('thinking content_block emits ChatResponsePart(Reasoning) before ChatReasoning', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeStreamEvent(sessionId, makeMessageStart()),
+			makeStreamEvent(sessionId, makeContentBlockStartThinking(0)),
+			makeStreamEvent(sessionId, makeThinkingDelta(0, 'let me think')),
+			makeStreamEvent(sessionId, makeThinkingDelta(0, ' more')),
+			makeStreamEvent(sessionId, makeContentBlockStop(0)),
+			makeStreamEvent(sessionId, makeMessageStop()),
+			makeResultSuccess(sessionId),
+		];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const actionSignals = signals.filter(s => s.kind === 'action');
+		const partActions = actionSignals
+			.map((s, i) => ({ s, i }))
+			.filter(({ s }) => s.kind === 'action' && s.action.type === ActionType.ChatResponsePart);
+		const reasoningActions = actionSignals
+			.map((s, i) => ({ s, i }))
+			.filter(({ s }) => s.kind === 'action' && s.action.type === ActionType.ChatReasoning);
+
+		const part = partActions[0]?.s.kind === 'action' && partActions[0].s.action.type === ActionType.ChatResponsePart
+			? partActions[0].s.action
+			: undefined;
+		const firstReasoning = reasoningActions[0]?.s.kind === 'action' && reasoningActions[0].s.action.type === ActionType.ChatReasoning
+			? reasoningActions[0].s.action
+			: undefined;
+		const secondReasoning = reasoningActions[1]?.s.kind === 'action' && reasoningActions[1].s.action.type === ActionType.ChatReasoning
+			? reasoningActions[1].s.action
+			: undefined;
+
+		assert.ok(part, 'ChatResponsePart action present');
+		assert.ok(firstReasoning, 'first ChatReasoning action present');
+		assert.ok(secondReasoning, 'second ChatReasoning action present');
+		assert.ok(part.part.kind === ResponsePartKind.Reasoning, 'part kind is Reasoning');
+
+		assert.deepStrictEqual({
+			partActionsCount: partActions.length,
+			reasoningActionsCount: reasoningActions.length,
+			partKindIsReasoning: part.part.kind === ResponsePartKind.Reasoning,
+			partPrecedesReasoning: partActions[0].i < reasoningActions[0].i,
+			partIdsMatch: part.part.id === firstReasoning.partId && part.part.id === secondReasoning.partId,
+			turnId: part.turnId,
+			reasoningTexts: [firstReasoning.content, secondReasoning.content],
+		}, {
+			partActionsCount: 1,
+			reasoningActionsCount: 2,
+			partKindIsReasoning: true,
+			partPrecedesReasoning: true,
+			partIdsMatch: true,
+			turnId: 'turn-1',
+			reasoningTexts: ['let me think', ' more'],
+		});
+	});
+
+	test('result emits ChatUsage immediately before ChatTurnComplete', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		const result = makeResultSuccess(sessionId);
+		result.usage.input_tokens = 17;
+		result.usage.output_tokens = 42;
+		result.usage.cache_read_input_tokens = 5;
+		result.modelUsage = {
+			'claude-sonnet-4-test': {
+				inputTokens: 17,
+				outputTokens: 42,
+				cacheReadInputTokens: 5,
+				cacheCreationInputTokens: 0,
+				webSearchRequests: 0,
+				costUSD: 0,
+				contextWindow: 200000,
+				maxOutputTokens: 8192,
+			},
+		};
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), result];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const tail = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.filter((a): a is NonNullable<typeof a> =>
+				a?.type === ActionType.ChatUsage || a?.type === ActionType.ChatTurnComplete);
+
+		const usage = tail[0]?.type === ActionType.ChatUsage ? tail[0] : undefined;
+		const complete = tail[1]?.type === ActionType.ChatTurnComplete ? tail[1] : undefined;
+
+		assert.ok(usage, 'first action in tail is ChatUsage');
+		assert.ok(complete, 'second action in tail is ChatTurnComplete');
+
+		assert.deepStrictEqual({
+			tailLength: tail.length,
+			usageType: tail[0]?.type,
+			completeType: tail[1]?.type,
+			usageTurnId: usage.turnId,
+			completeTurnId: complete.turnId,
+			inputTokens: usage.usage.inputTokens,
+			outputTokens: usage.usage.outputTokens,
+			cacheReadTokens: usage.usage.cacheReadTokens,
+			model: usage.usage.model,
+		}, {
+			tailLength: 2,
+			usageType: ActionType.ChatUsage,
+			completeType: ActionType.ChatTurnComplete,
+			usageTurnId: 'turn-1',
+			completeTurnId: 'turn-1',
+			inputTokens: 17,
+			outputTokens: 42,
+			cacheReadTokens: 5,
+			model: 'claude-sonnet-4-test',
+		});
+	});
+
+	test('proxy credit reports are summed and attached to the turn ChatUsage as copilotUsage', async () => {
+		const { agent, proxy, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		const result = makeResultSuccess(sessionId);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), result];
+
+		sdk.queryAdvance = async (idx: number) => {
+			if (idx === 1) {
+				proxy.onDidReportCreditsEmitter.fire({ sessionId, totalNanoAiu: 1_500_000_000 });
+				proxy.onDidReportCreditsEmitter.fire({ sessionId, totalNanoAiu: 500_000_000 });
+			}
+		};
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const usage = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.find(a => a?.type === ActionType.ChatUsage);
+		assert.ok(usage && usage.type === ActionType.ChatUsage, 'ChatUsage action present');
+		assert.deepStrictEqual(usage.usage._meta?.copilotUsage, { totalNanoAiu: 2_000_000_000 });
+	});
+
+	test('multiple text blocks each get a distinct partId; deltas route correctly', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeStreamEvent(sessionId, makeMessageStart()),
+			makeStreamEvent(sessionId, makeContentBlockStartText(0)),
+			makeStreamEvent(sessionId, makeTextDelta(0, 'first ')),
+			makeStreamEvent(sessionId, makeContentBlockStop(0)),
+			makeStreamEvent(sessionId, makeContentBlockStartText(1)),
+			makeStreamEvent(sessionId, makeTextDelta(1, 'second')),
+			makeStreamEvent(sessionId, makeContentBlockStop(1)),
+			makeStreamEvent(sessionId, makeMessageStop()),
+			makeResultSuccess(sessionId),
+		];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const partActions = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.filter(a => a?.type === ActionType.ChatResponsePart);
+		const deltaActions = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.filter(a => a?.type === ActionType.ChatDelta);
+
+		const part0 = partActions[0]?.type === ActionType.ChatResponsePart ? partActions[0] : undefined;
+		const part1 = partActions[1]?.type === ActionType.ChatResponsePart ? partActions[1] : undefined;
+		const delta0 = deltaActions[0]?.type === ActionType.ChatDelta ? deltaActions[0] : undefined;
+		const delta1 = deltaActions[1]?.type === ActionType.ChatDelta ? deltaActions[1] : undefined;
+
+		assert.ok(part0 && part1, 'two ChatResponsePart actions present');
+		assert.ok(delta0 && delta1, 'two ChatDelta actions present');
+
+		const id0 = part0.part.kind === ResponsePartKind.Markdown ? part0.part.id : '';
+		const id1 = part1.part.kind === ResponsePartKind.Markdown ? part1.part.id : '';
+
+		assert.deepStrictEqual({
+			partActionsCount: partActions.length,
+			deltaActionsCount: deltaActions.length,
+			distinctPartIds: id0 !== id1,
+			delta0RoutedToPart0: delta0.partId === id0,
+			delta1RoutedToPart1: delta1.partId === id1,
+			delta0Content: delta0.content,
+			delta1Content: delta1.content,
+		}, {
+			partActionsCount: 2,
+			deltaActionsCount: 2,
+			distinctPartIds: true,
+			delta0RoutedToPart0: true,
+			delta1RoutedToPart1: true,
+			delta0Content: 'first ',
+			delta1Content: 'second',
+		});
+	});
+
+	test('canonical SDKAssistantMessage with tool_use content drops silently (partial stream owns ChatToolCallStart)', async () => {
+		const logService = new CapturingLogService();
+		const { agent, sdk } = createTestContext(disposables, { logService });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeAssistantMessage(sessionId, [
+				{ type: 'tool_use', id: 'tu_1', name: 'Bash', input: {} },
+			]),
+			makeResultSuccess(sessionId),
+		];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const responsePartCount = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.filter(a => a?.type === ActionType.ChatResponsePart).length;
+
+		assert.deepStrictEqual({
+			responsePartCount,
+			warnedAboutToolUse: logService.warns.some(m => /tool_use/.test(m)),
+		}, {
+			responsePartCount: 0,
+			warnedAboutToolUse: false,
+		});
+	});
+
+	test('D3: subagent spawn mirrors onto onDidSpawnChat while the subagent signals still flow', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		const PARENT = 'toolu_parent_sa';
+
+		const innerAssistant = makeAssistantMessage(sessionId, [
+			{ type: 'text', text: 'searching the workspace', citations: null },
+		]);
+		innerAssistant.parent_tool_use_id = PARENT;
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeStreamEvent(sessionId, makeMessageStart()),
+			makeStreamEvent(sessionId, makeContentBlockStartToolUse(0, PARENT, 'Task')),
+			makeStreamEvent(sessionId, makeContentBlockStop(0)),
+			makeStreamEvent(sessionId, makeMessageStop()),
+			makeAssistantMessage(sessionId, [
+				{ type: 'tool_use', id: PARENT, name: 'Task', input: { description: 'Count files', subagent_type: 'Explore', prompt: 'go' } },
+			]),
+			innerAssistant,
+			makeUserToolResultMessage(sessionId, PARENT, 'done'),
+			makeResultSuccess(sessionId),
+		];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+		const spawned: IAgentSpawnChatEvent[] = [];
+		disposables.add(agent.onDidSpawnChat!(e => spawned.push(e)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const subagentChatUri = buildSubagentChatUri(created.session, PARENT);
+
+		assert.deepStrictEqual({
+			startedSignals: signals.filter(s => s.kind === 'subagent_started').length,
+			completedSignals: signals.filter(s => s.kind === 'subagent_completed').length,
+			spawned: spawned.map(e => ({
+				session: e.session.toString(),
+				chat: e.chat.toString(),
+				parentChat: e.parent?.chat.toString(),
+				parentToolCallId: e.parent?.toolCallId,
+				title: e.title,
+			})),
+		}, {
+			startedSignals: 1,
+			completedSignals: 1,
+			spawned: [{
+				session: created.session.toString(),
+				chat: subagentChatUri,
+				parentChat: buildDefaultChatUri(created.session),
+				parentToolCallId: PARENT,
+				title: 'Count files',
+			}],
+		});
+	});
+
+	test('canonical SDKAssistantMessage with text content does not double-emit signals already produced by stream_event partials (Phase 6.1 / Cycle F)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeStreamEvent(sessionId, makeMessageStart()),
+			makeStreamEvent(sessionId, makeContentBlockStartText(0)),
+			makeStreamEvent(sessionId, makeTextDelta(0, 'hello')),
+			makeStreamEvent(sessionId, makeContentBlockStop(0)),
+			makeStreamEvent(sessionId, makeMessageStop()),
+			makeAssistantMessage(sessionId, [
+				{ type: 'text', text: 'hello', citations: null },
+			]),
+			makeResultSuccess(sessionId),
+		];
+
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => signals.push(s)));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const partActions = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.filter(a => a?.type === ActionType.ChatResponsePart);
+		const deltaActions = signals
+			.map(s => s.kind === 'action' ? s.action : undefined)
+			.filter(a => a?.type === ActionType.ChatDelta);
+
+		const delta0 = deltaActions[0]?.type === ActionType.ChatDelta ? deltaActions[0] : undefined;
+
+		assert.deepStrictEqual({
+			partCount: partActions.length,
+			deltaCount: deltaActions.length,
+			deltaContent: delta0?.content,
+		}, {
+			partCount: 1,
+			deltaCount: 1,
+			deltaContent: 'hello',
+		});
+	});
+
+	test('_isResumed flips on first system:init', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const session = agent.getSessionForTesting(created.session);
+		assert.ok(session, 'session is materialized');
+		assert.strictEqual(session.isResumed, true, 'isResumed flipped after system:init');
+	});
+
+	test('tearing a materialized session down aborts the controller and rejects the in-flight send', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (idx: number) => {
+			if (idx === 0) {
+				await advance.p;
+			}
+		};
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		const materialized = Event.toPromise(agent.onDidMaterializeChat);
+
+		const send = agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const settle: { rejected?: unknown } = {};
+		const sendDone = send.then(() => { settle.rejected = false; }, err => { settle.rejected = err; });
+
+		await materialized;
+		await new Promise<void>(resolve => setImmediate(resolve));
+
+		const aborter = sdk.capturedStartupOptions[0]?.abortController;
+		await agent.shutdown();
+		advance.complete();
+		await sendDone;
+
+		assert.deepStrictEqual({
+			rejectedIsCancellation: isCancellationError(settle.rejected),
+			abortedAfterTeardown: aborter?.signal.aborted,
+			sessionRemoved: agent.getSessionForTesting(created.session) === undefined,
+		}, {
+			rejectedIsCancellation: true,
+			abortedAfterTeardown: true,
+			sessionRemoved: true,
+		});
+	});
+
+	test('teardown racing _writeCustomizationDirectory does not orphan the materialized session (C1)', async () => {
+		const persistGate = new DeferredPromise<void>();
+		let persistEntered = false;
+		const blockingDb = new TestSessionDatabase();
+		const originalSetMetadata = blockingDb.setMetadata.bind(blockingDb);
+		blockingDb.setMetadata = async (key, value) => {
+			persistEntered = true;
+			await persistGate.p;
+			await originalSetMetadata(key, value);
+		};
+
+		const proxy = new FakeClaudeProxyService();
+		const api = new FakeDardcorRouterService();
+		api.models = async () => [...ALL_MODELS];
+		const sdk = new FakeClaudeAgentSdkService();
+		const sessionData = createSessionDataService(blockingDb);
+		const logService = new NullLogService();
+		const stateManager = disposables.add(new AgentHostStateManager(logService));
+		const configService = disposables.add(new AgentConfigurationService(stateManager, logService));
+		const services = new ServiceCollection(
+			...claudeFileEnvServices(disposables),
+			[ILogService, logService],
+			[IDardcorRouterService, api],
+			[IClaudeProxyService, proxy],
+			[ISessionDataService, sessionData],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IAgentHostGitService, createNoopGitService()],
+			[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
+			[IAgentConfigurationService, configService],
+			[IAgentHostStateManager, stateManager],
+			[IAgentHostCustomizationEnablementService, reducerBackedEnablementService(stateManager)],
+			[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
+			[IAgentHostOTelService, new RecordingOTelService()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		services.set(IAgentHostAuthenticationService, disposables.add(new FakeAgentHostAuthenticationService()));
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const agent: ClaudeAgent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		await bindDefaultChat(agent, created.session);
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		const materializeEvents: IAgentMaterializeChatEvent[] = [];
+		disposables.add(agent.onDidMaterializeChat(e => materializeEvents.push(e)));
+
+		const send = agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const settle: { rejected?: unknown } = {};
+		const sendDone = send.then(() => { settle.rejected = false; }, err => { settle.rejected = err; });
+
+		while (!persistEntered) {
+			await new Promise<void>(resolve => setImmediate(resolve));
+		}
+
+		await agent.shutdown();
+
+		persistGate.complete();
+		await sendDone;
+
+		assert.deepStrictEqual({
+			rejectedIsCancellation: isCancellationError(settle.rejected),
+			sessionNotInMap: agent.getSessionForTesting(created.session) === undefined,
+			materializeNeverFired: materializeEvents.length === 0,
+			warmQueryDisposed: sdk.warmQueries[0]?.asyncDisposeCount === 1,
+		}, {
+			rejectedIsCancellation: true,
+			sessionNotInMap: true,
+			materializeNeverFired: true,
+			warmQueryDisposed: true,
+		});
+	});
+
+	test('disposing a provisional session never calls SDK startup and removes the record', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		await disposeSession(agent, created.session);
+
+		const sendErr = await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)))
+			.then(() => undefined, err => err);
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			warmQueriesLength: sdk.warmQueries.length,
+			sendThrewUnknown: sendErr instanceof Error && /unknown session|no backing chat|working directory missing/i.test(sendErr.message),
+			materializedAbsent: agent.getSessionForTesting(created.session) === undefined,
+		}, {
+			startupCallCount: 0,
+			warmQueriesLength: 0,
+			sendThrewUnknown: true,
+			materializedAbsent: true,
+		});
+	});
+
+	test('sendMessage on a disk-only session (created in another window) resumes from disk', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sessionId = 'cross-window-session-id';
+		const sessionUri = AgentSession.uri('claude', sessionId);
+		sdk.sessionList = [{
+			sessionId,
+			summary: 'From another window',
+			lastModified: 5000,
+			createdAt: 4900,
+			cwd: URI.file('/work').fsPath,
+		}];
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		const events: IAgentMaterializeChatEvent[] = [];
+		disposables.add(agent.onDidMaterializeChat(e => events.push(e)));
+
+		await bindDefaultChat(agent, sessionUri);
+		await agent.chats.sendMessage(defaultChatUri(sessionUri), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			materializeEventCount: events.length,
+			eventChat: events[0]?.chat.toString(),
+			eventCwd: events[0]?.workingDirectories?.[0]?.fsPath,
+			startupOptionsCwd: sdk.capturedStartupOptions[0]?.cwd,
+			startupOptionsResume: sdk.capturedStartupOptions[0]?.resume,
+			startupOptionsSessionId: sdk.capturedStartupOptions[0]?.sessionId,
+			sessionInMap: agent.getSessionForTesting(sessionUri) !== undefined,
+		}, {
+			startupCallCount: 1,
+			materializeEventCount: 1,
+			eventChat: defaultChatUri(sessionUri).toString(),
+			eventCwd: URI.file('/work').fsPath,
+			startupOptionsCwd: URI.file('/work').fsPath,
+			startupOptionsResume: sessionId,
+			startupOptionsSessionId: undefined,
+			sessionInMap: true,
+		});
+	});
+
+	test('sendMessage on a disk-only session whose SDK record is missing throws "unknown session"', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sessionUri = AgentSession.uri('claude', 'ghost-session-id');
+
+		await bindDefaultChat(agent, sessionUri);
+		const sendErr = await agent.chats.sendMessage(defaultChatUri(sessionUri), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(sessionUri)))
+			.then(() => undefined, err => err);
+
+		assert.deepStrictEqual({
+			startupCallCount: sdk.startupCallCount,
+			sendThrewUnknown: sendErr instanceof Error && /unknown session|no backing chat|working directory missing/i.test(sendErr.message),
+			sessionAbsent: agent.getSessionForTesting(sessionUri) === undefined,
+		}, {
+			startupCallCount: 0,
+			sendThrewUnknown: true,
+			sessionAbsent: true,
+		});
+	});
+
+	test('resumed session keeps overlay-derived permissionMode on turn 2 (no silent flip to default)', async () => {
+		const sessionId = 'cross-window-mode-session';
+		const sessionUri = AgentSession.uri('claude', sessionId);
+
+		const db = new TestSessionDatabase();
+		await db.setMetadata('claude.permissionMode', 'plan');
+
+		const { agent, sdk } = createTestContext(disposables, { database: db });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		sdk.sessionList = [{
+			sessionId,
+			summary: 'From another window (plan mode)',
+			lastModified: 5000,
+			createdAt: 4900,
+			cwd: URI.file('/work').fsPath,
+		}];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await bindDefaultChat(agent, sessionUri);
+		await agent.chats.sendMessage(defaultChatUri(sessionUri), 'turn-1', undefined, undefined, 't1', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+
+		sdk.nextQueryMessages = [makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(sessionUri), 'turn-2', undefined, undefined, 't2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+
+		const fakeQuery = sdk.warmQueries.at(-1)?.produced;
+		assert.deepStrictEqual({
+			optionsPermissionMode: sdk.capturedStartupOptions[0]?.permissionMode,
+			recordedModes: fakeQuery?.recordedPermissionModes ?? [],
+		}, {
+			optionsPermissionMode: 'plan',
+			recordedModes: ['plan'],
+		});
+	});
+
+	test('configuration events forward a mid-turn picker change and revert to the fallback when the key is deleted (issue #321691)', async () => {
+		const { agent, sdk, stateManager } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/work')],
+			config: { permissionMode: 'default' },
+		});
+		const sessionId = created.sdkSessionId;
+		stateManager.createSession({
+			resource: created.session.toString(),
+			provider: agent.id,
+			title: '',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		stateManager.setSessionConfig(created.session.toString(), {
+			schema: { type: 'object', properties: {} },
+			values: { permissionMode: 'default' },
+		});
+
+		const reached = new DeferredPromise<void>();
+		const release = new DeferredPromise<void>();
+		sdk.queryAdvance = async (idx: number) => {
+			if (idx === 1) {
+				reached.complete();
+				await release.p;
+			}
+		};
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		const turn = agent.chats.sendMessage(defaultChatUri(created.session), 'edit a file', undefined, undefined, 't1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await reached.p;
+
+		stateManager.dispatchClientAction(created.session.toString(), {
+			type: ActionType.SessionConfigChanged,
+			config: { permissionMode: 'bypassPermissions' },
+		}, { clientId: 'picker', clientSeq: 1 });
+		await tick();
+		stateManager.dispatchClientAction(created.session.toString(), {
+			type: ActionType.SessionConfigChanged,
+			config: {},
+			replace: true,
+		}, { clientId: 'picker', clientSeq: 2 });
+		await tick();
+
+		const recordedMidTurn = [...(sdk.warmQueries.at(-1)?.produced?.recordedPermissionModes ?? [])];
+
+		release.complete();
+		await turn;
+
+		assert.deepStrictEqual(recordedMidTurn, ['bypassPermissions', 'default']);
+	});
+
+	test('shutdown drains a mix of provisional and materialized sessions', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const matCreated = await createSession(agent, { workingDirectories: [URI.file('/work-mat')] });
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(matCreated.sdkSessionId),
+			makeResultSuccess(matCreated.sdkSessionId),
+		];
+		await agent.chats.sendMessage(defaultChatUri(matCreated.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(matCreated.session)));
+
+		const provCreated = await createSession(agent, { workingDirectories: [URI.file('/work-prov')] });
+		const provAborter = (() => {
+			const provSession = agent.getSessionForTesting(provCreated.session);
+			assert.strictEqual(provSession, undefined, 'second session must remain provisional');
+			return undefined;
+		})();
+		assert.strictEqual(provAborter, undefined);
+
+		const matWarm = sdk.warmQueries[0];
+		assert.ok(matWarm, 'materialized session must have a WarmQuery');
+		const asyncDisposeBefore = matWarm.asyncDisposeCount;
+
+		const first = agent.shutdown();
+		const second = agent.shutdown();
+		await Promise.all([first, second]);
+
+		assert.deepStrictEqual({
+			memoized: first === second,
+			matRemoved: agent.getSessionForTesting(matCreated.session) === undefined,
+			matWarmAsyncDisposed: matWarm.asyncDisposeCount > asyncDisposeBefore,
+			provDropped: await agent.chats.sendMessage(defaultChatUri(provCreated.session), 'late', undefined, undefined, 'turn-late', undefined, undefined, chatContext(defaultChatUri(provCreated.session)))
+				.then(() => false, err => err instanceof Error && /unknown session|no backing chat/i.test(err.message)),
+			matDropped: await agent.chats.sendMessage(defaultChatUri(matCreated.session), 'late', undefined, undefined, 'turn-late', undefined, undefined, chatContext(defaultChatUri(matCreated.session)))
+				.then(() => false, err => err instanceof Error && /unknown session|no backing chat/i.test(err.message)),
+		}, {
+			memoized: true,
+			matRemoved: true,
+			matWarmAsyncDisposed: true,
+			provDropped: true,
+			matDropped: true,
+		});
+	});
+
+	test('mapper throwing on a malformed stream_event is logged and the turn continues', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const sessionUri = created.session;
+		const observed: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(s => {
+			const resource = s.kind === 'action' || s.kind === 'model_call_completed' ? s.resource : s.chat;
+			if ((parseDefaultChatUri(resource) ?? resource.toString()) === sessionUri.toString()) {
+				observed.push(s);
+			}
+		}));
+
+		
+		const malformedDeltaEvent = { type: 'content_block_delta', index: 0 };
+		// @ts-expect-error - intentionally missing `delta` field to test mapper resilience
+		const malformedEvent: BetaRawContentBlockDeltaEvent = malformedDeltaEvent;
+		const malformedMessage = makeStreamEvent(sessionId, malformedEvent);
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeStreamEvent(sessionId, makeMessageStart()),
+			makeStreamEvent(sessionId, makeContentBlockStartText(0)),
+			malformedMessage,
+			makeStreamEvent(sessionId, makeTextDelta(0, 'recover')),
+			makeStreamEvent(sessionId, makeContentBlockStop(0)),
+			makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const deltas = observed.flatMap(s =>
+			s.kind === 'action' && s.action.type === ActionType.ChatDelta
+				? [s.action.content]
+				: []);
+		const turnCompletes = observed.filter(s =>
+			s.kind === 'action' && s.action.type === ActionType.ChatTurnComplete);
+
+		assert.deepStrictEqual({
+			deltas,
+			turnCompleteCount: turnCompletes.length,
+		}, {
+			deltas: ['recover'],
+			turnCompleteCount: 1,
+		});
+	});
+
+	test('sendMessage tags SDKUserMessage.uuid with the effective turn id (M1 / Turn.id ↔ uuid invariant)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-explicit', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const drained = sdk.warmQueries[0]?.produced?.drainedPrompts ?? [];
+		assert.deepStrictEqual({
+			drainedCount: drained.length,
+			uuid: drained[0]?.uuid,
+		}, {
+			drainedCount: 1,
+			uuid: 'turn-explicit',
+		});
+	});
+
+	test('attachments (File and Directory) become a system-reminder block on the user message', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		const fileUri = URI.file('/work/src/foo.ts');
+		const dirUri = URI.file('/work/src/bar');
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'review please', undefined, [
+			{ type: MessageAttachmentKind.Resource, uri: fileUri.toString(), label: 'foo.ts', displayKind: 'document' },
+			{ type: MessageAttachmentKind.Resource, uri: dirUri.toString(), label: 'bar', displayKind: 'directory' },
+		], 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const drained = sdk.warmQueries[0]?.produced?.drainedPrompts ?? [];
+		assert.strictEqual(drained.length, 1, 'one prompt was drained');
+		const userMessage = drained[0];
+		const content = userMessage.message.content;
+		assert.ok(Array.isArray(content), 'content blocks are an array');
+
+		assert.deepStrictEqual({
+			blockCount: content.length,
+			promptText: content[0]?.type === 'text' ? content[0].text : undefined,
+			reminderText: content[1]?.type === 'text' ? content[1].text : undefined,
+		}, {
+			blockCount: 2,
+			promptText: 'review please',
+			reminderText:
+				'<system-reminder>\nThe user provided the following references:\n' +
+				`- ${fileUri.fsPath}\n` +
+				`- ${dirUri.fsPath}\n\n` +
+				'IMPORTANT: this context may or may not be relevant to your tasks. ' +
+				'You should not respond to this context unless it is highly relevant to your task.\n' +
+				'</system-reminder>',
+		});
+	});
+
+	test('selection attachments become URI references with line suffixes', () => {
+		const fileUri = URI.file('/work/src/foo.ts');
+		const blocks = resolvePromptToContentBlocks('review please', [{
+			type: MessageAttachmentKind.Resource,
+			uri: fileUri.toString(),
+			label: 'foo.ts',
+			displayKind: 'selection',
+			selection: {
+				range: {
+					start: { line: 9, character: 1 },
+					end: { line: 11, character: 2 },
+				},
+			},
+		}]);
+
+		assert.strictEqual(blocks.length, 2);
+		assert.strictEqual(blocks[0].type, 'text');
+		assert.strictEqual(blocks[0].text, 'review please');
+		assert.strictEqual(blocks[1].type, 'text');
+		assert.ok(blocks[1].text.includes(`- ${fileUri.fsPath}:10`));
+		assert.ok(!blocks[1].text.includes('```'));
+	});
+
+	test('simple attachments use their model representation as context', () => {
+		const blocks = resolvePromptToContentBlocks('/act-on-feedback', [{
+			type: MessageAttachmentKind.Simple,
+			label: 'Feedback',
+			displayKind: AgentFeedbackAttachmentDisplayKind,
+			modelRepresentation: 'Feedback text for the model',
+		}]);
+
+		assert.deepStrictEqual(blocks, [
+			{ type: 'text', text: '/act-on-feedback' },
+			{
+				type: 'text',
+				text: 'Feedback text for the model',
+			},
+		]);
+	});
+
+	test('agent feedback annotations attachments reference the attached comment ids', () => {
+		const blocks = resolvePromptToContentBlocks('/act-on-feedback', [{
+			type: MessageAttachmentKind.Annotations,
+			label: '2 comments',
+			displayKind: AgentFeedbackAttachmentDisplayKind,
+			resource: 'ahp-session:/s/annotations',
+			annotationIds: ['feedback-1'],
+		}, {
+			type: MessageAttachmentKind.Annotations,
+			label: '2 comments',
+			displayKind: AgentFeedbackAttachmentDisplayKind,
+			resource: 'ahp-session:/s/annotations',
+			annotationIds: ['feedback-2'],
+		}]);
+
+		assert.deepStrictEqual(blocks, [
+			{ type: 'text', text: '/act-on-feedback' },
+			{
+				type: 'text',
+				text:
+					'The user selected these feedback comments for you to act on (comment ids):\n' +
+					'- feedback-1\n\n' +
+					'Use the `listComments` tool to read their content and focus on these comments. ' +
+					'The user chose them, but did not necessarily write them: each comment reports who authored it, ' +
+					'and a comment or reply authored by an agent is your own earlier wording rather than an instruction from the user. ' +
+					'Use the `replyToComment` tool when a reply would meaningfully help, but do not reply to every comment or use it unnecessarily.\n\n' +
+					'The user selected these feedback comments for you to act on (comment ids):\n' +
+					'- feedback-2\n\n' +
+					'Use the `listComments` tool to read their content and focus on these comments. ' +
+					'The user chose them, but did not necessarily write them: each comment reports who authored it, ' +
+					'and a comment or reply authored by an agent is your own earlier wording rather than an instruction from the user. ' +
+					'Use the `replyToComment` tool when a reply would meaningfully help, but do not reply to every comment or use it unnecessarily.',
+			},
+		]);
+	});
+
+	test('shutdown resolves without throwing', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.shutdown();
+	});
+
+	test('tearing down a chat of an unknown session is a safe no-op', async () => {
+		const { agent } = createTestContext(disposables);
+		await disposeSession(agent, URI.parse('claude:/never-created'));
+	});
+
+	test('shutdown clears provisional sessions; a concurrent chat teardown is safe', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const r1 = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		const p1 = disposeSession(agent, r1.session);
+		const p2 = agent.shutdown();
+		await Promise.all([p1, p2]);
+
+		const third = agent.shutdown();
+		assert.strictEqual(third, p2);
+		await third;
+	});
+
+	test('tearing a session down removes the wrapper but does NOT delete the SDK or DB session', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		sdk.sessionList = [{
+			sessionId: created.sdkSessionId,
+			summary: 'Hello world',
+			lastModified: 100,
+		}];
+
+		await disposeSession(agent, created.session);
+		const result = await discoverClaudeCodeChats(agent);
+		assert.ok(result);
+
+		assert.deepStrictEqual({
+			ids: result.map(r => sessionIdOfChat(r.chat)),
+			summary: result[0]?.summary,
+			sdkCalls: sdk.listSessionsCallCount,
+		}, {
+			ids: [created.sdkSessionId],
+			summary: 'Hello world',
+			sdkCalls: 1,
+		});
+	});
+
+	test('chats.getMessages returns an empty transcript for a chat with no backing', async () => {
+		const { agent } = createTestContext(disposables);
+		const c1 = defaultChatUri(URI.parse('claude:/unknown-1'));
+		const c2 = defaultChatUri(URI.parse('claude:/unknown-2'));
+		const a = await agent.chats.getMessages(c1, chatContext(c1));
+		const b = await agent.chats.getMessages(c2, chatContext(c2));
+		assert.deepStrictEqual({ a, b, distinct: a !== b }, { a: [], b: [], distinct: true });
+	});
+
+	test('native catalog returns every SDK entry while migration returns known sessions', async () => {
+		const dbA = new TestSessionDatabase();
+		const dbB = new TestSessionDatabase();
+		const dbC = new TestSessionDatabase();
+		await dbA.setMetadata('claude.customizationDirectory', URI.file('/foo').toString());
+		await dbA.setMetadata('agentHost.workspaceless', 'false');
+
+		const sessionData: ISessionDataService = {
+			...createNullSessionDataService(),
+			openDatabase: session => ({
+				object: AgentSession.id(session) === 'a' ? dbA : AgentSession.id(session) === 'b' ? dbB : dbC,
+				dispose: () => { },
+			}),
+			tryOpenDatabase: async session => {
+				if (AgentSession.id(session) === 'a') {
+					return { object: dbA, dispose: () => { } };
+				}
+				if (AgentSession.id(session) === 'b') {
+					return { object: dbB, dispose: () => { } };
+				}
+				if (AgentSession.id(session) === 'c') {
+					return { object: dbC, dispose: () => { } };
+				}
+				return undefined;
+			},
+		};
+		const sdk = new FakeClaudeAgentSdkService();
+		sdk.sessionList = [
+			{ sessionId: 'a', summary: 'Session A', lastModified: 1000, createdAt: 900 },
+			{ sessionId: 'b', summary: 'Session B', lastModified: 2000, createdAt: 1900 },
+			{ sessionId: 'c', summary: 'Session C', lastModified: 3000, createdAt: 2900 },
+		];
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IClaudeProxyService, new FakeClaudeProxyService()],
+			[ISessionDataService, sessionData],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+		await agent.materializeChat(defaultChatUri(AgentSession.uri('claude', 'b')), chatContext(defaultChatUri(AgentSession.uri('claude', 'b'))), undefined);
+
+		const result = await discoverClaudeCodeChats(agent);
+		const chatsToMigrate = await agent.listChatsToMigrate();
+		assert.ok(result);
+		assert.ok(chatsToMigrate);
+		const a = result.find(r => sessionIdOfChat(r.chat) === 'a');
+		const b = result.find(r => sessionIdOfChat(r.chat) === 'b');
+		assert.deepStrictEqual({
+			count: result.length,
+			ids: result.map(r => sessionIdOfChat(r.chat)).sort(),
+			summaryA: a?.summary,
+			summaryB: b?.summary,
+			modifiedA: a?.modifiedTime,
+			modifiedB: b?.modifiedTime,
+			sdkCalls: sdk.listSessionsCallCount,
+			availabilityRequests: sdk.ensureAvailableCalls,
+			migrationChats: chatsToMigrate === AgentChatMigrationDeferred ? undefined : chatsToMigrate?.map(r => sessionIdOfChat(r.chat)),
+		}, {
+			count: 3,
+			ids: ['a', 'b', 'c'],
+			summaryA: 'Session A',
+			summaryB: 'Session B',
+			modifiedA: 1000,
+			modifiedB: 2000,
+			sdkCalls: 2,
+			availabilityRequests: 0,
+			migrationChats: ['a'],
+		});
+
+		sdk.sessionList = [];
+		assert.deepStrictEqual(await agent.listChatsToMigrate(), []);
+		sdk.listSessionsRejection = new Error('catalog unavailable');
+		assert.strictEqual(await agent.listChatsToMigrate(), undefined);
+	});
+
+	test('native discovery emits only unknown Claude Code chats as external', async () => {
+		const knownInternal = AgentSession.uri('claude', 'known-internal');
+		const knownExternal = AgentSession.uri('claude', 'known-external');
+		const unknownExternal = AgentSession.uri('claude', 'unknown-external');
+		const chats = [
+			{ chat: defaultChatUri(knownInternal), startTime: 1, modifiedTime: 2 },
+			{ chat: defaultChatUri(knownExternal), startTime: 3, modifiedTime: 4 },
+			{ chat: defaultChatUri(unknownExternal), startTime: 5, modifiedTime: 6 },
+		];
+		const emitted: unknown[] = [];
+		const emitClaudeCodeChats = (ClaudeAgent.prototype as unknown as {
+			_emitClaudeCodeChats(this: {
+				_listClaudeCodeChats(): Promise<typeof chats>;
+				_isKnownClaudeCodeChat(chat: IAgentChatMetadata): Promise<boolean>;
+				_onDidDiscoverChats: { fire(chats: readonly unknown[]): void };
+				_logService: { warn(message: string): void };
+			}): Promise<void>;
+		})._emitClaudeCodeChats;
+
+		await emitClaudeCodeChats.call({
+			_listClaudeCodeChats: async () => chats,
+			_isKnownClaudeCodeChat: async chat => sessionIdOfChat(chat.chat) !== 'unknown-external',
+			_onDidDiscoverChats: { fire: chats => emitted.push(...chats) },
+			_logService: { warn: () => { } },
+		});
+
+		assert.deepStrictEqual(emitted, [{ ...chats[2], external: true }]);
+	});
+
+	test('external chat discovery tolerates a corrupt DB without poisoning the rest of the listing', async () => {
+		const dbOk = new TestSessionDatabase();
+		await dbOk.setMetadata('claude.customizationDirectory', URI.file('/ok').toString());
+
+		const sessionData: ISessionDataService = {
+			...createNullSessionDataService(),
+			tryOpenDatabase: async session => {
+				const id = AgentSession.id(session);
+				if (id === 'corrupt') {
+					throw new Error('simulated DB open failure');
+				}
+				if (id === 'ok') {
+					return { object: dbOk, dispose: () => { } };
+				}
+				return undefined;
+			},
+		};
+		const sdk = new FakeClaudeAgentSdkService();
+		sdk.sessionList = [
+			{ sessionId: 'ok', summary: 'OK', lastModified: 100 },
+			{ sessionId: 'corrupt', summary: 'Corrupt', lastModified: 200 },
+			{ sessionId: 'external', summary: 'External', lastModified: 300 },
+		];
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IClaudeProxyService, new FakeClaudeProxyService()],
+			[ISessionDataService, sessionData],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+
+		const result = await discoverClaudeCodeChats(agent);
+		assert.ok(result);
+		const find = (id: string) => result.find(r => sessionIdOfChat(r.chat) === id);
+		assert.deepStrictEqual({
+			count: result.length,
+			ids: result.map(r => sessionIdOfChat(r.chat)).sort(),
+			corruptSummary: find('corrupt')?.summary,
+		}, {
+			count: 3,
+			ids: ['corrupt', 'external', 'ok'],
+			corruptSummary: 'Corrupt',
+		});
+	});
+
+	test('external chat discovery returns undefined (cannot enumerate yet) when the SDK fails to load', async () => {
+		const sdk = new FakeClaudeAgentSdkService();
+		sdk.listSessionsRejection = new Error('simulated SDK load failure');
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IClaudeProxyService, new FakeClaudeProxyService()],
+			[ISessionDataService, createNullSessionDataService()],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+
+		const result = await discoverClaudeCodeChats(agent);
+		assert.deepStrictEqual(result, undefined);
+	});
+
+	test('getChatMetadata joins SDK info with sidecar overlay, returns SDK-only fields for external sessions, and undefined for unknown ids (Phase 6.1 / Cycle D4 / I7)', async () => {
+		const dbSidecar = new TestSessionDatabase();
+		await dbSidecar.setMetadata('claude.customizationDirectory', URI.file('/cust').toString());
+		await dbSidecar.setMetadata('claude.model', JSON.stringify({ id: 'claude-opus-4.6', config: { thinkingLevel: 'high' } }));
+
+		const sessionData: ISessionDataService = {
+			...createNullSessionDataService(),
+			tryOpenDatabase: async session => {
+				if (AgentSession.id(session) === 'sidecar') {
+					return { object: dbSidecar, dispose: () => { } };
+				}
+				return undefined;
+			},
+		};
+		const sdk = new FakeClaudeAgentSdkService();
+		sdk.sessionList = [
+			{ sessionId: 'sidecar', summary: 'With Sidecar', lastModified: 5000, createdAt: 4900, cwd: '/work' },
+			{ sessionId: 'external', summary: 'External', lastModified: 6000, createdAt: 5900, cwd: '/raw-cli' },
+		];
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IClaudeProxyService, new FakeClaudeProxyService()],
+			[ISessionDataService, sessionData],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		const instantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+
+		const sidecarUri = AgentSession.uri('claude', 'sidecar');
+		const externalUri = AgentSession.uri('claude', 'external');
+		const unknownUri = AgentSession.uri('claude', 'unknown');
+		const sidecarChat = defaultChatUri(sidecarUri);
+		const externalChat = defaultChatUri(externalUri);
+		const unknownChat = defaultChatUri(unknownUri);
+
+		const sidecar = await agent.getChatMetadata(sidecarChat, chatContext(sidecarChat));
+		const external = await agent.getChatMetadata(externalChat, chatContext(externalChat));
+		const unknown = await agent.getChatMetadata(unknownChat, chatContext(unknownChat));
+
+		assert.deepStrictEqual({
+			sidecar: {
+				chat: sidecar?.chat.toString(),
+				summary: sidecar?.summary,
+				startTime: sidecar?.startTime,
+				modifiedTime: sidecar?.modifiedTime,
+				workingDirectory: sidecar?.workingDirectories?.[0]?.toString(),
+			},
+			external: {
+				chat: external?.chat.toString(),
+				summary: external?.summary,
+				startTime: external?.startTime,
+				modifiedTime: external?.modifiedTime,
+				workingDirectory: external?.workingDirectories?.[0]?.toString(),
+			},
+			unknown,
+			sdkLookups: sdk.getSessionInfoCalls.slice().sort(),
+		}, {
+			sidecar: {
+				chat: sidecarChat.toString(),
+				summary: 'With Sidecar',
+				startTime: 4900,
+				modifiedTime: 5000,
+				workingDirectory: URI.file('/work').toString(),
+			},
+			external: {
+				chat: externalChat.toString(),
+				summary: 'External',
+				startTime: 5900,
+				modifiedTime: 6000,
+				workingDirectory: URI.file('/raw-cli').toString(),
+			},
+			unknown: undefined,
+			sdkLookups: ['external', 'sidecar', 'unknown'],
+		});
+	});
+
+	test('getChatMetadata resolves a registered AH session through its exact default-chat backing', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		const session = AgentSession.uri(agent.id, 'ah-session');
+		sdk.sessionList = [{ sessionId: 'sdk-default', summary: 'Exact default', lastModified: 10, cwd: '/work' }];
+
+		const chat = defaultChatUri(session);
+		const metadata = await agent.getChatMetadata(chat, chatContext(chat), JSON.stringify({ sdkSessionId: 'sdk-default' }));
+
+		assert.deepStrictEqual({
+			chat: metadata?.chat.toString(),
+			summary: metadata?.summary,
+			lookups: sdk.getSessionInfoCalls,
+		}, {
+			chat: chat.toString(),
+			summary: 'Exact default',
+			lookups: ['sdk-default'],
+		});
+	});
+
+	test('restoring chat history downloads a cold SDK while passive metadata and discovery stay cold', async () => {
+		const sdk = new FakeClaudeAgentSdkService();
+		sdk.canLoadWithoutDownloadResult = false;
+		sdk.ensureAvailableGate = Promise.resolve().then(() => { sdk.canLoadWithoutDownloadResult = true; });
+		sdk.sessionList = [
+			{ sessionId: 'materialized', summary: 'Materialized Session', lastModified: 5000, createdAt: 4900, cwd: '/work' },
+		];
+		sdk.sessionMessagesById.set('materialized', forkSourceMessages('materialized'));
+
+		const services = new ServiceCollection(
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IClaudeProxyService, new FakeClaudeProxyService()],
+			[ISessionDataService, createNullSessionDataService()],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IProductService, FakeProductService],
+		);
+		const instantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+		const discoveredChats: number[] = [];
+		disposables.add(agent.onDidDiscoverChats(chats => discoveredChats.push(chats.length)));
+		void agent.startChatDiscovery();
+
+		const sessionUri = AgentSession.uri('claude', 'materialized');
+		const chat = defaultChatUri(sessionUri);
+		const passiveMetadata = await agent.getChatMetadata(chat, chatContext(chat));
+		const restoredMetadata = await agent.getChatMetadata(chat, chatContext(chat), undefined, { activation: 'restore' });
+		await bindDefaultChat(agent, sessionUri);
+		const messages = await agent.chats.getMessages(defaultChatUri(sessionUri), chatContext(defaultChatUri(sessionUri)));
+		await timeout(0);
+
+		assert.deepStrictEqual({
+			passiveMetadata,
+			restoredSummary: restoredMetadata?.summary,
+			messageCount: messages.length,
+			getSessionInfoCalls: sdk.getSessionInfoCalls,
+			getSessionMessagesCalls: sdk.getSessionMessagesCalls,
+			availabilityRequests: sdk.ensureAvailableCalls,
+			discoveredChats,
+		}, {
+			passiveMetadata: undefined,
+			restoredSummary: 'Materialized Session',
+			messageCount: 2,
+			getSessionInfoCalls: ['materialized'],
+			getSessionMessagesCalls: [{ sessionId: 'materialized', options: { includeSystemMessages: true } }],
+			availabilityRequests: 1,
+			discoveredChats: [],
+		});
+	});
+
+	test('shutdown is idempotent and returns the same memoized promise on concurrent calls', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		const first = agent.shutdown();
+		const second = agent.shutdown();
+		await Promise.all([first, second]);
+		const third = agent.shutdown();
+		await third;
+
+		assert.deepStrictEqual({
+			firstEqualsSecond: first === second,
+			firstEqualsThird: first === third,
+		}, {
+			firstEqualsSecond: true,
+			firstEqualsThird: true,
+		});
+	});
+
+	test('ClaudeAgentSdkService caches the resolved module and logs the first load failure exactly once', async () => {
+		const errorCalls: unknown[][] = [];
+		class RecordingLogService extends NullLogService {
+			override error(...args: unknown[]): void {
+				errorCalls.push(args);
+			}
+		}
+
+		let importBehavior: 'fail' | IClaudeSdkBindings = 'fail';
+		let importInvocations = 0;
+		class TestableClaudeAgentSdkService extends ClaudeAgentSdkService {
+			protected override async _loadSdk(): Promise<IClaudeSdkBindings> {
+				importInvocations++;
+				if (importBehavior === 'fail') {
+					throw new Error('simulated SDK load failure');
+				}
+				return importBehavior;
+			}
+		}
+
+		const services = new ServiceCollection(
+			[ILogService, new RecordingLogService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader(false)],
+		);
+		const inst = disposables.add(new InstantiationService(services));
+		const svc = inst.createInstance(TestableClaudeAgentSdkService);
+
+		await assert.rejects(() => svc.listSessions(), /simulated SDK load failure/);
+		await assert.rejects(() => svc.listSessions(), /simulated SDK load failure/);
+		const failuresLogged = errorCalls.length;
+		const importInvocationsAfterFailures = importInvocations;
+
+		importBehavior = {
+			listSessions: async () => [{ sessionId: 's', summary: 's', lastModified: 1 }],
+			getSessionInfo: async () => undefined,
+			startup: async () => { throw new Error('TestableClaudeAgentSdkService: startup not modeled'); },
+			query: () => { throw new Error('not modeled'); },
+			getSessionMessages: async () => [],
+			listSubagents: async () => [],
+			getSubagentMessages: async () => [],
+			forkSession: async () => { throw new Error('not modeled'); },
+			deleteSession: async () => { throw new Error('not modeled'); },
+			createSdkMcpServer: () => { throw new Error('not modeled'); },
+			tool: () => { throw new Error('not modeled'); },
+		};
+		const result1 = await svc.listSessions();
+		const importInvocationsAfterFirstSuccess = importInvocations;
+
+		const result2 = await svc.listSessions();
+
+		assert.deepStrictEqual({
+			failuresLogged,
+			importInvocationsAfterFailures,
+			importInvocationsAfterFirstSuccess,
+			invocationsAfterCachedCall: importInvocations,
+			result1Length: result1.length,
+			result1Id: result1[0]?.sessionId,
+			result2Length: result2.length,
+			finalLogCount: errorCalls.length,
+		}, {
+			failuresLogged: 1,
+			importInvocationsAfterFailures: 2,
+			importInvocationsAfterFirstSuccess: 3,
+			invocationsAfterCachedCall: 3,
+			result1Length: 1,
+			result1Id: 's',
+			result2Length: 1,
+			finalLogCount: 1,
+		});
+	});
+
+	test('ClaudeAgentSdkService forwards listSubagents + getSubagentMessages to the underlying bindings (Phase 12 step 2)', async () => {
+		const listCalls: { sessionId: string; options: unknown }[] = [];
+		const getCalls: { sessionId: string; agentId: string; options: unknown }[] = [];
+		const importBehavior: IClaudeSdkBindings = {
+			listSessions: async () => [],
+			getSessionInfo: async () => undefined,
+			startup: async () => { throw new Error('not used'); },
+			query: () => { throw new Error('not modeled'); },
+			getSessionMessages: async () => [],
+			listSubagents: async (sessionId, options) => {
+				listCalls.push({ sessionId, options });
+				return ['agent-a', 'agent-b'];
+			},
+			getSubagentMessages: async (sessionId, agentId, options) => {
+				getCalls.push({ sessionId, agentId, options });
+				return [{ uuid: 'u1' } as unknown as SessionMessage];
+			},
+			forkSession: async () => { throw new Error('not modeled'); },
+			deleteSession: async () => { throw new Error('not modeled'); },
+			createSdkMcpServer: () => { throw new Error('not modeled'); },
+			tool: () => { throw new Error('not modeled'); },
+		};
+		class TestableClaudeAgentSdkService extends ClaudeAgentSdkService {
+			protected override async _loadSdk(): Promise<IClaudeSdkBindings> {
+				return importBehavior;
+			}
+		}
+
+		const inst = disposables.add(new InstantiationService(new ServiceCollection(
+			[ILogService, new NullLogService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader(false)],
+		)));
+		const svc = inst.createInstance(TestableClaudeAgentSdkService);
+
+		const subagentIds = await svc.listSubagents('sess-1');
+		const messages = await svc.getSubagentMessages('sess-1', 'agent-a', { limit: 1 });
+
+		assert.deepStrictEqual({
+			subagentIds,
+			messagesLength: messages.length,
+			listCalls,
+			getCalls,
+		}, {
+			subagentIds: ['agent-a', 'agent-b'],
+			messagesLength: 1,
+			listCalls: [{ sessionId: 'sess-1', options: undefined }],
+			getCalls: [{ sessionId: 'sess-1', agentId: 'agent-a', options: { limit: 1 } }],
+		});
+	});
+
+	test('resolveChatConfig returns Claude-native permissionMode + reused Permissions schema', async () => {
+		const { agent } = createTestContext(disposables);
+		const result = await agent.resolveChatConfig({});
+		const properties = result.schema.properties;
+		const permissionMode = properties['permissionMode'];
+
+		assert.deepStrictEqual({
+			topLevelType: result.schema.type,
+			propertyKeys: Object.keys(properties).sort(),
+			permissionModeType: permissionMode?.type,
+			permissionModeEnum: permissionMode?.enum,
+			permissionModeDefault: permissionMode?.default,
+			permissionsType: properties['permissions']?.type,
+			values: result.values,
+			autoApproveAbsent: properties['autoApprove'] === undefined,
+			modeAbsent: properties['mode'] === undefined,
+			isolationAbsent: properties['isolation'] === undefined,
+			branchAbsent: properties['branch'] === undefined,
+		}, {
+			topLevelType: 'object',
+			propertyKeys: ['permissionMode', 'permissions'],
+			permissionModeType: 'string',
+			permissionModeEnum: ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'],
+			permissionModeDefault: 'default',
+			permissionsType: 'object',
+			values: { permissionMode: 'default' },
+			autoApproveAbsent: true,
+			modeAbsent: true,
+			isolationAbsent: true,
+			branchAbsent: true,
+		});
+	});
+
+	test('chatConfigCompletions returns no items (permissionMode is a static enum)', async () => {
+		const { agent } = createTestContext(disposables);
+		const result = await agent.chatConfigCompletions({ property: 'permissionMode', query: 'def' });
+		assert.deepStrictEqual(result, { items: [] });
+	});
+
+	test('dispose releases the proxy handle even with no materialized sessions', async () => {
+		let proxyDisposed = false;
+
+		class RecordingProxyService implements IClaudeProxyService {
+			declare readonly _serviceBrand: undefined;
+			readonly onDidReportCredits: Event<IClaudeProxyCreditsReport> = Event.None;
+			async start(_token: string): Promise<IClaudeProxyHandle> {
+				return {
+					baseUrl: 'http://127.0.0.1:0',
+					nonce: 'n',
+					dispose: () => { proxyDisposed = true; },
+				};
+			}
+			dispose(): void { }
+		}
+
+		const services = new ServiceCollection(
+			...claudeFileEnvServices(disposables),
+			[ILogService, new NullLogService()],
+			...createTestAgentStateServices(disposables),
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IClaudeProxyService, new RecordingProxyService()],
+			[ISessionDataService, createNullSessionDataService()],
+			[IClaudeAgentSdkService, new FakeClaudeAgentSdkService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IAgentHostGitService, createNoopGitService()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+			[IAgentHostAuthenticationService, disposables.add(new FakeAgentHostAuthenticationService())],
+		);
+		const instantiationService = disposables.add(new InstantiationService(services));
+		const agent = instantiationService.createInstance(ClaudeAgent);
+
+		await agent.authenticate('https://api.github.com', 'tok');
+		await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		agent.dispose();
+
+		assert.strictEqual(proxyDisposed, true);
+	});
+
+	test('agent.dispose() during a racing first sendMessage aborts the provisional and disposes the WarmQuery', async () => {
+		const persistGate = new DeferredPromise<void>();
+		let persistEntered = false;
+		const blockingDb = new TestSessionDatabase();
+		const originalSetMetadata = blockingDb.setMetadata.bind(blockingDb);
+		blockingDb.setMetadata = async (key, value) => {
+			persistEntered = true;
+			await persistGate.p;
+			await originalSetMetadata(key, value);
+		};
+
+		const proxy = new FakeClaudeProxyService();
+		const api = new FakeDardcorRouterService();
+		api.models = async () => [...ALL_MODELS];
+		const sdk = new FakeClaudeAgentSdkService();
+		const sessionData = createSessionDataService(blockingDb);
+		const logService = new NullLogService();
+		const stateManager = disposables.add(new AgentHostStateManager(logService));
+		const configService = disposables.add(new AgentConfigurationService(stateManager, logService));
+
+		const services = new ServiceCollection(
+			...claudeFileEnvServices(disposables),
+			[ILogService, logService],
+			[IDardcorRouterService, api],
+			[IClaudeProxyService, proxy],
+			[ISessionDataService, sessionData],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[IAgentHostGitService, createNoopGitService()],
+			[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
+			[IAgentConfigurationService, configService],
+			[IAgentHostStateManager, stateManager],
+			[IAgentHostCustomizationEnablementService, reducerBackedEnablementService(stateManager)],
+			[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
+			[IAgentHostOTelService, new RecordingOTelService()],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+		);
+		services.set(IAgentHostAuthenticationService, disposables.add(new FakeAgentHostAuthenticationService()));
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const agent: ClaudeAgent = instantiationService.createInstance(ClaudeAgent);
+
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		await bindDefaultChat(agent, created.session);
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		const send = agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const settle: { rejected?: unknown } = {};
+		const sendDone = send.then(() => { settle.rejected = false; }, err => { settle.rejected = err; });
+
+		while (!persistEntered) {
+			await new Promise<void>(resolve => setImmediate(resolve));
+		}
+
+		agent.dispose();
+
+		persistGate.complete();
+		await sendDone;
+
+		assert.deepStrictEqual({
+			rejectedIsCancellation: isCancellationError(settle.rejected),
+			warmQueryDisposed: sdk.warmQueries[0]?.asyncDisposeCount === 1,
+		}, {
+			rejectedIsCancellation: true,
+			warmQueryDisposed: true,
+		});
+	});
+
+	test('onClientToolCallComplete is a benign no-op for an unknown toolCallId (Phase 10)', () => {
+		const { agent } = createTestContext(disposables);
+		const session = URI.parse('claude:/sess-1');
+		const chat = URI.parse(buildDefaultChatUri(session));
+		assert.doesNotThrow(() => {
+			agent.onClientToolCallComplete(chat, 'toolu_unknown', { success: true, pastTenseMessage: 'ran' });
+		});
+	});
+
+
+	test('setClientTools registers tools that flow into Options.mcpServers on first materialize', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const tools: ToolDefinition[] = [{ name: 'echo', description: 'Echo back', inputSchema: { type: 'object', properties: { msg: { type: 'string' } }, required: ['msg'] } }];
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'client-1').tools = tools;
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'go', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const opts = sdk.capturedStartupOptions[0];
+		assert.ok(opts.mcpServers, 'mcpServers populated');
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			builtToolNames: sdk.toolCalls.map(t => t.name),
+		}, {
+			startupCount: 1,
+			builtToolNames: ['echo'],
+		});
+	});
+
+	test('setClientTools after materialize triggers yield-restart on next sendMessage with the new tool set', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (i: number) => { if (i === 2) { await advance.p; } };
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 1, 'first materialize');
+
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'client-1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		sdk.queryAdvance = undefined;
+		advance.complete();
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const lastBuild = sdk.createSdkMcpServerCalls[sdk.createSdkMcpServerCalls.length - 1];
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			firstMcp: !!sdk.capturedStartupOptions[0].mcpServers,
+			secondMcpToolNames: lastBuild?.toolNames,
+		}, {
+			startupCount: 2,
+			firstMcp: true,
+			secondMcpToolNames: ['echo'],
+		});
+	});
+
+	test('a pending truncation anchor reaches the next rebuild as Options.resumeSessionAt, consumed once', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (i: number) => { if (i === 2) { await advance.p; } };
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 1, 'first materialize');
+
+		await agent.getSessionForTesting(created.session)!.truncateToTurn('turn-1', 'anchor-uuid', created.session);
+		sdk.queryAdvance = undefined;
+		advance.complete();
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			firstResumeAt: sdk.capturedStartupOptions[0].resumeSessionAt,
+			secondResumeAt: sdk.capturedStartupOptions[1]?.resumeSessionAt,
+		}, {
+			startupCount: 2,
+			firstResumeAt: undefined,
+			secondResumeAt: 'anchor-uuid',
+		});
+	});
+
+	test('the truncation anchor is applied exactly once and not leaked to later rebuilds', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await agent.getSessionForTesting(created.session)!.truncateToTurn('turn-1', 'anchor-uuid', created.session);
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'third', undefined, undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const anchored = sdk.capturedStartupOptions.filter(o => o.resumeSessionAt === 'anchor-uuid');
+		assert.deepStrictEqual({
+			anchoredCount: anchored.length,
+			lastResumeAt: sdk.capturedStartupOptions.at(-1)?.resumeSessionAt,
+		}, {
+			anchoredCount: 1,
+			lastResumeAt: undefined,
+		});
+	});
+
+	test('a rebuild that fails after reading the anchor keeps it staged so the next send retries the truncation', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await agent.getSessionForTesting(created.session)!.truncateToTurn('turn-1', 'anchor-uuid', created.session);
+
+		sdk.startupRejection = new Error('transient startup failure');
+		await assert.rejects(() => agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session))));
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second-retry', undefined, undefined, 'turn-2b', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.capturedStartupOptions.at(-1)?.resumeSessionAt, 'anchor-uuid');
+	});
+
+	test('truncateToTurn / pruneAllTurns reach the session database', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk } = createTestContext(disposables, { database });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const session = agent.getSessionForTesting(created.session)!;
+
+		await session.truncateToTurn('turn-1', 'anchor-uuid', created.session);
+		await session.pruneAllTurns(created.session);
+
+		assert.deepStrictEqual(
+			{ afterCalls: database.deleteTurnsAfterCalls, allCalls: database.deleteAllTurnsCalls },
+			{ afterCalls: ['turn-1'], allCalls: 1 },
+		);
+	});
+
+	test('setClientTools with an equal snapshot does NOT restart', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (i: number) => { if (i === 2) { await advance.p; } };
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		const tools: ToolDefinition[] = [{ name: 'echo', description: 'e', inputSchema: { type: 'object' } }];
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = tools;
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 1, 'first materialize');
+
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo', description: 'e', inputSchema: { type: 'object' } }];
+		advance.complete();
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.startupCallCount, 1, 'equal snapshot should NOT yield-restart');
+	});
+
+	test('setClientTools on an unknown chat is silently dropped', () => {
+		const { agent } = createTestContext(disposables);
+		const unknownChat = defaultChatUri(URI.parse('claude:/never-existed'));
+		assert.doesNotThrow(() => {
+			getOrCreateActiveClient(agent, unknownChat, 'c1').tools = [{ name: 't', inputSchema: { type: 'object' } }];
+		});
+	});
+
+	test('onClientToolCallComplete resolves the parked deferred keyed by tool_use_id', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'go', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const session = agent.getSessionForTesting(created.session)!;
+		const settled = session.completeClientToolCall('tu_unknown', { success: true, pastTenseMessage: 'ok', content: [{ type: ToolResultContentType.Text, text: 'hello' }] });
+		assert.strictEqual(settled, false, 'no parked handler in this test path; unknown id is silent');
+	});
+
+	test('onClientToolCallComplete walks subagent URIs to the root session', () => {
+		const { agent } = createTestContext(disposables);
+		const root = URI.parse('claude:/root-1');
+		const chat = URI.parse(buildDefaultChatUri(root));
+		assert.doesNotThrow(() => {
+			agent.onClientToolCallComplete(chat, 'tu_anything', { success: true, pastTenseMessage: 'ran' });
+		});
+	});
+
+	test('chat teardown rejects every parked client-tool call with CancellationError', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'go', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await assert.doesNotReject(disposeSession(agent, created.session));
+	});
+
+	test('FakeQuery.setMcpServers stays unmodeled (Phase 10 never calls Query.setMcpServers for client tools)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo2', inputSchema: { type: 'object' } }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 2, 'rebind path used yield-restart, not setMcpServers');
+	});
+
+	test('setClientTools landing during the materialize gap is re-synced into the live session', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'first', inputSchema: { type: 'object' } }];
+
+		const startupReached = new DeferredPromise<void>();
+		const startupGate = new DeferredPromise<void>();
+		sdk.startupAdvance = async (i: number) => {
+			if (i === 1) {
+				startupReached.complete();
+				await startupGate.p;
+			}
+		};
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		const send = agent.chats.sendMessage(defaultChatUri(created.session), 'go', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await startupReached.p;
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'second', inputSchema: { type: 'object' } }];
+		startupGate.complete();
+		await send;
+
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			firstSnapshot: sdk.createSdkMcpServerCalls[0]?.toolNames,
+			lastSnapshot: sdk.createSdkMcpServerCalls.at(-1)?.toolNames,
+		}, {
+			startupCount: 2,
+			firstSnapshot: ['first'],
+			lastSnapshot: ['second'],
+		});
+	});
+
+	test('setClientTools landing during the resume bootstrap gap is re-synced into the live session', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sessionId = 'cross-window-session-id';
+		const sessionUri = AgentSession.uri('claude', sessionId);
+		sdk.sessionList = [{
+			sessionId,
+			summary: 'From another window',
+			lastModified: 5000,
+			createdAt: 4900,
+			cwd: URI.file('/work').fsPath,
+		}];
+
+		const startupReached = new DeferredPromise<void>();
+		const startupGate = new DeferredPromise<void>();
+		sdk.startupAdvance = async (i: number) => {
+			if (i === 1) {
+				startupReached.complete();
+				await startupGate.p;
+			}
+		};
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await bindDefaultChat(agent, sessionUri);
+		const send = agent.chats.sendMessage(defaultChatUri(sessionUri), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await startupReached.p;
+		getOrCreateActiveClient(agent, defaultChatUri(sessionUri), 'c1').tools = [{ name: 'resumed', inputSchema: { type: 'object' } }];
+		startupGate.complete();
+		await send;
+
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			lastSnapshot: sdk.createSdkMcpServerCalls.at(-1)?.toolNames,
+		}, {
+			startupCount: 2,
+			lastSnapshot: ['resumed'],
+		});
+	});
+
+	test('rebind failure leaves the client-tool diff dirty so the next send retries', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (i: number) => { if (i === 2) { await advance.p; } };
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 1);
+
+		getOrCreateActiveClient(agent, defaultChatUri(created.session), 'c1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		sdk.startupRejection = new Error('simulated rebind startup failure');
+		sdk.queryAdvance = undefined;
+		advance.complete();
+		await assert.rejects(agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session))));
+
+		sdk.startupRejection = undefined;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'third', undefined, undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.deepStrictEqual({
+			startupCount: sdk.startupCallCount,
+			lastSnapshot: sdk.createSdkMcpServerCalls.at(-1)?.toolNames,
+		}, {
+			startupCount: 3,
+			lastSnapshot: ['echo'],
+		});
+	});
+
+
+});
+
+suite('ClaudeAgent — agent SDK setup channel', () => {
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	function readSetup(ctx: ITestContext) {
+		return readAgentSdkSetupInfos(ctx.stateManager.rootState).find(setup => setup.agent === 'claude');
+	}
+
+	function dispatchDownload(ctx: ITestContext, agent = 'claude', request = 'req-1'): void {
+		ctx.configService.updateRootConfig({ [AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY]: { agent, request } });
+	}
+
+	function dispatchReload(ctx: ITestContext, agent = 'claude', request = 'req-1'): void {
+		ctx.configService.updateRootConfig({ [AGENT_SDK_SETUP_RELOAD_REQUEST_KEY]: { agent, request } });
+	}
+
+	async function settle(): Promise<void> {
+		for (let i = 0; i < 20; i++) {
+			await tick();
+		}
+	}
+
+	test('an SDK already on disk publishes `ready` plus the docs URL the banner links to', async () => {
+		const ctx = createTestContext(disposables);
+		await settle();
+
+		assert.deepStrictEqual(readSetup(ctx), {
+			agent: 'claude',
+			download: 'ready',
+			setupDocsUrl: 'https://code.claude.com/docs/en/third-party-integrations',
+			signInProviderName: undefined,
+		});
+	});
+
+	test('a cold cache publishes `notDownloaded`, which is what turns the banner into an offer', async () => {
+		const ctx = createTestContext(disposables);
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		await ctx.agent.refreshModels();
+		await settle();
+
+		assert.strictEqual(readSetup(ctx)?.download, 'notDownloaded');
+	});
+
+	test('an explicit download fetches the SDK, holds progress interest for the fetch, and ends at `ready`', async () => {
+		const ctx = createTestContext(disposables);
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		let releaseDownload = () => { };
+		ctx.sdk.ensureAvailableGate = new Promise<void>(resolve => {
+			releaseDownload = () => { ctx.sdk.canLoadWithoutDownloadResult = true; resolve(); };
+		});
+		await ctx.agent.refreshModels();
+		await settle();
+
+		dispatchDownload(ctx);
+		await settle();
+		const inFlight = {
+			download: readSetup(ctx)?.download,
+			interests: [...ctx.sdkDownloader.progressInterests],
+			held: ctx.sdkDownloader.heldProgressInterests,
+			fetches: ctx.sdk.ensureAvailableCalls,
+		};
+
+		releaseDownload();
+		await settle();
+
+		assert.deepStrictEqual({ inFlight, after: readSetup(ctx)?.download, held: ctx.sdkDownloader.heldProgressInterests }, {
+			inFlight: { download: 'downloading', interests: ['claude'], held: 1, fetches: 1 },
+			after: 'ready',
+			held: 0,
+		});
+	});
+
+	test('a download that lands stays `downloading` until the catalog does, so the banner never flashes "no account"', async () => {
+		const ctx = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		for (let i = 0; i < 100 && ctx.sdk.supportedModelsCallCount === 0; i++) {
+			await tick();
+		}
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		await ctx.agent.refreshModels();
+		await settle();
+
+		ctx.sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '', supportedEffortLevels: ['high'] },
+		];
+		let releaseEnumeration = () => { };
+		ctx.sdk.supportedModelsGate = new Promise<void>(resolve => { releaseEnumeration = resolve; });
+		ctx.sdk.ensureAvailableGate = Promise.resolve().then(() => { ctx.sdk.canLoadWithoutDownloadResult = true; });
+		const enumerationsBefore = ctx.sdk.supportedModelsCallCount;
+
+		dispatchDownload(ctx);
+		for (let i = 0; i < 100 && ctx.sdk.supportedModelsCallCount === enumerationsBefore; i++) {
+			await tick();
+		}
+		const enumerating = { download: readSetup(ctx)?.download, models: ctx.agent.models.get().length };
+
+		releaseEnumeration();
+		for (let i = 0; i < 100 && ctx.agent.models.get().length === 0; i++) {
+			await tick();
+		}
+		await settle();
+
+		assert.deepStrictEqual({ enumerating, after: readSetup(ctx)?.download, models: ctx.agent.models.get().length }, {
+			enumerating: { download: 'downloading', models: 0 },
+			after: 'ready',
+			models: 1,
+		});
+	});
+
+	test('the request key is cleared as it is consumed, so an identical later press still lands', async () => {
+		const ctx = createTestContext(disposables);
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		await ctx.agent.refreshModels();
+		await settle();
+
+		dispatchDownload(ctx, 'claude', 'press-1');
+		await settle();
+		const consumed = ctx.configService.getRootConfigValues()[AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY];
+
+		dispatchDownload(ctx, 'claude', 'press-2');
+		await settle();
+
+		assert.deepStrictEqual({ consumed, fetches: ctx.sdk.ensureAvailableCalls }, { consumed: undefined, fetches: 2 });
+	});
+
+	test('a request addressed to another agent is ignored', async () => {
+		const ctx = createTestContext(disposables);
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		await ctx.agent.refreshModels();
+		await settle();
+
+		dispatchDownload(ctx, 'codex');
+		await settle();
+
+		assert.deepStrictEqual({
+			fetches: ctx.sdk.ensureAvailableCalls,
+			key: ctx.configService.getRootConfigValues()[AGENT_SDK_SETUP_DOWNLOAD_REQUEST_KEY],
+		}, {
+			fetches: 0,
+			key: { agent: 'codex', request: 'req-1' },
+		});
+	});
+
+	test('a failed download releases the progress interest and stops claiming to be downloading', async () => {
+		const ctx = createTestContext(disposables);
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		ctx.sdk.ensureAvailableRejection = new Error('CDN unreachable');
+		await ctx.agent.refreshModels();
+		await settle();
+
+		dispatchDownload(ctx);
+		await settle();
+
+		assert.deepStrictEqual({
+			download: readSetup(ctx)?.download,
+			held: ctx.sdkDownloader.heldProgressInterests,
+		}, {
+			download: 'notDownloaded',
+			held: 0,
+		});
+	});
+
+	test('chat discovery waits for the SDK rather than fetching it, and runs again once it lands', async () => {
+		const ctx = createTestContext(disposables);
+		ctx.sdk.canLoadWithoutDownloadResult = false;
+		ctx.sdk.sessionList = [{ sessionId: 'from-claude-code', summary: 'An existing chat', lastModified: 1000, createdAt: 900 }];
+		const discovered: number[] = [];
+		disposables.add(ctx.agent.onDidDiscoverChats(chats => discovered.push(chats.length)));
+		void ctx.agent.startChatDiscovery();
+		await settle();
+		const cold = {
+			discovered: [...discovered],
+			migratable: await ctx.agent.listChatsToMigrate(),
+			fetches: ctx.sdk.ensureAvailableCalls,
+		};
+
+		let landed = () => { };
+		ctx.sdk.ensureAvailableGate = new Promise<void>(resolve => {
+			landed = () => { ctx.sdk.canLoadWithoutDownloadResult = true; resolve(); };
+		});
+		dispatchDownload(ctx);
+		await settle();
+		const inFlight = [...discovered];
+
+		landed();
+		await settle();
+
+		assert.deepStrictEqual({ cold, inFlight, after: discovered, migratable: await ctx.agent.listChatsToMigrate() }, {
+			cold: { discovered: [], migratable: AgentChatMigrationDeferred, fetches: 0 },
+			inFlight: [],
+			after: [1],
+			migratable: [],
+		});
+	});
+
+	test('a reload re-asks the SDK for the account the user set up elsewhere, fetching nothing', async () => {
+		const ctx = createTestContext(disposables);
+		await settle();
+		const before = ctx.sdk.accountInfoCallCount;
+		ctx.sdk.accountInfoResult = NATIVE_ACCOUNT;
+		ctx.sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '', supportedEffortLevels: ['high'] },
+		];
+
+		dispatchReload(ctx);
+		await settle();
+
+		assert.deepStrictEqual({
+			asked: ctx.sdk.accountInfoCallCount > before,
+			fetches: ctx.sdk.ensureAvailableCalls,
+			models: ctx.agent.models.get().map(model => model.name),
+			key: ctx.configService.getRootConfigValues()[AGENT_SDK_SETUP_RELOAD_REQUEST_KEY],
+		}, {
+			asked: true,
+			fetches: 0,
+			models: ['Claude Sonnet 4.5'],
+			key: undefined,
+		});
+	});
+
+	test('a reload addressed to another agent is ignored', async () => {
+		const ctx = createTestContext(disposables);
+		await settle();
+		const before = ctx.sdk.accountInfoCallCount;
+
+		dispatchReload(ctx, 'codex');
+		await settle();
+
+		assert.deepStrictEqual({
+			asked: ctx.sdk.accountInfoCallCount > before,
+			key: ctx.configService.getRootConfigValues()[AGENT_SDK_SETUP_RELOAD_REQUEST_KEY],
+		}, {
+			asked: false,
+			key: { agent: 'codex', request: 'req-1' },
+		});
+	});
+});
+
+suite('ClaudeAgent — per-session provider', () => {
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	function proxyAuthTokenOf(options: Options | undefined): string | undefined {
+		const settings = options?.settings;
+		if (!settings || typeof settings === 'string') {
+			return undefined;
+		}
+		return settings.env?.ANTHROPIC_AUTH_TOKEN;
+	}
+
+	async function materializeSession(
+		ctx: ITestContext,
+		opts?: { readonly model?: { readonly id: string }; readonly block?: boolean },
+	): Promise<{ readonly sessionUri: URI; readonly sessionId: string; readonly advance: DeferredPromise<void> }> {
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const model = opts?.model ?? { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6') };
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model });
+		const sessionId = created.sdkSessionId;
+		const advance = new DeferredPromise<void>();
+		if (opts?.block) {
+			ctx.sdk.queryAdvance = async (i: number) => { if (i === 2) { await advance.p; } };
+			ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId), makeResultSuccess(sessionId)];
+		} else {
+			ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		}
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		return { sessionUri: created.session, sessionId, advance };
+	}
+
+	test('a cross-transport model switch defers, then rebuilds on the new (native) transport at the next send (US 11)', async () => {
+		const ctx = createTestContext(disposables);
+		const { sessionUri, sessionId } = await materializeSession(ctx);
+		const nativeModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929') };
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), nativeModel, chatContext(defaultChatUri(sessionUri)));
+		const atSwitch = {
+			startups: ctx.sdk.startupCallCount,
+			hotSwaps: ctx.sdk.warmQueries[0]?.produced?.recordedModels ?? [],
+		};
+
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'again', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		const rebuild = ctx.sdk.capturedStartupOptions[1];
+
+		assert.deepStrictEqual({
+			atSwitch,
+			afterSendStartups: ctx.sdk.startupCallCount,
+			initialWasProxy: proxyAuthTokenOf(ctx.sdk.capturedStartupOptions[0]) !== undefined,
+			rebuild: { model: rebuild?.model, resume: rebuild?.resume, isProxy: proxyAuthTokenOf(rebuild) !== undefined },
+			replayedOnRebuild: ctx.sdk.warmQueries[1]?.produced?.recordedModels ?? [],
+		}, {
+			atSwitch: { startups: 1, hotSwaps: [] },
+			afterSendStartups: 2,
+			initialWasProxy: true,
+			rebuild: { model: 'claude-sonnet-4-5', resume: sessionId, isProxy: false },
+			replayedOnRebuild: ['claude-sonnet-4-5'],
+		});
+	});
+
+	test('a same-transport model change still hot-swaps the live query (no rebuild)', async () => {
+		const ctx = createTestContext(disposables);
+		const { sessionUri, advance } = await materializeSession(ctx, { block: true });
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-sonnet-4-5-20250929') }, chatContext(defaultChatUri(sessionUri)));
+
+		const p2 = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'again', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		assert.deepStrictEqual({
+			startups: ctx.sdk.startupCallCount,
+			hotSwaps: ctx.sdk.warmQueries[0]?.produced?.recordedModels ?? [],
+		}, {
+			startups: 1,
+			hotSwaps: ['claude-sonnet-4-5'],
+		});
+	});
+
+	test('a switch during an in-flight turn leaves it untouched; the rebuild fires only on the next send (US 12)', async () => {
+		const ctx = createTestContext(disposables);
+		const { sessionUri, sessionId, advance } = await materializeSession(ctx, { block: true });
+		const nativeModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929') };
+
+		const inflight = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'turn 2', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		const switching = ctx.agent.chats.changeModel(defaultChatUri(sessionUri), nativeModel, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		const duringTurn = { startups: ctx.sdk.startupCallCount, warmQueries: ctx.sdk.warmQueries.length };
+
+		advance.complete();
+		await inflight;
+		await switching;
+		const afterSwitch = { startups: ctx.sdk.startupCallCount, hotSwaps: ctx.sdk.warmQueries[0]?.produced?.recordedModels ?? [] };
+
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'turn 3', undefined, undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		const rebuild = ctx.sdk.capturedStartupOptions.at(-1);
+
+		assert.deepStrictEqual({
+			duringTurn,
+			afterSwitch,
+			afterNextSend: { startups: ctx.sdk.startupCallCount, isNative: proxyAuthTokenOf(rebuild) === undefined, model: rebuild?.model },
+		}, {
+			duringTurn: { startups: 1, warmQueries: 1 },
+			afterSwitch: { startups: 1, hotSwaps: [] },
+			afterNextSend: { startups: 2, isNative: true, model: 'claude-sonnet-4-5' },
+		});
+	});
+
+	test('a native→Copilot switch while signed out surfaces AHP_AUTH_REQUIRED on the next send, then rebuilds once signed in (US 27)', async () => {
+		const ctx = createTestContext(disposables);
+		const nativeModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929') };
+		const copilotModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6') };
+
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: nativeModel });
+		const sessionId = created.sdkSessionId;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		await ctx.agent.chats.changeModel(defaultChatUri(created.session), copilotModel, chatContext(defaultChatUri(created.session)));
+		const first = await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'turn 2', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)))
+			.then(() => 'sent', (err: unknown) => (err instanceof ProtocolError && err.code === AHP_AUTH_REQUIRED) ? 'auth-required' : `unexpected:${err}`);
+		const startupsAfterFailure = ctx.sdk.startupCallCount;
+
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'turn 3', undefined, undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const rebuild = ctx.sdk.capturedStartupOptions.at(-1);
+
+		assert.deepStrictEqual({
+			first,
+			startupsAfterFailure,
+			startupsAfterAuth: ctx.sdk.startupCallCount,
+			rebuiltProxy: proxyAuthTokenOf(rebuild) !== undefined,
+			rebuildModel: rebuild?.model,
+		}, {
+			first: 'auth-required',
+			startupsAfterFailure: 1,
+			startupsAfterAuth: 2,
+			rebuiltProxy: true,
+			rebuildModel: 'claude-opus-4-6',
+		});
+	});
+
+	test('with a runtime host-default transport flip, a live session is not rerouted on an ordinary (non-switch) rebuild', async () => {
+
+		const ctx = createTestContext(disposables, {
+			rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true },
+			nativeAccount: NATIVE_ACCOUNT,
+		});
+		await ctx.agent.refreshModels();
+
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-sonnet-4-5-20250929' } });
+		const sid = created.sdkSessionId;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid)];
+		ctx.sdk.queryAdvance = async (i: number) => { if (i === 1) { throw new Error('subprocess crashed'); } };
+		await assert.rejects(
+			ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session))),
+			(err: Error) => err.message.includes('subprocess crashed'),
+		);
+		ctx.sdk.queryAdvance = undefined;
+
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+
+		const fresh = await createSession(ctx.agent, { workingDirectories: [URI.file('/fresh')], model: { id: 'claude-opus-4.6' } });
+		const freshSid = fresh.sdkSessionId;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(freshSid), makeResultSuccess(freshSid)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(fresh.session), 'hi', undefined, undefined, 'fresh-1', undefined, undefined, chatContext(defaultChatUri(fresh.session)));
+
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid), makeResultSuccess(sid)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'recover', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual({
+			originalMaterializeNative: proxyAuthTokenOf(ctx.sdk.capturedStartupOptions[0]) === undefined,
+			freshSessionProxy: proxyAuthTokenOf(ctx.sdk.capturedStartupOptions[1]) !== undefined,
+			rebuild: {
+				resume: ctx.sdk.capturedStartupOptions[2]?.resume,
+				stayedNative: proxyAuthTokenOf(ctx.sdk.capturedStartupOptions[2]) === undefined,
+			},
+			totalStartups: ctx.sdk.startupCallCount,
+		}, {
+			originalMaterializeNative: true,
+			freshSessionProxy: true,
+			rebuild: { resume: sid, stayedNative: true },
+			totalStartups: 3,
+		});
+	});
+
+	test('a Copilot→native switch survives a cold resume: the reload rematerializes on native', async () => {
+		const ctx = createTestContext(disposables);
+		const { sessionUri, sessionId } = await materializeSession(ctx);
+		const nativeModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929') };
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), nativeModel, chatContext(defaultChatUri(sessionUri)));
+		await releaseDefaultChat(ctx.agent, sessionUri);
+
+		ctx.sdk.sessionList = [{ sessionId, cwd: URI.file('/workspace').fsPath, summary: '', lastModified: Date.now() }];
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'turn 2', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		const resumed = ctx.sdk.capturedStartupOptions.at(-1);
+
+		assert.deepStrictEqual({
+			model: resumed?.model,
+			resume: resumed?.resume,
+			isNative: proxyAuthTokenOf(resumed) === undefined,
+		}, {
+			model: 'claude-sonnet-4-5',
+			resume: sessionId,
+			isNative: true,
+		});
+	});
+
+	test('the Copilot resource is unconditionally optional, whatever the opt-in or the SDK account report says', async () => {
+		const advertisedRequirement = async (inputs: { optIn: boolean; account: boolean }) => {
+			const { agent } = createTestContext(disposables, {
+				...(inputs.optIn ? { rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true } } : {}),
+				...(inputs.account ? { nativeAccount: NATIVE_ACCOUNT } : {}),
+			});
+			await agent.refreshModels();
+			return agent.getProtectedResources().find(r => r.resource === 'https://api.github.com')?.required;
+		};
+
+		assert.deepStrictEqual({
+			optInOnWithAccount: await advertisedRequirement({ optIn: true, account: true }),
+			optInOffWithAccount: await advertisedRequirement({ optIn: false, account: true }),
+			optInOnNoAccount: await advertisedRequirement({ optIn: true, account: false }),
+			optInOffNoAccount: await advertisedRequirement({ optIn: false, account: false }),
+		}, {
+			optInOnWithAccount: false,
+			optInOffWithAccount: false,
+			optInOnNoAccount: false,
+			optInOffNoAccount: false,
+		});
+	});
+
+	test('the Copilot resource is advertised, never dropped, so the silent token probe survives', async () => {
+		const optional = createTestContext(disposables, {
+			rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true },
+			nativeAccount: NATIVE_ACCOUNT,
+		}).agent.getProtectedResources();
+		assert.deepStrictEqual(optional.map(r => ({ resource: r.resource, required: r.required })), [
+			{ resource: 'https://api.github.com', required: false },
+			{ resource: 'https://api.github.com/repos', required: false },
+		]);
+	});
+
+	test('merged catalog lists both providers, each id provider-qualified', async () => {
+		const { agent, api, sdk } = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		api.models = async () => [CLAUDE_OPUS];
+		sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '' },
+		];
+		await agent.authenticate('https://api.github.com', 'tok');
+		await agent.refreshModels();
+		await tick();
+
+		assert.deepStrictEqual(agent.models.get().map(m => ({ id: m.id, name: m.name })), [
+			{ id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6'), name: 'Claude Opus 4.6' },
+			{ id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929'), name: 'Claude Sonnet 4.5' },
+		]);
+	});
+
+	test('per-session transport gates on the picked model, not a global mode', async () => {
+		const { agent } = createTestContext(disposables);
+		const nativeModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929') };
+		const copilotModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_DARDCOR_ROUTER, 'claude-opus-4.6') };
+
+		const native = await createSession(agent, { workingDirectories: [URI.file('/ws-native')], model: nativeModel });
+		const copilotOutcome = await createSession(agent, { workingDirectories: [URI.file('/ws-copilot')], model: copilotModel })
+			.then(() => 'created', err => (err instanceof ProtocolError && err.code === AHP_AUTH_REQUIRED) ? 'auth-required' : `unexpected:${err}`);
+
+		assert.deepStrictEqual(
+			{ nativeProvisional: native.provisional, copilotOutcome },
+			{ nativeProvisional: true, copilotOutcome: 'auth-required' },
+		);
+	});
+
+	test('a forked peer chat inherits its never-materialized parent\'s native model and runs native with a bare id, signed out', async () => {
+		const { agent, sdk, proxy } = createTestContext(disposables);
+		const nativeModel = { id: toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929') };
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')], model: nativeModel });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			model: sdk.capturedStartupOptions[0]?.model,
+			resume: sdk.capturedStartupOptions[0]?.resume,
+			proxyStarts: proxy.startCalls.length,
+		}, {
+			model: 'claude-sonnet-4-5',
+			resume: 'forked-1',
+			proxyStarts: 0,
+		});
+	});
+
+	test('signed out, the native catalog bootstraps with no manual refresh', async () => {
+		const { agent, sdk } = createTestContext(disposables, { nativeAccount: NATIVE_ACCOUNT });
+		sdk.supportedModelsResult = [
+			{ value: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: '' },
+		];
+		for (let i = 0; i < 100 && sdk.supportedModelsCallCount === 0; i++) {
+			await tick();
+		}
+		await tick();
+
+		assert.deepStrictEqual(agent.models.get().map(m => m.id), [
+			toClaudeModelSelectionId(CLAUDE_PROVIDER_ANTHROPIC, 'claude-sonnet-4-5-20250929'),
+		]);
+	});
+
+	test('a failing proxy start does not fail sign-in', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+		proxy.startError = new Error('proxy boom');
+
+		const ok = await agent.authenticate('https://api.github.com', 'tok');
+
+		assert.deepStrictEqual({ ok, proxyStartAttempts: proxy.startCalls.length }, { ok: true, proxyStartAttempts: 1 });
+	});
+
+	test('a replacement token whose proxy start fails tears down the prior account instead of silently serving it', async () => {
+		const { agent, proxy } = createTestContext(disposables);
+		let failNext = false;
+		proxy.start = async (token: string) => {
+			proxy.startCalls.push({ token });
+			if (failNext) {
+				throw new Error('proxy bind failed');
+			}
+			return { baseUrl: 'http://127.0.0.1:0', nonce: `nonce-for-${token}`, dispose: () => { proxy.disposeCount++; } };
+		};
+
+		await agent.authenticate('https://api.github.com', 'tokA');
+		await tick();
+		const modelsUnderA = agent.models.get().length;
+
+		failNext = true;
+		await agent.authenticate('https://api.github.com', 'tokB');
+		await tick();
+
+		let createError: unknown;
+		try {
+			await createSession(agent, { workingDirectories: [URI.file('/workspace')] });
+		} catch (err) {
+			createError = err;
+		}
+
+		assert.deepStrictEqual({
+			hadModelsUnderA: modelsUnderA > 0,
+			startTokens: proxy.startCalls.map(c => c.token),
+			staleHandleDisposed: proxy.disposeCount,
+			modelsAfterFailedReplacement: agent.models.get(),
+			copilotSessionDemandsSignIn: createError instanceof ProtocolError && createError.code === AHP_AUTH_REQUIRED,
+		}, {
+			hadModelsUnderA: true,
+			startTokens: ['tokA', 'tokB'],
+			staleHandleDisposed: 1,
+			modelsAfterFailedReplacement: [],
+			copilotSessionDemandsSignIn: true,
+		});
+	});
+});
+
+suite('ClaudeAgentSession (Phase 7 §3.2)', () => {
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('dispose with parked permission unblocks SDK (Test 17)', async () => {
+		const sdk = new FakeClaudeAgentSdkService();
+		const workingDirectoryPendingChange = disposables.add(new Emitter<string>());
+		const fakeConfigService: IAgentConfigurationService = {
+			onDidRootConfigChange: Event.None,
+			onDidSessionConfigChange: Event.None,
+			getSessionConfigValues: () => undefined,
+			onDidChangeWorkingDirectoryPending: workingDirectoryPendingChange.event,
+		} as unknown as IAgentConfigurationService;
+		const stateManager = disposables.add(new AgentHostStateManager(new NullLogService()));
+		const sessionData = new RecordingSessionDataService(createSessionDataService());
+		const services = new ServiceCollection(
+			...claudeFileEnvServices(disposables),
+			[ILogService, new NullLogService()],
+			[IAgentConfigurationService, fakeConfigService],
+			[IAgentHostStateManager, stateManager],
+			[IAgentHostCustomizationEnablementService, reducerBackedEnablementService(stateManager)],
+			[IAgentHostOTelService, new RecordingOTelService()],
+			[IClaudeAgentSdkService, sdk],
+			[IDardcorRouterService, new FakeDardcorRouterService()],
+			[IAgentHostAuthenticationService, disposables.add(new FakeAgentHostAuthenticationService())],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
+			[IAgentPluginManager, new FakeAgentPluginManager()],
+			[ISessionDataService, sessionData],
+		);
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const session = disposables.add(ClaudeAgentSession.createProvisional(
+			'session-id',
+			URI.parse(buildDefaultChatUri('claude:/session-id')),
+			URI.file('/workspace'),
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			new PendingRequestRegistry<CallToolResult>(),
+			'default',
+			instantiationService,
+		));
+		await session.materialize({
+			transport: { kind: 'proxy', handle: { baseUrl: 'http://127.0.0.1:0', nonce: 'n', dispose: () => { } } },
+			canUseTool: async () => ({ behavior: 'deny', message: 'unused' }),
+			onElicitation: async () => ({ action: 'cancel' }),
+			isResume: false,
+			resource: URI.parse('claude:/session-id'),
+			configResource: URI.parse('claude:/session-id'),
+		});
+
+		const permission = session.requestPermission({
+			toolUseID: 'tu_1',
+			state: {
+				status: ToolCallStatus.PendingConfirmation,
+				toolCallId: 'tu_1',
+				toolName: 'Read',
+				displayName: 'Read file',
+				invocationMessage: 'Read file',
+				toolInput: '{}',
+				confirmationTitle: 'Read file?',
+			},
+			permissionKind: 'read',
+		});
+		session.dispose();
+
+		assert.strictEqual(await permission, false);
+	});
+});
+
+suite('ClaudeAgent (Phase 7 §3.4 — _handleCanUseTool)', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	class FakeServerToolHost implements IAgentServerToolHost {
+		readonly definitions: readonly ToolDefinition[] = [{
+			name: 'viewUnreviewedComments',
+			description: 'View unreviewed comments',
+			inputSchema: { type: 'object', properties: {} },
+		}, {
+			name: 'set_workspace',
+			description: 'Set workspace',
+			inputSchema: { type: 'object', properties: {} },
+		}];
+		readonly toolNames = this.definitions.map(definition => definition.name);
+		confirmationRequiredForSession = false;
+
+		advertise(): void { }
+		getDefinitionsForSession(): readonly ToolDefinition[] { return this.definitions; }
+		canRequireConfirmation(): boolean { return true; }
+		requiresConfirmation(): boolean { return this.confirmationRequiredForSession; }
+		executeTool(): string { return 'ok'; }
+	}
+
+	async function materialize(seedConfig?: { permissionMode?: string }, serverToolHost?: IAgentServerToolHost): Promise<{
+		ctx: ITestContext;
+		canUseTool: NonNullable<Options['canUseTool']>;
+		sessionUri: URI;
+		sessionId: string;
+	}> {
+		const ctx = createTestContext(disposables);
+		if (serverToolHost) {
+			ctx.agent.setServerToolHost(serverToolHost);
+		}
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const state = ctx.stateManager.createSession({
+			resource: created.session.toString(),
+			provider: 'claude',
+			title: 't',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		(state as { config?: SessionConfigState }).config = {
+			schema: { type: 'object', properties: {} },
+			values: { ...(seedConfig ?? {}) },
+		};
+
+		await startActiveTurn(disposables, ctx, created.session, sessionId);
+
+		const canUseTool = ctx.sdk.capturedStartupOptions[0]?.canUseTool;
+		assert.ok(canUseTool, 'canUseTool callback was wired into Options');
+		return { ctx, canUseTool, sessionUri: created.session, sessionId };
+	}
+
+	function makeOptions(toolUseID: string, overrides?: { blockedPath?: string }): Parameters<NonNullable<Options['canUseTool']>>[2] {
+		return {
+			signal: new AbortController().signal,
+			toolUseID,
+			requestId: toolUseID,
+			...(overrides?.blockedPath !== undefined ? { blockedPath: overrides.blockedPath } : {}),
+		};
+	}
+
+	test('Test 1 — default mode parks, respondToPermissionRequest(true) → allow', async () => {
+		const { ctx, canUseTool } = await materialize();
+
+		const promise = canUseTool('Read', { file_path: '/tmp/foo.txt' }, makeOptions('tu_1'));
+		await tick();
+
+		ctx.agent.respondToPermissionRequest('tu_1', true);
+		const result = await promise;
+
+		assert.deepStrictEqual(result, { behavior: 'allow', updatedInput: { file_path: '/tmp/foo.txt' } });
+	});
+
+	test('Test 2 — default mode parks, respondToPermissionRequest(false) → deny', async () => {
+		const { ctx, canUseTool } = await materialize();
+
+		const promise = canUseTool('Read', { file_path: '/tmp/foo.txt' }, makeOptions('tu_2'));
+		await tick();
+
+		ctx.agent.respondToPermissionRequest('tu_2', false);
+		const result = await promise;
+
+		assert.deepStrictEqual(result, { behavior: 'deny', message: 'User declined' });
+	});
+
+	test('server tool with nothing to confirm is allowed without prompting', async () => {
+		const host = new FakeServerToolHost();
+		const { ctx, canUseTool } = await materialize(undefined, host);
+		const signals: AgentSignal[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(signal => signals.push(signal)));
+
+		const result = await canUseTool('mcp__host__viewUnreviewedComments', {}, makeOptions('tu_empty_comments'));
+
+		assert.deepStrictEqual({
+			result,
+			pendingConfirmations: signals.filter(signal => signal.kind === 'pending_confirmation').length,
+		}, {
+			result: { behavior: 'allow', updatedInput: {} },
+			pendingConfirmations: 0,
+		});
+	});
+
+	test('set_workspace uses a plain-language confirmation without raw input', async () => {
+		const host = new FakeServerToolHost();
+		host.confirmationRequiredForSession = true;
+		const { ctx, canUseTool } = await materialize(undefined, host);
+		const signals: AgentSignal[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(signal => signals.push(signal)));
+
+		const input = { workspaceFolder: '/workspace/app', isolation: true };
+		const resultPromise = canUseTool('mcp__host__set_workspace', input, makeOptions('tu_set_workspace'));
+		await tick();
+		ctx.agent.respondToPermissionRequest('tu_set_workspace', true);
+		const confirmation = signals.find(signal => signal.kind === 'pending_confirmation');
+
+		assert.deepStrictEqual({
+			result: await resultPromise,
+			confirmation: confirmation?.kind === 'pending_confirmation' ? {
+				displayName: confirmation.state.displayName,
+				invocationMessage: confirmation.state.invocationMessage,
+				toolInput: confirmation.state.toolInput,
+				confirmationTitle: confirmation.state.confirmationTitle,
+				permissionKind: confirmation.permissionKind,
+			} : undefined,
+		}, {
+			result: { behavior: 'allow', updatedInput: input },
+			confirmation: {
+				displayName: 'Set Workspace',
+				invocationMessage: 'Continue this session in /workspace/app with changes isolated from the existing folder?',
+				toolInput: undefined,
+				confirmationTitle: 'Continue in app?',
+				permissionKind: 'mcp',
+			},
+		});
+	});
+
+
+	test('Test 7 — pending_confirmation signal carries the correct shape', async () => {
+		const { ctx, canUseTool, sessionUri } = await materialize();
+
+		const signals: AgentSignal[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(s => signals.push(s)));
+
+		const promise = canUseTool('Read', { file_path: '/tmp/foo.txt' }, makeOptions('tu_shape'));
+		await tick();
+
+		const captured = signals.find(s => s.kind === 'pending_confirmation');
+		ctx.agent.respondToPermissionRequest('tu_shape', true);
+		await promise;
+
+		const expectedChat = URI.parse(buildDefaultChatUri(sessionUri));
+		expectedChat.toString();
+		assert.deepStrictEqual(captured, {
+			kind: 'pending_confirmation',
+			chat: expectedChat,
+			state: {
+				status: ToolCallStatus.PendingConfirmation,
+				toolCallId: 'tu_shape',
+				toolName: 'Read',
+				displayName: 'Read file',
+				invocationMessage: { markdown: 'Read [foo.txt](file:///tmp/foo.txt)' },
+				toolInput: '{\n  "file_path": "/tmp/foo.txt"\n}',
+				confirmationTitle: 'Read file?',
+				_meta: { toolKind: 'read' },
+			},
+			permissionKind: 'read',
+			permissionPath: '/tmp/foo.txt',
+		});
+	});
+
+	test('Test 8 — synchronous auto-respond inside pending_confirmation listener resolves canUseTool', async () => {
+		const { ctx, canUseTool } = await materialize();
+
+		disposables.add(ctx.agent.onDidChatProgress(s => {
+			if (s.kind === 'pending_confirmation') {
+				ctx.agent.respondToPermissionRequest(s.state.toolCallId, true);
+			}
+		}));
+
+		const result = await canUseTool('Read', { file_path: '/tmp/race.txt' }, makeOptions('tu_race'));
+		assert.deepStrictEqual(result, { behavior: 'allow', updatedInput: { file_path: '/tmp/race.txt' } });
+	});
+
+	test('SDK abort signal unparks a pending canUseTool with deny instead of waiting on the user', async () => {
+		const { ctx, canUseTool, sessionUri } = await materialize();
+
+		const session = ctx.agent.getSessionForTesting(sessionUri);
+		assert.ok(session, 'session is materialized');
+
+		const ac = new AbortController();
+		const options: Parameters<NonNullable<Options['canUseTool']>>[2] = {
+			signal: ac.signal,
+			toolUseID: 'tu_aborted',
+			requestId: 'tu_aborted',
+		};
+
+		const promise = canUseTool('Read', { file_path: '/tmp/x' }, options);
+		await tick();
+
+		ac.abort();
+		const result = await promise;
+
+		assert.deepStrictEqual(result, { behavior: 'deny', message: 'User declined' });
+		assert.strictEqual(session.respondToPermissionRequest('tu_aborted', true), false);
+	});
+
+	test('SDK abort signal already aborted on entry returns deny without parking', async () => {
+		const { canUseTool } = await materialize();
+
+		const ac = new AbortController();
+		ac.abort();
+		const result = await canUseTool('Read', { file_path: '/tmp/y' }, {
+			signal: ac.signal,
+			toolUseID: 'tu_pre_aborted',
+			requestId: 'tu_pre_aborted',
+		});
+
+		assert.deepStrictEqual(result, { behavior: 'deny', message: 'SDK aborted the tool request' });
+	});
+
+	test('respondToPermissionRequest unknown id is silent', () => {
+		const ctx = createTestContext(disposables);
+		ctx.agent.respondToPermissionRequest('nope', true);
+	});
+
+	test('Phase 12 step 5 — canUseTool inside a subagent context tags pending_confirmation with parentToolCallId and feeds the resolver cache', async () => {
+		const { ctx, canUseTool, sessionUri } = await materialize();
+
+		const session = ctx.agent.getSessionForTesting(sessionUri);
+		assert.ok(session, 'session must be materialized');
+		session.subagents.recordSpawn('toolu_parent');
+		session.subagents.noteInnerTool('toolu_inner', 'toolu_parent');
+
+		const signals: AgentSignal[] = [];
+		const sub = ctx.agent.onDidChatProgress(s => signals.push(s));
+		disposables.add(sub);
+
+		const promise = canUseTool('Read', { file_path: '/tmp/inner.txt' }, {
+			...makeOptions('toolu_inner'),
+			agentID: 'agent-hex-1',
+		});
+		ctx.agent.respondToPermissionRequest('toolu_inner', true);
+		await promise;
+
+		const pending = signals.find(s => s.kind === 'pending_confirmation');
+		assert.ok(pending && pending.kind === 'pending_confirmation', 'pending_confirmation emitted');
+
+		assert.deepStrictEqual({
+			pendingParent: pending.parentToolCallId,
+			parentSpawnAgentId: session.subagents.getSpawn('toolu_parent')?.agentId,
+		}, {
+			pendingParent: 'toolu_parent',
+			parentSpawnAgentId: 'agent-hex-1',
+		});
+	});
+
+	test('Phase 12 step 5 — AskUserQuestion + ExitPlanMode inside a subagent context tag their emitted signals with parentToolCallId', async () => {
+		const { ctx, canUseTool, sessionUri } = await materialize();
+
+		const session = ctx.agent.getSessionForTesting(sessionUri);
+		assert.ok(session, 'session must be materialized');
+		session.subagents.recordSpawn('toolu_parent_ask');
+		session.subagents.recordSpawn('toolu_parent_plan');
+		session.subagents.noteInnerTool('toolu_inner_ask', 'toolu_parent_ask');
+		session.subagents.noteInnerTool('toolu_inner_plan', 'toolu_parent_plan');
+
+		const signals: AgentSignal[] = [];
+		const sub = ctx.agent.onDidChatProgress(s => signals.push(s));
+		disposables.add(sub);
+
+		const askPromise = canUseTool(
+			'AskUserQuestion',
+			{ questions: [{ question: 'q1', multiSelect: 'single-or-free-form', header: 'h', options: [{ label: 'a' }] }] },
+			{ ...makeOptions('toolu_inner_ask'), agentID: 'agent-ask' },
+		);
+		ctx.agent.respondToUserInputRequest('toolu_inner_ask', ChatInputResponseKind.Cancel);
+		await askPromise;
+
+		const planPromise = canUseTool(
+			'ExitPlanMode',
+			{ plan: '1. do thing' },
+			{ ...makeOptions('toolu_inner_plan'), agentID: 'agent-plan' },
+		);
+		ctx.agent.respondToPermissionRequest('toolu_inner_plan', false);
+		await planPromise;
+
+		const askAction = signals.find(s => s.kind === 'action' && s.action.type === ActionType.ChatInputRequested);
+		const planConfirm = signals.find(s => s.kind === 'pending_confirmation' && s.state.toolName === 'ExitPlanMode');
+
+		assert.deepStrictEqual({
+			askParent: askAction?.kind === 'action' ? askAction.parentToolCallId : null,
+			planParent: planConfirm?.kind === 'pending_confirmation' ? planConfirm.parentToolCallId : null,
+			askParentSpawnAgentId: session.subagents.getSpawn('toolu_parent_ask')?.agentId,
+			planParentSpawnAgentId: session.subagents.getSpawn('toolu_parent_plan')?.agentId,
+		}, {
+			askParent: 'toolu_parent_ask',
+			planParent: 'toolu_parent_plan',
+			askParentSpawnAgentId: 'agent-ask',
+			planParentSpawnAgentId: 'agent-plan',
+		});
+	});
+});
+
+suite('ClaudeAgent (Phase 7 §3.5 — INTERACTIVE_CLAUDE_TOOLS)', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	async function materialize(): Promise<{
+		ctx: ITestContext;
+		canUseTool: NonNullable<Options['canUseTool']>;
+		inputRequests: ChatInputRequest[];
+		sessionUri: URI;
+	}> {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const state = ctx.stateManager.createSession({
+			resource: created.session.toString(),
+			provider: 'claude',
+			title: 't',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		(state as { config?: SessionConfigState }).config = {
+			schema: { type: 'object', properties: {} },
+			values: {},
+		};
+
+		const inputRequests: ChatInputRequest[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(s => {
+			if (s.kind === 'action' && s.action.type === ActionType.ChatInputRequested) {
+				inputRequests.push(s.action.request);
+			}
+		}));
+
+		await startActiveTurn(disposables, ctx, created.session, sessionId);
+		const canUseTool = ctx.sdk.capturedStartupOptions[0]?.canUseTool;
+		assert.ok(canUseTool, 'canUseTool callback was wired into Options');
+		return { ctx, canUseTool, inputRequests, sessionUri: created.session };
+	}
+
+	test('Test 12 — AskUserQuestion: surfaces ChatInputRequested, returns updatedInput keyed by question text', async () => {
+		const { ctx, canUseTool, inputRequests } = await materialize();
+
+		const promise = canUseTool('AskUserQuestion', {
+			questions: [{
+				header: 'q1',
+				question: 'Pick one?',
+				options: [{ label: 'Apple' }, { label: 'Banana' }],
+			}],
+		}, { signal: new AbortController().signal, toolUseID: 'tu_ask', requestId: 'tu_ask' });
+		await tick();
+
+		const inputRequest = inputRequests.at(-1)!;
+		assert.strictEqual(readChatInputRequestPurpose(inputRequest), ChatInputRequestPurpose.AskUser);
+		ctx.agent.respondToUserInputRequest('tu_ask', ChatInputResponseKind.Accept, {
+			q1: {
+				state: ChatInputAnswerState.Submitted,
+				value: { kind: ChatInputAnswerValueKind.Selected, value: 'Apple' },
+			},
+		});
+		const result = await promise;
+
+		assert.deepStrictEqual({
+			requestId: inputRequest.id,
+			questions: inputRequest.questions?.map(q => ({ id: q.id, kind: q.kind, message: q.message } as const)),
+			result,
+		}, {
+			requestId: 'tu_ask',
+			questions: [{ id: 'q1', kind: 'single-select', message: 'Pick one?' }],
+			result: {
+				behavior: 'allow',
+				updatedInput: {
+					questions: [{
+						header: 'q1',
+						question: 'Pick one?',
+						options: [{ label: 'Apple' }, { label: 'Banana' }],
+					}],
+					answers: { 'Pick one?': 'Apple' },
+				},
+			},
+		});
+	});
+
+	test('Test 13 — AskUserQuestion: cancel returns deny with production wording', async () => {
+		const { ctx, canUseTool } = await materialize();
+
+		const promise = canUseTool('AskUserQuestion', {
+			questions: [{ header: 'q1', question: 'Pick one?', options: [{ label: 'Apple' }] }],
+		}, { signal: new AbortController().signal, toolUseID: 'tu_ask_cancel', requestId: 'tu_ask_cancel' });
+		await tick();
+
+		ctx.agent.respondToUserInputRequest('tu_ask_cancel', ChatInputResponseKind.Cancel);
+		const result = await promise;
+
+		assert.deepStrictEqual(result, { behavior: 'deny', message: 'The user cancelled the question' });
+	});
+
+	test('Test 12b — ExitPlanMode: Approve persists permissionMode=acceptEdits without a reentrant live SDK call', async () => {
+		const { ctx, canUseTool, sessionUri } = await materialize();
+
+		const signals: AgentSignal[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(s => signals.push(s)));
+
+		const promise = canUseTool('ExitPlanMode', { plan: '1. Read foo\n2. Edit foo' }, {
+			signal: new AbortController().signal,
+			toolUseID: 'tu_plan_ok',
+			requestId: 'tu_plan_ok',
+		});
+		await tick();
+
+		const captured = signals.find(s => s.kind === 'pending_confirmation');
+		ctx.agent.respondToPermissionRequest('tu_plan_ok', true);
+		const result = await promise;
+
+		const fakeQuery = ctx.sdk.warmQueries.at(-1)?.produced;
+		const persistedMode = ctx.configService.getSessionConfigValues(sessionUri.toString())?.['permissionMode'];
+		const expectedChat = URI.parse(buildDefaultChatUri(sessionUri));
+		expectedChat.toString();
+		assert.deepStrictEqual({
+			signal: captured,
+			result,
+			recordedModes: fakeQuery?.recordedPermissionModes ?? [],
+			persistedMode,
+		}, {
+			signal: {
+				kind: 'pending_confirmation',
+				chat: expectedChat,
+				state: {
+					status: ToolCallStatus.PendingConfirmation,
+					toolCallId: 'tu_plan_ok',
+					toolName: 'ExitPlanMode',
+					displayName: 'Ready to code?',
+					invocationMessage: { markdown: '1. Read foo\n2. Edit foo' },
+					toolInput: '{"plan":"1. Read foo\\n2. Edit foo"}',
+					confirmationTitle: 'Ready to code?',
+					options: [
+						{ id: 'approve', label: 'Approve', kind: 'approve' },
+						{ id: 'deny', label: 'Deny', kind: 'deny' },
+					],
+				},
+				permissionKind: 'custom-tool',
+			},
+			result: { behavior: 'allow', updatedInput: { plan: '1. Read foo\n2. Edit foo' } },
+			recordedModes: [],
+			persistedMode: 'acceptEdits',
+		});
+	});
+
+	test('Test 13b — ExitPlanMode: Deny returns deny with production wording, no mode flip', async () => {
+		const { ctx, canUseTool } = await materialize();
+
+		const promise = canUseTool('ExitPlanMode', { plan: 'just plan' }, {
+			signal: new AbortController().signal,
+			toolUseID: 'tu_plan_deny',
+			requestId: 'tu_plan_deny',
+		});
+		await tick();
+
+		ctx.agent.respondToPermissionRequest('tu_plan_deny', false);
+		const result = await promise;
+
+		const fakeQuery = ctx.sdk.warmQueries.at(-1)?.produced;
+		assert.deepStrictEqual({
+			result,
+			recordedModes: fakeQuery?.recordedPermissionModes ?? [],
+		}, {
+			result: { behavior: 'deny', message: 'The user declined the plan, maybe ask why?' },
+			recordedModes: [],
+		});
+	});
+
+	test('Test 13c — ExitPlanMode: approving from a peer chat persists permissionMode to the owning session config scope, not the peer chat URI', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const session = created.session;
+
+		const state = ctx.stateManager.createSession({
+			resource: session.toString(),
+			provider: 'claude',
+			title: 't',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		(state as { config?: SessionConfigState }).config = {
+			schema: { type: 'object', properties: {} },
+			values: {},
+		};
+
+		const peer = URI.parse(buildChatUri(session, 'peer'));
+		const peerContext = { configurationResource: session, resource: peer };
+		const peerResult = await ctx.agent.chats.createChat(peer, peerContext, { ...resolvedChatOptions() });
+		const peerSdkId = AgentSession.id(peerResult!.backingSession!);
+
+		const configChanges: string[] = [];
+		disposables.add(ctx.stateManager.onDidChangeSessionConfig(e => configChanges.push(e.session.toString())));
+
+		const turnActive = new DeferredPromise<void>();
+		const finishTurn = new DeferredPromise<void>();
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(peerSdkId), makeResultSuccess(peerSdkId)];
+		ctx.sdk.queryAdvance = async index => {
+			if (index === 1) {
+				turnActive.complete();
+				await finishTurn.p;
+			}
+		};
+		const sendPromise = ctx.agent.chats.sendMessage(peer, 'hi', undefined, undefined, 'turn-1', undefined, undefined, peerContext);
+		await turnActive.p;
+		disposables.add(toDisposable(() => {
+			finishTurn.complete();
+			void sendPromise.catch(() => { });
+		}));
+
+		const peerCanUseTool = ctx.sdk.capturedStartupOptions.at(-1)?.canUseTool;
+		assert.ok(peerCanUseTool, 'peer chat canUseTool callback was wired into Options');
+
+		const promise = peerCanUseTool('ExitPlanMode', { plan: 'peer plan' }, {
+			signal: new AbortController().signal,
+			toolUseID: 'tu_peer_plan',
+			requestId: 'tu_peer_plan',
+		});
+		await tick();
+
+		ctx.agent.respondToPermissionRequest('tu_peer_plan', true);
+		const result = await promise;
+
+		assert.deepStrictEqual({
+			result,
+			configChanges,
+			ownerPermissionMode: ctx.configService.getSessionConfigValues(session.toString())?.['permissionMode'],
+		}, {
+			result: { behavior: 'allow', updatedInput: { plan: 'peer plan' } },
+			configChanges: [session.toString()],
+			ownerPermissionMode: 'acceptEdits',
+		});
+	});
+
+	test('Test 14 — ExitPlanMode: synchronous respond inside pending_confirmation listener resolves canUseTool', async () => {
+		const { ctx, canUseTool } = await materialize();
+
+		disposables.add(ctx.agent.onDidChatProgress(s => {
+			if (s.kind === 'pending_confirmation' && s.state.toolName === 'ExitPlanMode') {
+				ctx.agent.respondToPermissionRequest(s.state.toolCallId, true);
+			}
+		}));
+
+		const result = await canUseTool('ExitPlanMode', { plan: 'sync test' }, {
+			signal: new AbortController().signal,
+			toolUseID: 'tu_plan_race',
+			requestId: 'tu_plan_race',
+		});
+		assert.deepStrictEqual(result, { behavior: 'allow', updatedInput: { plan: 'sync test' } });
+	});
+
+	test('respondToUserInputRequest unknown id is silent', () => {
+		const ctx = createTestContext(disposables);
+		ctx.agent.respondToUserInputRequest('nope', ChatInputResponseKind.Accept);
+	});
+});
+
+suite('ClaudeAgent (Phase 7 §3.6 / §3.8 — permissionMode propagation)', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('Test 16 — live permissionMode update forwards via Query.setPermissionMode on the next sendMessage', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const state = ctx.stateManager.createSession({
+			resource: created.session.toString(),
+			provider: 'claude',
+			title: 't',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		(state as { config?: SessionConfigState }).config = {
+			schema: { type: 'object', properties: {} },
+			values: { permissionMode: 'default' },
+		};
+
+		const advance = new DeferredPromise<void>();
+		ctx.sdk.queryAdvance = async (idx: number) => {
+			if (idx === 2) {
+				await advance.p;
+			}
+		};
+		ctx.sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+			makeResultSuccess(sessionId),
+		];
+
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		ctx.configService.updateSessionConfig(created.session.toString(), { permissionMode: 'acceptEdits' });
+		const p2 = ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi-2', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		const fakeQuery = ctx.sdk.warmQueries.at(-1)?.produced;
+		assert.deepStrictEqual({
+			startupPermissionMode: ctx.sdk.capturedStartupOptions[0]?.permissionMode,
+			recordedModes: fakeQuery?.recordedPermissionModes ?? [],
+		}, {
+			startupPermissionMode: 'default',
+			recordedModes: ['acceptEdits'],
+		});
+	});
+
+	test('Test 16b — live state seeded BEFORE first sendMessage flows into Options.permissionMode at materialize', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const state = ctx.stateManager.createSession({
+			resource: created.session.toString(),
+			provider: 'claude',
+			title: 't',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		(state as { config?: SessionConfigState }).config = {
+			schema: { type: 'object', properties: {} },
+			values: { permissionMode: 'plan' },
+		};
+
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const fakeQuery = ctx.sdk.warmQueries.at(-1)?.produced;
+		assert.deepStrictEqual({
+			startupPermissionMode: ctx.sdk.capturedStartupOptions[0]?.permissionMode,
+			recordedModes: fakeQuery?.recordedPermissionModes ?? [],
+		}, {
+			startupPermissionMode: 'plan',
+			recordedModes: [],
+		});
+	});
+});
+
+suite('ClaudeAgent (Phase 10.6 — MCP elicitation translation)', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	async function materialize(): Promise<{
+		ctx: ITestContext;
+		onElicitation: (request: any, options: { signal: AbortSignal; requestId?: string }) => Promise<any>;
+		inputRequests: ChatInputRequest[];
+	}> {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const inputRequests: ChatInputRequest[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(s => {
+			if (s.kind === 'action' && s.action.type === ActionType.ChatInputRequested) {
+				inputRequests.push(s.action.request);
+			}
+		}));
+
+		await startActiveTurn(disposables, ctx, created.session, sessionId);
+		const onElicitation = ctx.sdk.capturedStartupOptions[0]?.onElicitation;
+		assert.ok(onElicitation, 'onElicitation callback was wired into Options');
+		return { ctx, onElicitation, inputRequests };
+	}
+
+	test('form-mode elicitation surfaces ChatInputRequested and returns accepted content', async () => {
+		const { ctx, onElicitation, inputRequests } = await materialize();
+
+		const promise = onElicitation(
+			{ serverName: 'test-mcp', message: 'Pick a side', mode: 'form', requestedSchema: { type: 'object', properties: { side: { type: 'string' } } } },
+			{ signal: new AbortController().signal, requestId: 'elicitation-accept' },
+		);
+		await tick();
+
+		const inputRequest = inputRequests.at(-1)!;
+		assert.strictEqual(readChatInputRequestPurpose(inputRequest), ChatInputRequestPurpose.Elicitation);
+		ctx.agent.respondToUserInputRequest(inputRequest.id, ChatInputResponseKind.Accept, {
+			side: { state: ChatInputAnswerState.Submitted, value: { kind: ChatInputAnswerValueKind.Text, value: 'left' } },
+		});
+
+		assert.deepStrictEqual({
+			id: inputRequest.id,
+			message: inputRequest.message,
+			questions: inputRequest.questions?.map(q => ({ id: q.id, kind: q.kind } as const)),
+			result: await promise,
+		}, {
+			id: 'elicitation-accept',
+			message: 'Pick a side',
+			questions: [{ id: 'side', kind: 'text' }],
+			result: { action: 'accept', content: { side: 'left' } },
+		});
+	});
+
+	test('declined form-mode elicitation returns a decline result', async () => {
+		const { ctx, onElicitation, inputRequests } = await materialize();
+
+		const promise = onElicitation(
+			{ serverName: 'm', message: 'q', mode: 'form', requestedSchema: { type: 'object', properties: { side: { type: 'string' } } } },
+			{ signal: new AbortController().signal, requestId: 'elicitation-decline' },
+		);
+		await tick();
+		ctx.agent.respondToUserInputRequest(inputRequests.at(-1)!.id, ChatInputResponseKind.Decline);
+
+		assert.deepStrictEqual(await promise, { action: 'decline' });
+	});
+
+	test('aborting the SDK signal cancels a parked elicitation', async () => {
+		const { onElicitation, inputRequests } = await materialize();
+
+		const controller = new AbortController();
+		const promise = onElicitation(
+			{ serverName: 'm', message: 'q', mode: 'form', requestedSchema: { type: 'object', properties: { side: { type: 'string' } } } },
+			{ signal: controller.signal, requestId: 'elicitation-abort' },
+		);
+		await tick();
+		assert.ok(inputRequests.at(-1), 'the elicitation parked as a ChatInputRequested action');
+		controller.abort();
+
+		assert.deepStrictEqual(await promise, { action: 'cancel' });
+	});
+
+	test('url-mode elicitation surfaces the url with no questions and accepts with no content', async () => {
+		const { ctx, onElicitation, inputRequests } = await materialize();
+
+		const promise = onElicitation(
+			{ serverName: 'm', message: 'Authorize', mode: 'url', url: 'https://example.com/auth' },
+			{ signal: new AbortController().signal, requestId: 'elicitation-url' },
+		);
+		await tick();
+
+		const inputRequest = inputRequests.at(-1)!;
+		ctx.agent.respondToUserInputRequest(inputRequest.id, ChatInputResponseKind.Accept);
+
+		assert.deepStrictEqual({
+			message: inputRequest.message,
+			url: inputRequest.url,
+			questions: inputRequest.questions,
+			result: await promise,
+		}, {
+			message: 'Authorize',
+			url: 'https://example.com/auth',
+			questions: undefined,
+			result: { action: 'accept' },
+		});
+	});
+
+	test('a pre-aborted signal cancels without ever parking', async () => {
+		const { onElicitation, inputRequests } = await materialize();
+
+		const controller = new AbortController();
+		controller.abort();
+		const result = await onElicitation(
+			{ serverName: 'm', message: 'q', mode: 'form', requestedSchema: { type: 'object', properties: { side: { type: 'string' } } } },
+			{ signal: controller.signal, requestId: 'elicitation-pre-aborted' },
+		);
+
+		assert.deepStrictEqual({ result, parked: inputRequests.length }, { result: { action: 'cancel' }, parked: 0 });
+	});
+
+	test('a url-mode request with no url cancels without surfacing a prompt', async () => {
+		const { onElicitation, inputRequests } = await materialize();
+
+		const result = await onElicitation(
+			{ serverName: 'm', message: 'Authorize', mode: 'url' },
+			{ signal: new AbortController().signal, requestId: 'elicitation-missing-url' },
+		);
+
+		assert.deepStrictEqual({ result, parked: inputRequests.length }, { result: { action: 'cancel' }, parked: 0 });
+	});
+
+	test('a form with no representable fields cancels without surfacing a prompt', async () => {
+		const { onElicitation, inputRequests } = await materialize();
+
+		const result = await onElicitation(
+			{ serverName: 'm', message: 'q', mode: 'form', requestedSchema: { type: 'object', properties: {} } },
+			{ signal: new AbortController().signal, requestId: 'elicitation-empty-form' },
+		);
+
+		assert.deepStrictEqual({ result, parked: inputRequests.length }, { result: { action: 'cancel' }, parked: 0 });
+	});
+});
+
+suite('ClaudeAgent (Phase 8 — file edit tracking via SDK message stream)', () => {
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	async function materialize(): Promise<{ ctx: ITestContext; sessionId: string; sessionUri: URI }> {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		return { ctx, sessionId, sessionUri: created.session };
+	}
+
+	test('Options carries enableFileCheckpointing and host hooks', async () => {
+		const { ctx } = await materialize();
+		const opts = ctx.sdk.capturedStartupOptions[0];
+		assert.ok(opts, 'Options captured');
+
+		assert.deepStrictEqual({
+			enableFileCheckpointing: opts.enableFileCheckpointing,
+			hookNames: Object.keys(opts.hooks ?? {}),
+			userPromptSubmitHooks: opts.hooks?.UserPromptSubmit?.[0].hooks.length,
+		}, {
+			enableFileCheckpointing: true,
+			hookNames: ['PreToolUse', 'UserPromptSubmit'],
+			userPromptSubmitHooks: 1,
+		});
+	});
+
+	test('Options carries forwardSubagentText: true so live subagent text + thinking flow through (Phase 12 step 1)', async () => {
+		const { ctx } = await materialize();
+		const opts = ctx.sdk.capturedStartupOptions[0];
+		assert.ok(opts, 'Options captured');
+		assert.strictEqual(opts.forwardSubagentText, true);
+	});
+});
+
+
+suite('ClaudeAgent (Phase 9 — runtime mutation surface)', () => {
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	async function materialize(opts?: { extraMessages?: SDKMessage[]; logService?: ILogService }): Promise<{
+		ctx: ITestContext;
+		sessionUri: URI;
+		sessionId: string;
+		warm: FakeWarmQuery;
+		query: FakeQuery;
+		advance: DeferredPromise<void>;
+	}> {
+		const ctx = createTestContext(disposables, { logService: opts?.logService });
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-opus-4.6' } });
+		const sessionId = created.sdkSessionId;
+		const advance = new DeferredPromise<void>();
+		ctx.sdk.queryAdvance = async (i: number) => { if (i === 2) { await advance.p; } };
+		ctx.sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId),
+			makeResultSuccess(sessionId),
+			...(opts?.extraMessages ?? [makeResultSuccess(sessionId)]),
+		];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const warm = ctx.sdk.warmQueries[0];
+		const query = warm.produced!;
+		return { ctx, sessionUri: created.session, sessionId, warm, query, advance };
+	}
+
+	test('changeModel on a provisional session mutates the pending model bag (no SDK contact)', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, {
+			workingDirectories: [URI.file('/workspace')],
+			model: { id: 'claude-opus-4.6' },
+		});
+
+		await ctx.agent.chats.changeModel(defaultChatUri(created.session), { id: 'claude-sonnet-4.6', config: { thinkingLevel: 'medium' } }, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(ctx.sdk.startupCallCount, 0);
+		const sid = created.sdkSessionId;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid), makeResultSuccess(sid)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const opts = ctx.sdk.capturedStartupOptions[0];
+		assert.deepStrictEqual({ model: opts.model, effort: opts.effort }, { model: 'claude-sonnet-4-6', effort: 'medium' });
+	});
+
+	test('changeModel on a materialized session queues a model+effort bundle that drains at the next yield boundary', async () => {
+		const { ctx, sessionUri, query, advance } = await materialize();
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), { id: 'claude-sonnet-4.6', config: { thinkingLevel: 'high' } }, chatContext(defaultChatUri(sessionUri)));
+		const p2 = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'next', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		assert.deepStrictEqual({
+			models: query.recordedModels,
+			efforts: query.recordedFlagSettings.map(s => s.effortLevel),
+		}, {
+			models: ['claude-sonnet-4-6'],
+			efforts: ['high'],
+		});
+	});
+
+	test('changeModel with `max` effort passes `max` through on the runtime path', async () => {
+		const { ctx, sessionUri, query, advance } = await materialize();
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), { id: 'claude-opus-4.6', config: { thinkingLevel: 'max' } }, chatContext(defaultChatUri(sessionUri)));
+		const p2 = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'next', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		assert.deepStrictEqual(query.recordedFlagSettings.map(s => s.effortLevel), ['max']);
+	});
+
+	test('changeModel with same id and unchanged effort skips the SDK setters', async () => {
+		const { ctx, sessionUri, query, advance } = await materialize();
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), { id: 'claude-opus-4.6' }, chatContext(defaultChatUri(sessionUri)));
+		const p2 = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'next', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		assert.deepStrictEqual({
+			models: query.recordedModels,
+			efforts: query.recordedFlagSettings,
+		}, { models: [], efforts: [] });
+	});
+
+	test('setPendingMessages with steering injects a `priority: now` SDK user message into the iterable', async () => {
+		const { ctx, sessionUri, query, advance } = await materialize();
+		const sid = AgentSession.id(sessionUri);
+
+		const longSend = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'long task', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+
+		ctx.agent.setPendingMessages!(defaultChatUri(sessionUri), { id: 'pending-1', message: { text: 'switch topic', origin: { kind: MessageKind.User } } }, []);
+		await tick();
+		await tick();
+
+		const steered = query.drainedPrompts.find(p => p.priority === 'now');
+		assert.ok(steered, `expected steering with priority:'now' in drained prompts, got priorities=${query.drainedPrompts.map(p => p.priority).join(',')}`);
+		assert.strictEqual(steered.message.role, 'user');
+
+		ctx.sdk.nextQueryMessages.push(
+			{ type: 'user', message: { role: 'user', content: 'switch topic' }, session_id: sid, parent_tool_use_id: null, uuid: steered.uuid },
+			makeResultSuccess(sid),
+		);
+		advance.complete();
+		await longSend;
+	});
+
+	test('setPendingMessages with empty steering and non-empty queued is a no-op', async () => {
+		const { ctx, sessionUri, query, advance } = await materialize();
+		const before = query.drainedPrompts.length;
+		ctx.agent.setPendingMessages!(defaultChatUri(sessionUri), undefined, [{ id: 'q1', message: { text: 'queued', origin: { kind: MessageKind.User } } }]);
+		await tick();
+		assert.strictEqual(query.drainedPrompts.length, before);
+		advance.complete();
+	});
+
+	test('steering_consumed fires when the iterable hands the steering message to the SDK', async () => {
+		const { ctx, sessionUri, advance } = await materialize();
+		const sid = AgentSession.id(sessionUri);
+
+		const signals: AgentSignal[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(s => signals.push(s)));
+
+		const longSend = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'long task', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+
+		ctx.agent.setPendingMessages!(defaultChatUri(sessionUri), { id: 'pending-9', message: { text: 'steer', origin: { kind: MessageKind.User } } }, []);
+		await tick();
+		await tick();
+
+		const consumed = signals.find(s => s.kind === 'steering_consumed');
+		assert.ok(consumed, `expected steering_consumed after iterable yield, got kinds: ${signals.map(s => s.kind).join(', ')}`);
+		assert.deepStrictEqual({ kind: consumed.kind, id: (consumed as { id: string }).id }, { kind: 'steering_consumed', id: 'pending-9' });
+
+		ctx.sdk.nextQueryMessages.push(makeResultSuccess(sid));
+		advance.complete();
+		await longSend;
+	});
+
+
+	test('abortSession on a materialized session cancels the in-flight turn and leaves the session reusable', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-opus-4.6' } });
+		const sid = created.sdkSessionId;
+
+		const stall = new DeferredPromise<void>();
+		ctx.sdk.queryAdvance = async (i) => { if (i === 0) { await stall.p; } };
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid), makeResultSuccess(sid)];
+
+		const inFlight = ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await tick();
+
+		await ctx.agent.chats.abort(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)));
+		await assert.rejects(inFlight, (err: unknown) => isCancellationError(err));
+
+		ctx.sdk.queryAdvance = undefined;
+		stall.complete();
+		await tick();
+
+		const startupBefore = ctx.sdk.startupCallCount;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid), makeResultSuccess(sid)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'next', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(ctx.sdk.startupCallCount, startupBefore + 1, 'rebind called startup again');
+		const resumeOpts = ctx.sdk.capturedStartupOptions[ctx.sdk.startupCallCount - 1];
+		assert.deepStrictEqual({
+			resume: resumeOpts.resume,
+			sessionId: resumeOpts.sessionId,
+		}, { resume: sid, sessionId: undefined });
+	});
+
+	test('abortSession denies any parked permission requests so the SDK canUseTool callback unwinds with deny instead of leaving stale UI behind', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-opus-4.6' } });
+		const sid = created.sdkSessionId;
+
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid), makeResultSuccess(sid)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const canUseTool = ctx.sdk.capturedStartupOptions[0]?.canUseTool;
+		assert.ok(canUseTool, 'canUseTool was wired into Options');
+
+		const permissionPromise = canUseTool('Read', { file_path: '/tmp/foo.txt' }, {
+			signal: new AbortController().signal,
+			toolUseID: 'tu_pending',
+			requestId: 'tu_pending',
+		});
+		await tick();
+
+		await ctx.agent.chats.abort(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)));
+		const result = await permissionPromise;
+		assert.deepStrictEqual(result, { behavior: 'deny', message: 'User declined' });
+	});
+
+	test('subprocess crash mid-stream rejects the in-flight turn and the next sendMessage rebinds via resume', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-opus-4.6' } });
+		const sid = created.sdkSessionId;
+
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid)];
+		ctx.sdk.queryAdvance = async (i) => { if (i === 1) { throw new Error('subprocess crashed'); } };
+
+		await assert.rejects(
+			ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session))),
+			(err: Error) => err.message.includes('subprocess crashed'),
+		);
+
+		ctx.sdk.queryAdvance = undefined;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid), makeResultSuccess(sid)];
+		const startupBefore = ctx.sdk.startupCallCount;
+		await ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'recover', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(ctx.sdk.startupCallCount, startupBefore + 1, 'crash recovery called startup again');
+		const resumeOpts = ctx.sdk.capturedStartupOptions[ctx.sdk.startupCallCount - 1];
+		assert.strictEqual(resumeOpts.resume, sid);
+	});
+
+	test('rebind re-applies bijective state (model + effort) on the new Query', async () => {
+		const { ctx, sessionUri, sessionId, query: firstQuery, advance } = await materialize();
+
+		await ctx.agent.chats.changeModel(defaultChatUri(sessionUri), { id: 'claude-sonnet-4.6', config: { thinkingLevel: 'high' } }, chatContext(defaultChatUri(sessionUri)));
+		const p2 = ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'apply', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+		await tick();
+		advance.complete();
+		await p2;
+		assert.deepStrictEqual({ models: firstQuery.recordedModels, efforts: firstQuery.recordedFlagSettings.map(s => s.effortLevel) }, { models: ['claude-sonnet-4-6'], efforts: ['high'] });
+
+		await ctx.agent.chats.abort(defaultChatUri(sessionUri), chatContext(defaultChatUri(sessionUri)));
+		ctx.sdk.queryAdvance = undefined;
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await ctx.agent.chats.sendMessage(defaultChatUri(sessionUri), 'after-abort', undefined, undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(sessionUri)));
+
+		const reboundQuery = ctx.sdk.warmQueries[1].produced!;
+		assert.deepStrictEqual({
+			models: reboundQuery.recordedModels,
+			efforts: reboundQuery.recordedFlagSettings.map(s => s.effortLevel),
+		}, { models: ['claude-sonnet-4-6'], efforts: ['high'] });
+	});
+
+	test('intermediate result during steering does NOT complete the in-flight sendMessage or fire ChatTurnComplete', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-opus-4.6' } });
+		const sid = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		ctx.sdk.queryAdvance = async (i) => { if (i === 1) { await advance.p; } };
+		ctx.sdk.nextQueryMessages = [makeSystemInitMessage(sid)];
+
+		const inFlight = ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'long task', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await tick();
+
+		const signals: AgentSignal[] = [];
+		disposables.add(ctx.agent.onDidChatProgress(s => signals.push(s)));
+
+		ctx.agent.setPendingMessages!(defaultChatUri(created.session), { id: 'pending-steer', message: { text: 'moo', origin: { kind: MessageKind.User } } }, []);
+		await tick();
+		await tick();
+		const query = ctx.sdk.warmQueries[0].produced!;
+		const steeringPrompt = query.drainedPrompts.find(p => p.priority === 'now');
+		assert.ok(steeringPrompt && steeringPrompt.uuid, 'steering uuid captured');
+
+		ctx.sdk.nextQueryMessages.push(
+			makeResultSuccess(sid),
+			makeResultSuccess(sid),
+		);
+
+		advance.complete();
+		await inFlight;
+
+		const turnCompletes = signals.filter(s => s.kind === 'action' && s.action.type === ActionType.ChatTurnComplete);
+		const consumed = signals.filter(s => s.kind === 'steering_consumed');
+		assert.deepStrictEqual({
+			turnCompleteCount: turnCompletes.length,
+			steeringConsumedCount: consumed.length,
+			steeringConsumedId: consumed[0] && (consumed[0] as { id: string }).id,
+		}, {
+			turnCompleteCount: 1,
+			steeringConsumedCount: 1,
+			steeringConsumedId: 'pending-steer',
+		});
+	});
+
+	test('intermediate result during steering does NOT settle the original sendMessage promise (regression for C1)', async () => {
+		const ctx = createTestContext(disposables);
+		await ctx.agent.authenticate('https://api.github.com', 'tok');
+		await tick();
+		const created = await createSession(ctx.agent, { workingDirectories: [URI.file('/workspace')], model: { id: 'claude-opus-4.6' } });
+		const sid = created.sdkSessionId;
+
+		const advance1 = new DeferredPromise<void>();
+		const advance2 = new DeferredPromise<void>();
+		ctx.sdk.queryAdvance = async (i) => {
+			if (i === 1) { await advance1.p; }
+			if (i === 2) { await advance2.p; }
+		};
+		ctx.sdk.nextQueryMessages = [
+			makeSystemInitMessage(sid),
+			makeResultSuccess(sid),
+			makeResultSuccess(sid),
+		];
+
+		const inFlight = ctx.agent.chats.sendMessage(defaultChatUri(created.session), 'long task', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		let inFlightResolved = false;
+		void inFlight.then(() => { inFlightResolved = true; }, () => { inFlightResolved = true; });
+		await tick();
+
+		ctx.agent.setPendingMessages!(defaultChatUri(created.session), { id: 'pending-c1', message: { text: 'steer', origin: { kind: MessageKind.User } } }, []);
+		await tick();
+		await tick();
+
+		advance1.complete();
+		await tick();
+		await tick();
+		assert.strictEqual(inFlightResolved, false, 'sendMessage resolved on intermediate result');
+
+		advance2.complete();
+		await inFlight;
+		assert.strictEqual(inFlightResolved, true);
+	});
+});
+
+
+
+suite('ClaudeAgent (Phase 13 — transcript reconstruction)', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	function makeUserSessionMessage(uuid: string, text: string): SessionMessage {
+		return {
+			type: 'user',
+			uuid,
+			session_id: 'sess-1',
+			parent_tool_use_id: null,
+			parent_agent_id: null,
+			message: { role: 'user', content: [{ type: 'text', text }] },
+		};
+	}
+
+	function makeAssistantSessionMessage(uuid: string, text: string): SessionMessage {
+		return {
+			type: 'assistant',
+			uuid,
+			session_id: 'sess-1',
+			parent_tool_use_id: null,
+			parent_agent_id: null,
+			message: { id: `msg_${uuid}`, role: 'assistant', content: [{ type: 'text', text }] },
+		};
+	}
+
+	test('getMessages returns mapped Turn[] from SDK transcript', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		const sessionId = 'phase13-1';
+		sdk.sessionMessagesById.set(sessionId, [
+			makeUserSessionMessage('u1', 'hi'),
+			makeAssistantSessionMessage('a1', 'hello'),
+		]);
+
+		const sessionUri = AgentSession.uri(agent.id, sessionId);
+		await bindDefaultChat(agent, sessionUri);
+		const turns = await agent.chats.getMessages(defaultChatUri(sessionUri), chatContext(defaultChatUri(sessionUri)));
+
+		assert.strictEqual(turns.length, 1);
+		assert.strictEqual(turns[0].id, 'u1');
+		assert.strictEqual(turns[0].message.text, 'hi');
+		assert.strictEqual(sdk.getSessionMessagesCalls.length, 1);
+		assert.deepStrictEqual(sdk.getSessionMessagesCalls[0], {
+			sessionId,
+			options: { includeSystemMessages: true },
+		});
+	});
+
+	test('getMessages resolves a released peer-chat subagent through the exact source backing', async () => {
+		const { agent, sdk, stateManager } = createTestContext(disposables);
+		const parentSessionId = 'sdk-parent';
+		const toolCallId = 'tool-call-1';
+		const agentId = 'agent1';
+		const ownerSession = AgentSession.uri(agent.id, 'ah-owner');
+		const parentUri = URI.parse(buildChatUri(ownerSession, 'peer'));
+		const subagentUri = buildSubagentChatUri(ownerSession.toString(), toolCallId);
+		stateManager.createSession({
+			resource: ownerSession.toString(),
+			provider: agent.id,
+			title: 'parent',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		stateManager.addChat(ownerSession.toString(), parentUri.toString());
+		stateManager.addChat(ownerSession.toString(), subagentUri, {
+			origin: { kind: ChatOriginKind.Tool, chat: parentUri.toString(), toolCallId },
+		});
+		await agent.materializeChat(parentUri, { configurationResource: ownerSession, resource: parentUri }, JSON.stringify({ sdkSessionId: parentSessionId }));
+		sdk.sessionMessagesById.set(parentSessionId, [
+			makeUserSessionMessage('parent-user', 'delegate'),
+			{
+				...makeAssistantMessage(parentSessionId, [
+					{ type: 'tool_use', id: toolCallId, name: 'Task', input: { prompt: 'subagent task' } },
+				]),
+				parent_agent_id: null,
+			},
+			{
+				...makeUserToolResultMessage(parentSessionId, toolCallId, [
+					{ type: 'text', text: 'done' },
+					{ type: 'text', text: `agentId: ${agentId} (use SendMessage with to: '${agentId}')` },
+				]),
+				parent_agent_id: null,
+				session_id: parentSessionId,
+				uuid: 'parent-tool-result',
+			},
+		]);
+		sdk.subagentMessagesByKey.set(`${parentSessionId}::${agentId}`, [
+			makeUserSessionMessage('subagent-user', 'subagent task'),
+			makeAssistantSessionMessage('subagent-assistant', 'subagent response'),
+		]);
+
+		const turns = await agent.chats.getMessages(URI.parse(subagentUri), {
+			configurationResource: ownerSession,
+			resource: URI.parse(subagentUri),
+			origin: { kind: ChatOriginKind.Tool, chat: parentUri.toString(), toolCallId },
+		});
+
+		assert.deepStrictEqual({
+			turns: turns.map(turn => ({
+				message: turn.message.text,
+				response: turn.responseParts
+					.filter(part => part.kind === ResponsePartKind.Markdown)
+					.map(part => part.content),
+			})),
+			parentCalls: sdk.getSessionMessagesCalls,
+			subagentCalls: sdk.getSubagentMessagesCalls,
+		}, {
+			turns: [{
+				message: 'subagent task',
+				response: ['subagent response'],
+			}],
+			parentCalls: [{
+				sessionId: parentSessionId,
+				options: { includeSystemMessages: true },
+			}],
+			subagentCalls: [{
+				sessionId: parentSessionId,
+				agentId,
+				options: undefined,
+			}],
+		});
+	});
+
+	test('getMessages on a provisional chat returns [] with no SDK call', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/workspace')] });
+
+		const turns = await agent.chats.getMessages(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)));
+
+		assert.deepStrictEqual(turns, []);
+		assert.strictEqual(sdk.getSessionMessagesCalls.length, 0, 'provisional chat must not hit SDK');
+	});
+
+	test('getMessages returns [] on SDK fetch failure (warn-logged)', async () => {
+		const log = new CapturingLogService();
+		const { agent, sdk } = createTestContext(disposables, { logService: log });
+		sdk.getSessionMessagesRejection = new Error('simulated SDK failure');
+
+		const sessionUri = AgentSession.uri(agent.id, 'fail-id');
+		await bindDefaultChat(agent, sessionUri);
+		const turns = await agent.chats.getMessages(defaultChatUri(sessionUri), chatContext(defaultChatUri(sessionUri)));
+
+		assert.deepStrictEqual(turns, []);
+		assert.ok(log.warns.some(w => w.includes('getSessionMessages SDK fetch failed')),
+			`expected warn-log; got: ${log.warns.join(' | ')}`);
+	});
+
+});
+
+
+
+suite('ClaudeAgent — Phase 11 customizations', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	function makeSyncedRef(uri: string, dir: string, children?: ChildCustomization[]): ISyncedCustomization {
+		return {
+			customization: {
+				type: CustomizationType.Plugin,
+				id: customizationId(uri),
+				uri,
+				name: uri,
+				load: { kind: CustomizationLoadStatus.Loaded },
+				...(children === undefined ? undefined : { children }),
+			},
+			pluginDir: URI.file(dir),
+		};
+	}
+
+	function makeClientCustomization(uri: string, name: string): ClientPluginCustomization {
+		return {
+			type: CustomizationType.Plugin,
+			id: customizationId(uri),
+			uri,
+			name,
+		};
+	}
+
+	function buildCtxWith(pluginManager: FakeAgentPluginManager): ITestContext {
+		const proxy = new FakeClaudeProxyService();
+		const api = new FakeDardcorRouterService();
+		api.models = async () => [...ALL_MODELS];
+		const sdk = new FakeClaudeAgentSdkService();
+		const sessionData = new RecordingSessionDataService(createSessionDataService());
+		const logService = new NullLogService();
+		const stateManager = disposables.add(new AgentHostStateManager(logService));
+		const configService = disposables.add(new AgentConfigurationService(stateManager, logService));
+		const authenticationService = disposables.add(new FakeAgentHostAuthenticationService());
+		const resolveReducerEnablement = (session: string, target: { readonly id: string }) => {
+			const findCustomization = (customizations: readonly (Customization | ChildCustomization)[]): PluginCustomization | McpServerCustomization | undefined => {
+				for (const customization of customizations) {
+					if (customization.id === target.id && (customization.type === CustomizationType.Plugin || customization.type === CustomizationType.McpServer)) {
+						return customization;
+					}
+					if (customization.type === CustomizationType.Plugin || customization.type === CustomizationType.Directory) {
+						const child = findCustomization(customization.children ?? []);
+						if (child !== undefined) {
+							return child;
+						}
+					}
+				}
+				return undefined;
+			};
+			const customization = findCustomization(stateManager.getSessionState(session)?.customizations ?? []);
+			const enablement = customization?.enablement ?? [];
+			return {
+				kind: 'resolved' as const,
+				enablement,
+				enabled: isCustomizationEnabled({ enablement }),
+				workingDirectory: { kind: 'workspaceless' as const },
+			};
+		};
+
+		const fileService = disposables.add(new FileService(new NullLogService()));
+		disposables.add(fileService.registerProvider(Schemas.file, disposables.add(new InMemoryFileSystemProvider())));
+
+		const otelService = new RecordingOTelService();
+		const sdkDownloader = new RecordingAgentSdkDownloader();
+		const services = new ServiceCollection(
+			[IFileService, fileService],
+			[INativeEnvironmentService, { userHome: URI.file('/mock-home') } as INativeEnvironmentService],
+			[ILogService, logService],
+			[IDardcorRouterService, api],
+			[IClaudeProxyService, proxy],
+			[ISessionDataService, sessionData],
+			[IClaudeAgentSdkService, sdk],
+			[IAgentSdkDownloader, sdkDownloader],
+			[IAgentPluginManager, pluginManager],
+			[IAgentHostGitService, createNoopGitService()],
+			[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
+			[IAgentConfigurationService, configService],
+			[IAgentHostStateManager, stateManager],
+			[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
+			[IAgentHostOTelService, otelService],
+			[IAgentHostCustomizationEnablementService, {
+				_serviceBrand: undefined,
+				onDidChange: reducerBackedEnablementChangeEvent(stateManager),
+				initializeSession: async () => { },
+				getWorkingDirectoryState: () => ({ kind: 'workspaceless' }),
+				resolve: resolveReducerEnablement,
+				applyClientGlobalEnablement: (session, target, clientEnablement) => {
+					const existing = resolveReducerEnablement(session, target);
+					const global = clientEnablement.find(entry => entry.kind === CustomizationEnablementKind.Global);
+					const enablement = global === undefined
+						? existing.enablement
+						: [...existing.enablement.filter(entry => entry.kind !== CustomizationEnablementKind.Global), global];
+					return { ...existing, enablement, enabled: isCustomizationEnabled({ enablement }) };
+				},
+				replaceEnablement: () => ({ kind: 'resolved', enablement: [], enabled: true, workingDirectory: { kind: 'workspaceless' } }),
+				setEnablement: () => ({ kind: 'resolved', enablement: [], enabled: true, workingDirectory: { kind: 'workspaceless' } }),
+				whenIdle: async () => { },
+			} satisfies ICustomizationEnablementService],
+			[IProductService, FakeProductService],
+			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
+			[IAgentHostAuthenticationService, authenticationService],
+		);
+		const instantiationService: IInstantiationService = disposables.add(new InstantiationService(services));
+		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
+		connectAuthentication(agent, authenticationService);
+		const chats = agent.chats as { sendMessage: typeof agent.chats.sendMessage };
+		const sendMessage = chats.sendMessage.bind(agent.chats);
+		chats.sendMessage = (chat, prompt, workingDirectoriesOrDirectory, attachments, turnId, senderClientId, clientTypeOrContext, context) => {
+			const explicitContext = context ?? (typeof clientTypeOrContext === 'string' ? undefined : clientTypeOrContext);
+			const clientType = typeof clientTypeOrContext === 'string' ? clientTypeOrContext : undefined;
+			const explicit = explicitContext && !URI.isUri(explicitContext) ? explicitContext : undefined;
+			const session = explicit?.configurationResource
+				?? (explicitContext && URI.isUri(explicitContext) ? explicitContext : undefined)
+				?? (chat.scheme === 'ahp-chat' ? URI.parse(parseRequiredSessionUriFromChatUri(chat.toString())) : chat);
+			return sendMessage(chat, prompt, workingDirectoriesOrDirectory, attachments, turnId, senderClientId, clientType, { ...createAgentChatContext(stateManager, session, chat), ...explicit });
+		};
+		return { agent, proxy, api, sdk, sessionData, stateManager, configService, otelService, instantiationService, fileService, sdkDownloader };
+	}
+
+	function publishReducerCustomizations(stateManager: AgentHostStateManager, session: URI, customizations: readonly Customization[]): void {
+		const resource = session.toString();
+		if (!stateManager.getSessionState(resource)) {
+			const now = new Date().toISOString();
+			stateManager.createSession({
+				resource,
+				provider: 'claude',
+				title: 'Test',
+				status: SessionStatus.Idle,
+				createdAt: now,
+				modifiedAt: now,
+			});
+		}
+		stateManager.dispatchServerAction(resource, { type: ActionType.SessionCustomizationsChanged, customizations: [...customizations] });
+	}
+
+	test('createChat seeds the eager activeClient customizations to the plugin manager', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const customizations = [makeClientCustomization('https://bundle', 'Synced')];
+		await createSession(agent, {
+			session: AgentSession.uri('claude', 'eager'),
+			workingDirectories: [URI.file('/work')],
+			activeClient: { clientId: 'client-1', tools: [], customizations },
+		});
+
+		assert.deepStrictEqual(pm.syncCalls, [{ clientId: 'client-1', customizations }]);
+	});
+
+	test('createChat without an activeClient does not sync customizations', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		await createSession(agent, {
+			session: AgentSession.uri('claude', 'no-eager'),
+			workingDirectories: [URI.file('/work')],
+		});
+
+		assert.deepStrictEqual(pm.syncCalls, []);
+	});
+
+	test('GitHub MCP is enabled by default and respects customization disablement', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const enabled = await createSession(agent, { workingDirectories: [URI.file('/enabled')] });
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(enabled.sdkSessionId), makeResultSuccess(enabled.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(enabled.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(enabled.session)));
+
+		const disabled = await createSession(agent, { workingDirectories: [URI.file('/disabled')] });
+		const customization = createClaudeInternalMcpServerCustomization('github-mcp-server');
+		publishReducerCustomizations(stateManager, disabled.session, [customization]);
+		stateManager.dispatchServerAction(disabled.session.toString(), {
+			type: ActionType.SessionCustomizationToggled,
+			id: customization.id,
+			enablement: [{ kind: CustomizationEnablementKind.Session, enabled: false }],
+		});
+		sdk.nextQueryMessages = [makeSystemInitMessage(disabled.sdkSessionId), makeResultSuccess(disabled.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(disabled.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(disabled.session)));
+
+		const enabledOptions = sdk.capturedStartupOptions[0];
+		const disabledOptions = sdk.capturedStartupOptions[1];
+		const enabledServer = enabledOptions.mcpServers?.['github-mcp-server'];
+		const enabledRemoteServer = enabledServer?.type === 'http' || enabledServer?.type === 'sse' ? enabledServer : undefined;
+		assert.deepStrictEqual({
+			enabled: enabledServer ? {
+				type: enabledServer.type,
+				url: enabledRemoteServer?.url,
+				features: enabledRemoteServer?.headers?.['X-MCP-Features'],
+				authorization: enabledRemoteServer?.headers?.Authorization,
+				webSearchEnabled: enabledRemoteServer?.headers?.['X-MCP-Tools']?.split(',').includes('web_search'),
+			} : undefined,
+			disabled: disabledOptions.mcpServers?.['github-mcp-server'],
+			denied: typeof disabledOptions.settings === 'string' ? undefined : disabledOptions.settings?.deniedMcpServers,
+		}, {
+			enabled: {
+				type: 'http',
+				url: 'https://api.githubcopilot.com/mcp',
+				features: 'remote_mcp_ui_apps,mcp_apps_disable_form_deferral',
+				authorization: undefined,
+				webSearchEnabled: true,
+			},
+			disabled: undefined,
+			denied: [{ serverName: 'github-mcp-server' }],
+		});
+	});
+
+	test('GitHub MCP root setting disables server injection', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, configService } = buildCtxWith(pm);
+		configService.updateRootConfig({ [AgentHostGitHubMcpServerEnabledConfigKey]: false });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0].mcpServers?.['github-mcp-server'], undefined);
+	});
+
+	test('GitHub MCP injection deduplicates an existing server by endpoint URI', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const workspace = URI.file('/work');
+		await fileService.createFolder(workspace);
+		await fileService.writeFile(
+			URI.joinPath(workspace, '.mcp.json'),
+			VSBuffer.fromString(JSON.stringify({
+				existingGitHub: { type: 'http', url: 'https://api.githubcopilot.com/mcp' },
+			})),
+		);
+		const created = await createSession(agent, { workingDirectories: [workspace] });
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0].mcpServers?.['github-mcp-server'], undefined);
+	});
+
+	test('disabled bundled MCP children are excluded from initial SDK startup', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const pluginUri = 'https://bundle';
+		const pluginDir = URI.file('/p/bundle');
+		const workspace = URI.file('/work');
+		await fileService.createFolder(URI.joinPath(pluginDir, '.claude-plugin'));
+		await fileService.writeFile(
+			URI.joinPath(pluginDir, '.claude-plugin', 'plugin.json'),
+			VSBuffer.fromString(JSON.stringify({ name: 'bundle' })),
+		);
+		await fileService.writeFile(
+			URI.joinPath(pluginDir, '.mcp.json'),
+			VSBuffer.fromString(JSON.stringify({
+				enabled: { type: 'http', url: 'https://enabled.example.com/mcp' },
+				disabled: { type: 'stdio', command: 'node', args: ['server.js'] },
+			})),
+		);
+		const disabledChild = makeMcpServerCustomization(URI.joinPath(pluginDir, '.mcp.json'), 'disabled');
+		const publishedDisabledChild = createClaudeInternalMcpServerCustomization('disabled');
+		const synced = makeSyncedRef(pluginUri, pluginDir.fsPath, [disabledChild]);
+		const mcpDefaultCwds = toClientPluginMcpDefaultCwdsMeta({ enabled: null, disabled: null });
+		pm.syncResult = [{
+			...synced,
+			customization: { ...synced.customization, _meta: mcpDefaultCwds },
+		}];
+		const created = await createSession(agent, {
+			workingDirectories: [workspace],
+			activeClient: {
+				clientId: 'client-1',
+				tools: [],
+				customizations: [{
+					...makeClientCustomization(pluginUri, 'Bundle'),
+					_meta: mcpDefaultCwds,
+					childEnablement: {
+						disabled: [{ kind: CustomizationEnablementKind.Global, enabled: true }],
+					},
+				}],
+			},
+		});
+		publishReducerCustomizations(stateManager, created.session, [publishedDisabledChild]);
+		stateManager.dispatchServerAction(created.session.toString(), {
+			type: ActionType.SessionCustomizationToggled,
+			id: publishedDisabledChild.id,
+			enablement: [
+				{ kind: CustomizationEnablementKind.Workspace, uri: workspace.toString(), enabled: false },
+				{ kind: CustomizationEnablementKind.Global, enabled: true },
+			],
+		});
+
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const startupOptions = sdk.capturedStartupOptions[0];
+		assert.deepStrictEqual({
+			explicitServers: Object.keys(startupOptions.mcpServers ?? {}).sort(),
+			deniedServers: typeof startupOptions.settings === 'string' ? undefined : startupOptions.settings?.deniedMcpServers,
+		}, {
+			explicitServers: ['enabled', 'github-mcp-server'],
+			deniedServers: [{
+				serverName: 'disabled',
+			}],
+		});
+	});
+
+	test('workspace MCP enablement gates SDK startup and rebuilds after re-enable', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService, stateManager, configService } = buildCtxWith(pm);
+		configService.updateRootConfig({ [AgentHostClaudeMultiRootEnabledConfigKey]: true });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const primary = URI.file('/primary');
+		const additional = URI.file('/additional');
+		await Promise.all([
+			fileService.writeFile(URI.joinPath(primary, '.mcp.json'), VSBuffer.fromString(JSON.stringify({
+				'primary-enabled': { type: 'http', url: 'https://primary-enabled.example.com/mcp' },
+				'primary-disabled': { type: 'http', url: 'https://primary-disabled.example.com/mcp' },
+			}))),
+			fileService.writeFile(URI.joinPath(additional, '.mcp.json'), VSBuffer.fromString(JSON.stringify({
+				'additional-enabled': { type: 'http', url: 'https://additional-enabled.example.com/mcp' },
+				'additional-disabled': { type: 'http', url: 'https://additional-disabled.example.com/mcp' },
+			}))),
+		]);
+		const created = await createSession(agent, { workingDirectories: [primary, additional] });
+		const chat = defaultChatUri(created.session);
+		const initial = await agent.getChatCustomizations!(chat, chatContext(chat), hostCustomizations(stateManager, created.session));
+		const customizations = [
+			...initial,
+			makeMcpServerCustomization(URI.joinPath(additional, '.mcp.json'), 'additional-enabled'),
+			makeMcpServerCustomization(URI.joinPath(additional, '.mcp.json'), 'additional-disabled'),
+		];
+		publishReducerCustomizations(stateManager, created.session, customizations);
+		for (const name of ['primary-disabled', 'additional-disabled']) {
+			const server = customizations.find(customization => customization.type === CustomizationType.McpServer && customization.name === name);
+			assert.ok(server);
+			stateManager.dispatchServerAction(created.session.toString(), {
+				type: ActionType.SessionCustomizationToggled,
+				id: server.id,
+				enablement: [{ kind: CustomizationEnablementKind.Session, enabled: false }],
+			});
+		}
+
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(chat, 'first', [primary, additional], undefined, 'turn-1', undefined, undefined, chatContext(chat));
+
+		const options = sdk.capturedStartupOptions[0];
+		const settings = options.settings;
+		assert.ok(settings && typeof settings !== 'string');
+		assert.deepStrictEqual({
+			explicitServers: Object.keys(options.mcpServers ?? {}).sort(),
+			deniedServers: settings.deniedMcpServers,
+		}, {
+			explicitServers: ['additional-enabled', 'github-mcp-server'],
+			deniedServers: [{
+				serverName: 'primary-disabled',
+			}],
+		});
+
+		for (const name of ['primary-disabled', 'additional-disabled']) {
+			const server = customizations.find(customization => customization.type === CustomizationType.McpServer && customization.name === name);
+			assert.ok(server);
+			stateManager.dispatchServerAction(created.session.toString(), {
+				type: ActionType.SessionCustomizationToggled,
+				id: server.id,
+				enablement: [{ kind: CustomizationEnablementKind.Session, enabled: true }],
+			});
+		}
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(chat, 'second', [primary, additional], undefined, 'turn-2', undefined, undefined, chatContext(chat));
+
+		const rebuiltOptions = sdk.capturedStartupOptions[1];
+		assert.ok(rebuiltOptions);
+		assert.deepStrictEqual({
+			explicitServers: Object.keys(rebuiltOptions.mcpServers ?? {}).sort(),
+			deniedServers: typeof rebuiltOptions.settings === 'string' ? undefined : rebuiltOptions.settings?.deniedMcpServers,
+		}, {
+			explicitServers: ['additional-disabled', 'additional-enabled', 'github-mcp-server'],
+			deniedServers: undefined,
+		});
+	});
+
+	test('session MCP enablement persists across materialization and customization refreshes', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const workspace = URI.file('/work');
+		await fileService.createFolder(workspace);
+		await fileService.writeFile(
+			URI.joinPath(workspace, '.mcp.json'),
+			VSBuffer.fromString(JSON.stringify({ slack: { type: 'http', url: 'https://mcp.slack.com/mcp' } })),
+		);
+		const created = await createSession(agent, { workingDirectories: [workspace] });
+		const before = await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const server = before.find(customization => customization.type === CustomizationType.McpServer && customization.name === 'slack');
+		assert.ok(server);
+
+		const sessionResource = created.session.toString();
+		stateManager.createSession({
+			resource: sessionResource,
+			provider: 'claude',
+			title: 'MCP reconciliation',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		stateManager.dispatchServerAction(sessionResource, {
+			type: ActionType.SessionCustomizationsChanged,
+			customizations: [...before],
+		});
+		stateManager.dispatchServerAction(sessionResource, {
+			type: ActionType.SessionCustomizationToggled,
+			id: server.id,
+			enablement: [{ kind: CustomizationEnablementKind.Session, enabled: false }],
+		});
+		const staged = await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const sessionId = created.sdkSessionId;
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [{ name: 'slack', status: 'connected' }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const afterMaterialize = await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		stateManager.dispatchServerAction(sessionResource, {
+			type: ActionType.SessionCustomizationToggled,
+			id: server.id,
+			enablement: [{ kind: CustomizationEnablementKind.Session, enabled: true }],
+		});
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const afterEnable = await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const queries = sdk.warmQueries.map(warm => warm.produced).filter(query => query !== undefined);
+		const toggleCalls = queries.flatMap(query => query.mcpToggleCalls);
+		const toggleTransitions = toggleCalls.filter((call, index) => index === 0 || toggleCalls[index - 1].enabled !== call.enabled);
+
+		const enabledForSlack = (customizations: readonly Customization[]) => {
+			const customization = customizations.find(customization => customization.type === CustomizationType.McpServer && customization.name === 'slack');
+			return customization?.type === CustomizationType.McpServer ? isCustomizationEnabled(customization) : undefined;
+		};
+		assert.deepStrictEqual({
+			staged: enabledForSlack(staged),
+			afterMaterialize: enabledForSlack(afterMaterialize),
+			afterEnable: enabledForSlack(afterEnable),
+			toggleTransitions,
+			reconnectedServers: [...new Set(queries.flatMap(query => query.mcpReconnectCalls))],
+		}, {
+			staged: false,
+			afterMaterialize: false,
+			afterEnable: true,
+			toggleTransitions: [
+				{ serverName: 'slack', enabled: false },
+				{ serverName: 'slack', enabled: true },
+			],
+			reconnectedServers: ['slack'],
+		});
+	});
+
+	test('reconciles newly-disabled MCP servers when customizations are republished', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const workspace = URI.file('/work');
+		await fileService.createFolder(workspace);
+		await fileService.writeFile(
+			URI.joinPath(workspace, '.mcp.json'),
+			VSBuffer.fromString(JSON.stringify({ slack: { type: 'http', url: 'https://mcp.slack.com/mcp' } })),
+		);
+		const created = await createSession(agent, { workingDirectories: [workspace] });
+		const chat = defaultChatUri(created.session);
+		const initial = await agent.getChatCustomizations!(chat, chatContext(chat), hostCustomizations(stateManager, created.session));
+		const slack = initial.find(customization => customization.type === CustomizationType.McpServer && customization.name === 'slack');
+		assert.ok(slack);
+		publishReducerCustomizations(stateManager, created.session, initial);
+		const sessionId = AgentSession.id(created.session);
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [{ name: 'slack', status: 'connected' }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'start', undefined, undefined, 'turn-1');
+
+		const query = sdk.warmQueries.map(warm => warm.produced).find((query): query is FakeQuery => query !== undefined)!;
+		const mcpServerStatusCallCount = query.mcpServerStatusCallCount;
+		publishReducerCustomizations(stateManager, created.session, initial);
+		await timeout(0);
+		assert.strictEqual(query.mcpServerStatusCallCount, mcpServerStatusCallCount);
+
+		const disabledEnablement: CustomizationEnablement[] = [{ kind: CustomizationEnablementKind.Session, enabled: false }];
+		publishReducerCustomizations(stateManager, created.session, initial.map(customization =>
+			customization.id === slack.id
+				? { ...customization, enablement: disabledEnablement }
+				: customization
+		));
+		await timeout(0);
+
+		const queries = sdk.warmQueries.map(warm => warm.produced).filter((query): query is FakeQuery => query !== undefined);
+		assert.deepStrictEqual(queries.flatMap(query => query.mcpToggleCalls), [{ serverName: 'slack', enabled: false }]);
+	});
+
+	test('serializes customization and send-triggered MCP reconciliation', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const workspace = URI.file('/work');
+		await fileService.createFolder(workspace);
+		await fileService.writeFile(
+			URI.joinPath(workspace, '.mcp.json'),
+			VSBuffer.fromString(JSON.stringify({ slack: { type: 'http', url: 'https://mcp.slack.com/mcp' } })),
+		);
+		const created = await createSession(agent, { workingDirectories: [workspace] });
+		const chat = defaultChatUri(created.session);
+		const initial = await agent.getChatCustomizations!(chat, chatContext(chat), hostCustomizations(stateManager, created.session));
+		const slack = initial.find(customization => customization.type === CustomizationType.McpServer && customization.name === 'slack');
+		assert.ok(slack);
+		publishReducerCustomizations(stateManager, created.session, initial);
+		const sessionId = AgentSession.id(created.session);
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [{ name: 'slack', status: 'connected' }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'start', undefined, undefined, 'turn-1');
+
+		const gate = new DeferredPromise<void>();
+		sdk.mcpToggleGate = gate.p;
+		const disabledEnablement: CustomizationEnablement[] = [{ kind: CustomizationEnablementKind.Session, enabled: false }];
+		const disabled = initial.map(customization =>
+			customization.id === slack.id
+				? { ...customization, enablement: disabledEnablement }
+				: customization
+		);
+		publishReducerCustomizations(stateManager, created.session, disabled);
+		await timeout(0);
+		let queries = sdk.warmQueries.map(warm => warm.produced).filter((query): query is FakeQuery => query !== undefined);
+		assert.deepStrictEqual(queries.flatMap(query => query.mcpToggleCalls), [{ serverName: 'slack', enabled: false }]);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		const send = agent.chats.sendMessage(defaultChatUri(created.session), 'continue', undefined, undefined, 'turn-2');
+		await timeout(0);
+		queries = sdk.warmQueries.map(warm => warm.produced).filter((query): query is FakeQuery => query !== undefined);
+		assert.deepStrictEqual(queries.flatMap(query => query.mcpToggleCalls), [{ serverName: 'slack', enabled: false }]);
+
+		gate.complete();
+		await send;
+	});
+
+	test('createChat re-seeds the eager activeClient when the host re-creates an existing chat', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const customizations = [makeClientCustomization('https://bundle', 'Synced')];
+		const cfg = {
+			session: AgentSession.uri('claude', 'reconnect'),
+			workingDirectories: [URI.file('/work')],
+			activeClient: { clientId: 'client-1', tools: [], customizations },
+		};
+		await createSession(agent, cfg);
+		await createSession(agent, cfg);
+
+		assert.deepStrictEqual(pm.syncCalls, [
+			{ clientId: 'client-1', customizations },
+			{ clientId: 'client-1', customizations },
+		]);
+	});
+
+	test('createChat eager seeding suppresses orphan customization progress', async () => {
+		const pm = new FakeAgentPluginManager();
+		pm.syncResult = [makeSyncedRef('https://bundle', '/p/bundle')];
+		const { agent } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const updates: string[] = [];
+		disposables.add(agent.onDidChatProgress(s => {
+			if (s.kind === 'action' && s.action.type === ActionType.SessionCustomizationUpdated) {
+				updates.push(s.action.customization.uri.toString());
+			}
+		}));
+
+		await createSession(agent, {
+			session: AgentSession.uri('claude', 'quiet'),
+			workingDirectories: [URI.file('/work')],
+			activeClient: { clientId: 'client-1', tools: [], customizations: [makeClientCustomization('https://bundle', 'Synced')] },
+		});
+
+		assert.deepStrictEqual(updates, []);
+	});
+
+	test('setClientCustomizations forwards each item as a SessionCustomizationUpdated action', async () => {
+		const pm = new FakeAgentPluginManager();
+		pm.syncResult = [makeSyncedRef('https://a', '/p/a'), makeSyncedRef('https://b', '/p/b')];
+		const { agent, stateManager } = buildCtxWith(pm);
+
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		const updates: { uri: string }[] = [];
+		disposables.add(agent.onDidChatProgress(s => {
+			if (s.kind === 'action' && s.action.type === ActionType.SessionCustomizationUpdated) {
+				updates.push({ uri: s.action.customization.uri.toString() });
+			}
+		}));
+
+		const synced = await syncClientCustomizations(agent, stateManager, created.session, 'client-1', [
+			makeClientCustomization('https://a', 'A'),
+			makeClientCustomization('https://b', 'B'),
+		]);
+
+		assert.strictEqual(synced.length, 2);
+		assert.ok(updates.some(u => u === undefined ? false : u.uri.includes('a')), `expected an update for plugin a; got ${JSON.stringify(updates)}`);
+		assert.ok(updates.some(u => u === undefined ? false : u.uri.includes('b')), `expected an update for plugin b; got ${JSON.stringify(updates)}`);
+	});
+
+	test('reducer-backed customization enablement stays isolated per session', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const s1 = await createSession(agent, { session: AgentSession.uri('claude', 'a'), workingDirectories: [URI.file('/work')] });
+		const s2 = await createSession(agent, { session: AgentSession.uri('claude', 'b'), workingDirectories: [URI.file('/work')] });
+
+		pm.syncResult = [makeSyncedRef('https://shared', '/p/shared')];
+		await syncClientCustomizations(agent, stateManager, s1.session, 'c', [makeClientCustomization('https://shared', 'S')]);
+		await syncClientCustomizations(agent, stateManager, s2.session, 'c', [makeClientCustomization('https://shared', 'S')]);
+
+		const [initial1, initial2] = await Promise.all([
+			agent.getChatCustomizations(defaultChatUri(s1.session), chatContext(defaultChatUri(s1.session)), hostCustomizations(stateManager, s1.session)),
+			agent.getChatCustomizations(defaultChatUri(s2.session), chatContext(defaultChatUri(s2.session)), hostCustomizations(stateManager, s2.session)),
+		]);
+		publishReducerCustomizations(stateManager, s1.session, initial1);
+		publishReducerCustomizations(stateManager, s2.session, initial2);
+		stateManager.dispatchServerAction(s1.session.toString(), {
+			type: ActionType.SessionCustomizationToggled,
+			id: customizationId('https://shared'),
+			enablement: [{ kind: CustomizationEnablementKind.Session, enabled: false }],
+		});
+
+		const [projected1, projected2] = await Promise.all([
+			agent.getChatCustomizations(defaultChatUri(s1.session), chatContext(defaultChatUri(s1.session)), hostCustomizations(stateManager, s1.session)),
+			agent.getChatCustomizations(defaultChatUri(s2.session), chatContext(defaultChatUri(s2.session)), hostCustomizations(stateManager, s2.session)),
+		]);
+		assert.deepStrictEqual({
+			first: (() => {
+				const customization = projected1.find(customization => customization.id === customizationId('https://shared'));
+				return customization?.type === CustomizationType.Plugin ? isCustomizationEnabled(customization) : undefined;
+			})(),
+			second: (() => {
+				const customization = projected2.find(customization => customization.id === customizationId('https://shared'));
+				return customization?.type === CustomizationType.Plugin ? isCustomizationEnabled(customization) : undefined;
+			})(),
+		}, {
+			first: false,
+			second: true,
+		});
+	});
+
+	test('getCustomizations returns [] — provider-level catalogue, not a cross-session aggregator', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const s1 = await createSession(agent, { session: AgentSession.uri('claude', 'one'), workingDirectories: [URI.file('/work')] });
+		const s2 = await createSession(agent, { session: AgentSession.uri('claude', 'two'), workingDirectories: [URI.file('/work')] });
+
+		pm.syncResult = [makeSyncedRef('https://shared', '/p/shared'), makeSyncedRef('https://a', '/p/a')];
+		await syncClientCustomizations(agent, stateManager, s1.session, 'c', []);
+		pm.syncResult = [makeSyncedRef('https://shared', '/p/shared'), makeSyncedRef('https://b', '/p/b')];
+		await syncClientCustomizations(agent, stateManager, s2.session, 'c', []);
+
+		assert.deepStrictEqual(agent.getCustomizations(), []);
+	});
+
+	test('getChatCustomizations resolves against a provisional session', async () => {
+		const pm = new FakeAgentPluginManager();
+		pm.syncResult = [makeSyncedRef('https://a', '/p/a')];
+		const { agent, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		assert.strictEqual(created.provisional, true);
+
+		await syncClientCustomizations(agent, stateManager, created.session, 'c', [makeClientCustomization('https://a', 'A')]);
+
+		const customizations = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		assert.deepStrictEqual(customizations.map(c => c.uri), [
+			'https://a',
+			'file:///work/.claude/agents',
+			'file:///work/.claude/skills',
+			'file:///work/.claude/rules',
+			'file:///mock-home/.claude/agents',
+			'file:///mock-home/.claude/skills',
+			'file:///mock-home/.claude/rules',
+			'agent-builtin:/skills',
+		]);
+	});
+
+	test('getChatCustomizations overlays the enablement state onto client-pushed entries', async () => {
+		const pm = new FakeAgentPluginManager();
+		pm.syncResult = [makeSyncedRef('https://a', '/p/a')];
+		const { agent, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		await syncClientCustomizations(agent, stateManager, created.session, 'c', [makeClientCustomization('https://a', 'A')]);
+		const initial = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		publishReducerCustomizations(stateManager, created.session, initial);
+		stateManager.dispatchServerAction(created.session.toString(), {
+			type: ActionType.SessionCustomizationToggled,
+			id: customizationId('https://a'),
+			enablement: [{ kind: CustomizationEnablementKind.Session, enabled: false }],
+		});
+
+		const customizations = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const customization = customizations.find(c => c.uri === 'https://a');
+		assert.strictEqual(customization?.type === CustomizationType.Plugin ? isCustomizationEnabled(customization) : undefined, false);
+	});
+
+	test('replacing client customizations removes stale plugin and bundled MCP enablement', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const pluginUri = 'https://bundle';
+		const serverName = 'bundled';
+		const child: McpServerCustomization = {
+			type: CustomizationType.McpServer,
+			id: 'bundled-server',
+			uri: `${pluginUri}/.mcp.json`,
+			name: serverName,
+			state: { kind: McpCustomizationServerStatus.Starting },
+		};
+		const plugin: PluginCustomization = {
+			type: CustomizationType.Plugin,
+			id: customizationId(pluginUri),
+			uri: pluginUri,
+			name: 'Bundle',
+			children: [child],
+		};
+		const clientCustomization: ClientPluginCustomization = {
+			...makeClientCustomization(pluginUri, 'Bundle'),
+			enablement: [{ kind: CustomizationEnablementKind.Global, enabled: false }],
+			childEnablement: { [serverName]: [{ kind: CustomizationEnablementKind.Global, enabled: false }] },
+		};
+		pm.syncResult = [makeSyncedRef(pluginUri, '/p/bundle', [child])];
+		await syncClientCustomizations(agent, stateManager, created.session, 'client-1', [clientCustomization]);
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const session = agent.getSessionForTesting(created.session)!;
+		session.setHostCustomizations([plugin]);
+		const getDesiredMcpEnablement = () => (session as unknown as { _getDesiredMcpServerEnablement(): Map<string, boolean> })._getDesiredMcpServerEnablement();
+
+		const before = [...getDesiredMcpEnablement()];
+		pm.syncResult = [];
+		await syncClientCustomizations(agent, stateManager, created.session, 'client-1', []);
+		const after = [...getDesiredMcpEnablement()];
+
+		assert.deepStrictEqual({ before, after }, {
+			before: [[serverName, false]],
+			after: [[serverName, true]],
+		});
+	});
+
+	test('removing a client removes its plugin and bundled MCP enablement', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const pluginUri = 'https://bundle';
+		const serverName = 'bundled';
+		const child: McpServerCustomization = {
+			type: CustomizationType.McpServer,
+			id: 'bundled-server',
+			uri: `${pluginUri}/.mcp.json`,
+			name: serverName,
+			state: { kind: McpCustomizationServerStatus.Starting },
+		};
+		const plugin: PluginCustomization = {
+			type: CustomizationType.Plugin,
+			id: customizationId(pluginUri),
+			uri: pluginUri,
+			name: 'Bundle',
+			children: [child],
+		};
+		pm.syncResult = [makeSyncedRef(pluginUri, '/p/bundle', [child])];
+		await syncClientCustomizations(agent, stateManager, created.session, 'client-1', [{
+			...makeClientCustomization(pluginUri, 'Bundle'),
+			enablement: [{ kind: CustomizationEnablementKind.Global, enabled: false }],
+			childEnablement: { [serverName]: [{ kind: CustomizationEnablementKind.Global, enabled: false }] },
+		}]);
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const session = agent.getSessionForTesting(created.session)!;
+		session.setHostCustomizations([plugin]);
+		const getDesiredMcpEnablement = () => (session as unknown as { _getDesiredMcpServerEnablement(): Map<string, boolean> })._getDesiredMcpServerEnablement();
+
+		const before = [...getDesiredMcpEnablement()];
+		agent.removeActiveClient(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), 'client-1');
+		await tick();
+		const after = [...getDesiredMcpEnablement()];
+
+		assert.deepStrictEqual({ before, after }, {
+			before: [[serverName, false]],
+			after: [[serverName, true]],
+		});
+	});
+
+	test('send pre-flight: dirty customizations triggers a rebind (SDK plugin URI set is captured at startup, so any change must restart the Query)', async () => {
+		const pm = new FakeAgentPluginManager();
+		const ctx = buildCtxWith(pm);
+		const { agent, sdk, stateManager } = ctx;
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const advance = new DeferredPromise<void>();
+		sdk.queryAdvance = async (idx: number) => { if (idx === 2) { await advance.p; } };
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 1);
+
+		pm.syncResult = [makeSyncedRef('https://a', '/p/a')];
+		await syncClientCustomizations(agent, stateManager, created.session, 'c', [makeClientCustomization('https://a', 'A')]);
+		const firstQuery = sdk.warmQueries[0].produced!;
+
+		const p2 = agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await tick();
+		advance.complete();
+		await p2;
+
+		assert.deepStrictEqual({
+			reloadsOnFirstQuery: firstQuery.reloadPluginsCallCount,
+			startups: sdk.startupCallCount,
+			warmQueries: sdk.warmQueries.length,
+		}, { reloadsOnFirstQuery: 0, startups: 2, warmQueries: 2 });
+	});
+
+	test('mid-turn reducer toggle reconciles before the following send', async () => {
+		const pm = new FakeAgentPluginManager();
+		const ctx = buildCtxWith(pm);
+		const { agent, sdk, stateManager } = ctx;
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		pm.syncResult = [makeSyncedRef('https://x', '/p/x')];
+		await syncClientCustomizations(agent, stateManager, created.session, 'c', [makeClientCustomization('https://x', 'X')]);
+		publishReducerCustomizations(stateManager, created.session, await agent.getChatCustomizations(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session)));
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		const session = agent.getSessionForTesting(created.session)!;
+		assert.strictEqual(session.clientCustomizationsDiff.hasDifference, false);
+
+		const gate = new DeferredPromise<void>();
+		sdk.queryAdvance = async (i: number) => { if (i === 2) { await gate.p; } };
+
+		const inflight = agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		await new Promise(r => setImmediate(r));
+
+		const startupsBefore = sdk.startupCallCount;
+		stateManager.dispatchServerAction(created.session.toString(), {
+			type: ActionType.SessionCustomizationToggled,
+			id: customizationId('https://x'),
+			enablement: [{ kind: CustomizationEnablementKind.Session, enabled: false }],
+		});
+		assert.strictEqual(session.clientCustomizationsDiff.hasDifference, false);
+		assert.strictEqual(sdk.startupCallCount, startupsBefore, 'no rebind during the in-flight turn');
+
+		gate.complete();
+		await inflight;
+		sdk.queryAdvance = undefined;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'third', undefined, undefined, 'turn-3', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.deepStrictEqual({
+			startups: sdk.startupCallCount,
+			plugins: sdk.capturedStartupOptions.at(-1)?.plugins,
+		}, {
+			startups: startupsBefore + 1,
+			plugins: undefined,
+		});
+	});
+
+	test('getChatCustomizations swallows SDK snapshot failure and returns the client-pushed projection', async () => {
+		const pm = new FakeAgentPluginManager();
+		pm.syncResult = [makeSyncedRef('https://a', '/p/a')];
+		const { agent, sdk, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		await syncClientCustomizations(agent, stateManager, created.session, 'c', [makeClientCustomization('https://a', 'A')]);
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const customizations = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		assert.deepStrictEqual(customizations.map(c => c.uri), [
+			'https://a',
+			'file:///work/.claude/agents',
+			'file:///work/.claude/skills',
+			'file:///work/.claude/rules',
+			'file:///mock-home/.claude/agents',
+			'file:///mock-home/.claude/skills',
+			'file:///mock-home/.claude/rules',
+			'agent-builtin:/skills',
+		], 'client-pushed projection survives SDK snapshot failure');
+	});
+
+	test('getChatCustomizations derives the Built-in container from the live SDK command set post-materialize', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		sdk.supportedCommandsResult = [{ name: 'sdkcmd', description: 'Provided by the runtime.', argumentHint: '' }];
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const customizations = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		const container = customizations.find(customization => customization.uri === 'agent-builtin:/skills');
+		assert.ok(container);
+		assert.strictEqual(container.type, CustomizationType.Directory);
+		assert.strictEqual(container.uri, 'agent-builtin:/skills');
+
+		const child = container.children?.[0];
+		assert.ok(child);
+		assert.strictEqual(child.type, CustomizationType.Skill);
+		assert.deepStrictEqual(
+			{ count: container.children?.length, name: child.name, description: child.description },
+			{ count: 1, name: 'sdkcmd', description: 'Provided by the runtime.' }
+		);
+	});
+
+	test('getChatCustomizations surfaces a native plugin captured from the live SDK init.plugins (path filter)', async () => {
+		const pm = new FakeAgentPluginManager();
+		const { agent, sdk, fileService, stateManager } = buildCtxWith(pm);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		const root = '/mock-home/.claude/plugins/cache/m/tg/1.0.0';
+		await fileService.writeFile(URI.file('/mock-home/.claude/settings.json'), VSBuffer.fromString(JSON.stringify({ enabledPlugins: { 'tg@m': true } })));
+		await fileService.writeFile(URI.file(`${root}/.claude-plugin/plugin.json`), VSBuffer.fromString(JSON.stringify({ name: 'tg' })));
+
+		sdk.supportedCommandsResult = [];
+		sdk.supportedAgentsResult = [];
+		sdk.mcpServerStatusResult = [];
+		const init = makeSystemInitMessage(sessionId);
+		init.plugins = [{ name: 'tg', path: root }];
+		sdk.nextQueryMessages = [init, makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		const customizations = await agent.getChatCustomizations!(defaultChatUri(created.session), chatContext(defaultChatUri(created.session)), hostCustomizations(stateManager, created.session));
+		assert.deepStrictEqual(
+			customizations.filter(c => c.type === CustomizationType.Plugin).map(c => c.name),
+			['tg@m'],
+			'native plugin survives post-materialize because the captured init.plugins reports its root',
+		);
+	});
+
+	test('changeAgent on a provisional session stashes the selection (no SDK contact) and lands on Options.agent at materialize', async () => {
+		const pm = new FakeAgentPluginManager();
+		const ctx = buildCtxWith(pm);
+		const { agent, sdk } = ctx;
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		await agent.chats.changeAgent(defaultChatUri(created.session), { uri: 'file:///foo/agents/code-reviewer.md' }, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.startupCallCount, 0, 'no SDK startup from changeAgent on provisional');
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, 'code-reviewer', 'agent name resolved from file URI basename');
+	});
+
+	test('changeAgent on a materialized session triggers a rebind with the new Options.agent on the rebuilt Query', async () => {
+		const pm = new FakeAgentPluginManager();
+		const ctx = buildCtxWith(pm);
+		const { agent, sdk } = ctx;
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, undefined, 'no agent on first startup');
+
+		await agent.chats.changeAgent(defaultChatUri(created.session), { uri: 'file:///foo/agents/planner.md' }, chatContext(defaultChatUri(created.session)));
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.startupCallCount, 2, 'rebind on agent change');
+		assert.strictEqual(sdk.capturedStartupOptions[1]?.agent, 'planner', 'agent baked into rebuilt Options');
+	});
+
+	test('changeAgent(undefined) clears the selection: rebind, Options.agent omitted', async () => {
+		const pm = new FakeAgentPluginManager();
+		const ctx = buildCtxWith(pm);
+		const { agent, sdk } = ctx;
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, {
+			workingDirectories: [URI.file('/work')],
+			agent: { uri: 'file:///foo/agents/planner.md' },
+		});
+		const sessionId = created.sdkSessionId;
+
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(defaultChatUri(created.session)));
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, 'planner');
+
+		await agent.chats.changeAgent(defaultChatUri(created.session), undefined, chatContext(defaultChatUri(created.session)));
+		await agent.chats.sendMessage(defaultChatUri(created.session), 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(defaultChatUri(created.session)));
+
+		assert.strictEqual(sdk.startupCallCount, 2);
+		assert.strictEqual(sdk.capturedStartupOptions[1]?.agent, undefined, 'cleared agent omitted from rebuilt Options');
+	});
+
+
+	test('createChat persists an additional chat; getChats lists it; disposeChat removes it', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const afterCreate = listAdditionalChats(agent, created.session);
+
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const afterRecreate = listAdditionalChats(agent, created.session);
+
+		await agent.chats.disposeChat(chatUri, chatContext(chatUri));
+		const afterDispose = listAdditionalChats(agent, created.session);
+
+		assert.deepStrictEqual({ afterCreate, afterRecreate, afterDispose }, {
+			afterCreate: [chatUri.toString()],
+			afterRecreate: [chatUri.toString()],
+			afterDispose: [],
+		});
+	});
+
+	test('createChat resolves every chat the same way, whatever role the host gives it', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const workDir = URI.file('/work');
+		const created = await createSession(agent, { workingDirectories: [workDir] });
+		const additionalChat = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		const additional = await agent.chats.createChat(additionalChat, chatContext(additionalChat), resolvedChatOptions([workDir]));
+
+		const shapeOf = (result: IAgentCreateChatResult) => ({
+			fields: Object.keys(result).sort(),
+			resolvedWorkingDirectory: result.resolvedWorkingDirectory?.fsPath,
+			provisional: result.provisional,
+			backsItsOwnConversation: JSON.parse(result.providerData!).sdkSessionId === AgentSession.id(result.backingSession!),
+		});
+		const expected = {
+			fields: ['backingSession', 'providerData', 'provisional', 'resolvedWorkingDirectory'],
+			resolvedWorkingDirectory: workDir.fsPath,
+			provisional: true,
+			backsItsOwnConversation: true,
+		};
+
+		assert.deepStrictEqual({
+			firstChat: shapeOf(created.chat!),
+			additionalChat: shapeOf(additional!),
+			distinctConversations: AgentSession.id(additional!.backingSession!) !== created.sdkSessionId,
+		}, {
+			firstChat: expected,
+			additionalChat: expected,
+			distinctConversations: true,
+		});
+	});
+
+	test('createChat without working directories runs an additional chat in the session scratch dir too', async () => {
+		const userHome = URI.file(await fs.mkdtemp(`${os.tmpdir()}/claude-peer-qc-home-`));
+		const { agent, sdk } = createTestContext(disposables, { userHome });
+		try {
+			await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+			const created = await createSession(agent, {});
+			const additionalChat = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+			const additional = await agent.chats.createChat(additionalChat, chatContext(additionalChat), {});
+			const expected = URI.joinPath(userHome, '.copilot', 'chats', AgentSession.id(created.session));
+
+			const additionalId = AgentSession.id(additional!.backingSession!);
+			sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+			await agent.chats.sendMessage(additionalChat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(additionalChat));
+
+			assert.deepStrictEqual({
+				resolvedWorkingDirectory: additional?.resolvedWorkingDirectory?.fsPath,
+				startupCwd: sdk.capturedStartupOptions.at(-1)?.cwd,
+			}, {
+				resolvedWorkingDirectory: expected.fsPath,
+				startupCwd: expected.fsPath,
+			});
+		} finally {
+			await fs.rm(userHome.fsPath, { recursive: true, force: true });
+		}
+	});
+
+	test('createChat / disposeChat on the default chat URI are no-ops', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const defaultChat = URI.parse(buildChatUri(created.session.toString(), 'default'));
+
+		await agent.chats.createChat(defaultChat, created.session, { ...resolvedChatOptions() });
+		await agent.chats.disposeChat(defaultChat, chatContext(defaultChat));
+
+		assert.deepStrictEqual(listAdditionalChats(agent, created.session), []);
+	});
+
+	test('chat backings retain only provider chat data', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const defaultChat = defaultChatUri(created.session);
+		await bindDefaultChat(agent, created.session);
+		const additionalChat = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		const additional = await agent.chats.createChat(additionalChat, created.session, { model: { id: 'claude-opus-4.6' }, ...resolvedChatOptions() });
+		const backings = (agent as unknown as {
+			_chatBackings: Map<string, { readonly sdkSessionId: string; readonly model?: { readonly id: string } }>;
+		})._chatBackings;
+
+		assert.deepStrictEqual([...backings].map(([chat, backing]) => ({ chat, backing })), [
+			{ chat: defaultChat.toString(), backing: { sdkSessionId: created.sdkSessionId } },
+			{ chat: additionalChat.toString(), backing: { sdkSessionId: AgentSession.id(additional!.backingSession!), model: { id: 'claude-opus-4.6' } } },
+		]);
+	});
+
+	test('createChat keeps the AH session id independent from the Claude SDK id', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = AgentSession.uri('claude', 'ah-session');
+		const chat = defaultChatUri(session);
+		const context = { configurationResource: session, resource: session };
+
+		const created = await createProviderSession(agent, chat, context, { session, workingDirectories: [URI.file('/work')] });
+		const sdkSessionId = AgentSession.id(created.chat!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sdkSessionId), makeResultSuccess(sdkSessionId)];
+		await agent.chats.sendMessage(chat, 'hello', undefined, undefined, 'turn-1', undefined, undefined, context);
+
+		assert.deepStrictEqual({
+			ahSessionId: AgentSession.id(created.session),
+			sdkSessionId,
+			startupSessionId: sdk.capturedStartupOptions[0]?.sessionId,
+			providerData: JSON.parse(created.chat!.providerData!),
+		}, {
+			ahSessionId: 'ah-session',
+			sdkSessionId,
+			startupSessionId: sdkSessionId,
+			providerData: { sdkSessionId },
+		});
+		assert.notStrictEqual(sdkSessionId, 'ah-session');
+	});
+
+	test('createChat({ fork }) binds the exact target chat directly, with no bindSessionChat call, decoupling the new AH session id from the forked SDK id', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		const sourceUri = AgentSession.uri('claude', sourceId);
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		await bindDefaultChat(agent, sourceUri);
+
+		const targetSession = AgentSession.uri('claude', 'ah-target');
+		const targetChat = defaultChatUri(targetSession);
+		const targetContext = { configurationResource: targetSession, resource: targetSession };
+
+		const created = await createProviderSession(agent, targetChat, targetContext, {
+			session: targetSession,
+		}, { fork: { source: defaultChatUri(sourceUri), turnId: 'u1' } });
+
+		const sdkSessionId = AgentSession.id(created.chat!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sdkSessionId), makeResultSuccess(sdkSessionId)];
+		await agent.chats.sendMessage(targetChat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, targetContext);
+
+		assert.deepStrictEqual({
+			ahSessionId: AgentSession.id(created.session),
+			sdkSessionId,
+			startupResume: sdk.capturedStartupOptions[0]?.resume,
+			provisional: created.provisional,
+			providerData: JSON.parse(created.chat!.providerData!),
+		}, {
+			ahSessionId: 'ah-target',
+			sdkSessionId: 'forked-1',
+			startupResume: 'forked-1',
+			provisional: undefined,
+			providerData: { sdkSessionId: 'forked-1' },
+		});
+		assert.notStrictEqual(sdkSessionId, 'ah-target');
+	});
+
+	test('createChat({ fork }) forks from a source whose own AH session id differs from its SDK backing', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceSession = AgentSession.uri('claude', 'ah-source');
+		const sourceChat = defaultChatUri(sourceSession);
+		const sourceContext = { configurationResource: sourceSession, resource: sourceSession };
+		const sourceCreated = await createProviderSession(agent, sourceChat, sourceContext, { session: sourceSession, workingDirectories: [URI.file('/work')] });
+		const sourceSdkId = AgentSession.id(sourceCreated.chat!.backingSession!);
+		assert.notStrictEqual(sourceSdkId, 'ah-source');
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sourceSdkId), makeResultSuccess(sourceSdkId)];
+		await agent.chats.sendMessage(sourceChat, 'hello', undefined, undefined, 'turn-0', undefined, undefined, sourceContext);
+		sdk.sessionMessagesById.set(sourceSdkId, forkSourceMessages(sourceSdkId));
+		sdk.forkSessionResult = { sessionId: 'forked-source' };
+		sdk.sessionList = [{ sessionId: 'forked-source', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const targetSession = AgentSession.uri('claude', 'ah-target-2');
+		const targetChat = defaultChatUri(targetSession);
+		const targetContext = { configurationResource: targetSession, resource: targetSession };
+		const created = await createProviderSession(agent, targetChat, targetContext, {
+			session: targetSession,
+		}, { fork: { source: sourceChat, turnId: 'u1' } });
+
+		assert.deepStrictEqual({
+			forkCall: sdk.forkSessionCalls.at(-1),
+			ahSessionId: AgentSession.id(created.session),
+			sdkSessionId: AgentSession.id(created.chat!.backingSession!),
+		}, {
+			forkCall: { sessionId: sourceSdkId, options: { upToMessageId: 'a1' } },
+			ahSessionId: 'ah-target-2',
+			sdkSessionId: 'forked-source',
+		});
+	});
+
+	test('createChat({ fork }) inherits the source permissionMode overlay onto the exact target chat', async () => {
+		const { agent, sdk, instantiationService } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sourceId = 'src-uuid';
+		const sourceUri = AgentSession.uri('claude', sourceId);
+		const metaStore = instantiationService.createInstance(ClaudeSessionMetadataStore);
+		await metaStore.write(sourceUri, { permissionMode: 'plan' });
+
+		sdk.sessionMessagesById.set(sourceId, forkSourceMessages(sourceId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		await bindDefaultChat(agent, sourceUri);
+
+		const targetSession = AgentSession.uri('claude', 'ah-target-overlay');
+		const targetChat = defaultChatUri(targetSession);
+		const targetContext = { configurationResource: targetSession, resource: targetSession };
+		const created = await createProviderSession(agent, targetChat, targetContext, {
+			session: targetSession,
+		}, { fork: { source: defaultChatUri(sourceUri), turnId: 'u1' } });
+
+		const sdkSessionId = AgentSession.id(created.chat!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sdkSessionId), makeResultSuccess(sdkSessionId)];
+		await agent.chats.sendMessage(targetChat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, targetContext);
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.permissionMode, 'plan');
+	});
+
+	test('createChat({ importConversation }) binds the exact target chat directly and its model takes precedence over a create-config model', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const session = AgentSession.uri('claude', 'ah-import');
+		const chat = defaultChatUri(session);
+		const context = { configurationResource: session, resource: session };
+
+		const created = await createProviderSession(agent, chat, context, {
+			session,
+			workingDirectories: [URI.file('/work')],
+			importConversation: { turns: [], model: { id: 'claude-opus-4.6' } },
+			model: { id: 'claude-sonnet-4.5' },
+		});
+
+		const sdkSessionId = AgentSession.id(created.chat!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sdkSessionId), makeResultSuccess(sdkSessionId)];
+		await agent.chats.sendMessage(chat, 'hello', undefined, undefined, 'turn-1', undefined, undefined, context);
+
+		assert.deepStrictEqual({
+			ahSessionId: AgentSession.id(created.session),
+			startupModel: sdk.capturedStartupOptions[0]?.model,
+			provisional: created.provisional,
+		}, {
+			ahSessionId: 'ah-import',
+			startupModel: 'claude-opus-4-6',
+			provisional: true,
+		});
+	});
+
+	test('active-client tools are addressed to the exact chats Agent Host calls out, independently', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = AgentSession.uri('claude', 'ah-session');
+		const defaultChat = defaultChatUri(session);
+		const created = await createProviderSession(agent, defaultChat, { configurationResource: session, resource: session }, { session, workingDirectories: [URI.file('/work')] });
+		const peer = URI.parse(buildChatUri(session, 'peer'));
+		const peerResult = await agent.chats.createChat(peer, { configurationResource: session, resource: peer }, { ...resolvedChatOptions() });
+		const defaultHandle = agent.getOrCreateActiveClient(defaultChat, { configurationResource: session, resource: session }, { clientId: 'client' });
+		const peerHandle = agent.getOrCreateActiveClient(peer, { configurationResource: session, resource: peer }, { clientId: 'client' });
+		defaultHandle.tools = [{ name: 'client_tool', description: 'tool', inputSchema: { type: 'object' } }];
+		peerHandle.tools = [{ name: 'client_tool', description: 'tool', inputSchema: { type: 'object' } }];
+		const defaultSdkId = AgentSession.id(created.chat!.backingSession!);
+		const peerSdkId = AgentSession.id(peerResult!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(defaultSdkId), makeResultSuccess(defaultSdkId)];
+		await agent.chats.sendMessage(defaultChat, 'default', undefined, undefined, 'turn-default', undefined, undefined, { configurationResource: session, resource: session });
+		sdk.nextQueryMessages = [makeSystemInitMessage(peerSdkId), makeResultSuccess(peerSdkId)];
+		await agent.chats.sendMessage(peer, 'peer', undefined, undefined, 'turn-peer', undefined, undefined, { configurationResource: session, resource: peer });
+
+		const defaultSession = agent.getSessionForTesting(created.chat!.backingSession!)!;
+		const peerSession = agent.getSessionForTesting(peerResult!.backingSession!)!;
+		const before = [defaultSession, peerSession].map(chat => chat.getClientTools('client').map(tool => tool.name));
+		agent.removeActiveClient(defaultChat, { configurationResource: session, resource: session }, 'client');
+		await tick();
+		const afterDefaultOnly = [defaultSession, peerSession].map(chat => chat.getClientTools('client').map(tool => tool.name));
+		agent.removeActiveClient(peer, { configurationResource: session, resource: peer }, 'client');
+		await tick();
+		const afterBoth = [defaultSession, peerSession].map(chat => chat.getClientTools('client').map(tool => tool.name));
+
+		assert.deepStrictEqual({ before, afterDefaultOnly, afterBoth }, {
+			before: [['client_tool'], ['client_tool']],
+			afterDefaultOnly: [[], ['client_tool']],
+			afterBoth: [[], []],
+		});
+	});
+
+	test('createChat({ fork }) forks the source chat; the additional chat resumes its own forked SDK session', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		const forkCall = sdk.forkSessionCalls[0];
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'next', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			forkCall,
+			chats: listAdditionalChats(agent, created.session),
+			startupResume: sdk.capturedStartupOptions[0]?.resume,
+		}, {
+			forkCall: { sessionId: parentId, options: { upToMessageId: 'a1' } },
+			chats: [chatUri.toString()],
+			startupResume: 'forked-1',
+		});
+	});
+
+	test('createChat({ fork }) keeps provider history intact', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.forkSessionResult = { sessionId: 'side-1' };
+		sdk.sessionList = [{ sessionId: 'side-1', summary: 'side', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		sdk.sessionMessagesById.set('side-1', forkSourceMessages('side-1').slice(0, 2));
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-side'));
+		const internals = agent as unknown as {
+			_sessionSequencer: { queue<T>(key: string, task: () => Promise<T>): Promise<T> };
+		};
+		const sourceLockEntered = new DeferredPromise<void>();
+		const releaseSourceLock = new DeferredPromise<void>();
+		const sourceLock = internals._sessionSequencer.queue(parentId, async () => {
+			sourceLockEntered.complete();
+			await releaseSourceLock.p;
+		});
+		await sourceLockEntered.p;
+		let result;
+		const createTimeout = timeout(5_000);
+		try {
+			result = await Promise.race([
+				agent.chats.createChat(chatUri, created.session, { fork: { source: defaultChatUri(created.session), turnId: 'u1' }, ...resolvedChatOptions() }),
+				createTimeout.then(() => { throw new Error('Fork creation waited for the source turn lock'); }),
+			]);
+		} finally {
+			createTimeout.cancel();
+			releaseSourceLock.complete();
+			await sourceLock;
+		}
+		sdk.nextQueryMessages = [makeSystemInitMessage('side-1'), makeResultSuccess('side-1')];
+		await agent.chats.sendMessage(chatUri, 'side question', undefined, undefined, 'turn-side', undefined, undefined, chatContext(chatUri));
+		const sentContent = sdk.warmQueries.at(-1)?.produced?.drainedPrompts[0]?.message.content;
+		const sentPrompt = typeof sentContent === 'string'
+			? sentContent
+			: sentContent?.filter(block => block.type === 'text').map(block => block.text).join('\n');
+		sdk.sessionMessagesById.set('side-1', [
+			...forkSourceMessages('side-1').slice(0, 2),
+			{ type: 'user', uuid: 'turn-side', session_id: 'side-1', parent_tool_use_id: null, parent_agent_id: null, message: { role: 'user', content: [{ type: 'text', text: 'side question' }] } },
+			{ type: 'assistant', uuid: 'a3', session_id: 'side-1', parent_tool_use_id: null, parent_agent_id: null, message: { id: 'msg_a3', role: 'assistant', content: [{ type: 'text', text: 'side answer' }] } },
+		]);
+		await agent.chats.changeModel(chatUri, { id: 'claude-opus-4-6' }, chatContext(chatUri));
+		const turns = await agent.chats.getMessages(chatUri, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			forkCall: sdk.forkSessionCalls[0],
+			sentPrompt,
+			returnsInheritedTurns: turns.length > 1,
+			providerData: result ? JSON.parse(result.providerData!) : undefined,
+			inheritedTurnId: result?.inheritedTurnId,
+		}, {
+			forkCall: { sessionId: parentId, options: { upToMessageId: 'a1' } },
+			sentPrompt: 'side question',
+			returnsInheritedTurns: true,
+			providerData: { sdkSessionId: 'side-1' },
+			inheritedTurnId: 'u1',
+		});
+	});
+
+	test('createChat({ fork }) creates a fresh provider chat when the source transcript is unavailable', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-side-live'));
+		const result = await agent.chats.createChat(chatUri, created.session, { fork: { source: defaultChatUri(created.session), turnId: 'turn-source' }, ...resolvedChatOptions() });
+
+		assert.deepStrictEqual({
+			forked: sdk.forkSessionCalls.length,
+			hasProviderData: result?.providerData !== undefined,
+		}, {
+			forked: 0,
+			hasProviderData: true,
+		});
+	});
+
+	test('createChat({ fork }) still creates the chat when nothing is inheritable', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-side-orphan'));
+		const result = await agent.chats.createChat(chatUri, created.session, { fork: { source: defaultChatUri(created.session), turnId: 'turn-source' }, ...resolvedChatOptions() });
+
+		assert.deepStrictEqual({
+			forked: sdk.forkSessionCalls.length,
+			hasProviderData: result?.providerData !== undefined,
+		}, {
+			forked: 0,
+			hasProviderData: true,
+		});
+	});
+
+	test('createChat({ fork }) creates a fresh provider chat when a source fork is rejected', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		const sourceChat = defaultChatUri(created.session);
+		const turnId = 'request_31bb16da-2a24-4312-8adb-04781b463d41';
+		sdk.sessionMessagesById.set(parentId, [{
+			type: 'user',
+			uuid: turnId,
+			session_id: parentId,
+			parent_tool_use_id: null,
+			parent_agent_id: null,
+			message: { role: 'user', content: [{ type: 'text', text: 'source question' }] },
+		}]);
+		sdk.forkSessionRejection = new Error(`Invalid upToMessageId: ${turnId}`);
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-side-active'));
+		const result = await agent.chats.createChat(chatUri, created.session, {
+			fork: { source: sourceChat, turnId },
+			...resolvedChatOptions(),
+		});
+		assert.ok(result?.providerData);
+
+		assert.deepStrictEqual({
+			forked: sdk.forkSessionCalls.length,
+			hasProviderData: result.providerData !== undefined,
+		}, {
+			forked: 0,
+			hasProviderData: true,
+		});
+	});
+
+	test('createChat({ fork }) uses the supplied provider anchor', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.forkSessionResult = { sessionId: 'side-local-1' };
+		sdk.sessionList = [{ sessionId: 'side-local-1', summary: 'side local', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		sdk.sessionMessagesById.set('side-local-1', forkSourceMessages('side-local-1').slice(0, 2));
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-side-local'));
+		const result = await agent.chats.createChat(chatUri, created.session, {
+			fork: {
+				source: defaultChatUri(created.session),
+				turnId: 'u1',
+			},
+			...resolvedChatOptions(),
+		});
+		sdk.nextQueryMessages = [makeSystemInitMessage('side-local-1'), makeResultSuccess('side-local-1')];
+		await agent.chats.sendMessage(chatUri, 'side question', undefined, undefined, 'turn-side-local', undefined, undefined, chatContext(chatUri));
+		const sentContent = sdk.warmQueries.at(-1)?.produced?.drainedPrompts[0]?.message.content;
+		const sentPrompt = typeof sentContent === 'string'
+			? sentContent
+			: sentContent?.filter(block => block.type === 'text').map(block => block.text).join('\n');
+		sdk.sessionMessagesById.set('side-local-1', [
+			...forkSourceMessages('side-local-1').slice(0, 2),
+			{ type: 'user', uuid: 'turn-side-local', session_id: 'side-local-1', parent_tool_use_id: null, parent_agent_id: null, message: { role: 'user', content: [{ type: 'text', text: 'side question' }] } },
+			{ type: 'assistant', uuid: 'a3', session_id: 'side-local-1', parent_tool_use_id: null, parent_agent_id: null, message: { id: 'msg_a3', role: 'assistant', content: [{ type: 'text', text: 'side answer' }] } },
+		]);
+		const turns = await agent.chats.getMessages(chatUri, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			forkCall: sdk.forkSessionCalls[0],
+			sentPrompt,
+			returnsInheritedTurns: turns.length > 1,
+			providerData: result ? JSON.parse(result.providerData!) : undefined,
+			inheritedTurnId: result?.inheritedTurnId,
+		}, {
+			forkCall: { sessionId: parentId, options: { upToMessageId: 'a1' } },
+			sentPrompt: 'side question',
+			returnsInheritedTurns: true,
+			providerData: { sdkSessionId: 'side-local-1' },
+			inheritedTurnId: 'u1',
+		});
+	});
+
+	test('createChat({ fork }) with an unknown turn falls back to a fresh chat', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'does-not-exist' } });
+
+		assert.deepStrictEqual({
+			forked: sdk.forkSessionCalls.length,
+			chats: listAdditionalChats(agent, created.session),
+		}, {
+			forked: 0,
+			chats: [chatUri.toString()],
+		});
+	});
+
+	test('sendMessage to an additional chat targets a chat distinct from the parent session', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			startupCount: sdk.capturedStartupOptions.length,
+			resume: sdk.capturedStartupOptions[0]?.resume,
+			parentMaterialized: sdk.capturedStartupOptions.some(o => o.sessionId === parentId),
+		}, {
+			startupCount: 1,
+			resume: 'forked-1',
+			parentMaterialized: false,
+		});
+	});
+
+	test('SDK callbacks route to an additional chat through the reverse SDK id index', async () => {
+		const { agent, proxy, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session, 'chat-1'));
+		const result = await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const additionalId = AgentSession.id(result!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		sdk.queryAdvance = async index => {
+			if (index === 1) {
+				proxy.onDidReportCreditsEmitter.fire({ sessionId: additionalId, totalNanoAiu: 42 });
+			}
+		};
+		const signals: AgentSignal[] = [];
+		disposables.add(agent.onDidChatProgress(signal => signals.push(signal)));
+
+		await agent.chats.sendMessage(chatUri, 'additional', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		const usage = signals
+			.filter(signal => signal.kind === 'action' && signal.resource.toString() === chatUri.toString())
+			.map(signal => signal.kind === 'action' ? signal.action : undefined)
+			.find(action => action?.type === ActionType.ChatUsage);
+		assert.deepStrictEqual(usage?.type === ActionType.ChatUsage ? usage.usage._meta?.copilotUsage : undefined, { totalNanoAiu: 42 });
+	});
+
+	test('truncateChat targets the addressed SDK session', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk } = createTestContext(disposables, { database });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chat = URI.parse(buildChatUri(created.session, 'chat-1'));
+		const result = await agent.chats.createChat(chat, created.session, { ...resolvedChatOptions() });
+		const additionalId = AgentSession.id(result!.backingSession!);
+		sdk.sessionMessagesById.set(additionalId, forkSourceMessages(additionalId));
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		await agent.chats.sendMessage(chat, 'additional', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chat));
+
+		await agent.truncateChat(chat, 'u1', chatContext(chat));
+
+		assert.deepStrictEqual({
+			getMessagesCall: sdk.getSessionMessagesCalls.at(-1),
+			prunedAfter: database.deleteTurnsAfterCalls,
+			parentMaterialized: sdk.capturedStartupOptions.some(options => options.sessionId === created.sdkSessionId),
+		}, {
+			getMessagesCall: { sessionId: additionalId, options: { includeSystemMessages: true } },
+			prunedAfter: ['u1'],
+			parentMaterialized: false,
+		});
+	});
+
+	test('configuration events keep the inherited additional mode on the next send', async () => {
+		const { agent, sdk, stateManager } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')], config: { permissionMode: 'default' } });
+		stateManager.createSession({
+			resource: created.session.toString(),
+			provider: agent.id,
+			title: '',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		stateManager.setSessionConfig(created.session.toString(), {
+			schema: { type: 'object', properties: {} },
+			values: { permissionMode: 'default' },
+		});
+		const chat = URI.parse(buildChatUri(created.session, 'chat-1'));
+		const result = await agent.chats.createChat(chat, created.session, { ...resolvedChatOptions() });
+		const additionalId = AgentSession.id(result!.backingSession!);
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(additionalId), makeResultSuccess(additionalId),
+			makeSystemInitMessage(additionalId), makeResultSuccess(additionalId),
+		];
+		await agent.chats.sendMessage(chat, 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chat));
+
+		stateManager.dispatchClientAction(created.session.toString(), {
+			type: ActionType.SessionConfigChanged,
+			config: { permissionMode: 'bypassPermissions' },
+		}, { clientId: 'picker', clientSeq: 1 });
+		await tick();
+		await agent.chats.sendMessage(chat, 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(chat));
+
+		assert.deepStrictEqual(sdk.warmQueries.at(-1)?.produced?.recordedPermissionModes, ['bypassPermissions']);
+	});
+
+	test('lazy chat materialization applies the latest persisted permission mode', async () => {
+		const { agent, configService, sdk, stateManager } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')], config: { permissionMode: 'default' } });
+		const state = stateManager.createSession({
+			resource: created.session.toString(),
+			provider: 'claude',
+			title: 'additional config',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		(state as { config?: SessionConfigState }).config = {
+			schema: { type: 'object', properties: {} },
+			values: { permissionMode: 'default' },
+		};
+		const chat = URI.parse(buildChatUri(created.session, 'chat-1'));
+		const result = await agent.chats.createChat(chat, created.session, { ...resolvedChatOptions() });
+		const additionalId = AgentSession.id(result!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		await agent.chats.sendMessage(chat, 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chat));
+		await agent.chats.releaseChat(chat, chatContext(chat));
+
+		configService.updateSessionConfig(created.session.toString(), { permissionMode: 'bypassPermissions' });
+		sdk.sessionList = [{ sessionId: additionalId, summary: 'additional', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		await agent.chats.sendMessage(chat, 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(chat));
+
+		assert.strictEqual(sdk.capturedStartupOptions.at(-1)?.permissionMode, 'bypassPermissions');
+	});
+
+	test('onClientToolCallComplete targets the addressed additional chat', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chat = URI.parse(buildChatUri(created.session, 'chat-1'));
+		const result = await agent.chats.createChat(chat, created.session, { ...resolvedChatOptions() });
+		const backingSession = result!.backingSession!;
+		const additionalId = AgentSession.id(backingSession);
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		await agent.chats.sendMessage(chat, 'additional', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chat));
+		const additional = agent.getSessionForTesting(backingSession)!;
+		let settled = false;
+		void additional.pendingClientToolCalls.register('tool-1').then(() => settled = true, () => undefined);
+
+		agent.onClientToolCallComplete(chat, 'tool-1', { success: true, pastTenseMessage: 'ran' });
+		await tick();
+
+		assert.strictEqual(settled, true);
+	});
+
+	test('changeModel on an additional chat persists in the catalog so a later resume picks it up', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		await agent.chats.changeModel(chatUri, { id: 'claude-opus-4.6' }, chatContext(chatUri));
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.model, 'claude-opus-4-6');
+	});
+
+	test('disposing the default SDK session does not dispose its additional chats', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		const result = await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const additionalId = AgentSession.id(result!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		await agent.chats.sendMessage(chatUri, 'additional', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		await disposeSession(agent, created.session);
+
+		assert.deepStrictEqual({
+			backings: listAdditionalChats(agent, created.session),
+			liveChats: listLiveChats(agent),
+			defaultSession: agent.getSessionForTesting(created.session),
+		}, {
+			backings: [chatUri.toString()],
+			liveChats: [chatUri.toString()],
+			defaultSession: undefined,
+		});
+
+		await agent.chats.disposeChat(chatUri, chatContext(chatUri));
+		assert.deepStrictEqual(listAdditionalChats(agent, created.session), []);
+	});
+
+	test('disposeChat removes a host-bound default-chat provisional', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = AgentSession.uri('claude', 'unbound-default');
+		await createSession(agent, { session, workingDirectories: [URI.file('/work')] });
+		await bindDefaultChat(agent, session);
+		assert.deepStrictEqual(listSessionChatBackings(agent), [defaultChatUri(session).toString()]);
+
+		await agent.chats.disposeChat(defaultChatUri(session), chatContext(defaultChatUri(session)));
+
+		assert.deepStrictEqual(listSessionChatBackings(agent), []);
+	});
+
+	test('releaseChat releases only the addressed live chat', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = AgentSession.uri('claude', 'release-session');
+		const defaultChat = defaultChatUri(session);
+		await createSession(agent, { session, workingDirectories: [URI.file('/work')] });
+		await bindDefaultChat(agent, session);
+		const additionalChat = URI.parse(buildChatUri(session, 'additional'));
+		const additionalResult = await agent.chats.createChat(additionalChat, session, { ...resolvedChatOptions() });
+		const additionalId = AgentSession.id(additionalResult!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage('release-session'), makeResultSuccess('release-session')];
+		await agent.chats.sendMessage(defaultChat, 'default', undefined, undefined, 'turn-default', undefined, undefined, chatContext(defaultChat));
+		sdk.nextQueryMessages = [makeSystemInitMessage(additionalId), makeResultSuccess(additionalId)];
+		await agent.chats.sendMessage(additionalChat, 'additional', undefined, undefined, 'turn-additional', undefined, undefined, chatContext(additionalChat));
+
+		await agent.chats.releaseChat(additionalChat, chatContext(additionalChat));
+
+		assert.deepStrictEqual({
+			liveChats: listLiveChats(agent),
+			backings: listAdditionalChats(agent, session),
+		}, {
+			liveChats: [defaultChat.toString()],
+			backings: [additionalChat.toString()],
+		});
+
+		await agent.chats.releaseChat(defaultChat, chatContext(defaultChat));
+
+		assert.deepStrictEqual({
+			liveChats: listLiveChats(agent),
+			sessionChatBackings: listSessionChatBackings(agent),
+			backings: listAdditionalChats(agent, session),
+		}, {
+			liveChats: [],
+			sessionChatBackings: [defaultChat.toString()],
+			backings: [additionalChat.toString()],
+		});
+	});
+
+	test('setPendingMessages routes steering to a materialized additional chat, warns for an unknown one', async () => {
+		const logService = new CapturingLogService();
+		const { agent, sdk } = createTestContext(disposables, { logService });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		logService.warns.length = 0;
+		agent.setPendingMessages!(chatUri, { id: 'p1', message: { text: 'steer', origin: { kind: MessageKind.User } } }, []);
+		const warnAfterKnown = logService.warns.filter(w => w.includes('setPendingMessages'));
+
+		const unknownChat = URI.parse(buildChatUri(created.session.toString(), 'chat-missing'));
+		agent.setPendingMessages!(unknownChat, undefined, []);
+		const warnAfterUnknown = logService.warns.filter(w => w.includes('setPendingMessages'));
+
+		assert.deepStrictEqual({ knownWarns: warnAfterKnown.length, unknownWarns: warnAfterUnknown.length }, { knownWarns: 0, unknownWarns: 1 });
+	});
+
+	test('changeAgent on an additional chat persists to its overlay so a later resume picks it up', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		await agent.chats.changeAgent(chatUri, { uri: 'file:///foo/agents/planner.md' }, chatContext(chatUri));
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, 'planner');
+	});
+
+	test('sendMessage routes each additional chat to its own forked chat', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+
+		const chatA = URI.parse(buildChatUri(created.session.toString(), 'chat-a'));
+		sdk.forkSessionResult = { sessionId: 'forked-a' };
+		await agent.chats.createChat(chatA, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		const chatB = URI.parse(buildChatUri(created.session.toString(), 'chat-b'));
+		sdk.forkSessionResult = { sessionId: 'forked-b' };
+		await agent.chats.createChat(chatB, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u2' } });
+
+		sdk.sessionList = [
+			{ sessionId: 'forked-a', summary: 'a', lastModified: 1, cwd: URI.file('/work').fsPath },
+			{ sessionId: 'forked-b', summary: 'b', lastModified: 1, cwd: URI.file('/work').fsPath },
+		];
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-a'), makeResultSuccess('forked-a')];
+		await agent.chats.sendMessage(chatA, 'to a', undefined, undefined, 'turn-a', undefined, undefined, chatContext(chatA));
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-b'), makeResultSuccess('forked-b')];
+		await agent.chats.sendMessage(chatB, 'to b', undefined, undefined, 'turn-b', undefined, undefined, chatContext(chatB));
+
+		assert.deepStrictEqual({
+			chats: listAdditionalChats(agent, created.session).sort(),
+			resumeA: sdk.capturedStartupOptions[0]?.resume,
+			resumeB: sdk.capturedStartupOptions[1]?.resume,
+			parentMaterialized: sdk.capturedStartupOptions.some(o => o.sessionId === parentId),
+		}, {
+			chats: [chatA.toString(), chatB.toString()].sort(),
+			resumeA: 'forked-a',
+			resumeB: 'forked-b',
+			parentMaterialized: false,
+		});
+	});
+
+	test('restart round-trip: a forked additional chat re-materializes from the orchestrator\'s providerData on a fresh agent backed by the same database', async () => {
+		const database = new TestSessionDatabase();
+
+		const ctxA = createTestContext(disposables, { database });
+		await ctxA.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctxA.agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		ctxA.sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		ctxA.sdk.forkSessionResult = { sessionId: 'forked-1' };
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		const createResult = await ctxA.agent.chats.createChat(chatUri, created.session, {
+			model: { id: 'claude-opus-4.6' },
+			...resolvedChatOptions(),
+			fork: { source: defaultChatUri(created.session), turnId: 'u1' },
+		});
+		const providerData = createResult?.providerData;
+		const catalogBefore = listAdditionalChats(ctxA.agent, created.session);
+
+		const ctxB = createTestContext(disposables, { database });
+		await ctxB.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		ctxB.sdk.sessionList = [
+			{ sessionId: parentId, summary: 'parent', lastModified: 1, cwd: URI.file('/work').fsPath },
+			{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath },
+		];
+
+		await ctxB.agent.materializeChat!(chatUri, created.session, providerData);
+		const catalogAfter = listAdditionalChats(ctxB.agent, created.session);
+
+		ctxB.sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await ctxB.agent.chats.sendMessage(chatUri, 'after restart', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			providerData: providerData && JSON.parse(providerData),
+			catalogBefore,
+			catalogAfter,
+			liveChats: listLiveChats(ctxB.agent),
+			resume: ctxB.sdk.capturedStartupOptions[0]?.resume,
+			model: ctxB.sdk.capturedStartupOptions[0]?.model,
+		}, {
+			providerData: { sdkSessionId: 'forked-1', model: { id: 'claude-opus-4.6' } },
+			catalogBefore: [chatUri.toString()],
+			catalogAfter: [chatUri.toString()],
+			liveChats: [chatUri.toString()],
+			resume: 'forked-1',
+			model: 'claude-opus-4-6',
+		});
+	});
+
+	function createPerResourceSessionDataService(databases = new Map<string, TestSessionDatabase>()): ISessionDataService {
+		const dbFor = (resource: URI) => {
+			const key = resource.toString();
+			let db = databases.get(key);
+			if (!db) {
+				db = new TestSessionDatabase();
+				databases.set(key, db);
+			}
+			return db;
+		};
+		return {
+			_serviceBrand: undefined,
+			getSessionDataDir: session => URI.from({ scheme: Schemas.inMemory, path: `/session-data${session.path}` }),
+			getSessionDataDirById: sessionId => URI.from({ scheme: Schemas.inMemory, path: `/session-data/${sessionId}` }),
+			openDatabase: session => ({ object: dbFor(session), dispose: () => { } }),
+			tryOpenDatabase: async session => ({ object: dbFor(session), dispose: () => { } }),
+			deleteSessionData: async () => { },
+			onWillDeleteSessionData: Event.None,
+			cleanupOrphanedData: async () => { },
+			whenIdle: async () => { },
+		};
+	}
+
+	test('cold peer-chat fork inherits model/agent/permissionMode/workingDirectories from the source PEER chat, not the session-wide scope (regression)', async () => {
+		const databases = new Map<string, TestSessionDatabase>();
+
+		const ctxA = createTestContext(disposables, { sessionDataService: createPerResourceSessionDataService(databases) });
+		await ctxA.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctxA.agent, { workingDirectories: [URI.file('/work')] });
+
+		const metaStore = ctxA.instantiationService.createInstance(ClaudeSessionMetadataStore);
+		await metaStore.write(created.session, {
+			model: { id: 'claude-sonnet-4.6' },
+			permissionMode: 'bypassPermissions',
+			agent: { uri: 'claude-internal:/agent/DecoyAgent' },
+			workingDirectories: [URI.file('/session-level-decoy')],
+		});
+
+		const peerChatUri = URI.parse(buildChatUri(created.session.toString(), 'peer-chat'));
+		const peerCreateResult = await ctxA.agent.chats.createChat(peerChatUri, created.session, {
+			model: { id: 'claude-opus-4.6' },
+			agent: { uri: 'claude-internal:/agent/PeerAgent' },
+			workingDirectories: [URI.file('/peer-work')],
+			config: { [ClaudeSessionConfigKey.PermissionMode]: 'plan' },
+		});
+		const peerProviderData = peerCreateResult?.providerData;
+		const peerSdkId = JSON.parse(peerProviderData!).sdkSessionId as string;
+
+		ctxA.sdk.nextQueryMessages = [makeSystemInitMessage(peerSdkId), makeResultSuccess(peerSdkId)];
+		await ctxA.agent.chats.sendMessage(peerChatUri, 'hi peer', undefined, undefined, 'turn-0', undefined, undefined, chatContext(peerChatUri));
+
+		const ctxB = createTestContext(disposables, { sessionDataService: createPerResourceSessionDataService(databases) });
+		await ctxB.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		await ctxB.agent.materializeChat!(peerChatUri, created.session, peerProviderData);
+
+		ctxB.sdk.sessionMessagesById.set(peerSdkId, forkSourceMessages(peerSdkId));
+		ctxB.sdk.forkSessionResult = { sessionId: 'forked-cold' };
+		const forkChatUri = URI.parse(buildChatUri(created.session.toString(), 'peer-fork'));
+		await ctxB.agent.chats.createChat(forkChatUri, created.session, {
+			fork: { source: peerChatUri, turnId: 'u1' },
+		});
+
+		ctxB.sdk.nextQueryMessages = [makeSystemInitMessage('forked-cold'), makeResultSuccess('forked-cold')];
+		await ctxB.agent.chats.sendMessage(forkChatUri, 'after fork', undefined, undefined, 'turn-1', undefined, undefined, chatContext(forkChatUri));
+
+		assert.deepStrictEqual({
+			model: ctxB.sdk.capturedStartupOptions[0]?.model,
+			agent: ctxB.sdk.capturedStartupOptions[0]?.agent,
+			permissionMode: ctxB.sdk.capturedStartupOptions[0]?.permissionMode,
+			cwd: ctxB.sdk.capturedStartupOptions[0]?.cwd,
+		}, {
+			model: 'claude-opus-4-6',
+			agent: 'PeerAgent',
+			permissionMode: 'plan',
+			cwd: URI.file('/peer-work').fsPath,
+		});
+	});
+
+	test('cold peer-chat fork falls back to the source peer\'s recorded backing model when the peer was never materialized', async () => {
+		const database = new TestSessionDatabase();
+
+		const ctxA = createTestContext(disposables, { database });
+		await ctxA.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(ctxA.agent, { workingDirectories: [URI.file('/work')] });
+
+		const peerChatUri = URI.parse(buildChatUri(created.session.toString(), 'peer-chat'));
+		const peerCreateResult = await ctxA.agent.chats.createChat(peerChatUri, created.session, {
+			model: { id: 'claude-opus-4.6' },
+			workingDirectories: [URI.file('/peer-work')],
+		});
+		const peerProviderData = peerCreateResult?.providerData;
+		const peerSdkId = JSON.parse(peerProviderData!).sdkSessionId as string;
+
+		const ctxB = createTestContext(disposables, { database });
+		await ctxB.agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		await ctxB.agent.materializeChat!(peerChatUri, created.session, peerProviderData);
+
+		ctxB.sdk.sessionMessagesById.set(peerSdkId, forkSourceMessages(peerSdkId));
+		ctxB.sdk.forkSessionResult = { sessionId: 'forked-cold-2' };
+		ctxB.sdk.sessionList = [{ sessionId: 'forked-cold-2', summary: 'fork', lastModified: 1, cwd: URI.file('/peer-work').fsPath }];
+		const forkChatUri = URI.parse(buildChatUri(created.session.toString(), 'peer-fork-2'));
+		await ctxB.agent.chats.createChat(forkChatUri, created.session, {
+			fork: { source: peerChatUri, turnId: 'u1' },
+		});
+
+		ctxB.sdk.nextQueryMessages = [makeSystemInitMessage('forked-cold-2'), makeResultSuccess('forked-cold-2')];
+		await ctxB.agent.chats.sendMessage(forkChatUri, 'after fork', undefined, undefined, 'turn-1', undefined, undefined, chatContext(forkChatUri));
+
+		assert.strictEqual(ctxB.sdk.capturedStartupOptions[0]?.model, 'claude-opus-4-6');
+	});
+
+	test('changeModel on an additional chat fires onDidChangeChatData with the refreshed providerData', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		const createResult = await agent.chats.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const sdkSessionId = JSON.parse(createResult!.providerData!).sdkSessionId as string;
+
+		const changes: IAgentChatDataChange[] = [];
+		disposables.add(agent.onDidChangeChatData!(e => changes.push(e)));
+
+		await agent.chats.changeModel(chatUri, { id: 'claude-opus-4.6' }, chatContext(chatUri));
+
+		assert.deepStrictEqual(changes.map(c => ({ chat: c.chat.toString(), providerData: JSON.parse(c.providerData) })), [
+			{ chat: chatUri.toString(), providerData: { sdkSessionId, model: { id: 'claude-opus-4.6' } } },
+		]);
+	});
+
+
+
+	test('createChat mints a provisional session and chat teardown tears it down', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		await disposeSession(agent, created.session);
+		await disposeSession(agent, created.session);
+
+		assert.deepStrictEqual({
+			scheme: created.session.scheme,
+			provisional: created.provisional,
+		}, {
+			scheme: 'claude',
+			provisional: true,
+		});
+	});
+
+	test('chats.createChat persists an additional chat; getChats lists it; chats.disposeChat removes it', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+
+		await agent.chats!.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const afterCreate = listAdditionalChats(agent, created.session);
+
+		await agent.chats!.disposeChat(chatUri, chatContext(chatUri));
+		const afterDispose = listAdditionalChats(agent, created.session);
+
+		assert.deepStrictEqual({ afterCreate, afterDispose }, {
+			afterCreate: [chatUri.toString()],
+			afterDispose: [],
+		});
+	});
+
+	test('chats.createChat({ fork }) forks the source chat; chats.sendMessage resumes the additional chat\'s own forked SDK session', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats!.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		const forkCall = sdk.forkSessionCalls[0];
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats!.sendMessage(chatUri, 'next', undefined, undefined, 'turn-1');
+
+		assert.deepStrictEqual({
+			forkCall,
+			chats: listAdditionalChats(agent, created.session),
+			startupResume: sdk.capturedStartupOptions[0]?.resume,
+		}, {
+			forkCall: { sessionId: parentId, options: { upToMessageId: 'a1' } },
+			chats: [chatUri.toString()],
+			startupResume: 'forked-1',
+		});
+	});
+
+	test('chats addresses the default chat by the default chat URI (sendMessage and getMessages both route to its exact backing)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+
+		const chat = defaultChatUri(created.session);
+		await agent.chats.sendMessage(chat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chat));
+		const turns = await agent.chats.getMessages(chat, chatContext(chat));
+
+		assert.deepStrictEqual({
+			startupSessionId: sdk.capturedStartupOptions[0]?.sessionId,
+			resume: sdk.capturedStartupOptions[0]?.resume,
+			turns,
+			transcriptRead: sdk.getSessionMessagesCalls.at(-1),
+		}, {
+			startupSessionId: sessionId,
+			resume: undefined,
+			turns: [],
+			transcriptRead: { sessionId, options: { includeSystemMessages: true } },
+		});
+	});
+
+	test('chats.changeModel on an additional fires onDidChangeChatData with the refreshed providerData (parity with legacy changeModel)', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		const createResult = await agent.chats!.createChat(chatUri, created.session, { ...resolvedChatOptions() });
+		const sdkSessionId = JSON.parse(createResult!.providerData!).sdkSessionId as string;
+
+		const changes: IAgentChatDataChange[] = [];
+		disposables.add(agent.onDidChangeChatData!(e => changes.push(e)));
+
+		await agent.chats.changeModel(chatUri, { id: 'claude-opus-4.6' }, chatContext(chatUri));
+
+		assert.deepStrictEqual(changes.map(c => ({ chat: c.chat.toString(), providerData: JSON.parse(c.providerData) })), [
+			{ chat: chatUri.toString(), providerData: { sdkSessionId, model: { id: 'claude-opus-4.6' } } },
+		]);
+	});
+
+	test('chats.changeAgent on an additional persists to its overlay so a later resume picks it up (parity with legacy changeAgent)', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const parentId = created.sdkSessionId;
+		sdk.sessionMessagesById.set(parentId, forkSourceMessages(parentId));
+		sdk.forkSessionResult = { sessionId: 'forked-1' };
+		sdk.sessionList = [{ sessionId: 'forked-1', summary: 'fork', lastModified: 1, cwd: URI.file('/work').fsPath }];
+
+		const chatUri = URI.parse(buildChatUri(created.session.toString(), 'chat-1'));
+		await agent.chats!.createChat(chatUri, created.session, { ...resolvedChatOptions(), fork: { source: defaultChatUri(created.session), turnId: 'u1' } });
+
+		await agent.chats!.changeAgent(chatUri, { uri: 'file:///foo/agents/reviewer.md' }, chatContext(chatUri));
+
+		sdk.nextQueryMessages = [makeSystemInitMessage('forked-1'), makeResultSuccess('forked-1')];
+		await agent.chats!.sendMessage(chatUri, 'hi', undefined, undefined, 'turn-1');
+
+		assert.strictEqual(sdk.capturedStartupOptions[0]?.agent, 'reviewer');
+	});
+
+});
+
+
+suite('ClaudeAgent — host OTel session-title spans', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('emits a host OTel session-title span when this agent\'s session title changes', () => {
+		const { stateManager, otelService } = createTestContext(disposables);
+		const sessionUri = AgentSession.uri('claude', 'wire-title');
+		stateManager.createSession({
+			resource: sessionUri.toString(),
+			provider: 'claude',
+			title: 'Initial',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+
+		stateManager.dispatchServerAction(sessionUri.toString(), { type: ActionType.SessionTitleChanged, title: 'Renamed' });
+
+		assert.deepStrictEqual(otelService.titleChanges, [{ conversationId: 'wire-title', sessionUri: sessionUri.toString(), title: 'Renamed' }]);
+	});
+
+	test('ignores session-title changes belonging to another provider', () => {
+		const { stateManager, otelService } = createTestContext(disposables);
+		const foreignUri = AgentSession.uri('copilot', 'foreign-title');
+		stateManager.createSession({
+			resource: foreignUri.toString(),
+			provider: 'copilot',
+			title: 'Initial',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+
+		stateManager.dispatchServerAction(foreignUri.toString(), { type: ActionType.SessionTitleChanged, title: 'Renamed' });
+
+		assert.deepStrictEqual(otelService.titleChanges, []);
+	});
+});
+
+
+suite('ClaudeAgent — materializeChat legacy default-chat recovery', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('materializeChat recovers the historical implicit default-chat identity from an old persisted session when providerData is absent', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sessionUri = AgentSession.uri('claude', 'ah-legacy-session');
+		const sessionId = AgentSession.id(sessionUri);
+		sdk.sessionList = [{ sessionId, summary: 'legacy', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		sdk.sessionMessagesById.set(sessionId, forkSourceMessages(sessionId));
+
+		const chatUri = defaultChatUri(sessionUri);
+		const result = await agent.recoverLegacyChat!(chatUri, { configurationResource: sessionUri, resource: sessionUri });
+		await agent.materializeChat!(chatUri, { configurationResource: sessionUri, resource: sessionUri }, result.providerData);
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(chatUri, 'hello', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			providerData: result && result.providerData ? JSON.parse(result.providerData) : undefined,
+			backingSession: result?.backingSession,
+			resume: sdk.capturedStartupOptions[0]?.resume,
+			liveChats: listLiveChats(agent),
+		}, {
+			providerData: { sdkSessionId: sessionId },
+			backingSession: undefined,
+			resume: sessionId,
+			liveChats: [chatUri.toString()],
+		});
+	});
+
+	test('materializeChat legacy default-chat recovery is idempotent across repeated calls', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+
+		const sessionUri = AgentSession.uri('claude', 'ah-legacy-repeat');
+		const sessionId = AgentSession.id(sessionUri);
+		sdk.sessionList = [{ sessionId, summary: 'legacy', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		const chatUri = defaultChatUri(sessionUri);
+		const context: IAgentChatContext = { configurationResource: sessionUri, resource: sessionUri };
+
+		const first = await agent.recoverLegacyChat!(chatUri, context);
+		const second = await agent.recoverLegacyChat!(chatUri, context);
+		await agent.materializeChat!(chatUri, context, second.providerData);
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(chatUri, 'hello again', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chatUri));
+
+		assert.deepStrictEqual({
+			first: first && first.providerData ? JSON.parse(first.providerData) : undefined,
+			second: second && second.providerData ? JSON.parse(second.providerData) : undefined,
+			liveChats: listLiveChats(agent),
+			resume: sdk.capturedStartupOptions[0]?.resume,
+			startupCount: sdk.capturedStartupOptions.length,
+		}, {
+			first: { sdkSessionId: sessionId },
+			second: { sdkSessionId: sessionId },
+			liveChats: [chatUri.toString()],
+			resume: sessionId,
+			startupCount: 1,
+		});
+	});
+
+	test('materializeChat does not assign the default backing to a peer without providerData', async () => {
+		const { agent } = createTestContext(disposables);
+		const session = AgentSession.uri('claude', 'peer-without-backing');
+		const chat = URI.parse(buildChatUri(session, 'peer'));
+
+		const result = await agent.materializeChat!(chat, { configurationResource: session, resource: chat }, undefined);
+
+		assert.deepStrictEqual({
+			result,
+			backing: (agent as unknown as { _chatBackings: Map<string, unknown> })._chatBackings.get(chat.toString()),
+		}, {
+			result: undefined,
+			backing: undefined,
+		});
+	});
+});
+
+
+
+suite('ClaudeAgent — host seams', () => {
+
+	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('a peer chat server tool executes against its exact Agent Host chat channel', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		const toolName = 'peer_server_tool';
+		let executedChatUri: string | undefined;
+		agent.setServerToolHost({
+			definitions: [{ name: toolName, inputSchema: { type: 'object', properties: {} } }],
+			toolNames: [toolName],
+			advertise: () => { },
+			getDefinitionsForSession: () => [{ name: toolName, inputSchema: { type: 'object', properties: {} } }],
+			canRequireConfirmation: () => false,
+			requiresConfirmation: () => false,
+			executeTool: chatUri => {
+				executedChatUri = chatUri;
+				return 'done';
+			},
+		});
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const peerChat = URI.parse(buildChatUri(created.session.toString(), 'peer-server-tool'));
+		const peerCreated = await agent.chats.createChat(peerChat, { configurationResource: created.session, resource: peerChat }, { ...resolvedChatOptions() });
+		const peerSdkId = AgentSession.id(peerCreated!.backingSession!);
+		sdk.nextQueryMessages = [makeSystemInitMessage(peerSdkId), makeResultSuccess(peerSdkId)];
+
+		await agent.chats.sendMessage(peerChat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(peerChat));
+		const result = await sdk.toolHandlers.get(toolName)!({}, undefined);
+
+		assert.deepStrictEqual({
+			executedChatUri,
+			result,
+		}, {
+			executedChatUri: peerChat.toString(),
+			result: { content: [{ type: 'text', text: 'done' }] },
+		});
+	});
+
+	test('a subagent chat resolves its spawn edge only from the host-supplied origin', async () => {
+		const { agent, sdk, stateManager } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = AgentSession.uri('claude', 'ah-spawn');
+		const subagentChat = URI.parse(buildSubagentChatUri(session.toString(), 'tool-call-1'));
+		stateManager.createSession({
+			resource: session.toString(),
+			provider: 'claude',
+			title: 'spawner',
+			status: SessionStatus.Idle,
+			createdAt: new Date().toISOString(),
+			modifiedAt: new Date().toISOString(),
+		});
+		stateManager.addChat(session.toString(), subagentChat.toString(), {
+			origin: { kind: ChatOriginKind.Tool, chat: defaultChatUri(session).toString(), toolCallId: 'tool-call-1' },
+		});
+
+		const turns = await agent.chats.getMessages(subagentChat, {
+			configurationResource: session,
+			resource: subagentChat,
+		});
+
+		assert.deepStrictEqual({
+			turns,
+			transcriptReads: sdk.getSessionMessagesCalls.length,
+			subagentReads: sdk.getSubagentMessagesCalls.length,
+		}, { turns: [], transcriptReads: 0, subagentReads: 0 });
+	});
+
+	test('a client tool completion addressed to a subagent resolves the spawning chat from the context origin', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const sessionId = created.sdkSessionId;
+		const spawningChat = defaultChatUri(created.session);
+		sdk.nextQueryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
+		await agent.chats.sendMessage(spawningChat, 'go', undefined, undefined, 'turn-1', undefined, undefined, chatContext(spawningChat));
+
+		const subagentChat = URI.parse(buildSubagentChatUri(created.session.toString(), 'tool-call-1'));
+		const live = agent.getSessionForTesting(created.session)!;
+		const completed: string[] = [];
+		live.completeClientToolCall = (toolCallId: string) => { completed.push(toolCallId); return true; };
+
+		agent.onClientToolCallComplete(subagentChat, 'tu_1', { success: true, pastTenseMessage: 'ran' }, {
+			configurationResource: created.session,
+			resource: subagentChat,
+			origin: { kind: ChatOriginKind.Tool, chat: spawningChat.toString(), toolCallId: 'tool-call-1' },
+		});
+		agent.onClientToolCallComplete(subagentChat, 'tu_2', { success: true, pastTenseMessage: 'ran' }, {
+			configurationResource: created.session,
+			resource: subagentChat,
+		});
+
+		assert.deepStrictEqual(completed, ['tu_1']);
+	});
+
+	test('a client active on one chat is not implicitly extended to a newly created peer chat', async () => {
+		const { agent, sdk } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const created = await createSession(agent, { workingDirectories: [URI.file('/work')] });
+		const defaultChat = defaultChatUri(created.session);
+		const peerChat = URI.parse(buildChatUri(created.session.toString(), 'peer-1'));
+		const defaultHandle = getOrCreateActiveClient(agent, defaultChat, 'c1');
+		defaultHandle.tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(created.sdkSessionId), makeResultSuccess(created.sdkSessionId)];
+		await agent.chats.sendMessage(defaultChat, 'default', undefined, undefined, 'turn-default', undefined, undefined, chatContext(defaultChat));
+
+		const peerCreated = await agent.chats.createChat(peerChat, { configurationResource: created.session, resource: peerChat }, { ...resolvedChatOptions() });
+		const peerBackingSession = peerCreated!.backingSession!;
+		const peerSdkId = AgentSession.id(peerBackingSession);
+
+		sdk.nextQueryMessages = [makeSystemInitMessage(peerSdkId), makeResultSuccess(peerSdkId)];
+		await agent.chats.sendMessage(peerChat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(peerChat));
+		const peerSessionBeforeAddressed = agent.getSessionForTesting(peerBackingSession)!;
+
+		assert.deepStrictEqual(
+			peerSessionBeforeAddressed.getClientTools('c1').map(tool => tool.name),
+			[],
+		);
+
+		getOrCreateActiveClient(agent, peerChat, 'c1').tools = [{ name: 'echo', inputSchema: { type: 'object' } }];
+		assert.deepStrictEqual(
+			peerSessionBeforeAddressed.getClientTools('c1').map(tool => tool.name),
+			['echo'],
+		);
+		assert.deepStrictEqual(
+			agent.getSessionForTesting(created.chat!.backingSession!)!.getClientTools('c1').map(tool => tool.name),
+			['echo'],
+		);
+	});
+
+	test('remove-all truncation works on a legacy default chat recovered by materializeChat', async () => {
+		const database = new TestSessionDatabase();
+		const { agent, sdk } = createTestContext(disposables, { database });
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = AgentSession.uri('claude', 'ah-legacy-truncate');
+		const sessionId = AgentSession.id(session);
+		const chat = defaultChatUri(session);
+		sdk.sessionList = [{ sessionId, summary: 'legacy', lastModified: 1, cwd: URI.file('/work').fsPath }];
+		await bindDefaultChat(agent, session);
+		sdk.nextQueryMessages = [
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+			makeSystemInitMessage(sessionId), makeResultSuccess(sessionId),
+		];
+		await agent.chats.sendMessage(chat, 'first', undefined, undefined, 'turn-1', undefined, undefined, chatContext(chat));
+
+		await agent.truncateChat(chat, undefined, chatContext(chat));
+		await agent.chats.sendMessage(chat, 'second', undefined, undefined, 'turn-2', undefined, undefined, chatContext(chat));
+
+		const last = sdk.capturedStartupOptions.at(-1);
+		assert.deepStrictEqual({
+			deleted: sdk.deleteSessionCalls,
+			allTurnsPruned: database.deleteAllTurnsCalls,
+			lastSessionId: last?.sessionId,
+			lastResume: last?.resume,
+			sessionPresent: agent.getSessionForTesting(session) !== undefined,
+		}, {
+			deleted: [sessionId],
+			allTurnsPruned: 1,
+			lastSessionId: sessionId,
+			lastResume: undefined,
+			sessionPresent: true,
+		});
+	});
+});
+

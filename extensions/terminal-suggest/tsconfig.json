@@ -1,0 +1,24 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"types": [
+			"node"
+		],
+		"typeRoots": [
+			"./node_modules/@types"
+		],
+		"esModuleInterop": true,
+		// Needed to suppress warnings in upstream completions
+		"noImplicitReturns": false,
+		"noUnusedParameters": false
+	},
+	"include": [
+		"src/**/*",
+		"src/completions/index.d.ts",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.terminalCompletionProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.terminalShellEnv.d.ts"
+	]
+}

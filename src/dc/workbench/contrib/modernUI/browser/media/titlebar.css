@@ -1,0 +1,7 @@
+
+
+.modern-ui.monaco-workbench.mac .part.titlebar > .titlebar-container > .titlebar-left,
+.modern-ui.monaco-workbench.mac .part.titlebar > .titlebar-container > .titlebar-center,
+.modern-ui.monaco-workbench.mac .part.titlebar > .titlebar-container > .titlebar-right {
+	padding-top: var(--vscode-spacing-size20);
+}

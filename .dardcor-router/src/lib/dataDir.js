@@ -1,0 +1,32 @@
+import fs from "node:fs";
+import path from "path";
+import os from "os";
+
+const APP_NAME = "dardcor-code";
+
+function defaultDir() {
+  return path.join(os.homedir(), ".dardcor", "provider");
+}
+
+export function getDataDir() {
+  const configured = process.env.DATA_DIR;
+  if (!configured) return defaultDir();
+
+  if (process.platform === "win32" && /^\//.test(configured)) {
+    console.warn(`[DATA_DIR] '${configured}' is a Unix path on Windows → fallback to default`);
+    return defaultDir();
+  }
+
+  try {
+    fs.mkdirSync(configured, { recursive: true });
+    return configured;
+  } catch (e) {
+    if (e?.code === "EACCES" || e?.code === "EPERM") {
+      console.warn(`[DATA_DIR] '${configured}' not writable → fallback ~/.${APP_NAME}`);
+      return defaultDir();
+    }
+    throw e;
+  }
+}
+
+export const DATA_DIR = getDataDir();

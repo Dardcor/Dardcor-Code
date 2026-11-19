@@ -1,0 +1,97 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import * as vscode from 'vscode';
+import { Utils } from 'vscode-uri';
+import { disposeAll, IDisposable } from '../util/dispose';
+import { ResourceMap } from '../util/resourceMap';
+import { Schemes } from '../util/schemes';
+
+type DirWatcherEntry = {
+	readonly uri: vscode.Uri;
+	readonly disposables: readonly IDisposable[];
+};
+
+
+export class FileWatcherManager {
+
+	readonly #fileWatchers = new Map<number, {
+		readonly watcher: vscode.FileSystemWatcher;
+		readonly dirWatchers: DirWatcherEntry[];
+	}>();
+
+	readonly #dirWatchers = new ResourceMap<{
+		readonly watcher: vscode.FileSystemWatcher;
+		refCount: number;
+	}>();
+
+	create(id: number, uri: vscode.Uri, watchParentDirs: boolean, listeners: { create?: () => void; change?: () => void; delete?: () => void }): void {
+		if (!vscode.workspace.fs.isWritableFileSystem(uri.scheme)) {
+			return;
+		}
+
+		const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(uri, '*'), !listeners.create, !listeners.change, !listeners.delete);
+		const parentDirWatchers: DirWatcherEntry[] = [];
+		this.#fileWatchers.set(id, { watcher, dirWatchers: parentDirWatchers });
+
+		if (listeners.create) { watcher.onDidCreate(listeners.create); }
+		if (listeners.change) { watcher.onDidChange(listeners.change); }
+		if (listeners.delete) { watcher.onDidDelete(listeners.delete); }
+
+		if (watchParentDirs && uri.scheme !== Schemes.untitled) {
+			for (let dirUri = Utils.dirname(uri); dirUri.path.length > 1; dirUri = Utils.dirname(dirUri)) {
+				const disposables: IDisposable[] = [];
+
+				let parentDirWatcher = this.#dirWatchers.get(dirUri);
+				if (!parentDirWatcher) {
+					const glob = new vscode.RelativePattern(Utils.dirname(dirUri), Utils.basename(dirUri));
+					const parentWatcher = vscode.workspace.createFileSystemWatcher(glob, !listeners.create, true, !listeners.delete);
+					parentDirWatcher = { refCount: 0, watcher: parentWatcher };
+					this.#dirWatchers.set(dirUri, parentDirWatcher);
+				}
+				parentDirWatcher.refCount++;
+
+				if (listeners.create) {
+					disposables.push(parentDirWatcher.watcher.onDidCreate(async () => {
+						try {
+							const stat = await vscode.workspace.fs.stat(uri);
+							if (stat.type === vscode.FileType.File) {
+								listeners.create!();
+							}
+						} catch {
+						}
+					}));
+				}
+
+				if (listeners.delete) {
+					disposables.push(parentDirWatcher.watcher.onDidDelete(listeners.delete));
+				}
+
+				parentDirWatchers.push({ uri: dirUri, disposables });
+			}
+		}
+	}
+
+	delete(id: number): void {
+		const entry = this.#fileWatchers.get(id);
+		if (entry) {
+			for (const dirWatcher of entry.dirWatchers) {
+				disposeAll(dirWatcher.disposables);
+
+				const dirWatcherEntry = this.#dirWatchers.get(dirWatcher.uri);
+				if (dirWatcherEntry) {
+					if (--dirWatcherEntry.refCount <= 0) {
+						dirWatcherEntry.watcher.dispose();
+						this.#dirWatchers.delete(dirWatcher.uri);
+					}
+				}
+			}
+
+			entry.watcher.dispose();
+		}
+
+		this.#fileWatchers.delete(id);
+	}
+}

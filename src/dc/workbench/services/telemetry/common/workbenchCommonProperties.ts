@@ -1,0 +1,40 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
+import { resolveCommonProperties } from '../../../../platform/telemetry/common/commonProperties.js';
+import { ICommonProperties, firstSessionDateStorageKey, lastSessionDateStorageKey } from '../../../../platform/telemetry/common/telemetry.js';
+import { cleanRemoteAuthority } from '../../../../platform/telemetry/common/telemetryUtils.js';
+import { INodeProcess } from '../../../../base/common/platform.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
+
+export function resolveWorkbenchCommonProperties(
+	storageService: IStorageService,
+	productService: IProductService,
+	environmentService: IWorkbenchEnvironmentService,
+	release: string,
+	hostname: string,
+	machineId: string,
+	sqmId: string,
+	devDeviceId: string,
+	isInternalTelemetry: boolean,
+	process: INodeProcess,
+): ICommonProperties {
+	const { commit, version, date: releaseDate } = productService ?? {};
+	const result = resolveCommonProperties(release, hostname, process.arch, commit, version, machineId, sqmId, devDeviceId, isInternalTelemetry, releaseDate);
+	const firstSessionDate = storageService.get(firstSessionDateStorageKey, StorageScope.APPLICATION)!;
+	const lastSessionDate = storageService.get(lastSessionDateStorageKey, StorageScope.APPLICATION)!;
+
+	result['common.version.shell'] = process.versions?.['electron'];
+	result['common.version.renderer'] = process.versions?.['chrome'];
+	result['common.firstSessionDate'] = firstSessionDate;
+	result['common.lastSessionDate'] = lastSessionDate || '';
+	result['common.isNewSession'] = !lastSessionDate ? '1' : '0';
+	result['common.remoteAuthority'] = cleanRemoteAuthority(environmentService.remoteAuthority, productService);
+	result['common.cli'] = !!process.env['VSCODE_CLI'];
+
+	return result;
+}

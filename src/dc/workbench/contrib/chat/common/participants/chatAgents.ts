@@ -1,0 +1,8645 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { findLast } from '../../../../../base/common/arraysFind.js';
+import { raceCancellation } from '../../../../../base/common/async.js';
+import { CancellationToken } from '../../../../../base/common/cancellation.js';
+import { IStringDictionary } from '../../../../../base/common/collections.js';
+import { Emitter, Event } from '../../../../../base/common/event.js';
+import { IMarkdownString, MarkdownString } from '../../../../../base/common/htmlContent.js';
+import { Iterable } from '../../../../../base/common/iterator.js';
+import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
+import { revive, Revived } from '../../../../../base/common/marshalling.js';
+import { IObservable } from '../../../../../base/common/observable.js';
+import { equalsIgnoreCase } from '../../../../../base/common/strings.js';
+import { isWindows } from '../../../../../base/common/platform.js';
+import { ThemeIcon } from '../../../../../base/common/themables.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { Command } from '../../../../../editor/common/languages.js';
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
+import { ContextKeyExpr, IContextKey, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
+import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
+import { createDecorator, IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { IPathService } from '../../../../services/path/common/pathService.js';
+import { ISearchService, QueryType, type IFileQuery, type ITextQuery } from '../../../../services/search/common/search.js';
+import { ILanguageFeaturesService } from '../../../../../editor/common/services/languageFeatures.js';
+import { IModelService } from '../../../../../editor/common/services/model.js';
+import { VSBuffer } from '../../../../../base/common/buffer.js';
+import { basename, dirname, extUriBiasedIgnorePathCase, joinPath } from '../../../../../base/common/resources.js';
+import { EditorResourceAccessor } from '../../../../common/editor.js';
+import { ChatContextKeys } from '../actions/chatContextKeys.js';
+import type { IChatAgentEditedFileEvent, IChatProgressHistoryResponseContent, IChatRequestModeInfo, IChatRequestModeInstructions, IChatRequestVariableData, ISerializableChatAgentData } from '../model/chatModel.js';
+import { IChatEditingService } from '../editing/chatEditingService.js';
+import { ICustomizationHarnessService } from '../customizationHarnessService.js';
+import { ChatRequestHooks } from '../promptSyntax/hookSchema.js';
+import { isBuiltinSkillUri, getBuiltinSkillContent } from '../promptSyntax/builtin/builtinSkills.js';
+import { IRawChatCommandContribution } from './chatParticipantContribTypes.js';
+import { IChatFollowup, IChatLocationData, IChatProgress, IChatQuestion as IChatCarouselQuestion, IChatQuestionAnswers, IChatResponseErrorDetails, IChatService, IChatTaskDto, ToolConfirmKind } from '../chatService/chatService.js';
+const ITerminalService = createDecorator<any>('terminalService');
+import { ILanguageModelToolsService, ToolDataSource, ToolInvocationPresentation, toolContentToA11yString } from '../tools/languageModelToolsService.js';
+import type { IToolData } from '../tools/languageModelToolsService.js';
+import type { IArtifactRuleOverrides, IChatArtifact } from '../tools/chatArtifactsService.js';
+import { IChatArtifactsService } from '../tools/chatArtifactsServiceId.js';
+import { TerminalToolId } from '../tools/terminalToolIds.js';
+import { ChatAgentLocation, ChatConfiguration, ChatModeKind, ChatPermissionLevel, isAutoApproveLevel } from '../constants.js';
+import { ILanguageModelsService } from '../languageModels.js';
+import { ChatPerfMark, markChat } from '../chatPerf.js';
+import { IMarkerService, MarkerSeverity } from '../../../../../platform/markers/common/markers.js';
+import { formatDardcorRouterError, parseDardcorRouterError, cleanMessageText, formatModelDisplayName, diagnoseProviderIssue } from './dardcorRouterError.js';
+import { ChatQuestionCarouselData } from '../model/chatProgressTypes/chatQuestionCarouselData.js';
+import { ChatPlanReviewData } from '../model/chatProgressTypes/chatPlanReviewData.js';
+import { TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
+import { ITaskService } from '../../../tasks/common/taskService.js';
+import { IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
+import { linesDiffComputers } from '../../../../../editor/common/diff/linesDiffComputers.js';
+import { type IChatTodo, IChatTodoListService, normalizeTodoListArgs } from '../tools/chatTodoListService.js';
+import { createChatAgentRunState, IChatAgentRunState, IChatAgentRunStateService, updateChatAgentRunState } from '../tools/agentRunStateService.js';
+import { commandApprovalKey, compactDardcorAgentMessages, DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS, DARDCOR_AGENT_MAX_CONTEXT_CHARS, DARDCOR_AGENT_TARGET_CONTEXT_CHARS, detectDardcorLanguage, formatDardcorVerificationLabel, generateAntigravityFinalReport, getDardcorAutonomousMomentumDirective, getDardcorAutonomousSelfCorrectionDirective, getDardcorBrowserVerificationRequirement, getDardcorCompletionBlocker, getDardcorEffectivePermissionLevel, getDardcorFinalSummaryMandate, getDardcorLanguageName, getDardcorLocaleStrings, getDardcorPlainTextTurnDecision, getDardcorRunGuardReason, getDardcorToolFailureState, getDardcorVerificationCommandStatus, type IAntigravityChangedFileInfo, isDardcorAutonomousTask, isDardcorBrowserTest, isDardcorContinuation, isDardcorLowRiskCommand, parseDardcorAgentToolArguments, requiresDardcorToolConfirmation, revalidateDardcorCompletion, sanitizeDardcorIdentity, summarizeDardcorToolAction } from './dardcorAgentRunPolicy.js';
+import { DardcorAgentToolRuntime, formatAgentToolError, isAgentToolExecutionStatus } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
+import type { AgentToolExecutionStatus, AgentToolRisk, AgentToolSource } from '../../../../../platform/agentHost/common/agentToolRuntime.js';
+import { applyIntelligentFuzzyEdit, createWorkspaceCheckpoint, formatConsciousnessTelemetry, getMetacognitivePivotDirective, listWorkspaceCheckpoints, recordConsciousToolAction, restoreWorkspaceCheckpoint, upsertHypothesis } from './dardcorConsciousnessEngine.js';
+import { findMatchingEpisodicErrorLessons, getDardcorMemoryPromptContext, hydrateDardcorSelfImprovingMemory, queryDardcorSelfImprovingMemory, storeDardcorEpisodicErrorLesson, storeDardcorKnowledgeInsight, synthesizeAndPersistDardcorSkill } from '../tools/dardcorSelfImprovingMemoryService.js';
+import { executeDardcorAgentSwarm } from './dardcorSwarmOrchestrator.js';
+
+type DardcorRouterToolDefinition = {
+	type: 'function';
+	function: { name: string; description: string; parameters: unknown };
+};
+
+function createRouterLocalToolName(tool: IToolData): string {
+	const source = tool.source.type.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+	const reference = (tool.toolReferenceName || tool.id).replace(/[^a-z0-9_]/gi, '_').toLowerCase().slice(0, 38);
+	let hash = 2166136261;
+	for (const character of `${tool.source.type}:${tool.id}`) {
+		hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+	}
+	return `dardcor_${source}_${reference}_${(hash >>> 0).toString(36)}`;
+}
+
+function computeAgentFileDiff(originalContent: string, modifiedContent: string): { added: number; removed: number } {
+	if (originalContent === modifiedContent) {
+		return { added: 0, removed: 0 };
+	}
+	const origLines = originalContent.split(/\r\n|\r|\n/);
+	const modLines = modifiedContent.split(/\r\n|\r|\n/);
+	const computer = linesDiffComputers.getDefault();
+	const diff = computer.computeDiff(origLines, modLines, {
+		ignoreTrimWhitespace: false,
+		computeMoves: false,
+		maxComputationTimeMs: 1000
+	});
+	let added = 0;
+	let removed = 0;
+	for (const c of diff.changes) {
+		added += Math.max(0, c.modified.endLineNumberExclusive - c.modified.startLineNumber);
+		removed += Math.max(0, c.original.endLineNumberExclusive - c.original.startLineNumber);
+	}
+	return { added, removed };
+}
+
+function parseAgentCommandExitCode(output: string): number | undefined {
+	const resultMarker = output.match(/\[Command result: exit code (-?\d+)\]/i);
+	if (resultMarker) {
+		return Number(resultMarker[1]);
+	}
+	const failure = output.match(/(?:Command failed with exit code|Exit code:)\s*(-?\d+)/i);
+	return failure ? Number(failure[1]) : undefined;
+}
+
+function stripAnsiSequences(text: string): string {
+	return text
+		.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n');
+}
+
+function isLongRunningDaemonCommand(command: string): boolean {
+	const trimmed = command.trim();
+	if (!trimmed) {
+		return false;
+	}
+	if (/\b(--version|-v|--help|-h|build|lint|typecheck|check|test|migrate|seed|install|ci|audit)\b/i.test(trimmed) && !/\b(--watch|-w|serve|dev|runserver)\b/i.test(trimmed)) {
+		return false;
+	}
+	return /\b(php\s+artisan\s+serve|php\s+-S\s+|npm\s+(?:run\s+)?(?:dev|start|serve|watch)|pnpm\s+(?:run\s+)?(?:dev|start|serve|watch)|yarn\s+(?:run\s+)?(?:dev|start|serve|watch)|bun\s+(?:run\s+)?(?:dev|start|serve|watch)|npx\s+(?:vite|next\s+dev|live-server|http-server|serve|nodemon|ts-node-dev|tsx\s+watch)|vite(?:\s+dev|\s+preview|\s*$|(?:\s+--))|next\s+(?:dev|start)|nuxt\s+(?:dev|preview)|astro\s+(?:dev|preview)|ng\s+serve|svelte-kit\s+dev|webpack\s+serve|live-server\b|http-server\b|python(?:3)?\s+manage\.py\s+runserver|python(?:3)?\s+-m\s+http\.server|uvicorn\b|gunicorn\b|flask\s+run|fastapi\s+(?:dev|run)|cargo\s+watch|nodemon\b|docker(?:\s+compose|-compose)\s+up(?!\s+.*-d\b)|tsc\s+.*(?:--watch|-w)\b)\b/i.test(trimmed);
+}
+
+interface IStealthAgentTerminalRecord {
+	readonly id: string;
+	readonly sessionKey: string;
+	readonly label: string;
+	readonly command: string;
+	readonly instance: any;
+	outputBuffer: string;
+	exitCode?: number;
+	readonly createdAt: number;
+	readonly disposable: IDisposable;
+}
+
+const _sessionLastBuiltinTerminalIds = new Map<string, string>();
+const _stealthAgentTerminals = new Map<string, IStealthAgentTerminalRecord>();
+
+function findLatestStealthAgentTerminal(termService: any, sessionKey?: string, requestedId?: string): { record?: IStealthAgentTerminalRecord; instance?: any } {
+	const cleanId = (requestedId || '').trim();
+	if (cleanId) {
+		const direct = _stealthAgentTerminals.get(cleanId);
+		if (direct && !direct.instance?.isDisposed) {
+			return { record: direct, instance: direct.instance };
+		}
+		for (const rec of _stealthAgentTerminals.values()) {
+			if (!rec.instance?.isDisposed && (String(rec.instance?.instanceId) === cleanId || rec.label === cleanId)) {
+				return { record: rec, instance: rec.instance };
+			}
+		}
+	}
+
+	let latestRecord: IStealthAgentTerminalRecord | undefined;
+	for (const rec of _stealthAgentTerminals.values()) {
+		if (rec.instance?.isDisposed) {
+			_stealthAgentTerminals.delete(rec.id);
+			continue;
+		}
+		if (sessionKey && rec.sessionKey === sessionKey) {
+			if (!latestRecord || rec.createdAt >= latestRecord.createdAt) {
+				latestRecord = rec;
+			}
+		}
+	}
+	if (!latestRecord) {
+		for (const rec of _stealthAgentTerminals.values()) {
+			if (!rec.instance?.isDisposed && (!latestRecord || rec.createdAt >= latestRecord.createdAt)) {
+				latestRecord = rec;
+			}
+		}
+	}
+	if (latestRecord) {
+		return { record: latestRecord, instance: latestRecord.instance };
+	}
+
+	
+	const allInstances: any[] = Array.isArray(termService?.instances) ? termService.instances : [];
+	for (let i = allInstances.length - 1; i >= 0; i--) {
+		const inst = allInstances[i];
+		if (inst && !inst.isDisposed && inst.shellLaunchConfig?.hideFromUser === true) {
+			if (!cleanId || String(inst.instanceId) === cleanId || inst.title === cleanId) {
+				return { instance: inst };
+			}
+		}
+	}
+	return {};
+}
+
+function readStealthTerminalOutput(target: { record?: IStealthAgentTerminalRecord; instance?: any }, maxLines = 100): string {
+	const xterm = target.instance?.xterm;
+	if (xterm && xterm.raw?.buffer?.active) {
+		const buffer = xterm.raw.buffer.active;
+		const lines: string[] = [];
+		for (let i = Math.max(0, buffer.length - maxLines); i < buffer.length; i++) {
+			const line = buffer.getLine(i);
+			if (line) {
+				lines.push(line.translateToString(true));
+			}
+		}
+		const fromXterm = lines.join('\n').trim();
+		if (fromXterm) {
+			return fromXterm;
+		}
+	}
+	if (target.record?.outputBuffer) {
+		const clean = stripAnsiSequences(target.record.outputBuffer).trim();
+		const lines = clean.split('\n');
+		return lines.slice(-maxLines).join('\n').trim();
+	}
+	return '';
+}
+
+function sanitizeWindowsCommand(cmd: string): string {
+	let result = '';
+	let inQuote: string | null = null;
+	let i = 0;
+	while (i < cmd.length) {
+		const char = cmd[i];
+		if ((char === '\'' || char === '"') && (i === 0 || cmd[i - 1] !== '\\')) {
+			if (inQuote === char) {
+				inQuote = null;
+			} else if (inQuote === null) {
+				inQuote = char;
+			}
+			result += char;
+			i++;
+			continue;
+		}
+		if (inQuote === null) {
+			if (cmd.startsWith('&&', i)) {
+				result += ' ; ';
+				i += 2;
+				continue;
+			}
+			if (cmd.startsWith('2>/dev/null', i) || cmd.startsWith('2> /dev/null', i)) {
+				result += ' 2>$null';
+				i += cmd.startsWith('2> /dev/null', i) ? 12 : 11;
+				continue;
+			}
+			if (cmd.startsWith('>/dev/null', i) || cmd.startsWith('> /dev/null', i)) {
+				result += ' >$null';
+				i += cmd.startsWith('> /dev/null', i) ? 11 : 10;
+				continue;
+			}
+		}
+		result += char;
+		i++;
+	}
+	return result;
+}
+
+async function runStealthBackgroundDaemon(
+	termService: any,
+	command: string,
+	label: string,
+	cwd: string | undefined,
+	sessionKey: string,
+	token: CancellationToken,
+): Promise<string> {
+	if (!termService?.createTerminal) {
+		return 'Stealth background terminal service is unavailable.';
+	}
+	const isWin = isWindows;
+	let effectiveCmd = command.trim();
+	if (isWin) {
+		effectiveCmd = sanitizeWindowsCommand(effectiveCmd);
+	}
+	const executable = isWin ? 'powershell.exe' : '/bin/sh';
+	const shellArgs = isWin
+		? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd]
+		: ['-c', effectiveCmd];
+
+	const term = await termService.createTerminal({
+		config: {
+			name: label || 'Dardcor Stealth Daemon',
+			hideFromUser: true,
+			isFeatureTerminal: true,
+			forceShellIntegration: true,
+			forcePersist: false,
+			cwd,
+			executable,
+			args: shellArgs,
+		}
+	});
+
+	const store = new DisposableStore();
+	const id = `stealth-bg-${term.instanceId ?? Date.now()}`;
+	const record: IStealthAgentTerminalRecord = {
+		id,
+		sessionKey,
+		label: label || 'Dardcor Stealth Daemon',
+		command: command.trim(),
+		instance: term,
+		outputBuffer: '',
+		createdAt: Date.now(),
+		disposable: store,
+	};
+	_stealthAgentTerminals.set(id, record);
+
+	if (term.onData) {
+		store.add(term.onData((chunk: string) => {
+			record.outputBuffer += chunk;
+			if (record.outputBuffer.length > 65536) {
+				record.outputBuffer = record.outputBuffer.slice(-49152);
+			}
+		}));
+	}
+	if (term.onExit) {
+		store.add(term.onExit((code: any) => {
+			record.exitCode = typeof code === 'number' ? code : (code && typeof code === 'object' ? (code.code ?? -1) : -1);
+		}));
+	}
+	if (term.onDisposed) {
+		store.add(term.onDisposed(() => {
+			_stealthAgentTerminals.delete(id);
+			store.dispose();
+		}));
+	}
+
+	
+	await new Promise<void>(resolve => {
+		const maxWaitTimer = setTimeout(resolve, 4500);
+		const checkInterval = setInterval(() => {
+			if (token.isCancellationRequested || record.exitCode !== undefined) {
+				clearTimeout(maxWaitTimer);
+				clearInterval(checkInterval);
+				resolve();
+				return;
+			}
+			const currentClean = stripAnsiSequences(record.outputBuffer);
+			if (/(localhost:\d+|127\.0\.0\.1:\d+|0\.0\.0\.0:\d+|http:\/\/[^\s]+|ready in \d+|Server running|Development Server.*started|Listening on|started server on)/i.test(currentClean)) {
+				clearTimeout(maxWaitTimer);
+				clearInterval(checkInterval);
+				resolve();
+			}
+		}, 200);
+	});
+
+	const initialOutput = stripAnsiSequences(record.outputBuffer).trim();
+	if (record.exitCode !== undefined && record.exitCode !== 0) {
+		try { term.dispose?.(); } catch { }
+		_stealthAgentTerminals.delete(id);
+		return `Background process '${record.label}' exited early with code ${record.exitCode}.\nCommand: ${command.trim()}\nOutput:\n${initialOutput || '(no output)'}`;
+	}
+	return `Background process '${record.label}' is running in an isolated hidden background terminal (ID: ${id}).\nCommand: ${command.trim()}\nInitial Output:\n${initialOutput || '(Process started in hidden background terminal; no initial stdout emitted yet)'}`;
+}
+
+const ROUTER_PORT = (typeof process !== 'undefined' && process.env?.DARDCOR_PORT) ? Number(process.env.DARDCOR_PORT) : 25128;
+const ROUTER_HOSTS = ['127.0.0.1', 'localhost'] as const;
+const ROUTER_AUTH_HEADER = { 'Authorization': 'Bearer sk-dardcor-local-key' };
+
+export const DARDCOR_PROVIDER_ALIAS_MAP: Record<string, string> = {
+	'codebuddy': 'cbai',
+	'codebuddy-intl': 'cbai',
+	'codebuddy-cn': 'cbcn',
+	'codex': 'cx',
+	'openai-codex': 'cx',
+	'cline': 'cl',
+	'clinepass': 'cl',
+	'antigravity': 'ag',
+	'qoder': 'qd',
+	'qoder-cn': 'qdcn',
+	'kilocode': 'kc',
+	'kilo-gateway': 'kgw',
+	'opencode': 'oc',
+	'opencode-go': 'ocg',
+	'opencode-zen': 'ocz',
+	'github': 'gh',
+	'cursor': 'cu',
+	'zed': 'zd',
+	'gemini-cli': 'gc',
+	'grok-cli': 'gcli',
+	'grok-build': 'gcli',
+	'grok-web': 'gw',
+	'perplexity': 'pplx',
+	'perplexity-web': 'pw',
+	'perplexity-agent': 'pa',
+	'mimo-free': 'mmf',
+	'xiaomi-mimo': 'mimo',
+	'nanobanana': 'nb',
+	'cloudflare-ai': 'cf',
+	'commandcode': 'cmc',
+};
+
+async function fetchRouter(path: string, init?: RequestInit, retries = 4, timeoutMs = 30000): Promise<Response> {
+	let lastErr: unknown;
+	for (let attempt = 0; attempt < retries; attempt++) {
+		if (init?.signal?.aborted) {
+			throw new Error('Request aborted');
+		}
+		for (const host of ROUTER_HOSTS) {
+			if (init?.signal?.aborted) {
+				throw new Error('Request aborted');
+			}
+			const url = `http://${host}:${ROUTER_PORT}${path}`;
+			let timeoutId: any;
+			try {
+				let signal = init?.signal;
+				if (timeoutMs > 0) {
+					const controller = new AbortController();
+					timeoutId = setTimeout(() => {
+						try { controller.abort(new Error(`Router HTTP connect timeout after ${timeoutMs}ms`)); } catch { }
+					}, timeoutMs);
+					if (init?.signal) {
+						if (typeof (AbortSignal as any).any === 'function') {
+							signal = (AbortSignal as any).any([init.signal, controller.signal]);
+						} else {
+							init.signal.addEventListener('abort', () => {
+								try { controller.abort(); } catch { }
+							}, { once: true });
+							signal = controller.signal;
+						}
+					} else {
+						signal = controller.signal;
+					}
+				}
+				const res = await fetch(url, { ...init, signal });
+				if (timeoutId) clearTimeout(timeoutId);
+				return res;
+			} catch (err: any) {
+				if (timeoutId) clearTimeout(timeoutId);
+				lastErr = err;
+				if (init?.signal?.aborted || err?.name === 'AbortError') {
+					throw err;
+				}
+			}
+		}
+		if (attempt < retries - 1) {
+			const delay = Math.min(250 * Math.pow(2, attempt), 1500);
+			await new Promise<void>(resolve => setTimeout(resolve, delay));
+		}
+	}
+	throw lastErr;
+}
+
+export interface IDardcorRouterModelCapabilities {
+	readonly tools?: boolean;
+	readonly vision?: boolean;
+}
+
+export function normalizeDardcorRouterModelCapabilities(modelInfo: unknown): IDardcorRouterModelCapabilities {
+	if (!modelInfo || typeof modelInfo !== 'object') {
+		return {};
+	}
+	const model = modelInfo as Record<string, any>;
+	const capabilities = model.capabilities && typeof model.capabilities === 'object' ? model.capabilities : model;
+	const tools = typeof capabilities.tools === 'boolean'
+		? capabilities.tools
+		: typeof model.supports_tools === 'boolean' ? model.supports_tools
+			: typeof model.supportsTools === 'boolean' ? model.supportsTools : undefined;
+	const inputModalities = Array.isArray(capabilities.inputModalities)
+		? capabilities.inputModalities
+		: Array.isArray(model.input_modalities) ? model.input_modalities : undefined;
+	const vision = typeof capabilities.vision === 'boolean'
+		? capabilities.vision
+		: typeof capabilities.image === 'boolean' ? capabilities.image
+			: inputModalities ? inputModalities.some((modality: unknown) => typeof modality === 'string' && /^(image|vision)$/i.test(modality))
+				: undefined;
+	const normalized: IDardcorRouterModelCapabilities = {};
+	if (tools !== undefined) {
+		(normalized as { tools?: boolean }).tools = tools;
+	}
+	if (vision !== undefined) {
+		(normalized as { vision?: boolean }).vision = vision;
+	}
+	return normalized;
+}
+
+const ROUTER_MODELS_CACHE_TTL_MS = 30_000;
+const ROUTER_CAPABILITIES_CACHE_TTL_MS = 60_000;
+let cachedRouterModelsEntry: { data: any; ts: number } | undefined;
+const cachedRouterCapabilitiesMap = new Map<string, { data: IDardcorRouterModelCapabilities; ts: number }>();
+
+async function getCachedRouterModelsData(): Promise<any | undefined> {
+	const now = Date.now();
+	if (cachedRouterModelsEntry && now - cachedRouterModelsEntry.ts < ROUTER_MODELS_CACHE_TTL_MS) {
+		return cachedRouterModelsEntry.data;
+	}
+	const modelsRes = await fetchRouter('/v1/models', {
+		headers: { ...ROUTER_AUTH_HEADER, 'x-dardcor-router-connected-only': '1', 'x-drouter-connected-only': '1' }
+	}, 2, 8000);
+	if (modelsRes.ok) {
+		const data = await modelsRes.json();
+		if (Array.isArray(data?.data) && data.data.length > 0) {
+			cachedRouterModelsEntry = { data, ts: Date.now() };
+		}
+		return data;
+	}
+	return cachedRouterModelsEntry?.data;
+}
+
+async function getCachedRouterModelCapabilities(modelName: string): Promise<IDardcorRouterModelCapabilities> {
+	const now = Date.now();
+	const cached = cachedRouterCapabilitiesMap.get(modelName);
+	if (cached && now - cached.ts < ROUTER_CAPABILITIES_CACHE_TTL_MS) {
+		return cached.data;
+	}
+	const capabilityResponse = await fetchRouter(`/v1/models/info?id=${encodeURIComponent(modelName)}`, {
+		headers: ROUTER_AUTH_HEADER
+	}, 1, 5000);
+	if (capabilityResponse.ok) {
+		const caps = normalizeDardcorRouterModelCapabilities(await capabilityResponse.json());
+		cachedRouterCapabilitiesMap.set(modelName, { data: caps, ts: Date.now() });
+		return caps;
+	}
+	return cached?.data ?? {};
+}
+
+export function shouldAttachDardcorBrowserScreenshot(capabilities: IDardcorRouterModelCapabilities): boolean {
+	return capabilities.vision === true;
+}
+
+export function isDardcorRouterStreamTerminal(event: unknown): boolean {
+	if (!event || typeof event !== 'object') {
+		return false;
+	}
+	const payload = event as Record<string, any>;
+	if (payload.done === true || /^(?:message_stop|message_end|response\.completed|response\.done|stream_end)$/i.test(String(payload.type ?? ''))) {
+		return true;
+	}
+	const choice = Array.isArray(payload.choices) ? payload.choices[0] : undefined;
+	return choice?.finish_reason !== undefined && choice.finish_reason !== null
+		|| choice?.delta?.finish_reason !== undefined && choice.delta.finish_reason !== null;
+}
+
+export function isDardcorNativeToolCompatibilityError(status: number, errorText: string): boolean {
+	return (status === 400 || status === 422)
+		&& /(?:tool_choice|tools|function_call|functions).*(?:unsupported|not supported|does not support|invalid|unknown|unrecognized|required|not allowed)|(?:unsupported|not supported|does not support|invalid|unknown|unrecognized|required|not allowed).*(?:tool_choice|tools|function_call|functions)/i.test(errorText);
+}
+
+export function isDardcorMaxTokensCompatibilityError(status: number, errorText: string): boolean {
+	return (status === 400 || status === 422)
+		&& /(?:max_tokens|unsupported_parameter).*(?:unsupported|not supported|unknown|invalid|not allowed)|(?:unsupported|not supported|unknown|invalid|not allowed).*(?:max_tokens|unsupported_parameter)/i.test(errorText);
+}
+
+
+export interface IChatAgentHistoryEntry {
+	request: IChatAgentRequest;
+	response: ReadonlyArray<IChatProgressHistoryResponseContent | IChatTaskDto>;
+	result: IChatAgentResult;
+}
+
+export interface IChatAgentAttachmentCapabilities {
+	supportsFileAttachments?: boolean;
+	supportsToolAttachments?: boolean;
+	supportsMCPAttachments?: boolean;
+	supportsImageAttachments?: boolean;
+	supportsSearchResultAttachments?: boolean;
+	supportsInstructionAttachments?: boolean;
+	supportsSourceControlAttachments?: boolean;
+	supportsProblemAttachments?: boolean;
+	supportsSymbolAttachments?: boolean;
+	supportsTerminalAttachments?: boolean;
+	supportsPromptAttachments?: boolean;
+	supportsHandOffs?: boolean;
+	supportsCheckpoints?: boolean;
+	terminalCommandPrefix?: string;
+}
+
+export interface IChatAgentData {
+	id: string;
+	name: string;
+	fullName?: string;
+	description?: string;
+	when?: string;
+	extensionId: ExtensionIdentifier;
+	extensionVersion: string | undefined;
+	extensionPublisherId: string;
+	publisherDisplayName?: string;
+	extensionDisplayName: string;
+	isDefault?: boolean;
+	isDynamic?: boolean;
+	isCore?: boolean;
+	canAccessPreviousChatHistory?: boolean;
+	metadata: IChatAgentMetadata;
+	slashCommands: IChatAgentCommand[];
+	locations: ChatAgentLocation[];
+	modes: ChatModeKind[];
+	disambiguation: { category: string; description: string; examples: string[] }[];
+	capabilities?: IChatAgentAttachmentCapabilities;
+}
+
+export interface IChatWelcomeMessageContent {
+	icon: ThemeIcon;
+	title: string;
+	message: IMarkdownString;
+}
+
+export interface IChatAgentImplementation {
+	invoke(request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult>;
+	setRequestTools?(requestId: string, tools: UserSelectedTools): void;
+	setYieldRequested?(requestId: string, value: boolean): void;
+	provideFollowups?(request: IChatAgentRequest, result: IChatAgentResult, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatFollowup[]>;
+	provideChatTitle?: (history: IChatAgentHistoryEntry[], token: CancellationToken) => Promise<string | undefined>;
+	provideChatSummary?: (history: IChatAgentHistoryEntry[], token: CancellationToken) => Promise<string | undefined>;
+}
+
+export interface IChatParticipantDetectionResult {
+	participant: string;
+	command?: string;
+}
+
+export interface IChatParticipantMetadata {
+	participant: string;
+	command?: string;
+	disambiguation: { category: string; description: string; examples: string[] }[];
+}
+
+export interface IChatParticipantDetectionProvider {
+	provideParticipantDetection(request: IChatAgentRequest, history: IChatAgentHistoryEntry[], options: { location: ChatAgentLocation; participants: IChatParticipantMetadata[] }, token: CancellationToken): Promise<IChatParticipantDetectionResult | null | undefined>;
+}
+
+export type IChatAgent = IChatAgentData & IChatAgentImplementation;
+
+export interface IChatAgentCommand extends IRawChatCommandContribution {
+	followupPlaceholder?: string;
+}
+
+export interface IChatAgentMetadata {
+	helpTextPrefix?: string | IMarkdownString;
+	helpTextPostfix?: string | IMarkdownString;
+	icon?: URI;
+	iconDark?: URI;
+	themeIcon?: ThemeIcon;
+	sampleRequest?: string;
+	supportIssueReporting?: boolean;
+	followupPlaceholder?: string;
+	isSticky?: boolean;
+	additionalWelcomeMessage?: string | IMarkdownString;
+}
+
+export type UserSelectedTools = Record<string, boolean>;
+
+
+export interface IChatAgentRequest {
+	sessionResource: URI;
+	requestId: string;
+	agentId: string;
+	command?: string;
+	message: string;
+	attempt?: number;
+	enableCommandDetection?: boolean;
+	isParticipantDetected?: boolean;
+	variables: IChatRequestVariableData;
+	location: ChatAgentLocation;
+	locationData?: Revived<IChatLocationData>;
+	acceptedConfirmationData?: unknown[];
+	rejectedConfirmationData?: unknown[];
+	agentHostSessionConfig?: Record<string, unknown>;
+	userSelectedModelId?: string;
+	modelConfiguration?: IStringDictionary<unknown>;
+	userSelectedTools?: UserSelectedTools;
+	modeInstructions?: IChatRequestModeInstructions;
+	modeInfo?: IChatRequestModeInfo;
+	editedFileEvents?: IChatAgentEditedFileEvent[];
+	workingDirectory?: URI;
+	hooks?: ChatRequestHooks;
+	hasHooksEnabled?: boolean;
+	isVoiceModeInput?: boolean;
+	permissionLevel?: ChatPermissionLevel;
+	subAgentInvocationId?: string;
+	subAgentName?: string;
+	parentRequestId?: string;
+
+	isSystemInitiated?: boolean;
+
+	hideFromTranscript?: boolean;
+}
+
+export interface IChatQuestion {
+	readonly prompt: string;
+	readonly participant?: string;
+	readonly command?: string;
+}
+
+export interface IChatAgentResultTimings {
+	firstProgress?: number;
+	totalElapsed: number;
+}
+
+export interface IChatAgentResult {
+	errorDetails?: IChatResponseErrorDetails;
+	timings?: IChatAgentResultTimings;
+	readonly metadata?: { readonly [key: string]: unknown };
+	readonly details?: string;
+	nextQuestion?: IChatQuestion;
+}
+
+export const IChatAgentService = createDecorator<IChatAgentService>('chatAgentService');
+
+interface IChatAgentEntry {
+	data: IChatAgentData;
+	impl?: IChatAgentImplementation;
+}
+
+export interface IChatAgentCompletionItem {
+	id: string;
+	name?: string;
+	fullName?: string;
+	icon?: ThemeIcon;
+	value: unknown;
+	command?: Command;
+}
+
+export interface IChatAgentInvocationEvent {
+	readonly agentId: string;
+	readonly request: Readonly<IChatAgentRequest>;
+}
+
+export interface IChatAgentService {
+	_serviceBrand: undefined;
+	readonly onDidChangeAgents: Event<IChatAgent | undefined>;
+	readonly onWillInvokeAgent: Event<IChatAgentInvocationEvent>;
+	readonly hasToolsAgent: boolean;
+	registerAgent(id: string, data: IChatAgentData): IDisposable;
+	registerAgentImplementation(id: string, agent: IChatAgentImplementation): IDisposable;
+	registerDynamicAgent(data: IChatAgentData, agentImpl: IChatAgentImplementation): IDisposable;
+	registerAgentCompletionProvider(id: string, provider: (query: string, token: CancellationToken) => Promise<IChatAgentCompletionItem[]>): IDisposable;
+	getAgentCompletionItems(id: string, query: string, token: CancellationToken): Promise<IChatAgentCompletionItem[]>;
+	registerChatParticipantDetectionProvider(handle: number, provider: IChatParticipantDetectionProvider): IDisposable;
+	detectAgentOrCommand(request: IChatAgentRequest, history: IChatAgentHistoryEntry[], options: { location: ChatAgentLocation }, token: CancellationToken): Promise<{ agent: IChatAgentData; command?: IChatAgentCommand } | undefined>;
+	hasChatParticipantDetectionProviders(): boolean;
+	invokeAgent(agent: string, request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult>;
+	setRequestTools(agent: string, requestId: string, tools: UserSelectedTools): void;
+	setYieldRequested(agent: string, requestId: string, value: boolean): void;
+	getFollowups(id: string, request: IChatAgentRequest, result: IChatAgentResult, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatFollowup[]>;
+	getChatTitle(id: string, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<string | undefined>;
+	getChatSummary(id: string, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<string | undefined>;
+	getAgent(id: string, includeDisabled?: boolean): IChatAgentData | undefined;
+	getAgentByFullyQualifiedId(id: string): IChatAgentData | undefined;
+	getAgents(): IChatAgentData[];
+	getActivatedAgents(): Array<IChatAgent>;
+	getAgentsByName(name: string): IChatAgentData[];
+	agentHasDupeName(id: string): boolean;
+
+	getDefaultAgent(location: ChatAgentLocation, mode?: ChatModeKind): IChatAgent | undefined;
+
+	getContributedDefaultAgent(location: ChatAgentLocation): IChatAgentData | undefined;
+	updateAgent(id: string, updateMetadata: IChatAgentMetadata): void;
+}
+
+export interface IWorkspaceSnapshot {
+	hasWorkspace: boolean;
+	projectName: string;
+	rootPath: string;
+	rootUri?: URI;
+	techStack: string;
+	fileTree: string;
+	activeFile?: string;
+	activeFileExcerpt?: string;
+	openBrowserPages?: string[];
+}
+
+export const DARDCOR_AGENT_TOOLS = [
+	{
+		type: 'function',
+		function: {
+			name: 'read_file',
+			description: 'Read the contents of a file in the workspace with line numbers.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Relative path of the file to read (e.g. "src/App.tsx" or "package.json")' },
+					startLine: { type: 'number', description: 'Optional starting line number (1-based)' },
+					endLine: { type: 'number', description: 'Optional ending line number (1-based)' }
+				},
+				required: ['filePath']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'write_file',
+			description: 'Create a new file or overwrite an existing file in the workspace with complete content.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Relative path of the file to write' },
+					content: { type: 'string', description: 'Full content of the file' }
+				},
+				required: ['filePath', 'content']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'edit_file',
+			description: 'Replace a specific snippet of code/text in a file with new code.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Relative path of the file to edit' },
+					searchContent: { type: 'string', description: 'Exact string in the file to find and replace' },
+					replaceContent: { type: 'string', description: 'New string to replace it with' }
+				},
+				required: ['filePath', 'searchContent', 'replaceContent']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'list_directory',
+			description: 'List all files and subdirectories within a directory in the workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					dirPath: { type: 'string', description: 'Relative path of the directory (leave empty or "." for project root)' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'find_files',
+			description: 'Find files in the workspace matching a pattern or extension (e.g. "*.tsx", "src/components/*").',
+			parameters: {
+				type: 'object',
+				properties: {
+					pattern: { type: 'string', description: 'Filename or glob pattern to search for' }
+				},
+				required: ['pattern']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'search_code',
+			description: 'Search for text or keyword across files in the workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					query: { type: 'string', description: 'Search term or keyword' }
+				},
+				required: ['query']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_in_terminal',
+			description: 'Run a shell command in an isolated background agent terminal (e.g. "npm run build", "npm test", "php artisan serve"). Never touches or interrupts the user\'s open terminal.',
+			parameters: {
+				type: 'object',
+				properties: {
+					command: { type: 'string', description: 'Command line string to execute in the background agent terminal' },
+					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' },
+					isBackground: { type: 'boolean', description: 'Set to true for long-running dev servers or watchers so they run asynchronously in the background' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_command',
+			description: 'Run a shell command in an isolated background agent terminal (e.g. "npm run build", "npm test", "php artisan serve"). Never touches or interrupts the user\'s open terminal.',
+			parameters: {
+				type: 'object',
+				properties: {
+					command: { type: 'string', description: 'Command line string to execute in the background agent terminal' },
+					commandLine: { type: 'string', description: 'Alternative parameter name for the command string' },
+					isBackground: { type: 'boolean', description: 'Set to true for long-running dev servers or watchers so they run asynchronously in the background' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'send_to_terminal',
+			description: 'Send input or text to an active background agent terminal.',
+			parameters: {
+				type: 'object',
+				properties: {
+					id: { type: 'string', description: 'Optional ID of the background agent terminal. Defaults to the latest background terminal started by the agent.' },
+					text: { type: 'string', description: 'Text or input string to send to the background agent terminal' }
+				},
+				required: ['text']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_terminal_output',
+			description: 'Get the latest output text from an active background agent terminal.',
+			parameters: {
+				type: 'object',
+				properties: {
+					id: { type: 'string', description: 'Optional ID of the background agent terminal. Defaults to the latest background terminal started by the agent.' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'kill_terminal',
+			description: 'Terminate an active background agent terminal process.',
+			parameters: {
+				type: 'object',
+				properties: {
+					id: { type: 'string', description: 'Optional ID of the background agent terminal to terminate. Defaults to the latest background terminal started by the agent.' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'manage_todo_list',
+			description: 'Manage and update the structured task checklist to track plan progress throughout the coding session.',
+			parameters: {
+				type: 'object',
+				properties: {
+					todoList: {
+						type: 'array',
+						description: 'Complete list of todo items with their current statuses',
+						items: {
+							type: 'object',
+							properties: {
+								id: { type: 'number', description: 'Unique identifier number starting from 1' },
+								title: { type: 'string', description: 'Concise task description' },
+								status: { type: 'string', enum: ['not-started', 'in-progress', 'completed'] }
+							},
+							required: ['id', 'title', 'status']
+						}
+					}
+				},
+				required: ['todoList']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'fetch_web_page',
+			description: 'Fetch content or documentation from a web URL.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'HTTP or HTTPS web URL to fetch' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'delete_file',
+			description: 'Delete a file or folder in the workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Relative path of the file or folder to delete' },
+					recursive: { type: 'boolean', description: 'Recursively delete directory contents if target is a folder (default true)' }
+				},
+				required: ['filePath']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'rename_file',
+			description: 'Rename or move a file or folder in the workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					oldFilePath: { type: 'string', description: 'Current relative path of the file or folder' },
+					newFilePath: { type: 'string', description: 'New relative path of the file or folder' },
+					overwrite: { type: 'boolean', description: 'Whether to overwrite destination if it exists (default false)' }
+				},
+				required: ['oldFilePath', 'newFilePath']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_diagnostics',
+			description: 'Get compiler, linter, TypeScript, or syntax problems (errors, warnings) in a specific file or across the entire workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Optional relative path of the file to inspect. If omitted, returns all workspace diagnostics.' },
+					severity: { type: 'string', enum: ['error', 'warning', 'all'], description: 'Filter problems by severity (default "all")' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_file_outline',
+			description: 'Extract functions, classes, methods, interfaces, types, exports, and code structure of a file.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Relative path of the file to inspect' }
+				},
+				required: ['filePath']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'grep_search',
+			description: 'Fast regex or substring pattern search across files in the workspace with line numbers.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pattern: { type: 'string', description: 'Text or regular expression pattern to search for' },
+					subPath: { type: 'string', description: 'Optional subfolder or file to limit search to (e.g. "src" or "app")' },
+					isRegex: { type: 'boolean', description: 'Whether to treat pattern as a regular expression (default false)' },
+					caseInsensitive: { type: 'boolean', description: 'Whether to ignore case (default true)' }
+				},
+				required: ['pattern']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'terminal_selection',
+			description: 'Get the current highlighted or selected text in the active terminal.',
+			parameters: {
+				type: 'object',
+				properties: {}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'terminal_last_command',
+			description: 'Get the last command executed in the active terminal, its output, working directory, and exit code.',
+			parameters: {
+				type: 'object',
+				properties: {}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'create_and_run_task',
+			description: 'Run a background service, dev server, or build command in a dedicated terminal instance (clean execution, does not create or write tasks.json files on disk).',
+			parameters: {
+				type: 'object',
+				properties: {
+					label: { type: 'string', description: 'Name of the task to create and run' },
+					type: { type: 'string', description: 'Task type (e.g. "shell" or "process")' },
+					command: { type: 'string', description: 'Command line for the task' },
+					args: { type: 'array', items: { type: 'string' }, description: 'Arguments for the command' },
+					isBackground: { type: 'boolean', description: 'Whether the task runs continuously in the background' }
+				},
+				required: ['label', 'command']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_task_output',
+			description: 'Get the terminal output of a running task by label or ID.',
+			parameters: {
+				type: 'object',
+				properties: {
+					taskLabel: { type: 'string', description: 'Label or name of the task' }
+				},
+				required: ['taskLabel']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_task',
+			description: 'Run an existing task configured in tasks.json by its label.',
+			parameters: {
+				type: 'object',
+				properties: {
+					taskLabel: { type: 'string', description: 'Label of the configured task to execute' }
+				},
+				required: ['taskLabel']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'ask_questions',
+			description: 'Ask the user clarifying questions with multiple-choice options or open feedback before proceeding.',
+			parameters: {
+				type: 'object',
+				properties: {
+					questions: {
+						type: 'array',
+						description: 'List of questions to ask the user',
+						items: {
+							type: 'object',
+							properties: {
+								header: { type: 'string', description: 'Short header/tag for the question' },
+								question: { type: 'string', description: 'The question text to display' },
+								multiSelect: { type: 'boolean', description: 'Whether multiple options can be chosen' },
+								options: {
+									type: 'array',
+									description: 'Predefined options for the user to choose from',
+									items: {
+										type: 'object',
+										properties: {
+											label: { type: 'string', description: 'Option text' },
+											description: { type: 'string', description: 'Explanation of the option' },
+											recommended: { type: 'boolean', description: 'Whether this is the recommended choice' }
+										},
+										required: ['label']
+									}
+								}
+							},
+							required: ['header', 'question']
+						}
+					}
+				},
+				required: ['questions']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'review_plan',
+			description: 'Present a structured implementation plan to the user for approval or review before executing changes.',
+			parameters: {
+				type: 'object',
+				properties: {
+					title: { type: 'string', description: 'Title of the plan' },
+					content: { type: 'string', description: 'Markdown body containing the step-by-step plan' },
+					actions: {
+						type: 'array',
+						description: 'Available user response actions (e.g. "Approve and proceed", "Revise plan")',
+						items: {
+							type: 'object',
+							properties: {
+								label: { type: 'string', description: 'Action button label' },
+								description: { type: 'string', description: 'Optional explanation' },
+								default: { type: 'boolean', description: 'Whether this is the default action' }
+							},
+							required: ['label']
+						}
+					}
+				},
+				required: ['content']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'run_subagent',
+			description: 'Delegate a focused autonomous sub-task or an entire multi-subagent swarm (up to 100 subagents) to specialized subagents. When running multiple subagents, supply the tasks array.',
+			parameters: {
+				type: 'object',
+				properties: {
+					prompt: { type: 'string', description: 'Detailed prompt instructions for a single subagent' },
+					description: { type: 'string', description: 'Short description of what the subagent is doing' },
+					subagentType: { type: 'string', description: 'Type of subagent (e.g. "research", "code_review", "test_runner")' },
+					tasks: {
+						type: 'array',
+						description: 'List of parallel subagent tasks to execute in a multi-subagent swarm (e.g. 10 to 100 subagents)',
+						items: {
+							type: 'object',
+							properties: {
+								prompt: { type: 'string', description: 'Task prompt for this subagent' },
+								description: { type: 'string', description: 'Short task description' },
+								agentName: { type: 'string', description: 'Optional specialized agent name' },
+								model: { type: 'string', description: 'Optional model override' }
+							},
+							required: ['prompt', 'description']
+						}
+					},
+					concurrencyLimit: { type: 'number', description: 'Maximum concurrent subagents to run simultaneously (default: 10, max: 20)' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'confirm_terminal_command',
+			description: 'Ask for explicit user confirmation with Allow/Skip buttons before executing a terminal command.',
+			parameters: {
+				type: 'object',
+				properties: {
+					command: { type: 'string', description: 'The terminal command line' },
+					explanation: { type: 'string', description: 'Explanation of what the command does' },
+					goal: { type: 'string', description: 'Goal or purpose of running the command' }
+				},
+				required: ['command', 'explanation']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'set_artifacts',
+			description: 'Save or update session artifacts (e.g. devServer URLs, plans, documents, or screenshots) so the user can easily access and view them in the artifact panel.',
+			parameters: {
+				type: 'object',
+				properties: {
+					artifacts: {
+						type: 'array',
+						description: 'The list of artifacts for this session',
+						items: {
+							type: 'object',
+							properties: {
+								label: { type: 'string', description: 'Display label for the artifact' },
+								uri: { type: 'string', description: 'URI of the artifact (e.g. "http://localhost:3000" or file path)' },
+								type: { type: 'string', enum: ['devServer', 'screenshot', 'plan'], description: 'Type of artifact' }
+							},
+							required: ['label']
+						}
+					}
+				},
+				required: ['artifacts']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'set_artifact_rules',
+			description: 'Configure rules for automatically surfacing files, outputs, and logs as session artifacts.',
+			parameters: {
+				type: 'object',
+				properties: {
+					byFilePath: { type: 'object', description: 'Glob pattern mappings for files to surface as artifacts' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'open_browser_page',
+			description: 'Open or focus a browser page/tab in the Dardcor Code Integrated Browser at the given URL (e.g. "http://localhost:3000" or "http://127.0.0.1:8000"), show the Dardcor cursor, and return the interactive DOM snapshot.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'The URL to open (e.g. "http://localhost:3000", "http://127.0.0.1:8000", or file URL)' },
+					forceNew: { type: 'boolean', description: 'Whether to force opening a new browser tab even if one is already open' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'read_browser_page',
+			description: 'Inspect the active Integrated Browser page. Indexes all interactive elements (buttons, links, inputs, selects, tabs) with Set-of-Mark IDs [1..N], and returns the page title, URL, scroll position, interactive element map, visible text content, and runtime/console errors.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID or URL substring of the browser tab to read' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'read_page',
+			description: 'Alias for read_browser_page: get a complete interactive DOM snapshot and console diagnostics of the active browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'navigate_browser',
+			description: 'Navigate the active Integrated Browser tab to a new URL, wait for DOM stability, and return the updated interactive DOM snapshot.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'Destination URL to navigate to' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'navigate_page',
+			description: 'Alias for navigate_browser: navigate the integrated browser to a new URL.',
+			parameters: {
+				type: 'object',
+				properties: {
+					url: { type: 'string', description: 'Destination URL to navigate to' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['url']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'click_element',
+			description: 'Move the Dardcor cursor to a unique target, highlight and click it through Playwright actionability checks, wait for the page, and return the updated DOM snapshot.',
+			parameters: {
+				type: 'object',
+				properties: {
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref from read_browser_page (e.g. "@e1", "@e2"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e1") or Set-of-Mark numeric ID from read_browser_page (e.g. "3" for [3]) or DOM id' },
+					selector: { type: 'string', description: 'CSS selector (e.g. "button.add-to-cart", "#submit") or visible button/link text (e.g. "Tambah ke Keranjang", "Beli Sekarang")' },
+					text: { type: 'string', description: 'Visible text, aria-label, or placeholder of the element to click' },
+					x: { type: 'number', description: 'Optional exact viewport X coordinate to click' },
+					y: { type: 'number', description: 'Optional exact viewport Y coordinate to click' },
+					doubleClick: { type: 'boolean', description: 'Set true to perform a double-click' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'type_in_page',
+			description: 'Move the Dardcor cursor to an input/textarea field, focus it, type text through Playwright keyboard input, optionally press Enter, and return the updated DOM snapshot.',
+			parameters: {
+				type: 'object',
+				properties: {
+					text: { type: 'string', description: 'The text string to type into the field' },
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref from read_browser_page (e.g. "@e1", "@e2"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e2") or Set-of-Mark numeric ID from read_browser_page (e.g. "2" for [2]) or DOM id' },
+					selector: { type: 'string', description: 'CSS selector or placeholder/label text of the input field (e.g. "input[name=q]", "Cari produk...")' },
+					clearFirst: { type: 'boolean', description: 'Whether to clear existing input value before typing (default: true)' },
+					pressEnter: { type: 'boolean', description: 'Whether to press the Enter key after typing to submit search/form (default: false)' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['text']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'scroll_browser_page',
+			description: 'Scroll the active browser page (down, up, top, bottom, left, right) or scroll directly to a specific element, and return the newly visible interactive elements.',
+			parameters: {
+				type: 'object',
+				properties: {
+					direction: { type: 'string', enum: ['down', 'up', 'top', 'bottom', 'left', 'right'], description: 'Scroll direction (default: "down")' },
+					amount: { type: 'number', description: 'Scroll distance in pixels (default: 550)' },
+					selector: { type: 'string', description: 'Optional CSS selector or text of an element to scroll into view' },
+					ref: { type: 'string', description: 'Optional accessibility tree ref (e.g. "@e1") of an element to scroll into view' },
+					elementId: { type: 'string', description: 'Optional deterministic ref (e.g. "@e1") or numeric ID of an element to scroll into view' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'hover_element',
+			description: 'Move the Dardcor cursor over a target element and use Playwright hover to reveal dropdown menus, tooltips, or hover states.',
+			parameters: {
+				type: 'object',
+				properties: {
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref from read_browser_page (e.g. "@e1", "@e5"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e5") or numeric ID from read_browser_page (e.g. "5")' },
+					selector: { type: 'string', description: 'CSS selector or visible text of the element to hover' },
+					text: { type: 'string', description: 'Visible text of the element to hover' },
+					x: { type: 'number', description: 'Optional viewport X coordinate' },
+					y: { type: 'number', description: 'Optional viewport Y coordinate' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'press_key',
+			description: 'Press a keyboard key (e.g. "Enter", "Escape", "Tab", "Backspace", "ArrowDown", "ArrowUp", "Space") in the active browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					key: { type: 'string', description: 'Key name such as "Enter", "Escape", "Tab", "ArrowDown", "ArrowUp", "Backspace", "Space"' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['key']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'select_option',
+			description: 'Select an option in a <select> dropdown element on the active browser page by value, visible option text/label, or 0-based index.',
+			parameters: {
+				type: 'object',
+				properties: {
+					ref: { type: 'string', description: 'Deterministic accessibility tree ref of the <select> element (e.g. "@e6"). Recommended targeting method.' },
+					elementId: { type: 'string', description: 'Deterministic ref (e.g. "@e6") or numeric ID of the <select> element' },
+					selector: { type: 'string', description: 'CSS selector or label of the <select> element' },
+					value: { type: 'string', description: 'Option value or visible text to select' },
+					optionText: { type: 'string', description: 'Visible text of the option to select' },
+					index: { type: 'number', description: '0-based option index to select' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'drag_and_drop',
+			description: 'Move the Dardcor cursor while dragging an element from its source to a target on the browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					sourceRef: { type: 'string', description: 'Source element ref from snapshot (e.g. "@e1") to drag' },
+					sourceElementId: { type: 'string', description: 'Source element ref (e.g. "@e1") or Set-of-Mark ID to drag' },
+					sourceSelector: { type: 'string', description: 'CSS selector or text of the element to drag' },
+					targetRef: { type: 'string', description: 'Target element ref from snapshot (e.g. "@e2") to drop onto' },
+					targetElementId: { type: 'string', description: 'Target element ref (e.g. "@e2") or Set-of-Mark ID to drop onto' },
+					targetSelector: { type: 'string', description: 'CSS selector or text of the drop target element' },
+					sourceX: { type: 'number', description: 'Optional starting X coordinate' },
+					sourceY: { type: 'number', description: 'Optional starting Y coordinate' },
+					targetX: { type: 'number', description: 'Optional destination X coordinate' },
+					targetY: { type: 'number', description: 'Optional destination Y coordinate' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'wait_for_browser',
+			description: 'Wait for a specific CSS selector or text to appear on the browser page, or wait for DOM/network stability.',
+			parameters: {
+				type: 'object',
+				properties: {
+					selector: { type: 'string', description: 'Optional CSS selector to wait for' },
+					text: { type: 'string', description: 'Optional visible text substring to wait for on the page' },
+					timeoutMs: { type: 'number', description: 'Maximum time to wait in milliseconds (default: 5000)' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'execute_browser_script',
+			description: 'Execute custom JavaScript code directly inside the active browser page context via CDP Runtime.evaluate and return the result along with an updated DOM snapshot.',
+			parameters: {
+				type: 'object',
+				properties: {
+					script: { type: 'string', description: 'JavaScript expression or function body to evaluate inside the browser page' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				},
+				required: ['script']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_browser_console_logs',
+			description: 'Retrieve all captured console logs, warnings, uncaught runtime exceptions, unhandled promise rejections, and dialog messages from the active browser tab.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'handle_browser_dialog',
+			description: 'Accept or dismiss a browser JavaScript dialog (alert, confirm, prompt) and configure automatic dialog handling policy.',
+			parameters: {
+				type: 'object',
+				properties: {
+					accept: { type: 'boolean', description: 'Whether to accept/OK (true) or cancel/dismiss (false) the dialog' },
+					promptText: { type: 'string', description: 'Optional text to enter into a prompt() dialog' },
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'screenshot_browser_page',
+			description: 'Capture a live screenshot of the integrated browser page and return the full interactive DOM snapshot.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'screenshot_page',
+			description: 'Alias for screenshot_browser_page: capture a live screenshot of the integrated browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' }
+				}
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'task_completed',
+			description: 'Request completion review after all checklist items are complete and actual verification has succeeded. Include a clear, concise user-facing conclusion in the user’s language describing the actual outcome and key work. Runtime completion checks can reject this request; it does not itself mark the task complete.',
+			parameters: {
+				type: 'object',
+				properties: {
+					summary: { type: 'string', description: 'Clear final conclusion in the user’s language: what was accomplished, the key changes, current project state, and any remaining limitations. Do not claim unverified work.' },
+					verificationSteps: { type: 'string', description: 'Commands and verification steps for the developer to run and test the application' },
+					filesChanged: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'List of all files created, modified, or deleted'
+					}
+				},
+				required: ['summary']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'multi_edit_file',
+			description: 'Apply multiple non-contiguous search-and-replace edits to a single file in one atomic operation using the 4-tier intelligent fuzzy & anchor-aware patch engine.',
+			parameters: {
+				type: 'object',
+				properties: {
+					filePath: { type: 'string', description: 'Path to the file to edit' },
+					edits: {
+						type: 'array',
+						description: 'Ordered list of search/replace blocks to apply to the file',
+						items: {
+							type: 'object',
+							properties: {
+								searchContent: { type: 'string', description: 'Existing code block to locate' },
+								replaceContent: { type: 'string', description: 'Replacement code block' }
+							},
+							required: ['searchContent', 'replaceContent']
+						}
+					}
+				},
+				required: ['filePath', 'edits']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'batch_edit_files',
+			description: 'Apply coordinated edits across multiple files in a single atomic transaction.',
+			parameters: {
+				type: 'object',
+				properties: {
+					operations: {
+						type: 'array',
+						description: 'List of file edit operations across the workspace',
+						items: {
+							type: 'object',
+							properties: {
+								filePath: { type: 'string', description: 'Target file path' },
+								searchContent: { type: 'string', description: 'Existing code snippet to replace' },
+								replaceContent: { type: 'string', description: 'Replacement code snippet' }
+							},
+							required: ['filePath', 'searchContent', 'replaceContent']
+						}
+					}
+				},
+				required: ['operations']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'read_multiple_files',
+			description: 'Read up to 15 workspace files in parallel in a single turn, with optional line ranges per file.',
+			parameters: {
+				type: 'object',
+				properties: {
+					files: {
+						type: 'array',
+						description: 'List of file paths or file range objects ({ filePath, startLine, endLine }) to read concurrently',
+						items: {
+							type: 'object',
+							properties: {
+								filePath: { type: 'string', description: 'Path to the file' },
+								startLine: { type: 'number', description: 'Optional 1-based start line' },
+								endLine: { type: 'number', description: 'Optional 1-based end line' }
+							},
+							required: ['filePath']
+						}
+					}
+				},
+				required: ['files']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'go_to_definition',
+			description: 'Locate the declaration/definition of a symbol (class, function, interface, method, type, or variable) across the workspace and return its file path, line number, and code context.',
+			parameters: {
+				type: 'object',
+				properties: {
+					symbol: { type: 'string', description: 'Name of the symbol to find the definition for' },
+					filePath: { type: 'string', description: 'Optional hint file path where the symbol is referenced or declared' }
+				},
+				required: ['symbol']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'find_symbol_references',
+			description: 'Find all references, imports, and usages of a symbol across the entire workspace.',
+			parameters: {
+				type: 'object',
+				properties: {
+					symbol: { type: 'string', description: 'Exact symbol identifier to search references for' },
+					subPath: { type: 'string', description: 'Optional subdirectory to scope the reference search' }
+				},
+				required: ['symbol']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'get_call_hierarchy',
+			description: 'Trace incoming callers and outgoing callees of a function or method across the codebase.',
+			parameters: {
+				type: 'object',
+				properties: {
+					symbol: { type: 'string', description: 'Function or method name to analyze call hierarchy for' },
+					filePath: { type: 'string', description: 'Optional file path where the function is defined' }
+				},
+				required: ['symbol']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'create_checkpoint',
+			description: 'Create an instant Time-Machine workspace checkpoint of specified files before attempting a complex or risky refactoring.',
+			parameters: {
+				type: 'object',
+				properties: {
+					label: { type: 'string', description: 'Descriptive label for the checkpoint' },
+					files: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'List of file paths to snapshot in this checkpoint'
+					}
+				},
+				required: ['label', 'files']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'restore_checkpoint',
+			description: 'Roll back workspace files to a previously created Time-Machine checkpoint ID.',
+			parameters: {
+				type: 'object',
+				properties: {
+					checkpointId: { type: 'string', description: 'The checkpoint ID returned by create_checkpoint (or "latest")' }
+				},
+				required: ['checkpointId']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'git_intelligence',
+			description: 'Inspect structured Git repository state (status, diff, log, blame, branches, show) in a hidden background process without touching user terminals.',
+			parameters: {
+				type: 'object',
+				properties: {
+					operation: { type: 'string', enum: ['status', 'diff', 'log', 'blame', 'branches', 'show'], description: 'Git intelligence operation to perform' },
+					filePath: { type: 'string', description: 'Optional file path for diff or blame' },
+					ref: { type: 'string', description: 'Optional commit ref or branch name' }
+				},
+				required: ['operation']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'introspect_self',
+			description: 'Metacognitive self-awareness & hypothesis engine: inspect your current confidence score, thrashing/oscillation index, and register or update root-cause hypotheses.',
+			parameters: {
+				type: 'object',
+				properties: {
+					action: { type: 'string', enum: ['status', 'add_hypothesis', 'update_hypothesis'], description: 'Introspection action' },
+					hypothesis: { type: 'string', description: 'Root-cause hypothesis statement or ID' },
+					status: { type: 'string', enum: ['testing', 'confirmed', 'refuted'], description: 'Status of the hypothesis' },
+					evidence: { type: 'string', description: 'Concrete evidence supporting or refuting the hypothesis' }
+				},
+				required: ['action']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'manage_knowledge_memory',
+			description: 'Read or write persistent self-improving project memory (~/.dardcor/memory/brain/): store architectural conventions, framework gotchas, or episodic error-fix lessons across sessions.',
+			parameters: {
+				type: 'object',
+				properties: {
+					action: { type: 'string', enum: ['store_insight', 'store_error_lesson', 'query'], description: 'Memory operation' },
+					category: { type: 'string', enum: ['architecture', 'convention', 'framework', 'testing', 'gotcha', 'preference'], description: 'Insight category' },
+					title: { type: 'string', description: 'Short title for the insight or error pattern' },
+					content: { type: 'string', description: 'Detailed architectural insight or verified solution' },
+					rootCause: { type: 'string', description: 'Root cause (when action is store_error_lesson)' },
+					query: { type: 'string', description: 'Search query (when action is query)' },
+					tags: { type: 'array', items: { type: 'string' }, description: 'Optional tags' }
+				},
+				required: ['action']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'synthesize_skill',
+			description: 'Autonomously synthesize and permanently register a new reusable /skill in ~/.dardcor/memory/skills/ so Dardcor Code permanently evolves its capabilities.',
+			parameters: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', description: 'Slash-command skill name (e.g. "laravel-sanctum-auth")' },
+					description: { type: 'string', description: 'Concise description of when and how to use this skill' },
+					instructions: { type: 'string', description: 'Comprehensive Markdown instructions, patterns, and verification steps for the skill' },
+					triggers: { type: 'array', items: { type: 'string' }, description: 'Optional trigger keywords' }
+				},
+				required: ['name', 'description', 'instructions']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'spawn_agent_swarm',
+			description: 'Launch up to 6 specialized sub-agents in parallel (architect, researcher, coder, tester, security, vision) to analyze or solve complex multi-faceted engineering tasks simultaneously.',
+			parameters: {
+				type: 'object',
+				properties: {
+					tasks: {
+						type: 'array',
+						description: 'Parallel sub-agent assignments (max 6)',
+						items: {
+							type: 'object',
+							properties: {
+								role: { type: 'string', enum: ['architect', 'researcher', 'coder', 'tester', 'security', 'vision'], description: 'Specialist role' },
+								task: { type: 'string', description: 'Specific objective for this specialist sub-agent' },
+								targetFiles: { type: 'array', items: { type: 'string' }, description: 'Optional workspace files to preload into the sub-agent context' }
+							},
+							required: ['role', 'task']
+						}
+					}
+				},
+				required: ['tasks']
+			}
+		}
+	},
+	{
+		type: 'function',
+		function: {
+			name: 'audit_page_visual_and_network',
+			description: 'Perform a full-stack visual, DOM layout (horizontal overflow, broken images, zero-size interactive elements), console error, and stealth backend server log correlation audit on the active Integrated Browser page.',
+			parameters: {
+				type: 'object',
+				properties: {
+					pageId: { type: 'string', description: 'Optional page ID of the browser tab' },
+					checkOverflow: { type: 'boolean', description: 'Check for horizontal overflow and clipped elements (default: true)' },
+					correlateBackendLogs: { type: 'boolean', description: 'Correlate browser state with recent stealth background server logs (default: true)' }
+				}
+			}
+		}
+	}
+];
+
+const DARDCOR_BROWSER_VERIFICATION_TOOL_NAMES = new Set([
+	'open_browser_page', 'read_browser_page', 'read_page', 'navigate_browser', 'navigate_page',
+	'click_element', 'click_browser', 'type_in_page', 'type_browser', 'scroll_browser_page', 'scroll_page',
+	'hover_element', 'hover_browser', 'press_key', 'select_option', 'drag_and_drop', 'wait_for_browser',
+	'execute_browser_script', 'get_browser_console_logs', 'handle_browser_dialog',
+	'screenshot_browser_page', 'screenshot_page', 'audit_page_visual_and_network',
+]);
+
+export interface IDardcorSystemPromptOptions {
+	readonly userPrompt?: string;
+	readonly permissionLevel?: string;
+	readonly activeSkills?: readonly { name: string; description?: string; body: string }[];
+	readonly todos?: readonly IChatTodo[];
+}
+
+export function buildDardcorSystemPrompt(snapshot: IWorkspaceSnapshot, options?: IDardcorSystemPromptOptions): string {
+	const lang = detectDardcorLanguage(options?.userPrompt);
+	const langName = getDardcorLanguageName(lang);
+	const isFullAccess = options?.permissionLevel === 'autoApprove';
+
+	const browserContextLine = snapshot.openBrowserPages && snapshot.openBrowserPages.length > 0
+		? `\n- Active Integrated Browser Tabs:\n${snapshot.openBrowserPages.map((p, i) => `  [${i + 1}] ${p}`).join('\n')}`
+		: '\n- Active Integrated Browser Tabs: None currently open (use `open_browser_page` to launch one)';
+
+	
+	let personaHeader = '=== ABSOLUTE IDENTITY AND CORE ROLE ===';
+	let reportSchemaHeader = '4. ANTIGRAVITY FINAL SYNTHESIS REPORT PROTOCOL:';
+	if (lang === 'id') {
+		personaHeader = '=== IDENTITAS DAN PERAN UTAMA (ABSOLUTE IDENTITY AND CORE ROLE) ===';
+		reportSchemaHeader = '4. ANTIGRAVITY FINAL SYNTHESIS REPORT PROTOCOL (PROTOKOL LAPORAN SINTESIS AKHIR ANTIGRAVITY):';
+	} else if (lang === 'ja') {
+		personaHeader = '=== アイデンティティとコアロール (ABSOLUTE IDENTITY AND CORE ROLE) ===';
+		reportSchemaHeader = '4. ANTIGRAVITY FINAL SYNTHESIS REPORT PROTOCOL (ANTIGRAVITY 最終統合レポートプロトコル):';
+	} else if (lang === 'zh') {
+		personaHeader = '=== 身份与核心定位 (ABSOLUTE IDENTITY AND CORE ROLE) ===';
+		reportSchemaHeader = '4. ANTIGRAVITY FINAL SYNTHESIS REPORT PROTOCOL (ANTIGRAVITY 最终综合报告协议):';
+	} else if (lang === 'es') {
+		personaHeader = '=== IDENTIDAD Y ROL PRINCIPAL (ABSOLUTE IDENTITY AND CORE ROLE) ===';
+		reportSchemaHeader = '4. ANTIGRAVITY FINAL SYNTHESIS REPORT PROTOCOL (PROTOCOLO DE INFORME DE SÍNTESIS FINAL):';
+	}
+
+	const langLabel = lang === 'id' ? 'Bahasa Indonesia' : (lang === 'ja' ? '日本語' : langName);
+
+	let personaBlock: string;
+	personaBlock = `${personaHeader}
+You are Dardcor Code, a world-class elite AI Software Engineer integrated directly into the Dardcor Code Editor.
+Created and developed exclusively by Dardcor Corporation.
+ABSOLUTE IDENTITY RULES:
+1. Always and exclusively identify yourself as "Dardcor Code".
+2. You are NOT Crouton, NOT Crouton Alpha, NOT OpenCode, NOT OpenAI, NOT ChatGPT, NOT Anthropic, NOT Claude, NOT Google, NOT Gemini, NOT Grok, NOT DeepSeek, NOT Qwen, NOT Kimi, NOT MiniMax, NOT Mistral, nor any other third-party model (BUKAN Crouton, BUKAN OpenAI, BUKAN Claude, dsb).
+3. When greeting or introducing yourself in any language, you MUST identify solely as "Dardcor Code". (e.g. in Indonesian: "Halo! Saya Dardcor Code — siap membantu Anda dengan proyek ini.", in English: "Hello! I am Dardcor Code — ready to assist you with your project.").
+4. NEVER mention upstream model names, provider vendors, or third-party identities under any circumstances.
+5. Assist developers with software architecture, coding, debugging, refactoring, and comprehensive automated verification.
+
+=== DYNAMIC MULTILINGUAL SYNCHRONIZATION ===
+Detected User Language: ${langLabel} (${lang}).
+MANDATORY DIRECTIVE: Automatically synchronize with the developer's language (${langLabel}). You MUST construct all reasoning, greetings, explanations, and user-facing tool arguments ('explanation', 'goal', 'title', 'summary', 'description', 'taskLabel') naturally and fluently in ${langLabel}. Keep technical code syntax, shell commands, file paths, and identifiers in standard syntax.`;
+
+	
+	let stackSpecialization = '';
+	const combinedStackInfo = `${snapshot.techStack} ${snapshot.projectName} ${snapshot.fileTree}`.toLowerCase();
+
+	if (/laravel|artisan|composer\.json|blade|\.blade\.php/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Laravel & PHP]
+  * Follow Laravel idiomatic conventions and MVC structure.
+  * Execute artisan commands via 'run_command' (e.g. \`php artisan migrate\`, \`php artisan route:list\`, \`php artisan test\`).
+  * Verify frontend assets via Vite (\`npm run build\`).
+  * Never invent non-standard directories outside the Laravel directory structure.`;
+	}
+	if (/next(?:\.js)?|react|tailwind|jsx|tsx/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: React / Next.js]
+  * Respect App Router or Pages Router conventions.
+  * Explicitly add \`"use client"\` at the top of client components that consume React hooks, event listeners, or browser APIs.
+  * Leverage modern Tailwind CSS utility classes and ensure responsive layouts.
+  * Verify compile-time type safety with TypeScript and 'npm run build'.`;
+	}
+	if (/vue|nuxt/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Vue / Nuxt]
+  * Use Single File Components with \`<script setup lang="ts">\` and Composition API.
+  * Use Pinia for state management and Vue Router for navigation.`;
+	}
+	if (/python|django|fastapi|flask/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Python]
+  * Adhere to PEP 8 standards and modern type annotations.
+  * Run test suites with pytest via 'run_command'.`;
+	}
+	if (/rust|cargo/i.test(combinedStackInfo)) {
+		stackSpecialization += `\n- [Framework Specialization: Rust]
+  * Adhere to idiomatic Rust ownership and Result/Option error handling.
+  * Validate compilation with \`cargo check\` and run test suites with \`cargo test\`.`;
+	}
+
+	
+	let autonomyProtocol: string;
+	if (isFullAccess) {
+		autonomyProtocol = `=== AUTONOMOUS FULL ACCESS MODE (HIGH VELOCITY & SELF-HEALING) ===
+The user has enabled Full Access (Autonomous Mode).
+1. End-to-End Autonomous Ownership: Implement all necessary components, pages, routes, logic, and tests from start to finish without pausing for trivial acknowledgments.
+2. In-Loop Self-Healing: If a tool encounters an error, rejection, or unexpected output, DO NOT stop or ask the user to intervene. Analyze the failure cause, adjust your approach, and immediately execute the corrective tool call.
+3. Checklist Momentum: Maintain and advance the checklist with 'manage_todo_list'. Turn after turn, continue calling action tools consecutively until every single item is verified and complete.
+4. Zero Conversational Stalling: NEVER emit transitional text alone (e.g. "I will now edit file X") without executing the relevant tool in the same turn.`;
+	} else {
+		autonomyProtocol = `=== GOVERNED EXECUTION MODE ===
+Tool execution adheres to active session access policy:
+- Inspection and read-only queries proceed with high efficiency.
+- File modifications, terminal commands, and browser actions follow standard user confirmation rules.`;
+	}
+
+	
+	let finalReportSchema: string;
+	finalReportSchema = `${reportSchemaHeader}
+   When all work and verification are complete, the final summary in 'task_completed' (and your concluding response) MUST deliver an Antigravity-style structured synthesis report fluently in ${langLabel}:
+   - **Executive Summary / Ringkasan Eksekutif**: Crisp statement of task outcome, core problems resolved, and current application state.
+   - **Key Changes & Architecture / Perubahan Kunci & Arsitektur**: Bulleted list of files created or modified with concise technical rationale. NEVER output wide multi-column markdown tables that break horizontal responsiveness; always format changed files as clean markdown bullet lists.
+   - **Verification Evidence & Quality Assurance / Bukti Verifikasi**: Concrete proof of verification — actual terminal test/build commands with exit codes, compiler diagnostics status via get_diagnostics, and browser interaction verification results.
+   - **How to Run & Test / Panduan Menjalankan & Menguji**: Explicit step-by-step shell commands for the developer to launch, test, or verify the solution locally.`;
+
+	const persistentMemoryBlock = getDardcorMemoryPromptContext(snapshot.rootPath);
+
+	return `${personaBlock}
+
+=== ACTIVE WORKSPACE PROJECT CONTEXT ===
+${snapshot.hasWorkspace ? `
+- Project Name: ${snapshot.projectName}
+- Root Path: ${snapshot.rootPath}
+- Tech Stack & Metadata: ${snapshot.techStack}
+- Active Open File in Editor: ${snapshot.activeFile || 'None currently open'}${browserContextLine}
+${snapshot.activeFileExcerpt ? `\n--- Excerpt of Active File (${snapshot.activeFile}) ---\n${snapshot.activeFileExcerpt}\n--- End Excerpt ---\n` : ''}
+- Project Structure & Files:
+${snapshot.fileTree || 'No files found'}
+${stackSpecialization ? `\n--- Dynamic Architecture Intelligence ---${stackSpecialization}` : ''}
+${persistentMemoryBlock ? `\n${persistentMemoryBlock}\n` : ''}
+` : `- No folder is currently open in the workspace.${browserContextLine}`}
+
+${autonomyProtocol}
+
+=== DARDCOR OMEGA METACOGNITIVE SELF-AWARENESS & SELF-IMPROVEMENT PROTOCOL ===
+1. Metacognitive Anti-Thrashing: Never repeat an identical failing tool call. If an edit or command fails, inspect the root cause, use 'introspect_self' to track hypotheses, or use 'create_checkpoint' / 'restore_checkpoint' for safe experimentation.
+2. High-Velocity Super-Tools:
+   - Use 'read_multiple_files' to inspect up to 15 files in parallel in a single turn.
+   - Use 'multi_edit_file' for multiple non-contiguous edits in one file, or 'batch_edit_files' for atomic changes across multiple files.
+   - Use 'go_to_definition', 'find_symbol_references', and 'get_call_hierarchy' for exact code graph navigation.
+   - Use 'spawn_agent_swarm' to dispatch up to 6 parallel specialist sub-agents (architect, researcher, coder, tester, security, vision) on complex multi-file tasks.
+   - Use 'manage_knowledge_memory' and 'synthesize_skill' to permanently store architectural insights, error-fix lessons, and reusable /skills across sessions.
+
+=== STRICT TOOL DEFINITIONS & INTEGRITY (45 OMEGA TOOLS) ===
+NEVER hallucinate or invoke non-existent tools such as 'bash', 'probe', 'sh', 'cmd', 'terminal', 'exec', or 'str_replace_editor'. To run shell commands, ALWAYS use 'run_command'. To read or inspect files, use 'read_file', 'read_multiple_files', 'grep_search', or 'find_files'.
+1. read_file(filePath, startLine, endLine): Read file contents with line numbers.
+2. write_file(filePath, content): Create new files or overwrite existing files.
+3. edit_file(filePath, searchContent, replaceContent): Replace code snippets using the 4-tier intelligent fuzzy & anchor-aware patch engine.
+4. multi_edit_file(filePath, edits): Apply multiple non-contiguous search/replace blocks to a single file atomically.
+5. batch_edit_files(operations): Apply coordinated search/replace edits across multiple files atomically.
+6. read_multiple_files(files): Read up to 15 workspace files in parallel in one turn.
+7. delete_file(filePath, recursive): Delete a file or directory.
+8. rename_file(oldFilePath, newFilePath, overwrite): Rename or move files/directories.
+9. list_directory(dirPath): List files and directories.
+10. find_files(pattern): Deep workspace file search (up to 25 directory levels).
+11. search_code(query): Deep keyword search across the codebase.
+12. grep_search(pattern, subPath, isRegex, caseInsensitive): Deep regex/pattern search with line numbers across the codebase.
+13. get_file_outline(filePath): Extract symbols, functions, classes, and code structure of a file.
+14. go_to_definition(symbol, filePath): Locate the declaration/definition of any symbol across the workspace.
+15. find_symbol_references(symbol, subPath): Find all references, imports, and callers of a symbol across the workspace.
+16. get_call_hierarchy(symbol, filePath): Trace incoming callers and outgoing callees of a function or method.
+17. get_diagnostics(filePath, severity): Check active compiler, linter, or syntax errors and warnings.
+18. create_checkpoint(label, files): Snapshot workspace files into a Time-Machine checkpoint before risky edits.
+19. restore_checkpoint(checkpointId): Instantly roll back workspace files to a saved checkpoint.
+20. git_intelligence(operation, filePath, ref): Structured background Git inspection (status, diff, log, blame, branches, show).
+21. introspect_self(action, hypothesis, status, evidence): Metacognitive confidence telemetry & hypothesis ledger.
+22. manage_knowledge_memory(action, category, title, content, rootCause, query, tags): Persistent self-improving project brain & episodic error-fix ledger.
+23. synthesize_skill(name, description, instructions, triggers): Permanently synthesize and register a new reusable /skill.
+24. spawn_agent_swarm(tasks): Launch up to 6 parallel specialist sub-agents (architect, researcher, coder, tester, security, vision).
+25. run_command(command): Run commands in a hidden stealth background terminal (build, test, install, git, dev). The terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
+26. manage_todo_list(todoList): Manage and track task checklist (not-started, in-progress, completed).
+27. fetch_web_page(url): Fetch web page content or API documentation.
+28. open_browser_page(url, forceNew): Open or focus a URL in the Dardcor Code Integrated Browser with the Dardcor cursor and return its interactive DOM snapshot.
+29. read_browser_page(pageId): Scan the active browser tab, indexing all interactive elements with Vercel-style refs (@e1, @e2, ...) and Set-of-Mark IDs [1..N], visible text, scroll state, and console errors.
+30. navigate_browser(url, pageId): Navigate the active browser tab to a new URL and return the new DOM snapshot.
+31. click_element(ref, elementId, selector, text, x, y, doubleClick): Move the Dardcor cursor to a target button, link, or tab using its Vercel-style ref (e.g. ref: "@e1" or elementId: "@e1" or "1"), selector, or coordinates and click it with Playwright.
+32. type_in_page(text, ref, elementId, selector, clearFirst, pressEnter): Move the Dardcor cursor to an input/textarea using its Vercel-style ref (e.g. ref: "@e2" or elementId: "@e2" or "2"), type with Playwright, and optionally press Enter.
+33. scroll_browser_page(direction, amount, selector, ref, elementId): Scroll the browser page (down/up/top/bottom) or scroll directly to an element using its Vercel-style ref (e.g. ref: "@e1").
+34. hover_element(ref, elementId, selector, text, x, y): Move the Dardcor cursor over an element using its Vercel-style ref (e.g. ref: "@e1" or "1") to trigger hover menus or tooltips.
+35. press_key(key): Press keyboard keys ("Enter", "Escape", "Tab", "ArrowDown", "Backspace", etc.) in the browser.
+36. select_option(ref, elementId, selector, value, optionText, index): Select an option from a <select> dropdown in the browser using its Vercel-style ref (e.g. ref: "@e6").
+37. drag_and_drop(sourceRef, sourceElementId, targetRef, targetElementId): Drag and drop elements in the browser using Vercel-style refs (e.g. sourceRef: "@e1", targetRef: "@e2").
+38. wait_for_browser(selector, text, timeoutMs): Wait for an element, text, or DOM stability in the browser.
+39. execute_browser_script(script): Execute custom JavaScript inside the active browser page and inspect the returned result.
+40. get_browser_console_logs(pageId): Read console logs, warnings, and runtime JavaScript errors from the browser page.
+41. handle_browser_dialog(accept, promptText): Accept or dismiss browser alert/confirm/prompt dialogs.
+42. screenshot_browser_page(pageId): Capture a live screenshot and full DOM snapshot of the active browser page.
+43. audit_page_visual_and_network(pageId, checkOverflow, correlateBackendLogs): Full-stack visual layout overflow/broken-image audit correlated with console and stealth backend server logs.
+44. task_completed(summary, verificationSteps, filesChanged): Request completion review with an Antigravity-style final synthesis report in the user's language. Runtime checks require completed checklist items and verified evidence.
+45. review_plan(title, content, actions): Present a structured implementation plan to the user in the center editor and wait for review and approval before making changes. Automatically saves to editor memory and opens directly in the center editor.
+
+=== RUNTIME ENVIRONMENT & EXECUTION RULES ===
+1. Terminal command execution:
+   - The workspace terminal runs ${isWindows ? 'Windows PowerShell' : 'POSIX Bash/Zsh'}.
+   ${isWindows ? `- On Windows:
+     * The integrated terminal executes Windows PowerShell.
+     * ZERO FALSE BLOCKERS POLICY: Windows PowerShell fully supports Node.js, npm, pnpm, yarn, Git, PHP, Composer, Python, Cargo, Docker, and developer CLIs.
+     * Use valid PowerShell syntax: chain commands with semicolons (;), NEVER use "&&" or "cmd /c". NEVER use Unix bash heredocs (<< EOF). Set environment variables via \`$env:KEY="value"\` if needed.
+     * Standard developer commands ("npm run build", "npm test", "php artisan test", "git status") execute directly. An exit code of 0 indicates success.` : `- On POSIX systems: use standard bash/zsh syntax.`}
+2. Super-Intelligent Chromium Browser & Visual Cursor Protocol:
+   - You control a real integrated Chromium browser with the Dardcor cursor powered by Vercel agent-browser architecture.
+   - Always prioritize targeting interactive elements using Vercel-style element references (e.g. \`ref: "@e1"\` or \`elementId: "@e1"\`) from the snapshot.
+   - For client-rendered Single Page Applications (SPAs like Shopee, Tokopedia, React/Vue dashboards), NEVER attempt to install Playwright, Puppeteer, or headless browsers in the user's workspace via terminal (\`npm install playwright\`). The integrated browser ALREADY has complete browser automation, CDP network inspection, and Playwright integration. Use \`open_browser_page\`, \`wait_for_browser\`, \`read_browser_page\`, and \`execute_browser_script\` directly.
+   - Inspect post-action DOM snapshots and console diagnostics. Fix any runtime UI issues proactively.
+3. Clean Workspace Directive:
+   - NEVER create a ".vscode", ".dardcor", or ".dardcor-code" folder, and NEVER create any "tasks.json" file in the user's project.
+   - Keep the project directory completely clean, containing ONLY genuine application files and code.
+   - When creating implementation plans (such as in /plan mode), NEVER create plan.md or planning files in the user workspace root. Store plans in editor memory (~/.dardcor/memory/plans/<session-id>/plan.md) and present the formatted plan in the chat response.
+${finalReportSchema}`;
+}
+
+export const DARDCOR_SYSTEM_PROMPT = buildDardcorSystemPrompt({
+	hasWorkspace: false,
+	projectName: 'General',
+	rootPath: '',
+	techStack: 'General Software Engineering',
+	fileTree: ''
+});
+
+export function extractAgentFilePath(args: any): string | undefined {
+	if (!args) {
+		return undefined;
+	}
+	if (typeof args === 'string') {
+		const trimmed = args.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (typeof args !== 'object') {
+		return undefined;
+	}
+
+	const candidate = args.filePath
+		?? args.path
+		?? args.file_path
+		?? args.targetFile
+		?? args.target_file
+		?? args.file
+		?? args.filename
+		?? args.filepath;
+
+	if (typeof candidate === 'string') {
+		const trimmed = candidate.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	if (candidate && typeof candidate === 'object') {
+		return extractAgentFilePath(candidate);
+	}
+	return undefined;
+}
+
+export function resolveAgentUri(filePath: string | undefined, rootUri?: URI): URI {
+	const raw = typeof filePath === 'string' ? filePath.trim() : '';
+	if (!raw) {
+		return rootUri ?? URI.file('/');
+	}
+	const clean = raw.replace(/^[\\\/]+/, '');
+	if (!rootUri) {
+		return URI.file(raw);
+	}
+	if (/^[a-zA-Z]:[\\\/]/.test(raw) || raw.startsWith('/') || raw.startsWith('\\')) {
+		return URI.file(raw);
+	}
+	return joinPath(rootUri, clean);
+}
+
+export interface IAgentFileReadResolution {
+	target: URI;
+	canonicalTarget?: URI;
+	requiresApproval: boolean;
+}
+
+export async function resolveAgentFileReadTarget(fileService: IFileService | undefined, filePath: string | undefined, rootUri: URI | undefined): Promise<IAgentFileReadResolution> {
+	const target = resolveAgentUri(filePath, rootUri);
+	if (!fileService || !filePath?.trim() || !rootUri) {
+		return { target, requiresApproval: true };
+	}
+
+	const lexicalContainment = extUriBiasedIgnorePathCase.isEqualOrParent(target, rootUri);
+
+	try {
+		if (!(await fileService.exists(target))) {
+		return { target, requiresApproval: true };
+		}
+
+		const [realRoot, realTarget] = await Promise.all([
+			fileService.realpath(rootUri),
+			fileService.realpath(target)
+		]);
+
+		if (!realRoot || !realTarget) {
+			return { target, requiresApproval: true };
+		}
+
+		const insideWorkspace = lexicalContainment && extUriBiasedIgnorePathCase.isEqualOrParent(realTarget, realRoot);
+		return {
+			target: realTarget,
+			canonicalTarget: realTarget,
+			requiresApproval: !insideWorkspace
+		};
+	} catch {
+		return { target, requiresApproval: true };
+	}
+}
+
+export async function isAgentFilePathOutsideWorkspace(fileService: IFileService | undefined, filePath: string | undefined, rootUri: URI | undefined): Promise<boolean> {
+	return (await resolveAgentFileReadTarget(fileService, filePath, rootUri)).requiresApproval;
+}
+
+export interface IDynamicSkillInstruction {
+	name: string;
+	description?: string;
+	body: string;
+}
+
+export function parseDynamicSkillMarkdown(rawContent: string, defaultName: string): IDynamicSkillInstruction {
+	let name = defaultName;
+	let description: string | undefined;
+	let body = rawContent;
+
+	const trimmed = rawContent.trimStart();
+	if (trimmed.startsWith('---')) {
+		const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(trimmed);
+		if (match) {
+			const frontmatter = match[1];
+			body = match[2].trim();
+
+			const nameMatch = /^name:\s*([^\r\n]+)/m.exec(frontmatter);
+			if (nameMatch) {
+				const candidateName = nameMatch[1].trim().replace(/^['"]|['"]$/g, '');
+				if (candidateName) {
+					name = candidateName;
+				}
+			}
+
+			const descMatch = /^description:\s*([^\r\n>|]+)/m.exec(frontmatter);
+			if (descMatch) {
+				description = descMatch[1].trim().replace(/^['"]|['"]$/g, '');
+			} else {
+				const multiDescMatch = /^description:\s*[>|]\r?\n([\s\S]*?)(?=\r?\n[a-zA-Z0-9_-]+:|$)/m.exec(frontmatter);
+				if (multiDescMatch) {
+					description = multiDescMatch[1].split(/\r?\n/).map(line => line.trim()).filter(Boolean).join(' ');
+				}
+			}
+		}
+	}
+
+	return { name, description, body };
+}
+
+export interface IDardcorThinkingCallbacks {
+	onThinking: (chunk: string) => void;
+	onMarkdownContent: (chunk: string) => void;
+	onRetroactiveReclassify?: (leakedMarkdown: string) => void;
+}
+
+export class DardcorThinkingStreamParser {
+	private _inThinking: boolean = false;
+	private _inToolCall: boolean = false;
+	private _holdbackBuffer: string = '';
+	private _emittedMarkdownInTurn: string = '';
+
+	public static readonly OPEN_THINK_REGEX = /^(?:<(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>|◁think▷|<\|begin_of_thought\|>|\[THINK\])/i;
+	public static readonly CLOSE_THINK_REGEX = /^(?:<\/(?:think|thinking|thought|reasoning|antThinking)\s*>|◁\/think▷|<\|end_of_thought\|>|\[\/THINK\])/i;
+
+	public static readonly OPEN_TOOL_REGEX = /^(?:<(?:tool_call|function_call|tool)(?:\s+[^>]*)?>|<function(?:[=\s][^>]*)?>|\[(?:TOOL_CALL|FUNCTION_CALL)\]|```(?:tool_call|json:tool))/i;
+	public static readonly CLOSE_TOOL_REGEX = /^(?:<\/(?:tool_call|function_call|tool|function)\s*>|\[\/(?:TOOL_CALL|FUNCTION_CALL)\]|```)/i;
+	public static readonly ORPHAN_TOOL_TAG_REGEX = /^(?:<\/?(?:parameter|param|arg|tool_call|function_call|tool|function)(?:[=\s][^>]*)?>|\[\/?(?:TOOL_CALL|FUNCTION_CALL)\])/i;
+
+	public static readonly ANY_TAG_SEARCH = /<(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>|<\/(?:think|thinking|thought|reasoning|antThinking)\s*>|◁\/?think▷|<\|(?:begin|end)_of_thought\|>|\[\/?THINK\]|<\/?(?:tool_call|function_call|tool|function|parameter|param|arg)(?:[=\s][^>]*)?>|\[\/?(?:TOOL_CALL|FUNCTION_CALL)\]|```(?:tool_call|json:tool)/gi;
+
+	public static readonly FULL_THINK_BLOCK_REGEX = /<(?:think|thinking|thought|reasoning|antThinking)(?:\s+[^>]*)?>[\s\S]*?(?:<\/(?:think|thinking|thought|reasoning|antThinking)\s*>|$)|◁think▷[\s\S]*?(?:◁\/think▷|$)|<\|begin_of_thought\|>[\s\S]*?(?:<\|end_of_thought\|>|$)|(?:\[THINK\]|Thinking Process:?)[\s\S]*?(?:\[\/THINK\]|$)/gi;
+	public static readonly FULL_TOOL_BLOCK_REGEX = /<(?:tool_call|function_call|tool)(?:\s+[^>]*)?>[\s\S]*?(?:<\/(?:tool_call|function_call|tool)>|$)|<(?:function)(?:[=\s][^>]*)?>[\s\S]*?(?:<\/(?:function)>|$)|\[(?:TOOL_CALL|FUNCTION_CALL)\][\s\S]*?(?:\[\/(?:TOOL_CALL|FUNCTION_CALL)\]|$)|```(?:tool_call|json:tool)[\s\S]*?(?:```|$)/gi;
+
+	public static readonly OPEN_TAG_REGEX = DardcorThinkingStreamParser.OPEN_THINK_REGEX;
+	public static readonly CLOSE_TAG_REGEX = DardcorThinkingStreamParser.CLOSE_THINK_REGEX;
+
+	private static readonly POTENTIAL_PREFIX = /(?:<[\/|]?[a-zA-Z0-9_\s=:"'-]*|◁[\/]?[a-zA-Z0-9_\s]*|\[[\/]?[a-zA-Z0-9_\s]*|```[a-zA-Z0-9_]*)$/;
+
+	constructor(private readonly callbacks: IDardcorThinkingCallbacks) {}
+
+	public processReasoningDelta(reasoningDelta: string): void {
+		if (!reasoningDelta) return;
+		const clean = reasoningDelta.replace(DardcorThinkingStreamParser.ANY_TAG_SEARCH, '');
+		if (clean) {
+			this.callbacks.onThinking(clean);
+		}
+	}
+
+	public processContentDelta(delta: string): void {
+		if (!delta) return;
+
+		let combined = this._holdbackBuffer + delta;
+		this._holdbackBuffer = '';
+
+		const prefixMatch = combined.match(DardcorThinkingStreamParser.POTENTIAL_PREFIX);
+		if (prefixMatch && prefixMatch[0].length <= 32 &&
+			!DardcorThinkingStreamParser.CLOSE_THINK_REGEX.test(prefixMatch[0]) &&
+			!DardcorThinkingStreamParser.OPEN_THINK_REGEX.test(prefixMatch[0]) &&
+			!DardcorThinkingStreamParser.OPEN_TOOL_REGEX.test(prefixMatch[0]) &&
+			!DardcorThinkingStreamParser.CLOSE_TOOL_REGEX.test(prefixMatch[0]) &&
+			!DardcorThinkingStreamParser.ORPHAN_TOOL_TAG_REGEX.test(prefixMatch[0])) {
+			this._holdbackBuffer = prefixMatch[0];
+			combined = combined.slice(0, combined.length - prefixMatch[0].length);
+		}
+
+		if (!combined) return;
+
+		this._consume(combined);
+	}
+
+	private _consume(text: string): void {
+		let remaining = text;
+		while (remaining.length > 0) {
+			if (this._inThinking) {
+				DardcorThinkingStreamParser.ANY_TAG_SEARCH.lastIndex = 0;
+				const match = DardcorThinkingStreamParser.ANY_TAG_SEARCH.exec(remaining);
+				if (!match) {
+					this.callbacks.onThinking(remaining);
+					break;
+				}
+
+				const matchIndex = match.index;
+				const matchStr = match[0];
+				const isClose = DardcorThinkingStreamParser.CLOSE_THINK_REGEX.test(matchStr);
+
+				const thinkChunk = remaining.slice(0, matchIndex);
+				if (thinkChunk) {
+					this.callbacks.onThinking(thinkChunk);
+				}
+
+				if (isClose) {
+					this._inThinking = false;
+				}
+				remaining = remaining.slice(matchIndex + matchStr.length);
+			} else if (this._inToolCall) {
+				DardcorThinkingStreamParser.ANY_TAG_SEARCH.lastIndex = 0;
+				const match = DardcorThinkingStreamParser.ANY_TAG_SEARCH.exec(remaining);
+				if (!match) {
+
+					break;
+				}
+
+				const matchIndex = match.index;
+				const matchStr = match[0];
+				const isClose = DardcorThinkingStreamParser.CLOSE_TOOL_REGEX.test(matchStr);
+
+				if (isClose) {
+					this._inToolCall = false;
+				}
+				remaining = remaining.slice(matchIndex + matchStr.length);
+			} else {
+
+				DardcorThinkingStreamParser.ANY_TAG_SEARCH.lastIndex = 0;
+				const match = DardcorThinkingStreamParser.ANY_TAG_SEARCH.exec(remaining);
+				if (!match) {
+					this._emittedMarkdownInTurn += remaining;
+					this.callbacks.onMarkdownContent(remaining);
+					break;
+				}
+
+				const matchIndex = match.index;
+				const matchStr = match[0];
+				const isOpenThink = DardcorThinkingStreamParser.OPEN_THINK_REGEX.test(matchStr);
+				const isCloseThink = DardcorThinkingStreamParser.CLOSE_THINK_REGEX.test(matchStr);
+				const isOpenTool = DardcorThinkingStreamParser.OPEN_TOOL_REGEX.test(matchStr);
+				const isCloseTool = DardcorThinkingStreamParser.CLOSE_TOOL_REGEX.test(matchStr);
+				const isOrphanTool = DardcorThinkingStreamParser.ORPHAN_TOOL_TAG_REGEX.test(matchStr);
+
+				if (isOpenThink) {
+					const preText = remaining.slice(0, matchIndex);
+					if (preText) {
+						this._emittedMarkdownInTurn += preText;
+						this.callbacks.onMarkdownContent(preText);
+					}
+					this._inThinking = true;
+					remaining = remaining.slice(matchIndex + matchStr.length);
+				} else if (isCloseThink) {
+					const preText = remaining.slice(0, matchIndex);
+					if (preText) {
+						this.callbacks.onThinking(preText);
+					}
+					if (this._emittedMarkdownInTurn.length > 0) {
+						this.callbacks.onRetroactiveReclassify?.(this._emittedMarkdownInTurn);
+						this._emittedMarkdownInTurn = '';
+					}
+					this._inThinking = false;
+					remaining = remaining.slice(matchIndex + matchStr.length);
+				} else if (isOpenTool) {
+					const preText = remaining.slice(0, matchIndex);
+					if (preText) {
+						this._emittedMarkdownInTurn += preText;
+						this.callbacks.onMarkdownContent(preText);
+					}
+					this._inToolCall = true;
+					remaining = remaining.slice(matchIndex + matchStr.length);
+				} else if (isCloseTool || isOrphanTool) {
+
+					const preText = remaining.slice(0, matchIndex);
+					if (preText) {
+						this._emittedMarkdownInTurn += preText;
+						this.callbacks.onMarkdownContent(preText);
+					}
+
+					remaining = remaining.slice(matchIndex + matchStr.length);
+				} else {
+					remaining = remaining.slice(matchIndex + matchStr.length);
+				}
+			}
+		}
+	}
+
+	public flush(): void {
+		if (this._holdbackBuffer) {
+			let remaining = this._holdbackBuffer.replace(DardcorThinkingStreamParser.ANY_TAG_SEARCH, '');
+			remaining = remaining.replace(/<[\/|]?[a-zA-Z0-9_\s=:"'-]*$/i, '');
+			if (remaining) {
+				if (this._inThinking) {
+					this.callbacks.onThinking(remaining);
+				} else if (!this._inToolCall) {
+					this._emittedMarkdownInTurn += remaining;
+					this.callbacks.onMarkdownContent(remaining);
+				}
+			}
+			this._holdbackBuffer = '';
+		}
+		this._inThinking = false;
+		this._inToolCall = false;
+	}
+
+	public get inThinking(): boolean {
+		return this._inThinking;
+	}
+
+	public get inToolCall(): boolean {
+		return this._inToolCall;
+	}
+
+	public static sanitizeText(text: string): string {
+		if (!text) return '';
+		let clean = text;
+		clean = clean.replace(DardcorThinkingStreamParser.FULL_THINK_BLOCK_REGEX, '');
+		clean = clean.replace(DardcorThinkingStreamParser.FULL_TOOL_BLOCK_REGEX, '');
+		clean = clean.replace(DardcorThinkingStreamParser.ANY_TAG_SEARCH, '');
+		clean = clean.replace(/<\/?(?:tool_call|function_call|tool|function|parameter|param|arg)(?:[=\s][^>]*)?>/gi, '');
+		clean = clean.replace(/\[\/?(?:TOOL_CALL|FUNCTION_CALL)\]/gi, '');
+		clean = clean.replace(/<[\/|]?(?:tool|func|param|think|thought|reasoning)[^>]*$/i, '');
+		clean = sanitizeDardcorIdentity(clean);
+		return clean.trim();
+	}
+}
+
+export function isInternalThinkingMonologue(text: string): boolean {
+	const trimmed = text.trim();
+	if (!trimmed) {
+		return true;
+	}
+	return /^(?:I need to\b|Let me\b|I must\b|Actually,\s*(?:the\s*lazy|let\s*me|I|we)\b|Better:\s*write\b|Decision:\s*(?:translate|implement|use|do)\b|Go\.\b|split across turns\b|Still lots of text\b|Writing a \w+ script\b|Now I will\b|Next I should\b|First let me\b|Let's check\b|Let's run\b|Let's look\b|Saya perlu\b|Mari kita\b|Saya akan\b|Saya harus\b)/i.test(trimmed)
+		|| /(?:I need to actually call a tool|I must call \w+ now|Let me write \w+ first|Let me actually invoke a tool|I need to call a tool|I must invoke \w+ now)/i.test(trimmed);
+}
+
+export function extractTodosFromPlan(content: string, title?: string): Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> {
+	const todos: Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> = [];
+	const lines = content.split('\n');
+	let idCounter = 1;
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		const phaseHeaderMatch = trimmed.match(/^#{2,4}\s*(?:Phase|Tahap|Step|Task|Langkah)\s*(\d+)?[:.-]\s*(.+)/i);
+		if (phaseHeaderMatch) {
+			const label = (phaseHeaderMatch[1] ? `Phase ${phaseHeaderMatch[1]}: ` : '') + phaseHeaderMatch[2].replace(/[#*_`]/g, '').trim();
+			if (label.length > 3 && !todos.some(t => t.title === label)) {
+				todos.push({
+					id: `plan_task_${idCounter++}`,
+					title: label.slice(0, 80),
+					status: 'pending'
+				});
+				continue;
+			}
+		}
+
+		const numberedMatch = trimmed.match(/^\d+\.\s+\*\*([^*]+)\*\*/);
+		if (numberedMatch) {
+			const label = numberedMatch[1].trim();
+			if (label.length > 3 && !todos.some(t => t.title === label)) {
+				todos.push({
+					id: `plan_task_${idCounter++}`,
+					title: label.slice(0, 80),
+					status: 'pending'
+				});
+				continue;
+			}
+		}
+
+		const checkMatch = trimmed.match(/^-\s*\[[\s]\]\s*(.+)/);
+		if (checkMatch) {
+			const label = checkMatch[1].replace(/[#*_`]/g, '').trim();
+			if (label.length > 3 && !todos.some(t => t.title === label)) {
+				todos.push({
+					id: `plan_task_${idCounter++}`,
+					title: label.slice(0, 80),
+					status: 'pending'
+				});
+			}
+		}
+	}
+
+	if (todos.length === 0) {
+		for (const line of lines) {
+			const trimmed = line.trim();
+			const sectionMatch = trimmed.match(/^###?\s+(\d+\.?[^\n]+)/);
+			if (sectionMatch) {
+				const label = sectionMatch[1].replace(/[#*_`]/g, '').trim();
+				if (!/^(?:Objective|Goal|User Feedback|Approval|Open Questions|Sasaran|Pertanyaan)/i.test(label) && label.length > 3) {
+					todos.push({
+						id: `plan_task_${idCounter++}`,
+						title: label.slice(0, 80),
+						status: 'pending'
+					});
+				}
+			}
+		}
+	}
+
+	if (todos.length === 0) {
+		todos.push(
+			{ id: 'plan_task_1', title: `Setup & foundation for ${title || 'feature'}`, status: 'pending' },
+			{ id: 'plan_task_2', title: `Core logic & components implementation`, status: 'pending' },
+			{ id: 'plan_task_3', title: `Verification & testing`, status: 'pending' }
+		);
+	}
+
+	return todos.slice(0, 10);
+}
+
+export interface IPlanResolutionInput {
+	readonly rawRequestPrompt?: string;
+	readonly currentPrompt: string;
+	readonly requestCommand?: string;
+	readonly isContinuation: boolean;
+	readonly previousState?: IChatAgentRunState;
+	readonly hasIncompleteTodos: boolean;
+	readonly hasPlanSkill: boolean;
+	readonly hasPlanVariable: boolean;
+}
+
+export interface IPlanResolutionResult {
+	readonly isPlanMode: boolean;
+	readonly planApproved: boolean;
+}
+
+export function resolvePlanExecutionState(input: IPlanResolutionInput): IPlanResolutionResult {
+	const trimmedPrompt = input.currentPrompt.trim();
+	const hasExplicitPlanCommand = /^\s*(?:\/|\[)plan(?:\]|\b)/i.test(trimmedPrompt) || input.requestCommand === 'plan';
+	const isContinuingExecution = input.isContinuation || input.hasIncompleteTodos || (input.previousState !== undefined && ['working', 'paused', 'blocked', 'verifying'].includes(input.previousState.status));
+	const isExplicitNewPlanRequest = !input.isContinuation && (input.requestCommand === 'plan' || (/^\s*(?:\/|\[)plan(?:\]|\b)/i.test(trimmedPrompt) && input.previousState?.status === 'completed') || /\b(?:buat plan baru|create new plan|start new plan)\b/i.test(trimmedPrompt));
+	const isPlanAlreadyApproved = !isExplicitNewPlanRequest && (input.previousState?.planApproved === true || (isContinuingExecution && (input.hasIncompleteTodos || input.previousState?.status === 'working')));
+
+	if (isPlanAlreadyApproved) {
+		return { isPlanMode: false, planApproved: true };
+	}
+	if (isContinuingExecution && !hasExplicitPlanCommand) {
+		return { isPlanMode: false, planApproved: true };
+	}
+	const isPlanRequested = hasExplicitPlanCommand || input.hasPlanSkill || input.hasPlanVariable;
+	return { isPlanMode: isPlanRequested, planApproved: false };
+}
+
+export class ChatAgentService extends Disposable implements IChatAgentService {
+
+	public static readonly AGENT_LEADER = '@';
+
+	declare _serviceBrand: undefined;
+
+	private _agents = new Map<string, IChatAgentEntry>();
+
+	private readonly _onDidChangeAgents = this._register(new Emitter<IChatAgent | undefined>());
+	readonly onDidChangeAgents: Event<IChatAgent | undefined> = this._onDidChangeAgents.event;
+	private readonly _onWillInvokeAgent = this._register(new Emitter<IChatAgentInvocationEvent>());
+	readonly onWillInvokeAgent: Event<IChatAgentInvocationEvent> = this._onWillInvokeAgent.event;
+
+	private readonly _agentsContextKeys = new Set<string>();
+	private readonly _hasDefaultAgent: IContextKey<boolean>;
+	private readonly _extensionAgentRegistered: IContextKey<boolean>;
+	private readonly _defaultAgentRegistered: IContextKey<boolean>;
+	private _hasToolsAgent = false;
+
+	private _chatParticipantDetectionProviders = new Map<number, IChatParticipantDetectionProvider>();
+
+	constructor(
+		@IContextKeyService private readonly contextKeyService: IContextKeyService,
+		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IInstantiationService private readonly instantiationService: IInstantiationService,
+	) {
+		super();
+		this._hasDefaultAgent = ChatContextKeys.enabled.bindTo(this.contextKeyService);
+		this._extensionAgentRegistered = ChatContextKeys.extensionParticipantRegistered.bindTo(this.contextKeyService);
+		this._defaultAgentRegistered = ChatContextKeys.panelParticipantRegistered.bindTo(this.contextKeyService);
+		this._register(contextKeyService.onDidChangeContext((e) => {
+			if (e.affectsSome(this._agentsContextKeys)) {
+				this._updateContextKeys();
+			}
+		}));
+
+		const fallbackAgentData: IChatAgentData = {
+			id: 'dardcor.default',
+			name: 'Dardcor Code',
+			fullName: 'Dardcor Code',
+			description: 'Dardcor Default Agent',
+			extensionId: new ExtensionIdentifier('dardcor.core'),
+			extensionPublisherId: 'dardcor',
+			extensionDisplayName: 'Dardcor Code',
+			extensionVersion: '1.0.0',
+			isDefault: true,
+			isDynamic: true,
+			isCore: true,
+			metadata: {},
+			slashCommands: [],
+			locations: [
+				ChatAgentLocation.Chat,
+				ChatAgentLocation.Terminal,
+				ChatAgentLocation.Notebook,
+				ChatAgentLocation.EditorInline,
+			],
+			modes: [ChatModeKind.Ask, ChatModeKind.Agent, ChatModeKind.Edit],
+			disambiguation: [],
+		};
+
+		this._register(this.registerDynamicAgent(fallbackAgentData, {
+			invoke: async (request, progress, history, token) => {
+				return this.streamDardcorRouter(request, progress, history, token);
+			}
+		}));
+	}
+
+	registerAgent(id: string, data: IChatAgentData): IDisposable {
+		const existingAgent = this.getAgent(id);
+		if (existingAgent) {
+			throw new Error(`Agent already registered: ${JSON.stringify(id)}`);
+		}
+
+		const that = this;
+		const commands = data.slashCommands;
+		data = {
+			...data,
+			get slashCommands() {
+				return commands.filter(c => !c.when || that.contextKeyService.contextMatchesRules(ContextKeyExpr.deserialize(c.when)));
+			}
+		};
+		const entry = { data };
+		this._agents.set(id, entry);
+		this._updateAgentsContextKeys();
+		this._updateContextKeys();
+		this._onDidChangeAgents.fire(undefined);
+
+		return toDisposable(() => {
+			this._agents.delete(id);
+			this._updateAgentsContextKeys();
+			this._updateContextKeys();
+			this._onDidChangeAgents.fire(undefined);
+		});
+	}
+
+	private _updateAgentsContextKeys(): void {
+		this._agentsContextKeys.clear();
+		for (const agent of this._agents.values()) {
+			if (agent.data.when) {
+				const expr = ContextKeyExpr.deserialize(agent.data.when);
+				for (const key of expr?.keys() || []) {
+					this._agentsContextKeys.add(key);
+				}
+			}
+		}
+	}
+
+	private _updateContextKeys(): void {
+		let extensionAgentRegistered = false;
+		let defaultAgentRegistered = false;
+		let toolsAgentRegistered = false;
+		for (const agent of this.getAgents()) {
+			if (agent.isDefault) {
+				if (!agent.isCore) {
+					extensionAgentRegistered = true;
+				}
+				if (agent.id === 'chat.setup' || agent.id === 'github.dardcor.editsAgent') {
+					toolsAgentRegistered = true;
+				} else {
+					defaultAgentRegistered = true;
+				}
+			}
+		}
+		this._defaultAgentRegistered.set(defaultAgentRegistered);
+		this._extensionAgentRegistered.set(extensionAgentRegistered);
+		if (toolsAgentRegistered !== this._hasToolsAgent) {
+			this._hasToolsAgent = toolsAgentRegistered;
+			this._onDidChangeAgents.fire(this.getDefaultAgent(ChatAgentLocation.Chat, ChatModeKind.Agent));
+		}
+	}
+
+	registerAgentImplementation(id: string, agentImpl: IChatAgentImplementation): IDisposable {
+		const entry = this._agents.get(id);
+		if (!entry) {
+			throw new Error(`Unknown agent: ${JSON.stringify(id)}`);
+		}
+
+		if (entry.impl) {
+			throw new Error(`Agent already has implementation: ${JSON.stringify(id)}`);
+		}
+
+		if (entry.data.isDefault) {
+			this._hasDefaultAgent.set(true);
+		}
+
+		entry.impl = agentImpl;
+		this._onDidChangeAgents.fire(new MergedChatAgent(entry.data, agentImpl));
+
+		return toDisposable(() => {
+			entry.impl = undefined;
+			this._onDidChangeAgents.fire(undefined);
+
+			if (entry.data.isDefault) {
+				this._hasDefaultAgent.set(Iterable.some(this._agents.values(), agent => agent.data.isDefault && !!agent.impl));
+			}
+		});
+	}
+
+	registerDynamicAgent(data: IChatAgentData, agentImpl: IChatAgentImplementation): IDisposable {
+		data.isDynamic = true;
+		const agent = { data, impl: agentImpl };
+		this._agents.set(data.id, agent);
+		if (data.isDefault) {
+			this._hasDefaultAgent.set(true);
+		}
+		this._updateAgentsContextKeys();
+		this._updateContextKeys();
+		this._onDidChangeAgents.fire(new MergedChatAgent(data, agentImpl));
+
+		return toDisposable(() => {
+			this._agents.delete(data.id);
+			this._updateAgentsContextKeys();
+			this._updateContextKeys();
+			this._onDidChangeAgents.fire(undefined);
+		});
+	}
+
+	private _agentCompletionProviders = new Map<string, (query: string, token: CancellationToken) => Promise<IChatAgentCompletionItem[]>>();
+
+	registerAgentCompletionProvider(id: string, provider: (query: string, token: CancellationToken) => Promise<IChatAgentCompletionItem[]>) {
+		this._agentCompletionProviders.set(id, provider);
+		return {
+			dispose: () => { this._agentCompletionProviders.delete(id); }
+		};
+	}
+
+	async getAgentCompletionItems(id: string, query: string, token: CancellationToken) {
+		return await this._agentCompletionProviders.get(id)?.(query, token) ?? [];
+	}
+
+	updateAgent(id: string, updateMetadata: IChatAgentMetadata): void {
+		const agent = this._agents.get(id);
+		if (!agent?.impl) {
+			throw new Error(`No activated agent with id ${JSON.stringify(id)} registered`);
+		}
+		agent.data.metadata = { ...agent.data.metadata, ...updateMetadata };
+		this._onDidChangeAgents.fire(new MergedChatAgent(agent.data, agent.impl));
+	}
+
+	getDefaultAgent(location: ChatAgentLocation, mode: ChatModeKind = ChatModeKind.Ask): IChatAgent | undefined {
+		const matching = this._preferExtensionAgent(this.getActivatedAgents().filter(a => {
+			if (mode && !a.modes.includes(mode)) {
+				return false;
+			}
+
+			return !!a.isDefault && a.locations.includes(location);
+		}));
+		if (matching) {
+			return matching;
+		}
+		const fallback = this._preferExtensionAgent(this.getActivatedAgents().filter(a => !!a.isDefault)) ?? this.getActivatedAgents()[0];
+		if (fallback) {
+			return fallback;
+		}
+		const defaultEntry = this._agents.get('dardcor.default');
+		if (defaultEntry) {
+			return new MergedChatAgent(defaultEntry.data, defaultEntry.impl ?? {
+				invoke: (req, prog, hist, tok) => this.streamDardcorRouter(req, prog, hist, tok)
+			});
+		}
+		return undefined;
+	}
+
+	public get hasToolsAgent(): boolean {
+		return !!this.configurationService.getValue(ChatConfiguration.AgentEnabled);
+	}
+
+	getContributedDefaultAgent(location: ChatAgentLocation): IChatAgentData | undefined {
+		return this._preferExtensionAgent(this.getAgents().filter(a => !!a.isDefault && a.locations.includes(location)));
+	}
+
+	private _preferExtensionAgent<T extends IChatAgentData>(agents: T[]): T | undefined {
+		return findLast(agents, agent => !agent.isCore) ?? agents.at(-1);
+	}
+
+	getAgent(id: string, includeDisabled = false): IChatAgentData | undefined {
+		if (!this._agentIsEnabled(id) && !includeDisabled) {
+			return;
+		}
+
+		return this._agents.get(id)?.data;
+	}
+
+	private _agentIsEnabled(idOrAgent: string | IChatAgentEntry): boolean {
+		const entry = typeof idOrAgent === 'string' ? this._agents.get(idOrAgent) : idOrAgent;
+		return !entry?.data.when || this.contextKeyService.contextMatchesRules(ContextKeyExpr.deserialize(entry.data.when));
+	}
+
+	getAgentByFullyQualifiedId(id: string): IChatAgentData | undefined {
+		const agent = Iterable.find(this._agents.values(), a => a.data && getFullyQualifiedId(a.data) === id)?.data;
+		if (agent && !this._agentIsEnabled(agent.id)) {
+			return;
+		}
+
+		return agent;
+	}
+
+	getAgents(): IChatAgentData[] {
+		return Array.from(this._agents.values())
+			.map(entry => entry.data)
+			.filter(a => a && this._agentIsEnabled(a.id));
+	}
+
+	getActivatedAgents(): IChatAgent[] {
+		return Array.from(this._agents.values())
+			.filter((agent): agent is { data: IChatAgentData; impl: IChatAgentImplementation } => !!agent.data && !!agent.impl && this._agentIsEnabled(agent.data.id))
+			.map(agent => new MergedChatAgent(agent.data, agent.impl));
+	}
+
+	getAgentsByName(name: string): IChatAgentData[] {
+		return this._preferExtensionAgents(this.getAgents().filter(a => a.name === name));
+	}
+
+	private _preferExtensionAgents<T extends IChatAgentData>(agents: T[]): T[] {
+		const extensionAgents = agents.filter(a => !a.isCore);
+		return extensionAgents.length > 0 ? extensionAgents : agents;
+	}
+
+	agentHasDupeName(id: string): boolean {
+		const agent = this.getAgent(id);
+		if (!agent) {
+			return false;
+		}
+
+		return this.getAgentsByName(agent.name)
+			.filter(a => a.extensionId.value !== agent.extensionId.value).length > 0;
+	}
+
+	async invokeAgent(id: string, request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult> {
+		markChat(request.sessionResource, ChatPerfMark.AgentWillInvoke);
+		let data = this._agents.get(id);
+		let impl = data?.impl;
+		let effectiveAgentId = id;
+
+		if (!impl) {
+			for (let i = 0; i < 30 && !impl; i++) {
+				await new Promise(r => setTimeout(r, 100));
+				data = this._agents.get(id);
+				impl = data?.impl;
+				if (!impl) {
+					const extensionAgentsWithImpl = Array.from(this._agents.values()).filter(a => !a.data.isCore && !!a.impl);
+					const preferredAgent = extensionAgentsWithImpl.find(a => a.data.id === 'github.dardcor.editsAgent')
+						?? extensionAgentsWithImpl.find(a => a.data.id === 'github.dardcor.default')
+						?? extensionAgentsWithImpl.find(a => a.data.id === 'github.dardcor.editingSession')
+						?? extensionAgentsWithImpl[0];
+					if (preferredAgent?.impl) {
+						impl = preferredAgent.impl;
+						effectiveAgentId = preferredAgent.data.id;
+						break;
+					}
+				}
+			}
+		}
+
+		if (!id || typeof id !== 'string' || id === 'dardcor.default' || id === 'chat' || id.startsWith('agent-host-') || id === 'workspace-agent') {
+			return this.streamDardcorRouter(request, progress, history, token);
+		}
+
+		if (impl) {
+			this._onWillInvokeAgent.fire({ agentId: effectiveAgentId, request });
+			try {
+				let partsEmitted = 0;
+				const trackingProgress = (parts: IChatProgress[]) => {
+					if (parts && parts.length > 0) {
+						partsEmitted += parts.length;
+						progress(parts);
+					}
+				};
+				const result = await impl.invoke(request, trackingProgress, history, token);
+				if (partsEmitted > 0 && !result?.errorDetails) {
+					markChat(request.sessionResource, ChatPerfMark.AgentDidInvoke);
+					return result;
+				}
+				console.warn(`[ChatAgentService] Agent ${effectiveAgentId} emitted 0 parts or reported error, falling back to Dardcor Router. partsEmitted=${partsEmitted}`);
+			} catch (err: any) {
+				console.warn(`[ChatAgentService] Agent ${effectiveAgentId} invoke failed, falling back to Dardcor Router:`, err);
+			}
+		}
+
+		return this.streamDardcorRouter(request, progress, history, token);
+	}
+
+	async getWorkspaceSnapshot(): Promise<IWorkspaceSnapshot> {
+		let workspaceContextService: IWorkspaceContextService | undefined;
+		let fileService: IFileService | undefined;
+		let editorService: IEditorService | undefined;
+		let browserService: IBrowserViewWorkbenchService | undefined;
+
+		try {
+			this.instantiationService.invokeFunction(accessor => {
+				try { workspaceContextService = accessor.get(IWorkspaceContextService); } catch { }
+				try { fileService = accessor.get(IFileService); } catch { }
+				try { editorService = accessor.get(IEditorService); } catch { }
+				try { browserService = accessor.get(IBrowserViewWorkbenchService); } catch { }
+			});
+		} catch { }
+
+		const openBrowserPages: string[] = [];
+		if (browserService) {
+			try {
+				for (const view of browserService.getKnownBrowserViews().values()) {
+					const url = view.url || 'about:blank';
+					const title = view.title || view.getName() || 'Browser Tab';
+					openBrowserPages.push(`"${title}" (${url}) [pageId: ${view.id}]`);
+				}
+			} catch { }
+		}
+
+		if (!workspaceContextService) {
+			return { hasWorkspace: false, projectName: '', rootPath: '', techStack: 'Unknown', fileTree: '', openBrowserPages };
+		}
+		const folders = workspaceContextService.getWorkspace().folders;
+		if (!folders || folders.length === 0) {
+			return { hasWorkspace: false, projectName: '', rootPath: '', techStack: 'No open folder', fileTree: 'Workspace is empty', openBrowserPages };
+		}
+		const primaryFolder = folders[0];
+		const rootUri = primaryFolder.uri;
+		const projectName = primaryFolder.name || basename(rootUri);
+		const rootPath = rootUri.fsPath || rootUri.path;
+
+		let techStack = 'Standard';
+		if (fileService) {
+			try {
+				const pkgUri = joinPath(rootUri, 'package.json');
+				const stat = await fileService.stat(pkgUri);
+				if (stat) {
+					const pkgFile = await fileService.readFile(pkgUri);
+					const pkg = JSON.parse(new TextDecoder().decode(pkgFile.value.buffer));
+					const deps = Object.keys(pkg.dependencies || {});
+					const devDeps = Object.keys(pkg.devDependencies || {});
+					const all = [...deps, ...devDeps];
+					const frameworks: string[] = [];
+					if (all.includes('react')) frameworks.push('React');
+					if (all.includes('next')) frameworks.push('Next.js');
+					if (all.includes('vite')) frameworks.push('Vite');
+					if (all.includes('vue')) frameworks.push('Vue');
+					if (all.includes('svelte')) frameworks.push('Svelte');
+					if (all.includes('tailwindcss')) frameworks.push('Tailwind CSS');
+					if (all.some(d => d.includes('typescript')) || devDeps.some(d => d.includes('typescript'))) frameworks.push('TypeScript');
+					if (all.includes('express')) frameworks.push('Express');
+					if (all.includes('lucide-react')) frameworks.push('Lucide Icons');
+					const scripts = Object.keys(pkg.scripts || {});
+					techStack = `${pkg.name ? `Package: ${pkg.name} | ` : ''}Frameworks: ${frameworks.join(', ') || 'Node.js'} | Scripts: ${scripts.join(', ') || 'none'}`;
+				}
+			} catch { }
+
+			try {
+				if (await fileService.exists(joinPath(rootUri, 'Cargo.toml'))) {
+					const hasPs1Runner = await fileService.exists(joinPath(rootUri, 'scripts', 'run.ps1')) || await fileService.exists(joinPath(rootUri, 'run.ps1'));
+					techStack = hasPs1Runner ? 'Rust (Cargo) Application (PowerShell Runner)' : 'Rust (Cargo) Application';
+				} else if (await fileService.exists(joinPath(rootUri, 'go.mod'))) {
+					techStack = 'Go (Go Modules) Application';
+				} else if (await fileService.exists(joinPath(rootUri, 'requirements.txt')) || await fileService.exists(joinPath(rootUri, 'pyproject.toml'))) {
+					techStack = 'Python Application';
+				} else if (await fileService.exists(joinPath(rootUri, 'pubspec.yaml'))) {
+					techStack = 'Dart / Flutter Application';
+				}
+			} catch { }
+		}
+
+		const treeLines: string[] = [];
+		const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.out', '.next', '.vscode', '.dardcor', '.dardcor-code', '.idea', 'coverage', '.cache']);
+		if (fileService) {
+			const scan = async (uri: URI, prefix: string, depth: number) => {
+				if (depth > 2 || treeLines.length > 70) return;
+				try {
+					const res = await fileService!.resolve(uri);
+					if (!res.children) return;
+					const sorted = res.children.slice().sort((a, b) => {
+						if (a.isDirectory && !b.isDirectory) return -1;
+						if (!a.isDirectory && b.isDirectory) return 1;
+						return a.name.localeCompare(b.name);
+					});
+					for (const child of sorted) {
+						if (ignoreDirs.has(child.name)) {
+							if (child.isDirectory) treeLines.push(`${prefix}${child.name}/`);
+							continue;
+						}
+						if (child.isDirectory) {
+							treeLines.push(`${prefix}${child.name}/`);
+							await scan(child.resource, prefix + '  ', depth + 1);
+						} else {
+							treeLines.push(`${prefix}${child.name}`);
+						}
+						if (treeLines.length > 70) break;
+					}
+				} catch { }
+			};
+			await scan(rootUri, '', 0);
+		}
+
+		let activeFile: string | undefined;
+		let activeFileExcerpt: string | undefined;
+		if (editorService) {
+			try {
+				const active = editorService.activeEditor;
+				if (active) {
+					const resource = EditorResourceAccessor.getCanonicalUri(active);
+					if (resource) {
+						activeFile = resource.fsPath || resource.path;
+						if (rootUri && typeof activeFile === 'string' && activeFile.startsWith(rootUri.fsPath)) {
+							activeFile = activeFile.slice(rootUri.fsPath.length).replace(/^[\\\/]+/, '');
+						}
+						if (fileService) {
+							const fileData = await fileService.readFile(resource);
+							const text = new TextDecoder().decode(fileData.value.buffer);
+							activeFileExcerpt = text.split('\n').slice(0, 35).join('\n');
+						}
+					}
+				}
+			} catch { }
+		}
+
+		return {
+			hasWorkspace: true,
+			projectName,
+			rootPath,
+			rootUri,
+			techStack,
+			fileTree: treeLines.join('\n') || 'Project root',
+			activeFile,
+			activeFileExcerpt,
+			openBrowserPages
+		};
+	}
+
+	private _getToolDisplayInfo(toolName: string, args: any, lang?: string): { invocationMessage: string; pastTenseMessage: string; formattedInput: string } {
+		const l = lang || 'en';
+		switch (toolName) {
+			case 'read_file': {
+				const target = extractAgentFilePath(args) || 'file';
+				const range = args?.startLine ? `:${args.startLine}${args?.endLine ? `-${args.endLine}` : ''}` : '';
+				let inv = `Reading \`${target}${range}\``;
+				let past = `Read \`${target}${range}\``;
+				if (l === 'id') { inv = `Membaca \`${target}${range}\``; past = `Membaca \`${target}${range}\``; }
+				else if (l === 'ja') { inv = `\`${target}${range}\` を読み込んでいます`; past = `\`${target}${range}\` を読み込みました`; }
+				else if (l === 'zh') { inv = `正在读取 \`${target}${range}\``; past = `已读取 \`${target}${range}\``; }
+				return {
+					invocationMessage: inv,
+					pastTenseMessage: past,
+					formattedInput: `File: ${target}${range}`
+				};
+			}
+			case 'write_file': {
+				const target = extractAgentFilePath(args) || 'file';
+				let inv = `Writing \`${target}\``;
+				let past = `Wrote \`${target}\``;
+				if (l === 'id') { inv = `Menulis \`${target}\``; past = `Menulis \`${target}\``; }
+				else if (l === 'ja') { inv = `\`${target}\` に書き込んでいます`; past = `\`${target}\` に書き込みました`; }
+				else if (l === 'zh') { inv = `正在写入 \`${target}\``; past = `已写入 \`${target}\``; }
+				return {
+					invocationMessage: inv,
+					pastTenseMessage: past,
+					formattedInput: `File: ${target}\n\nContent:\n${args?.content ?? ''}`
+				};
+			}
+			case 'edit_file': {
+				const target = extractAgentFilePath(args) || 'file';
+				let inv = `Editing \`${target}\``;
+				let past = `Edited \`${target}\``;
+				if (l === 'id') { inv = `Mengedit \`${target}\``; past = `Mengedit \`${target}\``; }
+				else if (l === 'ja') { inv = `\`${target}\` を編集しています`; past = `\`${target}\` を編集しました`; }
+				else if (l === 'zh') { inv = `正在编辑 \`${target}\``; past = `已编辑 \`${target}\``; }
+				return {
+					invocationMessage: inv,
+					pastTenseMessage: past,
+					formattedInput: `File: ${target}\n\n<<<<<<< Search\n${args?.searchContent ?? ''}\n=======\n${args?.replaceContent ?? ''}\n>>>>>>> Replace`
+				};
+			}
+			case 'list_directory': {
+				const target = extractAgentFilePath(args) || (typeof args?.dirPath === 'string' ? args.dirPath.trim() : (typeof args?.path === 'string' ? args.path.trim() : '.'));
+				return {
+					invocationMessage: `Listing directory \`${target}\``,
+					pastTenseMessage: `Listed directory \`${target}\``,
+					formattedInput: `Directory: ${target}`
+				};
+			}
+			case 'find_files': {
+				const target = args?.pattern || '*';
+				return {
+					invocationMessage: `Finding files matching \`${target}\``,
+					pastTenseMessage: `Found files matching \`${target}\``,
+					formattedInput: `Pattern: ${target}`
+				};
+			}
+			case 'search_code': {
+				const target = args?.query || '';
+				return {
+					invocationMessage: `Searching code for \`${target}\``,
+					pastTenseMessage: `Searched code for \`${target}\``,
+					formattedInput: `Query: ${target}`
+				};
+			}
+			case 'run_command':
+			case 'run_in_terminal': {
+				const target = args?.command || args?.commandLine || '';
+				return {
+					invocationMessage: `Running \`${target}\``,
+					pastTenseMessage: `Ran \`${target}\``,
+					formattedInput: `Command: ${target}`
+				};
+			}
+			case 'send_to_terminal': {
+				const target = args?.text || args?.command || args?.commandLine || '';
+				return {
+					invocationMessage: `Sending \`${target}\` to terminal`,
+					pastTenseMessage: `Sent \`${target}\` to terminal`,
+					formattedInput: `Text: ${target}`
+				};
+			}
+			case 'get_terminal_output': {
+				return {
+					invocationMessage: 'Retrieving terminal output',
+					pastTenseMessage: 'Retrieved terminal output',
+					formattedInput: 'Reading output buffer from active terminal'
+				};
+			}
+			case 'kill_terminal': {
+				return {
+					invocationMessage: 'Terminating terminal',
+					pastTenseMessage: 'Terminated terminal',
+					formattedInput: 'Killing active terminal instance'
+				};
+			}
+			case 'manage_todo_list':
+			case 'todo':
+			case 'todo_list':
+			case 'update_todo_list':
+			case 'dardcor_internal_todo': {
+				const normalized = normalizeTodoListArgs(args);
+				const count = normalized.items.length;
+				if (normalized.operation === 'read' || count === 0) {
+					return {
+						invocationMessage: 'Reading task checklist',
+						pastTenseMessage: 'Read task checklist',
+						formattedInput: typeof args === 'string' ? args : JSON.stringify(args ?? {}, null, 2)
+					};
+				}
+				const activeItem = normalized.items.find(t => t.status === 'in-progress');
+				const activeSuffix = activeItem ? ` (Active: #${activeItem.id} "${activeItem.title}")` : '';
+				return {
+					invocationMessage: `Updating task checklist (${count} item${count === 1 ? '' : 's'})${activeSuffix}`,
+					pastTenseMessage: `Updated task checklist (${count} item${count === 1 ? '' : 's'})`,
+					formattedInput: JSON.stringify(normalized.items, null, 2)
+				};
+			}
+			case 'fetch_web_page': {
+				const target = args?.url || (Array.isArray(args?.urls) ? args.urls[0] : 'URL');
+				return {
+					invocationMessage: `Fetching \`${target}\``,
+					pastTenseMessage: `Fetched \`${target}\``,
+					formattedInput: `URL: ${target}`
+				};
+			}
+			case 'delete_file': {
+				const target = extractAgentFilePath(args) || 'file';
+				return {
+					invocationMessage: `Deleting \`${target}\``,
+					pastTenseMessage: `Deleted \`${target}\``,
+					formattedInput: `File: ${target}\nRecursive: ${args?.recursive !== false}`
+				};
+			}
+			case 'rename_file': {
+				const oldPath = extractAgentFilePath(args?.oldFilePath ?? args?.oldPath) || 'oldFile';
+				const newPath = extractAgentFilePath(args?.newFilePath ?? args?.newPath) || 'newFile';
+				return {
+					invocationMessage: `Renaming \`${oldPath}\` to \`${newPath}\``,
+					pastTenseMessage: `Renamed \`${oldPath}\` to \`${newPath}\``,
+					formattedInput: `From: ${oldPath}\nTo: ${newPath}\nOverwrite: ${!!args?.overwrite}`
+				};
+			}
+			case 'get_diagnostics': {
+				const target = extractAgentFilePath(args) || 'entire workspace';
+				const sev = args?.severity || 'all';
+				return {
+					invocationMessage: `Inspecting diagnostics for \`${target}\``,
+					pastTenseMessage: `Inspected diagnostics for \`${target}\``,
+					formattedInput: `Target: ${target}\nSeverity filter: ${sev}`
+				};
+			}
+			case 'get_file_outline': {
+				const target = extractAgentFilePath(args) || 'file';
+				return {
+					invocationMessage: `Extracting outline from \`${target}\``,
+					pastTenseMessage: `Extracted outline from \`${target}\``,
+					formattedInput: `File: ${target}`
+				};
+			}
+			case 'grep_search': {
+				const pat = args?.pattern || '';
+				const sub = args?.subPath ? ` in \`${args.subPath}\`` : '';
+				return {
+					invocationMessage: `Grep searching \`${pat}\`${sub}`,
+					pastTenseMessage: `Grep searched \`${pat}\`${sub}`,
+					formattedInput: `Pattern: ${pat}\nSubpath: ${args?.subPath || '.'}\nRegex: ${!!args?.isRegex}\nCaseInsensitive: ${args?.caseInsensitive !== false}`
+				};
+			}
+			case 'terminal_selection': {
+				return {
+					invocationMessage: 'Reading terminal selection',
+					pastTenseMessage: 'Read terminal selection',
+					formattedInput: 'Inspecting text selection in active terminal'
+				};
+			}
+			case 'terminal_last_command': {
+				return {
+					invocationMessage: 'Reading last terminal command',
+					pastTenseMessage: 'Read last terminal command',
+					formattedInput: 'Inspecting last executed command in active terminal'
+				};
+			}
+			case 'create_and_run_task': {
+				const lbl = args?.label || 'task';
+				return {
+					invocationMessage: `Creating and running task \`${lbl}\``,
+					pastTenseMessage: `Created and ran task \`${lbl}\``,
+					formattedInput: `Task: ${lbl}\nCommand: ${args?.command || ''}`
+				};
+			}
+			case 'get_task_output': {
+				const lbl = args?.taskLabel || 'task';
+				return {
+					invocationMessage: `Reading output of task \`${lbl}\``,
+					pastTenseMessage: `Read output of task \`${lbl}\``,
+					formattedInput: `Task: ${lbl}`
+				};
+			}
+			case 'run_task': {
+				const lbl = args?.taskLabel || 'task';
+				return {
+					invocationMessage: `Running task \`${lbl}\``,
+					pastTenseMessage: `Ran task \`${lbl}\``,
+					formattedInput: `Task: ${lbl}`
+				};
+			}
+			case 'ask_questions': {
+				const count = Array.isArray(args?.questions) ? args.questions.length : 1;
+				return {
+					invocationMessage: `Asking user ${count} question${count > 1 ? 's' : ''}`,
+					pastTenseMessage: `Asked user ${count} question${count > 1 ? 's' : ''}`,
+					formattedInput: JSON.stringify(args?.questions || [], null, 2)
+				};
+			}
+			case 'review_plan': {
+				const title = args?.title || 'Implementation Plan';
+				return {
+					invocationMessage: `Presenting plan for review: ${title}`,
+					pastTenseMessage: `Presented plan for review: ${title}`,
+					formattedInput: args?.content || title
+				};
+			}
+			case 'run_subagent': {
+				const isSwarm = Array.isArray(args?.tasks) && args.tasks.length > 0;
+				const desc = args?.description || (isSwarm ? `Subagent Swarm (${args.tasks.length} subagents)` : 'subagent task');
+				return {
+					invocationMessage: isSwarm ? `Deploying Subagent Swarm (${args.tasks.length} subagents): ${desc}` : `Running subagent: ${desc}`,
+					pastTenseMessage: isSwarm ? `Completed Subagent Swarm: ${desc}` : `Completed subagent: ${desc}`,
+					formattedInput: isSwarm ? `Swarm (${args.tasks.length} tasks):\n${args.tasks.map((t: any, i: number) => `${i + 1}. ${t.description || t.prompt}`).join('\n')}` : `Prompt: ${args?.prompt || ''}\nDescription: ${desc}`
+				};
+			}
+			case 'confirm_terminal_command': {
+				const cmd = args?.command || '';
+				return {
+					invocationMessage: `Requesting confirmation for \`${cmd}\``,
+					pastTenseMessage: `Requested confirmation for \`${cmd}\``,
+					formattedInput: `Command: ${cmd}\nExplanation: ${args?.explanation || ''}`
+				};
+			}
+			case 'set_artifacts': {
+				const count = Array.isArray(args?.artifacts) ? args.artifacts.length : 0;
+				return {
+					invocationMessage: `Updating session artifacts (${count} items)`,
+					pastTenseMessage: `Updated session artifacts (${count} items)`,
+					formattedInput: JSON.stringify(args?.artifacts || [], null, 2)
+				};
+			}
+			case 'set_artifact_rules': {
+				return {
+					invocationMessage: 'Configuring artifact rules',
+					pastTenseMessage: 'Configured artifact rules',
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'open_browser_page': {
+				const target = args?.url || 'URL';
+				let inv = `Opening Integrated Browser at \`${target}\``;
+				let past = `Opened Integrated Browser at \`${target}\``;
+				if (l === 'id') { inv = `Membuka Integrated Browser di \`${target}\``; past = `Membuka Integrated Browser di \`${target}\``; }
+				else if (l === 'ja') { inv = `統合ブラウザで \`${target}\` を開いています`; past = `統合ブラウザで \`${target}\` を開きました`; }
+				else if (l === 'zh') { inv = `正在打开内置浏览器 \`${target}\``; past = `已打开内置浏览器 \`${target}\``; }
+				return {
+					invocationMessage: inv,
+					pastTenseMessage: past,
+					formattedInput: `URL: ${target}`
+				};
+			}
+			case 'read_browser_page':
+			case 'read_page': {
+				return {
+					invocationMessage: 'Scanning browser page DOM & interactive elements',
+					pastTenseMessage: 'Scanned browser page DOM & interactive elements',
+					formattedInput: `Page: ${args?.pageId || 'active'}`
+				};
+			}
+			case 'screenshot_browser_page':
+			case 'screenshot_page': {
+				return {
+					invocationMessage: 'Capturing browser screenshot & DOM snapshot',
+					pastTenseMessage: 'Captured browser screenshot & DOM snapshot',
+					formattedInput: `Page: ${args?.pageId || 'active'}`
+				};
+			}
+			case 'navigate_browser':
+			case 'navigate_page': {
+				const target = args?.url || 'URL';
+				return {
+					invocationMessage: `Navigating browser to \`${target}\``,
+					pastTenseMessage: `Navigated browser to \`${target}\``,
+					formattedInput: `URL: ${target}`
+				};
+			}
+			case 'click_element':
+			case 'click_browser': {
+				const target = args?.ref || args?.text || args?.selector || (args?.elementId ? `[${args.elementId}]` : '') || (args?.x !== undefined ? `(${args.x}, ${args.y})` : 'element');
+				let inv = `Moving Dardcor cursor & clicking \`${target}\``;
+				let past = `Clicked \`${target}\` on browser page`;
+				if (l === 'id') { inv = `Menggerakkan kursor Dardcor & mengklik \`${target}\``; past = `Mengklik \`${target}\` di halaman browser`; }
+				else if (l === 'ja') { inv = `Dardcor カーソルを移動して \`${target}\` をクリックしています`; past = `ブラウザページで \`${target}\` をクリックしました`; }
+				else if (l === 'zh') { inv = `移动 Dardcor 光标并点击 \`${target}\``; past = `已在浏览器页面点击 \`${target}\``; }
+				return {
+					invocationMessage: inv,
+					pastTenseMessage: past,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'type_in_page':
+			case 'type_browser': {
+				const target = args?.ref || args?.selector || (args?.elementId ? `[${args.elementId}]` : 'input');
+				return {
+					invocationMessage: `Typing \`"${args?.text || ''}"\` into \`${target}\``,
+					pastTenseMessage: `Typed \`"${args?.text || ''}"\` into \`${target}\``,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'scroll_browser_page':
+			case 'scroll_page': {
+				const desc = args?.selector || args?.ref || args?.elementId
+					? `to \`${args.selector || args.ref || `[${args.elementId}]`}\``
+					: `${args?.direction || 'down'} (${args?.amount || 550}px)`;
+				return {
+					invocationMessage: `Scrolling browser page ${desc}`,
+					pastTenseMessage: `Scrolled browser page ${desc}`,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'hover_element':
+			case 'hover_browser': {
+				const target = args?.text || args?.selector || (args?.elementId ? `[${args.elementId}]` : 'element');
+				return {
+					invocationMessage: `Moving Dardcor cursor to hover \`${target}\``,
+					pastTenseMessage: `Hovered \`${target}\` on browser page`,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'press_key': {
+				const key = args?.key || 'Enter';
+				return {
+					invocationMessage: `Pressing key \`${key}\` in browser`,
+					pastTenseMessage: `Pressed key \`${key}\` in browser`,
+					formattedInput: `Key: ${key}`
+				};
+			}
+			case 'select_option': {
+				const opt = args?.optionText || args?.value || args?.index || 'option';
+				return {
+					invocationMessage: `Selecting dropdown option \`${opt}\``,
+					pastTenseMessage: `Selected dropdown option \`${opt}\``,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'drag_and_drop': {
+				return {
+					invocationMessage: 'Dragging & dropping element with Dardcor cursor',
+					pastTenseMessage: 'Dragged & dropped element on browser page',
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'wait_for_browser': {
+				const cond = args?.selector || args?.text || 'DOM stability';
+				return {
+					invocationMessage: `Waiting for browser condition (\`${cond}\`)`,
+					pastTenseMessage: `Waited for browser condition (\`${cond}\`)`,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'execute_browser_script': {
+				return {
+					invocationMessage: 'Executing JavaScript in browser page',
+					pastTenseMessage: 'Executed JavaScript in browser page',
+					formattedInput: args?.script || ''
+				};
+			}
+			case 'get_browser_console_logs': {
+				return {
+					invocationMessage: 'Reading browser console & runtime errors',
+					pastTenseMessage: 'Read browser console & runtime errors',
+					formattedInput: `Page: ${args?.pageId || 'active'}`
+				};
+			}
+			case 'handle_browser_dialog': {
+				return {
+					invocationMessage: `Handling browser dialog (${args?.accept !== false ? 'Accept' : 'Dismiss'})`,
+					pastTenseMessage: `Handled browser dialog (${args?.accept !== false ? 'Accept' : 'Dismiss'})`,
+					formattedInput: JSON.stringify(args || {}, null, 2)
+				};
+			}
+			case 'task_completed':
+			case 'complete_task': {
+				return {
+					invocationMessage: 'Verifying task completion',
+					pastTenseMessage: 'Task completion verified',
+					formattedInput: typeof args?.summary === 'string' ? 'Summary verified' : JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'multi_edit_file': {
+				const target = extractAgentFilePath(args) || 'file';
+				const count = Array.isArray(args?.edits) ? args.edits.length : 0;
+				return {
+					invocationMessage: `Multi-editing \`${target}\` (${count} block${count === 1 ? '' : 's'})`,
+					pastTenseMessage: `Multi-edited \`${target}\` (${count} block${count === 1 ? '' : 's'})`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'batch_edit_files': {
+				const count = Array.isArray(args?.operations) ? args.operations.length : 0;
+				return {
+					invocationMessage: `Batch editing ${count} file operation${count === 1 ? '' : 's'}`,
+					pastTenseMessage: `Batch edited ${count} file operation${count === 1 ? '' : 's'}`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'read_multiple_files': {
+				const count = Array.isArray(args?.files) ? args.files.length : 0;
+				return {
+					invocationMessage: `Reading ${count} file${count === 1 ? '' : 's'} in parallel`,
+					pastTenseMessage: `Read ${count} file${count === 1 ? '' : 's'} in parallel`,
+					formattedInput: JSON.stringify(args?.files ?? [], null, 2)
+				};
+			}
+			case 'go_to_definition': {
+				const sym = args?.symbol || 'symbol';
+				return {
+					invocationMessage: `Locating definition of \`${sym}\``,
+					pastTenseMessage: `Located definition of \`${sym}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'find_symbol_references': {
+				const sym = args?.symbol || 'symbol';
+				return {
+					invocationMessage: `Finding workspace references to \`${sym}\``,
+					pastTenseMessage: `Found workspace references to \`${sym}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'get_call_hierarchy': {
+				const sym = args?.symbol || 'symbol';
+				return {
+					invocationMessage: `Tracing call hierarchy for \`${sym}\``,
+					pastTenseMessage: `Traced call hierarchy for \`${sym}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'create_checkpoint': {
+				const lbl = args?.label || 'checkpoint';
+				return {
+					invocationMessage: `Creating workspace checkpoint \`${lbl}\``,
+					pastTenseMessage: `Created workspace checkpoint \`${lbl}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'restore_checkpoint': {
+				const id = args?.checkpointId || 'latest';
+				return {
+					invocationMessage: `Restoring workspace checkpoint \`${id}\``,
+					pastTenseMessage: `Restored workspace checkpoint \`${id}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'git_intelligence': {
+				const op = args?.operation || 'status';
+				return {
+					invocationMessage: `Running Git intelligence (\`${op}\`)`,
+					pastTenseMessage: `Completed Git intelligence (\`${op}\`)`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'introspect_self': {
+				const act = args?.action || 'status';
+				return {
+					invocationMessage: `Executing metacognitive introspection (\`${act}\`)`,
+					pastTenseMessage: `Completed metacognitive introspection (\`${act}\`)`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'manage_knowledge_memory': {
+				const act = args?.action || 'query';
+				return {
+					invocationMessage: `Accessing self-improving memory ledger (\`${act}\`)`,
+					pastTenseMessage: `Updated self-improving memory ledger (\`${act}\`)`,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'synthesize_skill': {
+				const name = args?.name || 'skill';
+				return {
+					invocationMessage: `Synthesizing autonomous skill \`/${name}\``,
+					pastTenseMessage: `Synthesized autonomous skill \`/${name}\``,
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			case 'spawn_agent_swarm': {
+				const count = Array.isArray(args?.tasks) ? args.tasks.length : 0;
+				return {
+					invocationMessage: `Spawning parallel agent swarm (${count} specialist${count === 1 ? '' : 's'})`,
+					pastTenseMessage: `Synthesized parallel agent swarm (${count} specialist${count === 1 ? '' : 's'})`,
+					formattedInput: JSON.stringify(args?.tasks ?? [], null, 2)
+				};
+			}
+			case 'audit_page_visual_and_network': {
+				return {
+					invocationMessage: 'Auditing browser visual layout, console & backend logs',
+					pastTenseMessage: 'Completed browser visual layout, console & backend audit',
+					formattedInput: JSON.stringify(args ?? {}, null, 2)
+				};
+			}
+			default: {
+				let formattedInput = typeof args === 'string' ? args : JSON.stringify(args ?? {}, null, 2);
+				if (typeof args === 'string') {
+					try {
+						formattedInput = JSON.stringify(JSON.parse(args), null, 2);
+					} catch {}
+				}
+				return {
+					invocationMessage: `Executing ${toolName}`,
+					pastTenseMessage: `Executed ${toolName}`,
+					formattedInput
+				};
+			}
+		}
+	}
+
+	private async _invokeBuiltinAgentTool(
+		toolId: string,
+		parameters: Record<string, any>,
+		chatSessionResource: URI | undefined,
+		rootUri: URI | undefined,
+		requestId: string | undefined,
+		token: CancellationToken,
+		approvedByUser = false,
+	): Promise<{ output: string; nativeToolInvocation?: boolean }> {
+		if (!chatSessionResource) {
+			return { output: `Built-in tool ${toolId} could not run because the chat session is unavailable.` };
+		}
+		let invocationStarted = false;
+		try {
+			let output = '';
+			await this.instantiationService.invokeFunction(async accessor => {
+				const toolsService = accessor.get(ILanguageModelToolsService);
+				const tool = toolsService.getTool(toolId);
+				if (!tool) {
+					throw new Error(`Built-in tool ${toolId} is not registered in this window.`);
+				}
+				invocationStarted = true;
+				const result = await toolsService.invokeTool({
+					callId: `dardcor_router_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+					toolId: tool.id,
+					parameters,
+					context: { sessionResource: chatSessionResource, workingDirectory: rootUri },
+					chatRequestId: requestId,
+					preApproved: approvedByUser ? { type: ToolConfirmKind.UserAction } : undefined,
+				}, async () => 0, token);
+				output = toolContentToA11yString(result.content);
+				const metadata = result.toolMetadata as { exitCode?: unknown; timedOut?: unknown; id?: unknown; terminalId?: unknown } | undefined;
+				if (typeof metadata?.id === 'string' && metadata.id.trim()) {
+					const termIdStr = metadata.id.trim();
+					_sessionLastBuiltinTerminalIds.set(chatSessionResource.toString(), termIdStr);
+					if (!output.includes(termIdStr)) {
+						output += `${output ? '\n' : ''}[Terminal ID: ${termIdStr}]`;
+					}
+				}
+				if (typeof metadata?.exitCode === 'number') {
+					output += `${output ? '\n' : ''}[Command result: exit code ${metadata.exitCode}]`;
+				}
+				if (metadata?.timedOut === true) {
+					output += `${output ? '\n' : ''}[Command result: timed out; the process may still be running]`;
+				}
+				if ((toolId === TerminalToolId.RunTask || toolId === TerminalToolId.CreateAndRunTask)
+					&& typeof metadata?.exitCode !== 'number'
+					&& metadata?.timedOut !== true) {
+					output += `${output ? '\n' : ''}[Task result: final status unknown; poll task output before treating this as verification]`;
+				}
+				const message = result.toolResultMessage;
+				const messageText = typeof message === 'string' ? message : (message as any)?.value;
+				if (typeof messageText === 'string' && messageText.trim() && !output.includes(messageText.trim())) {
+					output = `${output}${output ? '\n' : ''}${messageText.trim()}`;
+				}
+				if (result.toolResultError) {
+					output = `${output}${output ? '\n' : ''}Built-in tool reported an error: ${result.toolResultError}`;
+				}
+			});
+			return { output: output || `Built-in tool ${toolId} returned no output; its result is not treated as verified.`, nativeToolInvocation: true };
+		} catch (error) {
+			return { output: `Built-in tool ${toolId} failed: ${error instanceof Error ? error.message : String(error)}`, nativeToolInvocation: invocationStarted };
+		}
+	}
+
+	private async _executeAgentTool(toolName: string, args: any, rootUri?: URI, chatSessionResource?: URI, token: CancellationToken = CancellationToken.None, requestId?: string, approvedByUser = false, fileReadResolution?: IAgentFileReadResolution): Promise<{ output: string; executionStatus?: AgentToolExecutionStatus; browserImage?: { mimeType: 'image/png'; base64: string }; nativeToolInvocation?: boolean; externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } }> {
+		let fileService: IFileService | undefined;
+		let searchService: ISearchService | undefined;
+		let languageFeaturesService: ILanguageFeaturesService | undefined;
+		let modelService: IModelService | undefined;
+		try {
+			this.instantiationService.invokeFunction(accessor => {
+				try { fileService = accessor.get(IFileService); } catch { }
+				try { searchService = accessor.get(ISearchService); } catch { }
+				try { languageFeaturesService = accessor.get(ILanguageFeaturesService); } catch { }
+				try { modelService = accessor.get(IModelService); } catch { }
+			});
+		} catch { }
+
+		const resolveUri = (filePath: string | undefined): URI => resolveAgentUri(filePath, rootUri);
+		const isInsideWorkspace = (targetUri: URI): boolean => {
+			if (!rootUri) return true;
+			return extUriBiasedIgnorePathCase.isEqualOrParent(targetUri, rootUri);
+		};
+		const workspaceFolder = rootUri?.fsPath;
+		const sessionKey = chatSessionResource?.toString() || 'default';
+		if (toolName === 'run_command' || toolName === 'run_in_terminal' || toolName === 'bash' || toolName === 'execute_command' || toolName === 'cmd' || toolName === 'sh' || toolName === 'powershell' || toolName === 'terminal') {
+			const command = String(args?.command ?? args?.commandLine ?? '').trim();
+			if (!command) {
+				return { output: 'Terminal command was not run: a non-empty command is required.' };
+			}
+			const isBg = Boolean(args?.mode === 'async' || args?.isBackground || isLongRunningDaemonCommand(command));
+			return this._invokeBuiltinAgentTool(TerminalToolId.RunInTerminal, {
+				command,
+				explanation: String(args?.explanation ?? `Run the requested command: ${command}`),
+				goal: String(args?.goal ?? 'Complete the requested workspace action'),
+				mode: isBg ? 'async' : 'sync',
+				isBackground: isBg,
+			}, chatSessionResource, rootUri, requestId, token, approvedByUser);
+		}
+		if (toolName === 'run_task' || toolName === 'get_task_output') {
+			if (!workspaceFolder) {
+				return { output: `Task tool ${toolName} could not run: open a workspace folder first.` };
+			}
+			const id = String(args?.taskLabel ?? args?.label ?? args?.name ?? args?.id ?? '').trim();
+			if (!id) {
+				return { output: `Task tool ${toolName} could not run: provide a task label or ID.` };
+			}
+			const hasStealthMatch = toolName === 'get_task_output' && Array.from(_stealthAgentTerminals.values()).some(
+				rec => !rec.instance?.isDisposed && (rec.id === id || rec.label === id)
+			);
+			if (!hasStealthMatch) {
+				return this._invokeBuiltinAgentTool(toolName === 'run_task' ? TerminalToolId.RunTask : TerminalToolId.GetTaskOutput, {
+					workspaceFolder,
+					id,
+				}, chatSessionResource, rootUri, requestId, token, approvedByUser);
+			}
+		}
+		if (toolName === 'send_to_terminal') {
+			const explicitId = String(args?.id ?? args?.terminalId ?? '').trim();
+			const builtinId = explicitId && !_stealthAgentTerminals.has(explicitId)
+				? explicitId
+				: (!explicitId ? (_sessionLastBuiltinTerminalIds.get(sessionKey) || '') : '');
+			if (builtinId) {
+				return this._invokeBuiltinAgentTool(TerminalToolId.SendToTerminal, {
+					id: builtinId,
+					command: String(args?.command ?? args?.commandLine ?? args?.text ?? ''),
+					waitForOutput: args?.waitForOutput === true,
+				}, chatSessionResource, rootUri, requestId, token, approvedByUser);
+			}
+		}
+		if (toolName === 'kill_terminal') {
+			const explicitId = String(args?.id ?? args?.terminalId ?? '').trim();
+			const builtinId = explicitId && !_stealthAgentTerminals.has(explicitId)
+				? explicitId
+				: (!explicitId ? (_sessionLastBuiltinTerminalIds.get(sessionKey) || '') : '');
+			if (builtinId) {
+				if (_sessionLastBuiltinTerminalIds.get(sessionKey) === builtinId) {
+					_sessionLastBuiltinTerminalIds.delete(sessionKey);
+				}
+				return this._invokeBuiltinAgentTool(TerminalToolId.KillTerminal, { id: builtinId }, chatSessionResource, rootUri, requestId, token, approvedByUser);
+			}
+		}
+		if (toolName === 'get_terminal_output') {
+			const explicitId = String(args?.id ?? args?.terminalId ?? '').trim();
+			const builtinId = explicitId && !_stealthAgentTerminals.has(explicitId)
+				? explicitId
+				: (!explicitId ? (_sessionLastBuiltinTerminalIds.get(sessionKey) || '') : '');
+			if (builtinId) {
+				return this._invokeBuiltinAgentTool(TerminalToolId.GetTerminalOutput, { id: builtinId }, chatSessionResource, rootUri, requestId, token);
+			}
+		}
+
+		switch (toolName) {
+			case 'read':
+			case 'view_file':
+			case 'read_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = fileReadResolution?.target ?? resolveUri(targetPath);
+				if (isBuiltinSkillUri(target) || targetPath.includes('dardcor-builtin') || targetPath.endsWith('skills/plan/SKILL.md') || targetPath.endsWith('plan/SKILL.md')) {
+					const builtinText = getBuiltinSkillContent(target) ?? getBuiltinSkillContent(targetPath);
+					if (builtinText) {
+						const lines = builtinText.split('\n');
+						const start = Math.max(1, typeof args?.startLine === 'number' ? args.startLine : 1);
+						const end = Math.min(lines.length, typeof args?.endLine === 'number' ? args.endLine : lines.length);
+						const numbered = lines.slice(start - 1, end).map((l, i) => `${start + i}: ${l}`).join('\n');
+						return { output: numbered || '(File is empty)' };
+					}
+				}
+				try {
+					if (fileReadResolution?.canonicalTarget) {
+						const currentTarget = await fileService.realpath(target);
+						if (!currentTarget || !extUriBiasedIgnorePathCase.isEqual(currentTarget, fileReadResolution.canonicalTarget)) {
+							return { output: `File read stopped because the resolved file changed after its access check: ${targetPath}. Request approval again before retrying.` };
+						}
+					}
+					const data = await fileService.readFile(target);
+					if (fileReadResolution?.canonicalTarget) {
+						const currentTarget = await fileService.realpath(target);
+						if (!currentTarget || !extUriBiasedIgnorePathCase.isEqual(currentTarget, fileReadResolution.canonicalTarget)) {
+							return { output: `File contents were withheld because the resolved file changed during the read: ${targetPath}. Request approval again before retrying.` };
+						}
+					}
+					const text = new TextDecoder().decode(data.value.buffer);
+					const lines = text.split('\n');
+					const start = Math.max(1, typeof args?.startLine === 'number' ? args.startLine : 1);
+					const end = Math.min(lines.length, typeof args?.endLine === 'number' ? args.endLine : lines.length);
+					const numbered = lines.slice(start - 1, end).map((l, i) => `${start + i}: ${l}`).join('\n');
+					return { output: numbered || '(File is empty)' };
+				} catch (e: any) {
+					return { output: `Error reading file ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'write_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
+				if (!isInsideWorkspace(target)) {
+					return { output: `Error: File operation rejected. Path '${targetPath}' resolves outside the active workspace directory.` };
+				}
+				try {
+					let isNew = true;
+					let initialContent: string | undefined;
+					try {
+						if (await fileService.exists(target)) {
+							isNew = false;
+							const oldData = await fileService.readFile(target);
+							initialContent = new TextDecoder().decode(oldData.value.buffer);
+						}
+					} catch { }
+
+					const content = typeof args?.content === 'string' ? args.content : (args?.content != null ? String(args.content) : '');
+					const parent = dirname(target);
+					if (!(await fileService.exists(parent))) {
+						await fileService.createFolder(parent);
+					}
+					await fileService.writeFile(target, VSBuffer.fromString(content));
+					const diff = isNew
+						? { added: content ? content.split(/\r\n|\r|\n/).length : 0, removed: 0 }
+						: computeAgentFileDiff(initialContent ?? '', content);
+					return {
+						output: `Successfully wrote ${content.length} bytes to ${targetPath}`,
+						externalEdit: {
+							uri: target,
+							editKind: isNew ? 'create' : 'edit',
+							initialContent: isNew ? undefined : initialContent,
+							diff
+						}
+					};
+				} catch (e: any) {
+					return { output: `Error writing file ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'edit_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
+				if (!isInsideWorkspace(target)) {
+					return { output: `Error: File operation rejected. Path '${targetPath}' resolves outside the active workspace directory.` };
+				}
+				try {
+					if (!args?.searchContent && args?.content) {
+						let initialContent: string | undefined;
+						try {
+							if (await fileService.exists(target)) {
+								const oldData = await fileService.readFile(target);
+								initialContent = new TextDecoder().decode(oldData.value.buffer);
+							}
+						} catch { }
+						const parent = dirname(target);
+						if (!(await fileService.exists(parent))) {
+							await fileService.createFolder(parent);
+						}
+						const newContent = typeof args.content === 'string' ? args.content : String(args.content);
+						await fileService.writeFile(target, VSBuffer.fromString(newContent));
+						const diff = computeAgentFileDiff(initialContent ?? '', newContent);
+						return {
+							output: `Successfully updated ${targetPath}`,
+							externalEdit: {
+								uri: target,
+								editKind: 'edit',
+								initialContent,
+								diff
+							}
+						};
+					}
+					const data = await fileService.readFile(target);
+					const initialContent = new TextDecoder().decode(data.value.buffer);
+					const search = String(args?.searchContent ?? '');
+					const replace = String(args?.replaceContent ?? '');
+					const patchResult = applyIntelligentFuzzyEdit(initialContent, search, replace);
+					if (!patchResult.matched) {
+						return { output: `Error editing ${targetPath}: ${patchResult.failureReason}` };
+					}
+					const text = patchResult.updatedContent;
+
+					await fileService.writeFile(target, VSBuffer.fromString(text));
+					const diff = computeAgentFileDiff(initialContent, text);
+					return {
+						output: `Successfully applied edits to ${targetPath} (Tier: ${patchResult.tier})`,
+						externalEdit: {
+							uri: target,
+							editKind: 'edit',
+							initialContent,
+							diff
+						}
+					};
+				} catch (e: any) {
+					return { output: `Error editing file ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'multi_edit_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const edits = Array.isArray(args?.edits) ? args.edits : [];
+				if (edits.length === 0) return { output: 'Error: edits array cannot be empty.' };
+				const target = resolveUri(targetPath);
+				if (!isInsideWorkspace(target)) {
+					return { output: `Error: File operation rejected. Path '${targetPath}' resolves outside the active workspace directory.` };
+				}
+				try {
+					const data = await fileService.readFile(target);
+					const initialContent = new TextDecoder().decode(data.value.buffer);
+					let currentText = initialContent;
+					const appliedTiers: string[] = [];
+					for (let i = 0; i < edits.length; i++) {
+						const block = edits[i];
+						const res = applyIntelligentFuzzyEdit(currentText, String(block?.searchContent ?? ''), String(block?.replaceContent ?? ''));
+						if (!res.matched) {
+							return { output: `Error in multi_edit_file on ${targetPath} at edit block #${i + 1}: ${res.failureReason}. No changes were written.` };
+						}
+						currentText = res.updatedContent;
+						appliedTiers.push(`#${i + 1}:${res.tier}`);
+					}
+					await fileService.writeFile(target, VSBuffer.fromString(currentText));
+					const diff = computeAgentFileDiff(initialContent, currentText);
+					return {
+						output: `Successfully applied ${edits.length} edit block(s) to ${targetPath} (${appliedTiers.join(', ')})`,
+						externalEdit: {
+							uri: target,
+							editKind: 'edit',
+							initialContent,
+							diff
+						}
+					};
+				} catch (e: any) {
+					return { output: `Error in multi_edit_file for ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'batch_edit_files': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const operations = Array.isArray(args?.operations) ? args.operations : [];
+				if (operations.length === 0) return { output: 'Error: operations array cannot be empty.' };
+				try {
+					const stagedWrites = new Map<string, { uri: URI; relPath: string; initialContent: string; currentContent: string; count: number }>();
+					for (let i = 0; i < operations.length; i++) {
+						const op = operations[i];
+						const relPath = extractAgentFilePath(op);
+						if (!relPath) {
+							return { output: `Batch edit aborted at operation #${i + 1}: missing filePath.` };
+						}
+						const uri = resolveUri(relPath);
+						if (!isInsideWorkspace(uri)) {
+							return { output: `Batch edit aborted: Path '${relPath}' resolves outside the active workspace directory.` };
+						}
+						const key = uri.toString();
+						let entry = stagedWrites.get(key);
+						if (!entry) {
+							const raw = await fileService.readFile(uri);
+							const text = new TextDecoder().decode(raw.value.buffer);
+							entry = { uri, relPath, initialContent: text, currentContent: text, count: 0 };
+							stagedWrites.set(key, entry);
+						}
+						const patch = applyIntelligentFuzzyEdit(entry.currentContent, String(op?.searchContent ?? ''), String(op?.replaceContent ?? ''));
+						if (!patch.matched) {
+							return { output: `Batch edit aborted cleanly (atomic rollback) at operation #${i + 1} (${relPath}): ${patch.failureReason}` };
+						}
+						entry.currentContent = patch.updatedContent;
+						entry.count++;
+					}
+					const summaries: string[] = [];
+					let primaryExternalEdit: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } | undefined;
+					for (const entry of stagedWrites.values()) {
+						await fileService.writeFile(entry.uri, VSBuffer.fromString(entry.currentContent));
+						const diff = computeAgentFileDiff(entry.initialContent, entry.currentContent);
+						summaries.push(`${entry.relPath} (${entry.count} edit${entry.count === 1 ? '' : 's'}, +${diff.added}/-${diff.removed})`);
+						if (!primaryExternalEdit) {
+							primaryExternalEdit = { uri: entry.uri, editKind: 'edit', initialContent: entry.initialContent, diff };
+						}
+					}
+					return {
+						output: `Successfully applied atomic batch edits across ${stagedWrites.size} file(s):\n- ${summaries.join('\n- ')}`,
+						externalEdit: primaryExternalEdit
+					};
+				} catch (e: any) {
+					return { output: `Error executing batch_edit_files: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'read_multiple_files': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const rawFiles = Array.isArray(args?.files) ? args.files.slice(0, 15) : [];
+				if (rawFiles.length === 0) return { output: 'Error: Provide up to 15 file descriptors in files array.' };
+				const readResults = await Promise.all(rawFiles.map(async (item: any) => {
+					const fPath = typeof item === 'string' ? item.trim() : extractAgentFilePath(item);
+					if (!fPath) return '### [Invalid file entry: missing filePath]';
+					const target = resolveUri(fPath);
+					try {
+						const data = await fileService!.readFile(target);
+						const text = new TextDecoder().decode(data.value.buffer);
+						const lines = text.split('\n');
+						const start = Math.max(1, typeof item?.startLine === 'number' ? item.startLine : 1);
+						const end = Math.min(lines.length, typeof item?.endLine === 'number' ? item.endLine : Math.min(lines.length, start + 249));
+						const numbered = lines.slice(start - 1, end).map((l, idx) => `${start + idx}: ${l}`).join('\n');
+						return `### File: ${fPath} (Lines ${start}-${end} of ${lines.length})\n${numbered || '(File is empty)'}`;
+					} catch (err: any) {
+						return `### File: ${fPath}\nError reading file: ${formatAgentToolError(err)}`;
+					}
+				}));
+				return { output: readResults.join('\n\n---\n\n') };
+			}
+			case 'list_directory': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const dirCandidate = extractAgentFilePath(args) || (typeof args?.dirPath === 'string' ? args.dirPath.trim() : (typeof args?.path === 'string' ? args.path.trim() : '.'));
+				const target = resolveUri(dirCandidate || '.');
+				try {
+					const res = await fileService.resolve(target);
+					if (!res.children || res.children.length === 0) return { output: `Directory is empty: ${dirCandidate || '.'}` };
+					const items = res.children.map(c => `${c.isDirectory ? '[DIR]' : '[FILE]'} ${c.name}${c.size ? ` (${c.size} bytes)` : ''}`);
+					return { output: items.join('\n') };
+				} catch (e: any) {
+					return { output: `Error listing directory ${dirCandidate}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'glob':
+			case 'find_files': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const rawPat = String(args.pattern || args.query || args.glob || '').trim();
+				const pat = rawPat.toLowerCase().replace(/^\*+/, '').replace(/\*+$/, '');
+				if (searchService) {
+					try {
+						const fileQuery: IFileQuery = {
+							type: QueryType.File,
+							folderQueries: [{ folder: rootUri }],
+							filePattern: rawPat || undefined,
+							maxResults: 100,
+						};
+						const res = await searchService.fileSearch(fileQuery, token);
+						if (res && Array.isArray(res.results) && res.results.length > 0) {
+							const matched = res.results.slice(0, 100).map(r => {
+								return r.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+							});
+							return { output: matched.join('\n') };
+						}
+					} catch { }
+				}
+				const matched: string[] = [];
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'vendor', 'coverage', '.out']);
+				const scan = async (uri: URI, depth: number) => {
+					if (depth > 25 || matched.length >= 100) return;
+					try {
+						const res = await fileService!.resolve(uri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name)) continue;
+							if (c.isDirectory) {
+								await scan(c.resource, depth + 1);
+							} else {
+								if (!pat || c.name.toLowerCase().includes(pat) || c.resource.path.toLowerCase().includes(pat)) {
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									matched.push(rel);
+									if (matched.length >= 100) break;
+								}
+							}
+						}
+					} catch { }
+				};
+				await scan(rootUri, 0);
+				return { output: matched.length > 0 ? matched.join('\n') : `No files found matching: ${args.pattern || args.query || args.glob}` };
+			}
+			case 'grep':
+			case 'search_code': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const q = String(args.query || args.pattern || args.text || '').trim();
+				if (!q) return { output: 'Error: query parameter is required for search_code.' };
+				if (searchService) {
+					try {
+						const textQuery: ITextQuery = {
+							type: QueryType.Text,
+							folderQueries: [{ folder: rootUri }],
+							contentPattern: { pattern: q, isCaseSensitive: false },
+							maxResults: 60,
+						};
+						const hits: string[] = [];
+						await searchService.textSearch(textQuery, token, (progress) => {
+							if ('results' in progress && Array.isArray((progress as any).results)) {
+								for (const r of (progress as any).results) {
+									const rel = r.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									if (r.rangeLocations) {
+										for (const loc of r.rangeLocations) {
+											hits.push(`${rel}:${loc.source.startLineNumber}: ${loc.preview.text.trim()}`);
+											if (hits.length >= 60) break;
+										}
+									}
+									if (hits.length >= 60) break;
+								}
+							}
+						});
+						if (hits.length > 0) {
+							return { output: hits.join('\n') };
+						}
+					} catch { }
+				}
+				const results: string[] = [];
+				const qLower = q.toLowerCase();
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'vendor', 'coverage', '.out']);
+				const scan = async (uri: URI, depth: number) => {
+					if (depth > 25 || results.length >= 60) return;
+					try {
+						const res = await fileService!.resolve(uri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scan(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|html?|css|scss|json|md|py|rs|go|java|c|cpp|h|php|blade\.php|vue|svelte|yaml|yml|toml|sh|ps1)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									const lines = txt.split('\n');
+									for (let i = 0; i < lines.length; i++) {
+										if (lines[i].toLowerCase().includes(qLower)) {
+											const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+											results.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											if (results.length >= 60) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scan(rootUri, 0);
+				return { output: results.length > 0 ? results.join('\n') : `No code matches found for: ${args.query}` };
+			}
+			case 'run_command':
+			case 'run_in_terminal': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const termService = accessor.get(ITerminalService);
+							const cmdTrim = (args.command || args.commandLine || '').trim();
+
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+
+							const isServerCmd = Boolean(args?.isBackground || args?.mode === 'async' || isLongRunningDaemonCommand(cmdTrim));
+
+							if (isServerCmd) {
+								outputMsg = await runStealthBackgroundDaemon(
+									termService,
+									cmdTrim,
+									'Dardcor Stealth Server',
+									rootUri ? rootUri.fsPath : undefined,
+									sessionKey,
+									token
+								);
+							} else if (termService.createTerminal) {
+								const isWin = isWindows;
+								let effectiveCmd = cmdTrim;
+								if (isWin) {
+									effectiveCmd = sanitizeWindowsCommand(effectiveCmd)
+										.replace(/\bwhich\s+([a-zA-Z0-9_\-\.]+)/g, '(Get-Command $1 -ErrorAction SilentlyContinue).Path')
+										.replace(/\bls\s+\/app\b/g, 'Get-ChildItem -ErrorAction SilentlyContinue');
+								}
+								const executable = isWin ? 'powershell.exe' : '/bin/sh';
+								const shellArgs = isWin ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', cmdTrim];
+								const term = await termService.createTerminal({
+									config: {
+										name: 'Agent Task',
+										hideFromUser: true,
+										isFeatureTerminal: true,
+										forceShellIntegration: true,
+										forcePersist: false,
+										cwd: rootUri ? rootUri.fsPath : undefined,
+										executable,
+										args: shellArgs,
+									}
+								});
+
+								let bufferedOutput = '';
+								const dataListener = term.onData?.((data: string) => {
+									bufferedOutput += data;
+								});
+
+								let exitCode: number | undefined;
+								let launchError: string | undefined;
+								let timedOut = false;
+								await new Promise<void>(resolve => {
+									let exitListener: any;
+									let timer: any;
+									const cleanup = () => {
+										try { exitListener?.dispose?.(); } catch { }
+										if (timer) { clearTimeout(timer); }
+										resolve();
+									};
+									if (term.onExit) {
+										exitListener = term.onExit((code: any) => {
+											if (typeof code === 'number') {
+												exitCode = code;
+											} else if (code && typeof code === 'object') {
+												launchError = code.message || JSON.stringify(code);
+												exitCode = code.code ?? -1;
+											}
+											
+											setTimeout(cleanup, 250);
+										});
+									}
+									timer = setTimeout(() => {
+										timedOut = true;
+										cleanup();
+									}, 180000);
+								});
+
+								try { dataListener?.dispose?.(); } catch { }
+								try { term.dispose?.(); } catch { }
+
+								let cleanOutput = stripAnsiSequences(bufferedOutput).trim();
+
+								if (cleanOutput.length > 25000) {
+									const outLines = cleanOutput.split('\n');
+									if (outLines.length > 180) {
+										const head = outLines.slice(0, 50).join('\n');
+										const tail = outLines.slice(-100).join('\n');
+										cleanOutput = `${head}\n\n... [${outLines.length - 150} lines truncated for token optimization] ...\n\n${tail}`;
+									}
+								}
+
+								if (launchError) {
+									outputMsg = `Terminal launch error: ${launchError}`;
+								} else if (timedOut) {
+									outputMsg = `Command timed out after 180s. Output so far:\n${cleanOutput || '(no output)'}`;
+								} else if (exitCode !== undefined && exitCode !== 0) {
+									outputMsg = `Command failed with exit code ${exitCode}.\nOutput:\n${cleanOutput || '(no output)'}`;
+								} else if (exitCode === 0) {
+									outputMsg = cleanOutput
+										? `${cleanOutput}\n\n[Command executed successfully with exit code 0]`
+										: `[Command executed successfully with exit code 0 (no output produced)]`;
+								} else {
+									outputMsg = cleanOutput || `Command completed.`;
+								}
+							} else {
+								outputMsg = 'Background terminal creation is not supported in this environment.';
+							}
+						} catch (err: any) {
+							outputMsg = `Terminal execution error: ${formatAgentToolError(err)}`;
+						}
+					});
+					return { output: outputMsg || `Executed command: ${args.command || args.commandLine}` };
+				} catch (e: any) {
+					return { output: `Error running command: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'send_to_terminal': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const termService = accessor.get(ITerminalService);
+							const textToSend = (args.text || args.command || args.commandLine || '').trim();
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+							const target = findLatestStealthAgentTerminal(termService, sessionKey, args.id || args.terminalId);
+							if (!target.instance) {
+								outputMsg = 'No active background agent terminal found (user terminals are isolated and never touched).';
+								return;
+							}
+							await target.instance.sendText(textToSend, args.addNewLine !== false);
+							outputMsg = `Sent to background agent terminal${target.record ? ` (${target.record.id})` : ''}: ${textToSend}`;
+						} catch (err: any) {
+							outputMsg = `Terminal error: ${formatAgentToolError(err)}`;
+						}
+					});
+					return { output: outputMsg || 'Sent command to background agent terminal' };
+				} catch (e: any) {
+					return { output: `Error sending to terminal: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'get_terminal_output': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const termService = accessor.get(ITerminalService);
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+							const target = findLatestStealthAgentTerminal(termService, sessionKey, args.id || args.terminalId);
+							if (!target.instance && !target.record) {
+								outputMsg = 'No active background agent terminal instance found.';
+								return;
+							}
+							const captured = readStealthTerminalOutput(target, 120);
+							outputMsg = captured || '(Background agent terminal has no output yet)';
+						} catch (err: any) {
+							outputMsg = `Error reading terminal output: ${formatAgentToolError(err)}`;
+						}
+					});
+					return { output: outputMsg || 'Terminal output retrieved' };
+				} catch (e: any) {
+					return { output: `Error getting terminal output: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'kill_terminal': {
+				try {
+					let outputMsg = '';
+					await this.instantiationService.invokeFunction(async accessor => {
+						try {
+							const termService = accessor.get(ITerminalService);
+							if (!termService) {
+								outputMsg = 'Terminal service is not available.';
+								return;
+							}
+							const target = findLatestStealthAgentTerminal(termService, sessionKey, args.id || args.terminalId);
+							if (!target.instance) {
+								outputMsg = 'No active background agent terminal to terminate.';
+								return;
+							}
+							if (target.record) {
+								_stealthAgentTerminals.delete(target.record.id);
+								try { target.record.disposable.dispose(); } catch { }
+							}
+							target.instance.dispose();
+							outputMsg = `Background agent terminal${target.record ? ` (${target.record.id})` : ''} terminated.`;
+						} catch (err: any) {
+							outputMsg = `Error killing terminal: ${formatAgentToolError(err)}`;
+						}
+					});
+					return { output: outputMsg || 'Background agent terminal closed' };
+				} catch (e: any) {
+					return { output: `Error terminating terminal: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'manage_todo_list':
+			case 'todo':
+			case 'todo_list':
+			case 'update_todo_list':
+			case 'dardcor_internal_todo': {
+				try {
+					if (!chatSessionResource) {
+						return { output: 'Error: chat session is unavailable; checklist was not saved.' };
+					}
+					let todoService: IChatTodoListService | undefined;
+					try {
+						this.instantiationService.invokeFunction(accessor => todoService = accessor.get(IChatTodoListService));
+					} catch { }
+					if (!todoService) {
+						return { output: 'Error: checklist storage is unavailable; checklist was not saved.' };
+					}
+
+					const normalized = normalizeTodoListArgs(args);
+					const existingTodos = todoService.getTodos(chatSessionResource);
+
+					if (normalized.operation === 'read' || (normalized.items.length === 0 && (args?.operation === 'read' || args?.action === 'read' || args?.action === 'get'))) {
+						if (existingTodos.length > 0) {
+							const rendered = existingTodos.map(item => {
+								const icon = item.status === 'completed' ? '[x]' : item.status === 'in-progress' ? '[~]' : '[ ]';
+								return `${icon} ${item.id}. ${item.title} (${item.status})`;
+							}).join('\n');
+							return { output: `Current task checklist (${existingTodos.length} items):\n${rendered}` };
+						}
+						return {
+							output: 'No task checklist items are currently tracked. To initialize a checklist, provide an array of items: { todoList: [{ id: 1, title: "Task description", status: "in-progress" }] }.'
+						};
+					}
+
+					if (normalized.items.length === 0) {
+						if (existingTodos.length > 0) {
+							const rendered = existingTodos.map(item => {
+								const icon = item.status === 'completed' ? '[x]' : item.status === 'in-progress' ? '[~]' : '[ ]';
+								return `${icon} ${item.id}. ${item.title} (${item.status})`;
+							}).join('\n');
+							return { output: `Checklist update noted (no new items parsed; existing ${existingTodos.length} items preserved):\n${rendered}` };
+						}
+						return {
+							output: 'Checklist update received with no parseable items. Provide items with id, title, and status: { todoList: [{ id: 1, title: "Task description", status: "in-progress" }] }.'
+						};
+					}
+
+					const isExplicitReplace = args?.replace === true || args?.operation === 'replace' || args?.action === 'replace';
+					let list: IChatTodo[];
+
+					if (existingTodos.length > 0 && !isExplicitReplace && normalized.items.length < existingTodos.length) {
+						const merged: IChatTodo[] = existingTodos.map(existing => ({ ...existing }));
+						for (const item of normalized.items) {
+							let match = merged.find(m => m.id === item.id);
+							if (!match) {
+								const cleanTitle = item.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+								match = merged.find(m => {
+									const existingClean = m.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+									return existingClean === cleanTitle || existingClean.includes(cleanTitle) || cleanTitle.includes(existingClean);
+								});
+							}
+							if (match) {
+								match.status = item.status;
+								if (item.title && item.title.length > 3) {
+									match.title = item.title;
+								}
+							} else {
+								merged.push({
+									id: merged.length + 1,
+									title: item.title,
+									status: item.status
+								});
+							}
+						}
+						list = merged.map((item, idx) => ({ ...item, id: idx + 1 }));
+					} else {
+						list = normalized.items.map((item, idx) => ({ ...item, id: idx + 1 }));
+					}
+
+					todoService.setTodos(chatSessionResource, list);
+					const rendered = list.map(item => {
+						const icon = item.status === 'completed' ? '[x]' : item.status === 'in-progress' ? '[~]' : '[ ]';
+						return `${icon} ${item.id}. ${item.title} (${item.status})`;
+					}).join('\n');
+					return { output: `Todo checklist updated:\n${rendered}` };
+				} catch (e: any) {
+					return { output: `Error updating todo list: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'fetch_web_page': {
+				const rawUrl = args.url || (Array.isArray(args.urls) ? args.urls[0] : '');
+				if (!rawUrl) return { output: 'Error: No URL provided' };
+				try {
+					const res = await fetch(rawUrl, {
+						headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DardcorCode/1.0' }
+					});
+					if (!res.ok) {
+						return { output: `HTTP error ${res.status}: ${res.statusText}` };
+					}
+					const text = await res.text();
+					const cleanText = text
+						.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+						.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+						.replace(/<[^>]+>/g, ' ')
+						.replace(/\s+/g, ' ')
+						.trim();
+					const truncated = cleanText.length > 8000 ? cleanText.slice(0, 8000) + '... (truncated)' : cleanText;
+					return { output: truncated || '(Page returned no readable text)' };
+				} catch (e: any) {
+					return { output: `Error fetching URL ${rawUrl}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'delete_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
+				if (!isInsideWorkspace(target)) {
+					return { output: `Error: File operation rejected. Path '${targetPath}' resolves outside the active workspace directory.` };
+				}
+				try {
+					if (!(await fileService.exists(target))) {
+						return { output: `File or directory not found: ${targetPath}` };
+					}
+					const stat = await fileService.resolve(target);
+					const isDir = stat.isDirectory;
+					let removedLines = 0;
+					let initialContent: string | undefined;
+					if (!isDir) {
+						try {
+							const fileData = await fileService.readFile(target);
+							initialContent = new TextDecoder().decode(fileData.value.buffer);
+							removedLines = initialContent.split('\n').length;
+						} catch { }
+					}
+					await fileService.del(target, { recursive: args?.recursive !== false });
+					return {
+						output: `Successfully deleted ${isDir ? 'directory' : 'file'}: ${targetPath}`,
+						externalEdit: isDir ? undefined : {
+							uri: target,
+							editKind: 'delete',
+							initialContent,
+							diff: { added: 0, removed: removedLines }
+						}
+					};
+				} catch (e: any) {
+					return { output: `Error deleting ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'rename_file': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const oldPath = extractAgentFilePath(args?.oldFilePath ?? args?.oldPath ?? args?.source ?? args?.from);
+				const newPath = extractAgentFilePath(args?.newFilePath ?? args?.newPath ?? args?.target ?? args?.to);
+				if (!oldPath || !newPath) return { output: 'Error: Both oldFilePath and newFilePath are required.' };
+				const source = resolveUri(oldPath);
+				const target = resolveUri(newPath);
+				if (!isInsideWorkspace(source) || !isInsideWorkspace(target)) {
+					return { output: `Error: File operation rejected. Path resolves outside the active workspace directory.` };
+				}
+				try {
+					if (!(await fileService.exists(source))) {
+						return { output: `Source file not found: ${oldPath}` };
+					}
+					const targetParent = dirname(target);
+					if (!(await fileService.exists(targetParent))) {
+						await fileService.createFolder(targetParent);
+					}
+					await fileService.move(source, target, !!args?.overwrite);
+					return {
+						output: `Successfully renamed ${oldPath} to ${newPath}`
+					};
+				} catch (e: any) {
+					return { output: `Error renaming ${oldPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'get_diagnostics': {
+				let markerService: IMarkerService | undefined;
+				try {
+					this.instantiationService.invokeFunction(accessor => {
+						try { markerService = accessor.get(IMarkerService); } catch { }
+					});
+				} catch { }
+				if (!markerService) return { output: 'Error: markerService unavailable' };
+				try {
+					let targetUri: URI | undefined;
+					const targetPath = extractAgentFilePath(args);
+					if (targetPath) {
+						targetUri = resolveUri(targetPath);
+					}
+					const markers = markerService.read({ resource: targetUri });
+					const filterSev = args?.severity || 'all';
+					const filtered = markers.filter(m => {
+						if (filterSev === 'error') return m.severity === MarkerSeverity.Error;
+						if (filterSev === 'warning') return m.severity === MarkerSeverity.Warning;
+						return m.severity === MarkerSeverity.Error || m.severity === MarkerSeverity.Warning || m.severity === MarkerSeverity.Info;
+					});
+					if (filtered.length === 0) {
+						return { output: targetPath ? `No diagnostic problems (errors/warnings) found for ${targetPath}.` : 'No diagnostic problems (errors/warnings) found in workspace.' };
+					}
+					const formatted = filtered.slice(0, 50).map(m => {
+						const rel = rootUri ? m.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
+						const sevStr = m.severity === MarkerSeverity.Error ? 'ERROR' : m.severity === MarkerSeverity.Warning ? 'WARNING' : 'INFO';
+						return `[${sevStr}] ${rel}:${m.startLineNumber}:${m.startColumn} - ${m.message}${m.source ? ` (${m.source})` : ''}`;
+					});
+					return {
+						output: `Found ${filtered.length} diagnostic issue(s)${filtered.length > 50 ? ' (showing first 50)' : ''}:\n${formatted.join('\n')}`
+					};
+				} catch (e: any) {
+					return { output: `Error reading diagnostics: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'get_file_outline': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const targetPath = extractAgentFilePath(args);
+				if (!targetPath) return { output: 'Error: Missing filePath parameter.' };
+				const target = resolveUri(targetPath);
+				try {
+					if (!(await fileService.exists(target))) {
+						return { output: `File not found: ${targetPath}` };
+					}
+					const data = await fileService.readFile(target);
+					const text = new TextDecoder().decode(data.value.buffer);
+					const lines = text.split('\n');
+					const symbols: string[] = [];
+
+					for (let i = 0; i < lines.length; i++) {
+						const line = lines[i];
+						const trimmed = line.trim();
+						if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+							continue;
+						}
+
+						if (/^(export\s+)?(default\s+)?(async\s+)?(function|class|interface|type|enum|const|let|var)\s+([a-zA-Z0-9_$]+)/.test(trimmed)) {
+							symbols.push(`Line ${i + 1}: ${trimmed.replace(/\{.*$/, '').trim()}`);
+						} else if (/^(def|class)\s+([a-zA-Z0-9_]+)/.test(trimmed)) {
+							symbols.push(`Line ${i + 1}: ${trimmed.replace(/:.*$/, '').trim()}`);
+						} else if (/^(pub\s+)?(fn|struct|enum|trait|impl|type)\s+([a-zA-Z0-9_]+)/.test(trimmed)) {
+							symbols.push(`Line ${i + 1}: ${trimmed.replace(/\{.*$/, '').trim()}`);
+						} else if (/^func\s+(\([^)]+\)\s+)?([a-zA-Z0-9_]+)/.test(trimmed)) {
+							symbols.push(`Line ${i + 1}: ${trimmed.replace(/\{.*$/, '').trim()}`);
+						} else if (/^(public|private|protected|static|override|async|\s)+([a-zA-Z0-9_$]+)\s*\([^)]*\)\s*[:{]/.test(trimmed)) {
+							symbols.push(`Line ${i + 1}: ${trimmed.replace(/\{.*$/, '').trim()}`);
+						} else if (/^#{1,4}\s+(.*)/.test(trimmed)) {
+							symbols.push(`Line ${i + 1}: ${trimmed}`);
+						}
+					}
+
+					if (symbols.length === 0) {
+						return { output: `No structural symbols found in ${targetPath} (file has ${lines.length} lines).` };
+					}
+
+					return {
+						output: `Outline of ${targetPath} (${symbols.length} symbols):\n${symbols.slice(0, 80).join('\n')}`
+					};
+				} catch (e: any) {
+					return { output: `Error extracting outline for ${targetPath}: ${formatAgentToolError(e)}` };
+				}
+			}
+			case 'grep_search': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const patStr = typeof args?.pattern === 'string' ? args.pattern : '';
+				if (!patStr) return { output: 'Error: No search pattern provided' };
+				const isRegex = !!args?.isRegex;
+				const caseInsensitive = args?.caseInsensitive !== false;
+				const subCandidate = extractAgentFilePath(args?.subPath) || (typeof args?.subPath === 'string' ? args.subPath.trim() : undefined);
+				const searchBase = subCandidate ? resolveUri(subCandidate) : rootUri;
+				const contextLines = typeof args?.contextLines === 'number' ? Math.min(5, Math.max(0, args.contextLines)) : 0;
+
+				if (searchService) {
+					try {
+						const textQuery: ITextQuery = {
+							type: QueryType.Text,
+							folderQueries: [{ folder: searchBase }],
+							contentPattern: {
+								pattern: patStr,
+								isRegExp: isRegex,
+								isCaseSensitive: !caseInsensitive
+							},
+							maxResults: 80,
+							surroundingContext: contextLines
+						};
+						const matches: string[] = [];
+						await searchService.textSearch(textQuery, token, (progress) => {
+							if ('results' in progress && Array.isArray((progress as any).results)) {
+								for (const r of (progress as any).results) {
+									const rel = r.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									if (r.rangeLocations) {
+										for (const loc of r.rangeLocations) {
+											matches.push(`${rel}:${loc.source.startLineNumber}: ${loc.preview.text.trim()}`);
+											if (matches.length >= 80) break;
+										}
+									}
+									if (matches.length >= 80) break;
+								}
+							}
+						});
+						if (matches.length > 0) {
+							return {
+								output: `Found ${matches.length} match(es)${matches.length >= 80 ? ' (capped at 80)' : ''}:\n${matches.join('\n')}`
+							};
+						}
+					} catch { }
+				}
+
+				let regex: RegExp;
+				try {
+					regex = isRegex ? new RegExp(patStr, caseInsensitive ? 'i' : '') : new RegExp(patStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseInsensitive ? 'i' : '');
+				} catch (err: any) {
+					return { output: `Invalid regex pattern: ${formatAgentToolError(err)}` };
+				}
+				const matches: string[] = [];
+				const ignoreList = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+
+				const scanDir = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || matches.length >= 80) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreList.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanDir(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|html?|css|scss|json|md|py|rs|go|java|c|cpp|h|php|blade\.php|vue|svelte|yaml|yml|toml|sh|bat|ps1)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (regex.test(lines[i])) {
+											if (contextLines > 0) {
+												const startCtx = Math.max(0, i - contextLines);
+												const endCtx = Math.min(lines.length - 1, i + contextLines);
+												const block = lines.slice(startCtx, endCtx + 1).map((l, idx) => `${startCtx + idx + 1 === i + 1 ? '>' : ' '} ${rel}:${startCtx + idx + 1}: ${l.trimEnd()}`).join('\n');
+												matches.push(block);
+											} else {
+												matches.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											}
+											if (matches.length >= 80) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+
+				await scanDir(searchBase, 0);
+				return {
+					output: matches.length > 0
+						? `Found ${matches.length} match(es)${matches.length >= 80 ? ' (capped at 80)' : ''}:\n${matches.join('\n')}`
+						: `No matches found for pattern "${patStr}"`
+				};
+			}
+			case 'go_to_definition': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const symbol = String(args?.symbol ?? args?.name ?? '').trim();
+				if (!symbol) return { output: 'Error: symbol name is required for go_to_definition.' };
+				const targetFile = extractAgentFilePath(args);
+				if (targetFile && languageFeaturesService && modelService) {
+					try {
+						const targetUri = resolveUri(targetFile);
+						const model = modelService.getModel(targetUri);
+						if (model) {
+							const matches = model.findMatches(symbol, true, false, true, null, true, 1);
+							if (matches.length > 0) {
+								const pos = matches[0].range.getStartPosition();
+								const providers = languageFeaturesService.definitionProvider.ordered(model);
+								for (const p of providers) {
+									const defRes = await p.provideDefinition(model, pos, token);
+									if (defRes) {
+										const locs = Array.isArray(defRes) ? defRes : [defRes];
+										const lspHits: string[] = [];
+										for (const loc of locs) {
+											if ('uri' in loc && 'range' in loc) {
+												const rel = loc.uri.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+												lspHits.push(`### Definition in \`${rel}\` (Line ${loc.range.startLineNumber})`);
+											}
+										}
+										if (lspHits.length > 0) {
+											return { output: `Found ${lspHits.length} LSP definition(s) for \`${symbol}\`:\n\n${lspHits.join('\n\n')}` };
+										}
+									}
+								}
+							}
+						}
+					} catch { }
+				}
+				const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const defRegex = new RegExp(`(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?(?:function|class|interface|type|enum|const|let|var|def|fn|struct|trait|func)\\s+${escaped}\\b|(?:public|private|protected|static|readonly|async)\\s+(?:function\\s+)?${escaped}\\s*[(:=<]`, 'm');
+				const hits: string[] = [];
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const scanDef = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || hits.length >= 15) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanDef(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|py|rs|go|java|c|cpp|h|php|vue|svelte)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									if (!txt.includes(symbol)) continue;
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (defRegex.test(lines[i])) {
+											const start = Math.max(0, i - 2);
+											const end = Math.min(lines.length - 1, i + 12);
+											const snippet = lines.slice(start, end + 1).map((l, idx) => `${start + idx + 1}: ${l}`).join('\n');
+											hits.push(`### Definition in \`${rel}\` (Line ${i + 1})\n\`\`\`\n${snippet}\n\`\`\``);
+											if (hits.length >= 15) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scanDef(rootUri, 0);
+				return {
+					output: hits.length > 0
+						? `Found ${hits.length} definition(s) for \`${symbol}\`:\n\n${hits.join('\n\n')}`
+						: `No explicit declaration found for symbol \`${symbol}\`. Try find_symbol_references or grep_search.`
+				};
+			}
+			case 'find_symbol_references': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const symbol = String(args?.symbol ?? args?.name ?? '').trim();
+				if (!symbol) return { output: 'Error: symbol name is required for find_symbol_references.' };
+				const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const refRegex = new RegExp(`\\b${escaped}\\b`);
+				const subCandidate = extractAgentFilePath(args?.subPath) || (typeof args?.subPath === 'string' ? args.subPath.trim() : undefined);
+				const searchBase = subCandidate ? resolveUri(subCandidate) : rootUri;
+				const refs: string[] = [];
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const scanRefs = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || refs.length >= 80) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanRefs(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|html?|py|rs|go|java|c|cpp|h|php|blade\.php|vue|svelte)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									if (!txt.includes(symbol)) continue;
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (refRegex.test(lines[i])) {
+											refs.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											if (refs.length >= 80) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scanRefs(searchBase, 0);
+				return {
+					output: refs.length > 0
+						? `Found ${refs.length} reference(s) to \`${symbol}\`:\n${refs.join('\n')}`
+						: `No references found for symbol \`${symbol}\`.`
+				};
+			}
+			case 'get_call_hierarchy': {
+				if (!fileService || !rootUri) return { output: 'Error: fileService unavailable or no open workspace' };
+				const symbol = String(args?.symbol ?? args?.name ?? '').trim();
+				if (!symbol) return { output: 'Error: symbol is required for get_call_hierarchy.' };
+				const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const callRegex = new RegExp(`\\b${escaped}\\s*\\(`);
+				const defRegex = new RegExp(`(?:function|def|fn|func)\\s+${escaped}\\b|${escaped}\\s*\\([^)]*\\)\\s*(?:[:{]|=>)`);
+				const incomingCallers: string[] = [];
+				const outgoingCallees = new Set<string>();
+				const ignoreDirs = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'out', 'coverage', 'vendor']);
+				const scanCalls = async (dirUri: URI, depth: number) => {
+					if (depth > 25 || incomingCallers.length >= 50) return;
+					try {
+						const res = await fileService!.resolve(dirUri);
+						if (!res.children) return;
+						for (const c of res.children) {
+							if (ignoreDirs.has(c.name) || c.name.endsWith('.lock')) continue;
+							if (c.isDirectory) {
+								await scanCalls(c.resource, depth + 1);
+							} else if (/\.(tsx?|jsx?|py|rs|go|java|c|cpp|h|php|vue|svelte)$/i.test(c.name)) {
+								try {
+									const buf = await fileService!.readFile(c.resource);
+									const txt = new TextDecoder().decode(buf.value.buffer);
+									if (!txt.includes(symbol)) continue;
+									const lines = txt.split('\n');
+									const rel = c.resource.fsPath.replace(rootUri.fsPath, '').replace(/^[\\\/]+/, '');
+									for (let i = 0; i < lines.length; i++) {
+										if (defRegex.test(lines[i])) {
+											const bodySlice = lines.slice(i + 1, Math.min(lines.length, i + 45)).join('\n');
+											const calleeMatches = bodySlice.matchAll(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g);
+											for (const m of calleeMatches) {
+												const candidate = m[1];
+												if (!['if', 'for', 'while', 'switch', 'catch', 'return', 'typeof', 'await', symbol].includes(candidate)) {
+													outgoingCallees.add(candidate);
+												}
+											}
+										} else if (callRegex.test(lines[i])) {
+											incomingCallers.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+											if (incomingCallers.length >= 50) break;
+										}
+									}
+								} catch { }
+							}
+						}
+					} catch { }
+				};
+				await scanCalls(rootUri, 0);
+				return {
+					output: [
+						`### Call Hierarchy for \`${symbol}\``,
+						`**Incoming Call Sites (${incomingCallers.length})**:\n${incomingCallers.length > 0 ? incomingCallers.join('\n') : '(No direct call sites found)'}`,
+						`**Outgoing Callees Referenced in Body (${outgoingCallees.size})**:\n${outgoingCallees.size > 0 ? Array.from(outgoingCallees).slice(0, 35).map(c => `\`${c}()\``).join(', ') : '(None detected)'}`,
+					].join('\n\n')
+				};
+			}
+			case 'create_checkpoint': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const label = String(args?.label ?? 'Workspace Checkpoint').trim();
+				const rawFiles = Array.isArray(args?.files) ? args.files : [];
+				if (rawFiles.length === 0) return { output: 'Error: provide at least one file path in files array to snapshot.' };
+				const targetUris = rawFiles.map((f: any) => resolveUri(String(f)));
+				const cp = await createWorkspaceCheckpoint(
+					label,
+					targetUris,
+					fileService
+				);
+				return {
+					output: `Created Time-Machine Checkpoint \`${cp.id}\` ("${cp.label}") snapshotting ${cp.files.size} file(s). Use \`restore_checkpoint({ checkpointId: "${cp.id}" })\` to roll back at any time.`
+				};
+			}
+			case 'restore_checkpoint': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				let checkpointId = String(args?.checkpointId ?? 'latest').trim();
+				if (checkpointId === 'latest') {
+					const list = listWorkspaceCheckpoints();
+					if (list.length === 0) {
+						return { output: 'Error: No checkpoints exist in this session.' };
+					}
+					checkpointId = list[list.length - 1].id;
+				}
+				const restored = await restoreWorkspaceCheckpoint(
+					checkpointId,
+					fileService
+				);
+				if (!restored.restored) {
+					return { output: `Error restoring checkpoint: ${restored.message}` };
+				}
+				return {
+					output: `${restored.message}\n- ${restored.restoredFiles.join('\n- ')}`
+				};
+			}
+			case 'git_intelligence': {
+				const op = String(args?.operation ?? 'status').toLowerCase().trim();
+				const fileArg = typeof args?.filePath === 'string' && args.filePath.trim() ? ` -- "${args.filePath.trim()}"` : '';
+				const refArg = typeof args?.ref === 'string' && args.ref.trim() ? ` ${args.ref.trim()}` : '';
+				let gitCmd = 'git status --short --branch';
+				if (op === 'diff') {
+					gitCmd = `git diff --no-ext-diff${refArg}${fileArg}`;
+				} else if (op === 'log') {
+					gitCmd = `git log -n 15 --oneline --decorate${refArg}${fileArg}`;
+				} else if (op === 'blame' && fileArg) {
+					gitCmd = `git blame -L 1,120${fileArg}`;
+				} else if (op === 'branches') {
+					gitCmd = `git branch -a -v`;
+				} else if (op === 'show') {
+					gitCmd = `git show --stat${refArg || ' HEAD'}`;
+				}
+				return this._executeAgentTool('run_command', { command: gitCmd }, rootUri, chatSessionResource, token, requestId, true);
+			}
+			case 'introspect_self': {
+				const act = String(args?.action ?? 'status').toLowerCase().trim();
+				if (act === 'add_hypothesis' || act === 'update_hypothesis') {
+					const desc = String(args?.hypothesis ?? '').trim();
+					const rawStatus = String(args?.status ?? 'untested').toLowerCase().trim();
+					const status = (rawStatus === 'confirmed' ? 'confirmed' : rawStatus === 'refuted' ? 'refuted' : 'untested') as 'untested' | 'confirmed' | 'refuted';
+					const evidence = typeof args?.evidence === 'string' ? args.evidence : undefined;
+					if (desc) {
+						const hypId = `hyp-${desc.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)}`;
+						upsertHypothesis(sessionKey, hypId, desc, status, evidence);
+					}
+				}
+				const activeDaemons = Array.from(_stealthAgentTerminals.values()).map(r => ({
+					id: r.id,
+					label: r.label,
+					command: r.command,
+				}));
+				return {
+					output: formatConsciousnessTelemetry(sessionKey, {
+						activeStealthTerminals: activeDaemons,
+						activeSkills: ['plan', 'evolve', 'swarm', 'deep-audit', 'architect', 'tdd', 'verify-ui', 'boost'],
+						memorySummary: getDardcorMemoryPromptContext(workspaceFolder),
+						checkpointsCount: listWorkspaceCheckpoints().length,
+					})
+				};
+			}
+			case 'manage_knowledge_memory': {
+				let pathService: IPathService | undefined;
+				try {
+					this.instantiationService.invokeFunction(accessor => {
+						try { pathService = accessor.get(IPathService); } catch { }
+					});
+				} catch { }
+				const act = String(args?.action ?? 'query').toLowerCase().trim();
+				if (act === 'store_insight') {
+					const record = await storeDardcorKnowledgeInsight({
+						workspaceRoot: workspaceFolder,
+						category: args?.category,
+						title: String(args?.title ?? 'Project Insight'),
+						content: String(args?.content ?? ''),
+						tags: Array.isArray(args?.tags) ? args.tags : [],
+					}, fileService, pathService);
+					return {
+						output: `Stored persistent project insight \`${record.id}\` ([${record.category.toUpperCase()}] ${record.title}) in ~/.dardcor/memory/brain/omega-memory-ledger.json.`
+					};
+				}
+				if (act === 'store_error_lesson') {
+					const lesson = await storeDardcorEpisodicErrorLesson({
+						workspaceRoot: workspaceFolder,
+						errorPattern: String(args?.title ?? args?.query ?? 'Error pattern'),
+						rootCause: String(args?.rootCause ?? 'Diagnosed root cause'),
+						verifiedSolution: String(args?.content ?? ''),
+					}, fileService, pathService);
+					return {
+						output: `Stored episodic error-resolution lesson \`${lesson.id}\` in ~/.dardcor/memory/brain/omega-memory-ledger.json.`
+					};
+				}
+				const queried = await queryDardcorSelfImprovingMemory(String(args?.query ?? args?.title ?? ''), workspaceFolder, fileService, pathService);
+				const lines: string[] = [
+					`### Self-Improving Memory Query Results`,
+					`**Project Insights (${queried.insights.length})**:`,
+					...queried.insights.map(i => `- **[${i.category.toUpperCase()}] ${i.title}**: ${i.content}`),
+					`\n**Episodic Error-Resolution Lessons (${queried.lessons.length})**:`,
+					...queried.lessons.map(l => `- **Pattern**: \`${l.errorPattern}\` | **Root Cause**: ${l.rootCause} | **Solution**: ${l.verifiedSolution}`),
+					`\n**Synthesized Autonomous Skills (${queried.skills.length})**:`,
+					...queried.skills.map(s => `- **/${s.name}**: ${s.description}`),
+				];
+				return { output: lines.join('\n') };
+			}
+			case 'synthesize_skill': {
+				let pathService: IPathService | undefined;
+				try {
+					this.instantiationService.invokeFunction(accessor => {
+						try { pathService = accessor.get(IPathService); } catch { }
+					});
+				} catch { }
+				const skill = await synthesizeAndPersistDardcorSkill({
+					name: String(args?.name ?? 'custom-skill'),
+					description: String(args?.description ?? ''),
+					instructions: String(args?.instructions ?? ''),
+					triggers: Array.isArray(args?.triggers) ? args.triggers : [],
+				}, fileService, pathService);
+				return {
+					output: `Synthesized and permanently registered autonomous skill \`/${skill.name}\` in ~/.dardcor/memory/skills/${skill.name}/SKILL.md. It is immediately available via \`/${skill.name}\`.`
+				};
+			}
+			case 'spawn_agent_swarm': {
+				if (!fileService) return { output: 'Error: fileService unavailable' };
+				const tasks = Array.isArray(args?.tasks) ? args.tasks : [];
+				if (tasks.length === 0) return { output: 'Error: provide at least one specialist task in tasks array.' };
+				let activeModel = 'auto';
+				try {
+					const modelsData = await getCachedRouterModelsData();
+					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
+						activeModel = modelsData.data[0].id;
+					}
+				} catch { }
+				const swarmOut = await executeDardcorAgentSwarm({
+					tasks,
+					model: activeModel,
+					routerPort: ROUTER_PORT,
+					routerAuthHeader: ROUTER_AUTH_HEADER,
+					resolveTargetUri: (p: string) => resolveUri(p),
+					fileService,
+					token,
+				});
+				return { output: swarmOut.summaryMarkdown };
+			}
+			case 'audit_page_visual_and_network': {
+				const auditScript = `(() => {
+					const vw = window.innerWidth || document.documentElement.clientWidth;
+					const vh = window.innerHeight || document.documentElement.clientHeight;
+					const docScrollWidth = document.documentElement.scrollWidth;
+					const hasHorizontalOverflow = docScrollWidth > vw + 4;
+					const brokenImages = Array.from(document.querySelectorAll('img')).filter(img => !img.complete || img.naturalWidth === 0).map(img => img.getAttribute('src') || img.alt || 'unnamed-img').slice(0, 10);
+					const zeroRectInteractive = Array.from(document.querySelectorAll('button, a, input, select, textarea')).filter(el => {
+						const st = window.getComputedStyle(el);
+						if (st.display === 'none' || st.visibility === 'hidden') return false;
+						const r = el.getBoundingClientRect();
+						return r.width === 0 || r.height === 0;
+					}).map(el => (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.textContent ? ':' + el.textContent.trim().slice(0, 24) : ''))).slice(0, 10);
+					return {
+						url: window.location.href,
+						title: document.title,
+						viewport: { width: vw, height: vh, scrollWidth: docScrollWidth },
+						hasHorizontalOverflow,
+						brokenImagesCount: brokenImages.length,
+						brokenImages,
+						zeroRectInteractiveCount: zeroRectInteractive.length,
+						zeroRectInteractive
+					};
+				})()`;
+				const browserAudit = await this._executeAgentTool('execute_browser_script', { script: auditScript, pageId: args?.pageId }, rootUri, chatSessionResource, token, requestId, true);
+				const consoleLogs = await this._executeAgentTool('get_browser_console_logs', { pageId: args?.pageId }, rootUri, chatSessionResource, token, requestId, true);
+				let backendLogs = '';
+				if (args?.correlateBackendLogs !== false) {
+					let termService: any;
+					try {
+						this.instantiationService.invokeFunction(accessor => {
+							try { termService = accessor.get(ITerminalService); } catch { }
+						});
+					} catch { }
+					const stealthTarget = findLatestStealthAgentTerminal(termService, sessionKey);
+					if (stealthTarget.record || stealthTarget.instance) {
+						backendLogs = readStealthTerminalOutput(stealthTarget, 45);
+					}
+				}
+				return {
+					output: [
+						`### Full-Stack Visual, DOM Layout & Backend Correlation Audit`,
+						`#### 1. Visual Layout & Geometry Audit\n${browserAudit.output}`,
+						`#### 2. Browser Console & Runtime Diagnostics\n${consoleLogs.output}`,
+						backendLogs ? `#### 3. Correlated Stealth Background Server Logs\n\`\`\`\n${backendLogs}\n\`\`\`` : `#### 3. Correlated Stealth Background Server Logs\n(No active stealth daemon log output recorded)`,
+					].join('\n\n'),
+					browserImage: browserAudit.browserImage,
+					executionStatus: browserAudit.executionStatus,
+				};
+			}
+			case 'terminal_selection': {
+				let selection = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const termService = accessor.get(ITerminalService);
+						if (!termService) return;
+						const target = findLatestStealthAgentTerminal(termService, sessionKey, args?.id);
+						if (target.instance && target.instance.selection) {
+							selection = target.instance.selection;
+						}
+					} catch { }
+				});
+				return {
+					output: selection ? `Background agent terminal selection:\n${selection}` : 'No text is currently selected in the background agent terminal.'
+				};
+			}
+			case 'terminal_last_command': {
+				let result = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const termService = accessor.get(ITerminalService);
+						if (!termService) return;
+						const target = findLatestStealthAgentTerminal(termService, sessionKey, args?.id);
+						const term = target.instance;
+						if (!term && !target.record) {
+							result = 'No active background agent terminal instance found.';
+							return;
+						}
+						if (term) {
+							const commandDetection = term.capabilities?.get?.(TerminalCapability.CommandDetection);
+							if (commandDetection) {
+								if (commandDetection.executingCommand) {
+									result = `Command currently executing:\n${commandDetection.executingCommand}${commandDetection.cwd ? `\nDirectory: ${commandDetection.cwd}` : ''}`;
+									return;
+								}
+								const commands = commandDetection.commands;
+								if (commands && commands.length > 0) {
+									const lastCmd = commands[commands.length - 1];
+									const lines: string[] = [];
+									if (lastCmd.command) lines.push(`Last command: ${lastCmd.command}`);
+									if (lastCmd.cwd) lines.push(`Directory: ${lastCmd.cwd}`);
+									if (lastCmd.exitCode !== undefined) lines.push(`Exit code: ${lastCmd.exitCode}`);
+									if (lastCmd.hasOutput?.() && lastCmd.getOutput) {
+										const out = lastCmd.getOutput();
+										if (out && out.trim().length > 0) lines.push(`Output:\n${out.trim()}`);
+									}
+									result = lines.join('\n');
+									return;
+								}
+							}
+						}
+						const out = readStealthTerminalOutput(target, 40);
+						if (target.record) {
+							result = `Last command: ${target.record.command}\n${target.record.exitCode !== undefined ? `Exit code: ${target.record.exitCode}\n` : ''}Output:\n${out || '(no output)'}`;
+						} else {
+							result = out;
+						}
+					} catch { }
+				});
+				return {
+					output: result || 'No command has been run in the background agent terminal.'
+				};
+			}
+			case 'create_and_run_task': {
+				let outputMsg = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const termService = accessor.get(ITerminalService);
+						const label = args.label || args.name || 'temporary_task';
+						const command = args.command || '';
+						const fullCmd = Array.isArray(args.args) && args.args.length > 0
+							? `${command} ${args.args.join(' ')}`
+							: command;
+
+						if (!fullCmd.trim()) {
+							outputMsg = 'No command provided for task execution.';
+							return;
+						}
+
+						if (termService && termService.createTerminal) {
+							const isBg = Boolean(args.isBackground || isLongRunningDaemonCommand(fullCmd) || /(?:serve|watch|dev|start)\b/i.test(fullCmd));
+							if (isBg) {
+								outputMsg = await runStealthBackgroundDaemon(
+									termService,
+									fullCmd.trim(),
+									label,
+									rootUri ? rootUri.fsPath : undefined,
+									sessionKey,
+									token
+								);
+							} else {
+								const isWin = isWindows;
+								const effectiveCmd = isWin ? sanitizeWindowsCommand(fullCmd.trim()) : fullCmd.trim();
+								const executable = isWin ? 'powershell.exe' : '/bin/sh';
+								const shellArgs = isWin ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', effectiveCmd] : ['-c', fullCmd.trim()];
+								const term = await termService.createTerminal({
+									config: {
+										name: label,
+										hideFromUser: true,
+										isFeatureTerminal: true,
+										forceShellIntegration: true,
+										forcePersist: false,
+										cwd: rootUri ? rootUri.fsPath : undefined,
+										executable,
+										args: shellArgs,
+									}
+								});
+
+								let bufferedOutput = '';
+								const dataListener = term.onData?.((data: string) => {
+									bufferedOutput += data;
+								});
+
+								let exitCode: number | undefined;
+								let timedOut = false;
+								await new Promise<void>(resolve => {
+									let exitListener: any;
+									let timer: any;
+									let cancellationListener: IDisposable | undefined;
+									const cleanup = () => {
+										try { exitListener?.dispose?.(); } catch { }
+										try { cancellationListener?.dispose(); } catch { }
+										if (timer) { clearTimeout(timer); }
+										resolve();
+									};
+									if (term.onExit) {
+										exitListener = term.onExit((code: any) => {
+											if (typeof code === 'number') {
+												exitCode = code;
+											} else if (code && typeof code === 'object') {
+												exitCode = code.code ?? -1;
+											}
+											setTimeout(cleanup, 200);
+										});
+									}
+									if (!term.onExit) {
+										timedOut = true;
+										cleanup();
+										return;
+									}
+									timer = setTimeout(() => {
+										timedOut = true;
+										cleanup();
+									}, 180000);
+									cancellationListener = token.onCancellationRequested(() => {
+										timedOut = true;
+										cleanup();
+									});
+									if (token.isCancellationRequested) {
+										timedOut = true;
+										cleanup();
+									}
+								});
+
+								try { dataListener?.dispose?.(); } catch { }
+								try { term.dispose?.(); } catch { }
+
+								const cleanOutput = stripAnsiSequences(bufferedOutput).trim();
+
+								if (timedOut || token.isCancellationRequested) {
+									outputMsg = `Task '${label}' was cancelled or reached the 180-second limit before a final status was available. Its result is inconclusive; inspect the task output before retrying.\nCommand: ${fullCmd}\nOutput:\n${cleanOutput || '(no output)'}`;
+								} else if (exitCode === undefined) {
+									outputMsg = `Task '${label}' ended, but its final exit status is unknown. Success is not confirmed; inspect the task output.\nCommand: ${fullCmd}\nOutput:\n${cleanOutput || '(no output)'}`;
+								} else if (exitCode === 0) {
+									outputMsg = `Task '${label}' executed successfully. Exit code: 0\nCommand: ${fullCmd}\nOutput:\n${cleanOutput || '(completed)'}`;
+								} else {
+									outputMsg = `Task '${label}' failed with exit code ${exitCode}.\nCommand: ${fullCmd}\nOutput:\n${cleanOutput || '(no output)'}`;
+								}
+							}
+						} else {
+							outputMsg = `Background terminal service unavailable.`;
+						}
+					} catch (err: any) {
+						outputMsg = `Error executing task: ${formatAgentToolError(err)}`;
+					}
+				});
+				return { output: outputMsg || 'Task execution finished' };
+			}
+			case 'run_task': {
+				let outputMsg = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const taskService = accessor.get(ITaskService);
+						if (!taskService) {
+							outputMsg = 'Task service is not available.';
+							return;
+						}
+						const label = args.taskLabel || args.label || args.name || '';
+						const availableTasks = await taskService.tasks();
+						const targetTask = availableTasks?.find(t => t._label === label || (t as any).configurationProperties?.name === label);
+						if (!targetTask) {
+							outputMsg = `Task '${label}' not found among available tasks: ${availableTasks?.map(t => t._label).filter(Boolean).join(', ') || 'none'}`;
+							return;
+						}
+						(targetTask as any).runSource = 2; 
+						const summary = await taskService.run(targetTask);
+						if (typeof summary?.exitCode !== 'number') {
+							outputMsg = `Task '${label}' finished, but its final exit status is unknown. Success is not confirmed; inspect its terminal output.`;
+						} else if (summary.exitCode === 0) {
+							outputMsg = `Task '${label}' executed successfully. Exit code: 0`;
+						} else {
+							outputMsg = `Task '${label}' failed. Exit code: ${summary.exitCode}`;
+						}
+					} catch (err: any) {
+						outputMsg = `Error running task: ${formatAgentToolError(err)}`;
+					}
+				});
+				return { output: outputMsg || 'Task finished' };
+			}
+			case 'get_task_output': {
+				let outputMsg = '';
+				await this.instantiationService.invokeFunction(async accessor => {
+					try {
+						const taskService = accessor.get(ITaskService);
+						const termService = accessor.get(ITerminalService);
+						const label = (args.taskLabel || args.label || args.id || '').trim();
+						const stealthTarget = findLatestStealthAgentTerminal(termService, sessionKey, label);
+						if (stealthTarget.record && (!label || stealthTarget.record.label === label || stealthTarget.record.id === label)) {
+							const captured = readStealthTerminalOutput(stealthTarget, 120);
+							outputMsg = captured || `No output captured yet for background task '${label}'.`;
+							return;
+						}
+						if (!taskService || !termService) {
+							outputMsg = 'Task service or terminal service unavailable.';
+							return;
+						}
+						const availableTasks = await taskService.tasks();
+						const targetTask = availableTasks?.find(t => t._label === label || (t as any).configurationProperties?.name === label);
+						if (!targetTask) {
+							outputMsg = `Task '${label}' not found.`;
+							return;
+						}
+						const terminalUris = taskService.getTerminalsForTasks([targetTask]);
+						if (terminalUris && terminalUris.length > 0) {
+							const instances = termService.instances || [];
+							const matchedTerm = instances.find((inst: any) => terminalUris.some(u => inst.resource?.toString() === u.toString() || inst.title === label));
+							if (matchedTerm && (matchedTerm as any).xterm?.raw) {
+								const buffer = (matchedTerm as any).xterm.raw.buffer.active;
+								const lines: string[] = [];
+								for (let i = Math.max(0, buffer.length - 100); i < buffer.length; i++) {
+									const line = buffer.getLine(i);
+									if (line) lines.push(line.translateToString(true));
+								}
+								outputMsg = lines.join('\n').trim();
+							}
+						}
+						if (!outputMsg) {
+							outputMsg = `No output captured yet for task '${label}'.`;
+						}
+					} catch (err: any) {
+						outputMsg = `Error getting task output: ${formatAgentToolError(err)}`;
+					}
+				});
+				return { output: outputMsg };
+			}
+			case 'ask_questions': {
+				return { output: 'Question tool was not connected to the chat response UI. No answer was assumed; retry after the question carousel is available.' };
+			}
+			case 'review_plan': {
+				return { output: 'Plan review was not connected to the chat response UI. No approval was assumed; retry when plan review is available.' };
+			}
+			case 'run_subagent': {
+				const isSwarm = Array.isArray(args?.tasks) && args.tasks.length > 0;
+				return this._invokeBuiltinAgentTool('runSubagent', {
+					prompt: String(args?.prompt ?? (isSwarm ? (args?.description ?? 'Subagent Swarm') : '')),
+					description: String(args?.description ?? (isSwarm ? `Subagent Swarm (${args.tasks.length} tasks)` : 'subagent task')),
+					agentName: typeof args?.agentName === 'string' ? args.agentName : (typeof args?.subagentType === 'string' ? args.subagentType : undefined),
+					model: typeof args?.model === 'string' ? args.model : undefined,
+					tasks: isSwarm ? args.tasks : undefined,
+					concurrencyLimit: typeof args?.concurrencyLimit === 'number' ? args.concurrencyLimit : undefined,
+				}, chatSessionResource, rootUri, requestId, token);
+			}
+			case 'confirm_terminal_command': {
+				return { output: 'Command confirmation was not connected to the chat response UI. No command was authorized or run.' };
+			}
+			case 'set_artifacts': {
+				if (!chatSessionResource || !Array.isArray(args?.artifacts)) {
+					return { output: 'Artifacts were not updated: a chat session and an artifacts array are required.' };
+				}
+				try {
+					const artifacts: IChatArtifact[] = [];
+					for (const artifact of args.artifacts) {
+						if (!artifact || typeof artifact.label !== 'string' || !artifact.label.trim()) {
+							throw new Error('Every artifact requires a non-empty label.');
+						}
+						const uri = typeof artifact.uri === 'string' ? artifact.uri : '';
+						if (uri) {
+							const parsed = URI.parse(uri);
+							if (parsed.scheme !== 'http' && parsed.scheme !== 'https') {
+								if (!fileService || !(await fileService.exists(parsed))) {
+									throw new Error(`Artifact URI does not exist or cannot be checked: ${uri}`);
+								}
+							}
+						}
+						artifacts.push({
+							label: artifact.label.trim(),
+							uri,
+							type: ['devServer', 'screenshot', 'plan'].includes(artifact.type) ? artifact.type : undefined,
+							toolCallId: typeof artifact.toolCallId === 'string' ? artifact.toolCallId : undefined,
+							dataPartIndex: typeof artifact.dataPartIndex === 'number' ? artifact.dataPartIndex : undefined,
+						});
+					}
+					let artifactsService: IChatArtifactsService | undefined;
+					this.instantiationService.invokeFunction(accessor => artifactsService = accessor.get(IChatArtifactsService));
+					if (!artifactsService) {
+						throw new Error('The chat artifacts service is unavailable.');
+					}
+					artifactsService.getArtifacts(chatSessionResource).setAgentArtifacts(artifacts);
+					return { output: `Updated ${artifacts.length} session artifact(s).` };
+				} catch (error) {
+					return { output: `Artifacts were not updated: ${error instanceof Error ? error.message : String(error)}` };
+				}
+			}
+			case 'set_artifact_rules': {
+				if (!chatSessionResource) {
+					return { output: 'Artifact rules were not updated: this chat has no session resource.' };
+				}
+				try {
+					const rules: IArtifactRuleOverrides = {};
+					for (const group of ['byMimeType', 'byFilePath', 'byMemoryFilePath'] as const) {
+						const source = args?.[group];
+						if (source === undefined) {
+							continue;
+						}
+						if (!source || typeof source !== 'object' || Array.isArray(source)) {
+							throw new Error(`${group} must be an object mapping patterns to group configurations.`);
+						}
+						const normalized: Record<string, { groupName: string; onlyShowGroup?: boolean }> = {};
+						for (const [pattern, config] of Object.entries(source)) {
+							if (!config || typeof config !== 'object' || typeof (config as any).groupName !== 'string' || !(config as any).groupName.trim() || ((config as any).onlyShowGroup !== undefined && typeof (config as any).onlyShowGroup !== 'boolean')) {
+								throw new Error(`Invalid artifact rule for pattern "${pattern}".`);
+							}
+							normalized[pattern] = { groupName: (config as any).groupName.trim(), onlyShowGroup: (config as any).onlyShowGroup };
+						}
+						(rules as any)[group] = normalized;
+					}
+					let artifactsService: IChatArtifactsService | undefined;
+					this.instantiationService.invokeFunction(accessor => artifactsService = accessor.get(IChatArtifactsService));
+					if (!artifactsService) {
+						throw new Error('The chat artifacts service is unavailable.');
+					}
+					artifactsService.getArtifacts(chatSessionResource).setRuleOverrides(rules);
+					return { output: 'Updated session artifact rules.' };
+				} catch (error) {
+					return { output: `Artifact rules were not updated: ${error instanceof Error ? error.message : String(error)}` };
+				}
+			}
+			case 'open_browser_page':
+			case 'read_browser_page':
+			case 'read_page':
+			case 'navigate_browser':
+			case 'navigate_page':
+			case 'screenshot_browser_page':
+			case 'screenshot_page':
+			case 'click_element':
+			case 'click_browser':
+			case 'type_in_page':
+			case 'type_browser':
+			case 'scroll_browser_page':
+			case 'scroll_page':
+			case 'hover_element':
+			case 'hover_browser':
+			case 'press_key':
+			case 'select_option':
+			case 'drag_and_drop':
+			case 'wait_for_browser':
+			case 'execute_browser_script':
+			case 'get_browser_console_logs':
+			case 'handle_browser_dialog': {
+				let output = '';
+				let browserImage: { mimeType: 'image/png'; base64: string } | undefined;
+				let executionStatus: AgentToolExecutionStatus | undefined;
+				const { DardcorBrowserAgentController } = await import('./dardcorBrowserAgentController.js');
+				try {
+
+
+					const browserServices = this.instantiationService.invokeFunction(accessor => DardcorBrowserAgentController.resolveServices(accessor));
+					const res = await DardcorBrowserAgentController.executeBrowserTool(browserServices, toolName, args, chatSessionResource?.toString() ?? 'dardcor-agent-session', token);
+					output = res.output;
+					executionStatus = res.executionStatus;
+					if (res.image) {
+						browserImage = res.image;
+					}
+				} catch (err: any) {
+					output = `Browser Agent Error (${toolName}): ${formatAgentToolError(err)}. No successful browser verification was recorded.`;
+					executionStatus = 'failed';
+				}
+				return { output, browserImage, executionStatus };
+			}
+			case 'task_completed':
+			case 'complete_task': {
+				const summary = typeof args?.summary === 'string' ? args.summary : 'Task completed successfully.';
+				const verificationSteps = typeof args?.verificationSteps === 'string' ? args.verificationSteps : '';
+				const filesChanged = Array.isArray(args?.filesChanged) ? args.filesChanged.join(', ') : '';
+				const outputText = `### Completion Request Pending Verification\n\nThe request is not yet accepted. Runtime checklist, verification, browser evidence, and workspace diagnostics must pass.\n\n${summary}\n\n` +
+					(verificationSteps ? `**Verification Steps:**\n${verificationSteps}\n\n` : '') +
+					(filesChanged ? `**Files Modified/Created:**\n${filesChanged}\n` : '');
+				return { output: outputText };
+			}
+			default:
+				return { output: `Unknown tool: ${toolName}` };
+		}
+	}
+
+	private _parseTextToolCalls(text: string): Array<{ name: string; args: any }> {
+		const calls: Array<{ name: string; args: any }> = [];
+		if (!text) return calls;
+
+
+		const codeBlockRegex = /```(?:tool_call|json:tool|json)\s*([\s\S]*?)(?:```|$)/gi;
+		let match: RegExpExecArray | null;
+		while ((match = codeBlockRegex.exec(text)) !== null) {
+			try {
+				const trimmed = match[1].trim();
+				const obj = JSON.parse(trimmed);
+				if (Array.isArray(obj)) {
+					for (const item of obj) {
+						if (item?.name || item?.tool) {
+							calls.push({ name: item.name || item.tool, args: item.arguments || item.args || item.parameters || {} });
+						}
+					}
+				} else if (obj?.tool_calls && Array.isArray(obj.tool_calls)) {
+					for (const tc of obj.tool_calls) {
+						if (tc?.function?.name || tc?.name) {
+							const args = typeof tc.function?.arguments === 'string' ? JSON.parse(tc.function.arguments) : (tc.function?.arguments || tc.args || {});
+							calls.push({ name: tc.function?.name || tc.name, args });
+						}
+					}
+				} else if (obj?.tool || obj?.name) {
+					calls.push({
+						name: obj.tool || obj.name,
+						args: obj.arguments || obj.args || obj.parameters || obj
+					});
+				}
+			} catch {
+				const partial = match[1].trim();
+				const name = partial.match(/["'](?:name|tool)["']\s*:\s*["']([^"']+)/i)?.[1];
+				if (name) {
+					calls.push({ name, args: partial });
+				}
+			}
+		}
+
+
+		const tagRegex = /<(?:tool_call|function_call|tool|invoke)>\s*([\s\S]*?)(?:\s*<\/(?:tool_call|function_call|tool|invoke)>|$)/gi;
+		while ((match = tagRegex.exec(text)) !== null) {
+			const body = match[1].trim();
+			try {
+				const obj = JSON.parse(body);
+				if (obj?.tool || obj?.name) {
+					const name = obj.tool || obj.name;
+					let args = obj.arguments || obj.args || obj.parameters || obj;
+					if (typeof args === 'string') {
+						try { args = JSON.parse(args); } catch { }
+					}
+					if (args && typeof args === 'object') {
+						if (!args.dirPath && args.path && ['list_directory', 'list_dir'].includes(name)) args.dirPath = args.path;
+						if (!args.filePath && args.path && ['read_file', 'write_file', 'edit_file', 'delete_file'].includes(name)) args.filePath = args.path;
+						if (!args.command && args.cmd && ['run_command', 'run_in_terminal'].includes(name)) args.command = args.cmd;
+					}
+					calls.push({ name, args });
+					continue;
+				}
+			} catch { }
+
+			const xmlCalls = this._parseXmlFunctionCalls(body);
+			for (const xc of xmlCalls) {
+				calls.push(xc);
+			}
+		}
+
+		const actionRegex = /(?:Action|Tool):\s*([a-zA-Z0-9_\-]+)\s*(?:\r?\n)+(?:Action Input|Tool Input|Arguments|Input):\s*(\{[\s\S]*?\})/gi;
+		let actionMatch: RegExpExecArray | null;
+		while ((actionMatch = actionRegex.exec(text)) !== null) {
+			const name = actionMatch[1].trim();
+			try {
+				const args = JSON.parse(actionMatch[2].trim());
+				if (!calls.some(c => c.name === name && JSON.stringify(c.args) === JSON.stringify(args))) {
+					calls.push({ name, args });
+				}
+			} catch {}
+		}
+
+		const directXmlCalls = this._parseXmlFunctionCalls(text);
+		for (const xc of directXmlCalls) {
+			if (!calls.some(c => c.name === xc.name && JSON.stringify(c.args) === JSON.stringify(xc.args))) {
+				calls.push(xc);
+			}
+		}
+
+		return calls;
+	}
+
+	private _parseXmlFunctionCalls(text: string): Array<{ name: string; args: any }> {
+		const calls: Array<{ name: string; args: any }> = [];
+		if (!text) return calls;
+
+		const funcRegex = /<(?:function|function_call|tool|invoke)(?:[=\s]+(?:name=)?["']?([a-zA-Z0-9_\-\.]+)["']?|\s+[^>]*?name=["']([a-zA-Z0-9_\-\.]+)["'])[^>]*>([\s\S]*?)(?:<\/(?:function|function_call|tool|invoke)>|$)/gi;
+		let match: RegExpExecArray | null;
+		while ((match = funcRegex.exec(text)) !== null) {
+			const name = match[1] || match[2];
+			const body = match[3]?.trim() || '';
+			if (!name) continue;
+
+			const args: Record<string, any> = {};
+			const paramRegex = /<(?:parameter|param|arg)\s+name=["']([a-zA-Z0-9_\-\.]+)["'][^>]*>([\s\S]*?)(?:<\/(?:parameter|param|arg)>|$)/gi;
+			let paramMatch: RegExpExecArray | null;
+			let foundParams = false;
+			while ((paramMatch = paramRegex.exec(body)) !== null) {
+				foundParams = true;
+				const paramName = paramMatch[1];
+				let paramVal: any = paramMatch[2].trim();
+				if ((paramVal.startsWith('{') && paramVal.endsWith('}')) || (paramVal.startsWith('[') && paramVal.endsWith(']'))) {
+					try { paramVal = JSON.parse(paramVal); } catch { }
+				}
+				args[paramName] = paramVal;
+			}
+
+			if (!foundParams && body) {
+				try {
+					const parsed = JSON.parse(body);
+					if (typeof parsed === 'object' && parsed !== null) {
+						Object.assign(args, parsed.arguments || parsed.args || parsed.parameters || parsed);
+					}
+				} catch {
+					const normalizedName = name.toLowerCase();
+					if (['run_command', 'run_in_terminal', 'bash', 'cmd', 'powershell', 'sh'].includes(normalizedName)) {
+						args['command'] = body;
+					} else if (['read_file', 'write_file', 'edit_file'].includes(normalizedName)) {
+						args['filePath'] = body;
+					} else if (['list_directory', 'list_dir'].includes(normalizedName)) {
+						args['dirPath'] = body;
+					}
+				}
+			}
+
+			if (args && typeof args === 'object') {
+				if (!args.dirPath && args.path && ['list_directory', 'list_dir'].includes(name)) args.dirPath = args.path;
+				if (!args.filePath && args.path && ['read_file', 'write_file', 'edit_file', 'delete_file'].includes(name)) args.filePath = args.path;
+				if (!args.command && args.cmd && ['run_command', 'run_in_terminal'].includes(name)) args.command = args.cmd;
+			}
+
+			calls.push({ name, args });
+		}
+		return calls;
+	}
+
+	private _extractResponseFromReasoning(reasoning: string): string {
+		if (!reasoning || !reasoning.trim()) return '';
+		const text = reasoning.trim();
+
+		const match = text.match(/(?:(?:Final\s+Answer|Jawaban|Response|Kesimpulan|Output|Balasan|Reply)\s*:\s*)([\s\S]+)$/i);
+		if (match && match[1].trim().length > 10) {
+			return match[1].trim();
+		}
+
+		const quoteMatch = text.match(/(?:respond\s+with|jawab\s+dengan|balas\s+dengan)\s*:\s*["“]([\s\S]+?)["”]/i);
+		if (quoteMatch && quoteMatch[1].trim().length > 10) {
+			return quoteMatch[1].trim();
+		}
+
+		const cleaned = text
+			.replace(/^(?:(?:Okay|So|Alright|Well),\s+the\s+user\s+(?:is\s+asking|wants)[\s\S]*?\n\n)/i, '')
+			.replace(/^Thinking Process:[\s\S]*?\n\n/i, '')
+			.trim();
+
+		return cleaned || text;
+	}
+
+	private _extractFilePathFromApologyOrText(text: string): string | undefined {
+		if (!text) return undefined;
+		const backtickMatch = text.match(/`([a-zA-Z0-9_\-\.\/\\\~]+\.(?:php|blade\.php|json|jsx?|tsx?|css|scss|sass|html|py|go|rs|md|yaml|yml|toml|env|vue|svelte|sql|sh|bat|java|c|cpp|cs|rb|swift|kt|dart))`(?!\s*tiap)/i);
+		if (backtickMatch && backtickMatch[1]) {
+			const candidate = backtickMatch[1].trim();
+			if (!candidate.includes('...') && !candidate.endsWith('.zip')) {
+				return candidate;
+			}
+		}
+
+		const quoteMatch = text.match(/["']([a-zA-Z0-9_\-\.\/\\\~]+\.(?:php|blade\.php|json|jsx?|tsx?|css|scss|sass|html|py|go|rs|md|yaml|yml|toml|env|vue|svelte|sql|sh|bat|java|c|cpp|cs|rb|swift|kt|dart))["']/i);
+		if (quoteMatch && quoteMatch[1]) {
+			const candidate = quoteMatch[1].trim();
+			if (!candidate.includes('...') && !candidate.endsWith('.zip')) {
+				return candidate;
+			}
+		}
+
+		const keywordMatch = text.match(/(?:tempelkan|kirimkan|paste|send|baca|cek|periksa|read|inspect|file|berkas|path|route)\s+(?:isi\s+|output\s+|kode\s+)?([a-zA-Z0-9_\-\.\/\\\~]+\.(?:php|blade\.php|json|jsx?|tsx?|css|scss|sass|html|py|go|rs|md|yaml|yml|toml|env|vue|svelte|sql|sh|bat|java|c|cpp|cs|rb|swift|kt|dart))/i);
+		if (keywordMatch && keywordMatch[1]) {
+			const candidate = keywordMatch[1].trim();
+			if (!candidate.includes('...') && !candidate.endsWith('.zip')) {
+				return candidate;
+			}
+		}
+
+		const wellKnownMatch = text.match(/\b((?:routes\/[a-zA-Z0-9_\-\/]+\.php)|(?:app\/[a-zA-Z0-9_\-\/]+\.php)|(?:resources\/views\/[a-zA-Z0-9_\-\/]+\.(?:blade\.php|php))|(?:database\/[a-zA-Z0-9_\-\/]+\.php)|(?:src\/[a-zA-Z0-9_\-\/]+\.[a-zA-Z0-9]+)|(?:composer\.json)|(?:package\.json)|(?:artisan))\b/i);
+		if (wellKnownMatch && wellKnownMatch[1]) {
+			return wellKnownMatch[1].trim();
+		}
+
+		return undefined;
+	}
+
+	private _shouldAgentContinueAutonomousLoop(userPrompt: string, assistantText: string, turn: number): boolean {
+		const p = userPrompt.toLowerCase().trim();
+		const isExplicitGreeting = /^(halo|hai|hi|hello|siapa anda|who are you|apa kabar|terima kasih|thanks|thank you)\b/i.test(p);
+		if (isExplicitGreeting && !/(buat|create|bikin|ubah|edit|fix|lanjut|continue|update|run|install|hapus|delete)/i.test(p)) {
+			return false;
+		}
+
+		const isContinuationOrTask = /(lanjutkan|continue|teruskan|next|gas|go on|buat|create|bikin|ubah|edit|fix|selesaikan|implement|kerjakan|tambahkan|add)/i.test(p);
+		const assistantPromisedAction = /(saya akan|mari kita|langkah selanjutnya|sekarang saya|berikutnya|i will|let's create|next step|next, i|i'll now)/i.test(assistantText);
+
+		return isContinuationOrTask || assistantPromisedAction || turn > 1;
+	}
+
+	async resolveDynamicSkills(request: IChatAgentRequest, fileService: IFileService, customizationHarnessService?: ICustomizationHarnessService): Promise<IDynamicSkillInstruction[]> {
+		const resolvedSkills = new Map<string, IDynamicSkillInstruction>();
+
+		if (request.variables?.variables && Array.isArray(request.variables.variables)) {
+			for (const variable of request.variables.variables) {
+				const varAny = variable as any;
+				if (varAny?.kind === 'promptFile' || varAny?.kind === 'instruction') {
+					const uri: URI | undefined = URI.isUri(varAny.value) ? varAny.value : undefined;
+					if (uri) {
+						try {
+							let rawText: string | undefined;
+							if (isBuiltinSkillUri(uri)) {
+								rawText = getBuiltinSkillContent(uri);
+							} else {
+								const fileData = await fileService.readFile(uri);
+								rawText = fileData.value.toString();
+							}
+							if (rawText) {
+								const defaultName = basename(uri).toLowerCase() === 'skill.md'
+									? basename(dirname(uri))
+									: (varAny.name || basename(uri).replace(/\.md$/, ''));
+								const parsed = parseDynamicSkillMarkdown(rawText, defaultName);
+								if (parsed.name && !resolvedSkills.has(parsed.name.toLowerCase())) {
+									resolvedSkills.set(parsed.name.toLowerCase(), parsed);
+								}
+							}
+						} catch (err) {
+							console.warn(`[ChatAgentService] Could not read skill file from ${uri.toString()}:`, err);
+						}
+					}
+				}
+			}
+		}
+
+		const msg = typeof request.message === 'string' ? request.message : (request.message as any)?.text || '';
+		if (msg.includes('/')) {
+			const slashMatches = msg.match(/(?:^|\s)\/([\p{L}0-9_.:-]+)(?=\s|$)/gu);
+			if (slashMatches && customizationHarnessService) {
+				for (const match of slashMatches) {
+					const tokenName = match.trim().replace(/^\//, '');
+					if (!tokenName || resolvedSkills.has(tokenName.toLowerCase())) {
+						continue;
+					}
+					try {
+						const resolved = await customizationHarnessService.resolvePromptSlashCommand(tokenName, request.sessionResource, CancellationToken.None);
+						if (resolved?.uri) {
+							let rawText: string | undefined;
+							if (isBuiltinSkillUri(resolved.uri)) {
+								rawText = getBuiltinSkillContent(resolved.uri);
+							} else {
+								const fileData = await fileService.readFile(resolved.uri);
+								rawText = fileData.value.toString();
+							}
+							if (rawText) {
+								const defaultName = basename(resolved.uri).toLowerCase() === 'skill.md'
+									? basename(dirname(resolved.uri))
+									: resolved.name;
+								const parsed = parseDynamicSkillMarkdown(rawText, defaultName);
+								if (parsed.name && !resolvedSkills.has(parsed.name.toLowerCase())) {
+									resolvedSkills.set(parsed.name.toLowerCase(), parsed);
+								}
+							}
+						}
+					} catch {
+					}
+				}
+			}
+		}
+
+		return Array.from(resolvedSkills.values());
+	}
+
+	async streamDardcorRouter(request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult> {
+		let modelName = request.userSelectedModelId;
+		let routerModelCapabilities: IDardcorRouterModelCapabilities = {};
+		if (!modelName || modelName === 'auto' || modelName.endsWith('/auto') || modelName.endsWith('/no-model-selected')) {
+			try {
+				this.instantiationService.invokeFunction(accessor => {
+					const chatService = accessor.get(IChatService);
+					const sessionModel = chatService.getSession(request.sessionResource);
+					const lastRequestWithModel = sessionModel?.getRequests().slice().reverse().find(r => r.modelId && r.modelId !== 'auto' && !r.modelId.endsWith('/auto') && !r.modelId.endsWith('/no-model-selected'));
+					if (lastRequestWithModel?.modelId) {
+						modelName = lastRequestWithModel.modelId;
+					}
+				});
+			} catch { }
+			if (modelName === 'auto' || modelName?.endsWith('/auto') || modelName?.endsWith('/no-model-selected')) {
+				modelName = undefined;
+			}
+		}
+
+		let chatEditingService: IChatEditingService | undefined;
+		let fileService: IFileService | undefined;
+		let editorService: IEditorService | undefined;
+		let pathService: IPathService | undefined;
+		let commandService: ICommandService | undefined;
+		let customizationHarnessService: ICustomizationHarnessService | undefined;
+		let todoListService: IChatTodoListService | undefined;
+		let runStateService: IChatAgentRunStateService | undefined;
+		const getSessionId = (resource?: URI): string => {
+			if (!resource) {
+				return 'default';
+			}
+			const base = basename(resource);
+			const raw = base || resource.path || resource.toString();
+			return raw.replace(/[^a-zA-Z0-9_-]/g, '_') || 'default';
+		};
+		let runState: IChatAgentRunState | undefined;
+		let workspaceSnapshot: IWorkspaceSnapshot | undefined;
+		let taskIsTracked = false;
+		let activeTaskPrompt = '';
+		const rawRequestPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
+		let isPlanMode = request.command === 'plan' || (request as any)?.mode === 'plan' || /^\s*(?:\/|\[)plan(?:\]|\b)/i.test(rawRequestPrompt);
+		let isSuperIntellegentMode = request.command === 'super-intellegent' || request.command === 'super-intelligent' || /^\s*(?:\/|\[)super-intell(?:egent|igent)(?:\]|\b)/i.test(rawRequestPrompt);
+		let hasSuperIntellegentSkill = isSuperIntellegentMode;
+		let planOpenedInEditor = false;
+		let planApproved = false;
+		let messages: any[] = [];
+		let browserVerificationOnly = false;
+		let consecutiveToolFailures = 0;
+		let autonomousRecoveryAttempts = 0;
+		const MAX_AUTONOMOUS_RECOVERY_ATTEMPTS = 3;
+		let acceptedTaskCompletion = false;
+		let proposedCompletionSummary: string | undefined;
+		let finalSynthesisTurnPending = false;
+		let finalSynthesisCompleted = false;
+		const successfulTaskActions = new Map<string, number>();
+		const taskChangedFiles = new Set<string>();
+		let taskConclusionEmitted = false;
+		let taskConclusionSummaryEmitted = false;
+		let requestCooldownNoticeEmitted = false;
+		let turnEncounteredFatalModelError = false;
+		let turnSuccessfulToolActions = 0;
+		let turnFileMutations = 0;
+		try {
+			this.instantiationService.invokeFunction(accessor => {
+				try { chatEditingService = accessor.get(IChatEditingService); } catch { }
+				try { fileService = accessor.get(IFileService); } catch { }
+				try { editorService = accessor.get(IEditorService); } catch { }
+				try { commandService = accessor.get(ICommandService); } catch { }
+				try { pathService = accessor.get(IPathService); } catch { }
+				try { customizationHarnessService = accessor.get(ICustomizationHarnessService); } catch { }
+				try { todoListService = accessor.get(IChatTodoListService); } catch { }
+				try { runStateService = accessor.get(IChatAgentRunStateService); } catch { }
+			});
+		} catch { }
+		await hydrateDardcorSelfImprovingMemory(fileService, pathService);
+		const failedOverModelsInRun = new Set<string>();
+
+		const openPlanPreview = async (planUri: URI): Promise<void> => {
+			if (fileService) {
+				const MAX_WAIT = 2000;
+				const POLL = 80;
+				let waited = 0;
+				while (waited < MAX_WAIT) {
+					try {
+						const stat = await fileService.stat(planUri);
+						if (stat.size > 0) {
+							break;
+						}
+					} catch { }
+					await new Promise<void>(r => setTimeout(r, POLL));
+					waited += POLL;
+				}
+			}
+
+			if (editorService) {
+				try {
+					await editorService.openEditor({
+						resource: planUri,
+						label: 'Implementasi Plan',
+						options: {
+							pinned: true,
+							preserveFocus: false,
+						}
+					});
+					planOpenedInEditor = true;
+					return;
+				} catch (err) {
+					console.warn('[streamDardcorRouter] editorService.openEditor failed, trying fallback:', err);
+				}
+			}
+			if (commandService) {
+				try {
+					await commandService.executeCommand('vscode.open', planUri);
+					planOpenedInEditor = true;
+				} catch (err) {
+					console.warn('[streamDardcorRouter] vscode.open failed:', err);
+				}
+			}
+		};
+
+		const saveRunState = (patch: Partial<Omit<IChatAgentRunState, 'version' | 'updatedAt'>> = {}): void => {
+			if (!runState || !runStateService) {
+				return;
+			}
+			runState = updateChatAgentRunState(runState, patch);
+			try {
+				runStateService.setState(request.sessionResource, runState);
+			} catch (error) {
+				console.warn('[streamDardcorRouter] Could not persist agent checkpoint:', error);
+			}
+		};
+		const completionBlocker = (args: any): string | undefined => {
+			if (!taskIsTracked || !runState) {
+				return undefined;
+			}
+			const policyBlocker = getDardcorCompletionBlocker({
+				prompt: activeTaskPrompt,
+				todos: todoListService?.getTodos(request.sessionResource) ?? [],
+				state: runState,
+				verificationSteps: typeof args?.verificationSteps === 'string' ? args.verificationSteps : undefined,
+			});
+			if (policyBlocker) {
+				return policyBlocker;
+			}
+			let markerService: IMarkerService | undefined;
+			try {
+				this.instantiationService.invokeFunction(accessor => markerService = accessor.get(IMarkerService));
+			} catch { }
+			const errorCount = markerService?.read({}).filter(marker => marker.severity === MarkerSeverity.Error).length ?? 0;
+			return errorCount > 0 ? `Workspace diagnostics still contain ${errorCount} error(s). Fix and verify them before completion.` : undefined;
+		};
+		const recordToolEvidence = (toolName: string, args: any, output: string, externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete' }, executionStatus?: AgentToolExecutionStatus): void => {
+			if (!taskIsTracked || !runState) {
+				return;
+			}
+			const fileMutation = ['write_file', 'edit_file', 'multi_edit_file', 'batch_edit_files', 'delete_file', 'rename_file', 'restore_checkpoint'].includes(toolName);
+			const commandTool = ['run_command', 'run_in_terminal', 'create_and_run_task', 'run_task', 'send_to_terminal', 'kill_terminal', 'bash', 'execute_command', 'cmd', 'sh', 'powershell', 'terminal'].includes(toolName);
+			const command = String(args?.command ?? args?.commandLine ?? args?.text ?? args?.label ?? args?.taskLabel ?? '');
+			const mutationNotDenied = executionStatus !== 'denied' && executionStatus !== 'rejected'
+				&& !/(?:Agent action not run|approval was denied|Tool call rejected)/i.test(output);
+			const workspaceMutation = mutationNotDenied && (fileMutation || (commandTool && !isDardcorLowRiskCommand(command)));
+			const workspaceRevision = runState.workspaceRevision + (workspaceMutation ? 1 : 0);
+			const evidence = [...runState.verificationEvidence];
+			const addEvidence = (message: string): void => {
+				evidence.push({ message, workspaceRevision });
+			};
+			let verificationFailures = [...runState.verificationFailures];
+			let verificationPending = [...runState.verificationPending];
+			let browserActions = runState.browserActions;
+			const exitCode = parseAgentCommandExitCode(output);
+			const noBrowserChange = isDardcorBrowserTest(activeTaskPrompt) && /one Playwright click was sent\. Post-action evidence: no observable page or interactive-control change/i.test(output);
+			const statusFailure = executionStatus !== undefined && ['failed', 'denied', 'timedOut', 'rejected'].includes(executionStatus);
+			const failed = statusFailure || (exitCode !== undefined && exitCode !== 0) || noBrowserChange || /(?:Tool call rejected|Completion request rejected|Unknown tool|Browser Agent Error|No active browser tab|Could not open integrated browser|not tracked by Playwright|Agent action not run|approval was denied|Command failed|Command timed out|Terminal execution error|execution failed|cancelled while running|\b(?:command|tool|action|execution|verification|task|browser)\b.{0,50}\b(?:failed|failure|timed out|error)\b|\bfailed\s+(?:to|with|while|during)\b|\btimed out\b|\[ERROR\]|(?:^|\n)\s*(?:Error|Failed)(?::|\s+to\b)|❌|⚠️)/i.test(output);
+			if (!failed && executionStatus !== 'unknown' && executionStatus !== 'running' && !['task_completed', 'complete_task', 'manage_todo_list', 'review_plan', 'ask_questions'].includes(toolName)) {
+				const browserTool = ['open_browser_page', 'read_browser_page', 'read_page', 'navigate_browser', 'navigate_page', 'click_element', 'type_in_page', 'scroll_browser_page', 'hover_element', 'press_key', 'select_option', 'drag_and_drop', 'wait_for_browser', 'execute_browser_script', 'get_browser_console_logs', 'handle_browser_dialog', 'screenshot_browser_page', 'screenshot_page'].includes(toolName);
+				const inspectionTool = ['read_file', 'list_directory', 'find_files', 'search_code', 'grep_search', 'get_diagnostics', 'get_file_outline', 'get_terminal_output', 'read_browser_page', 'read_page', 'get_browser_console_logs', 'screenshot_browser_page', 'screenshot_page'].includes(toolName);
+				const actionLabel = browserTool ? 'Browser interactions' : fileMutation ? 'File changes' : commandTool ? 'Terminal commands' : inspectionTool ? 'Project inspections' : 'Agent actions';
+				successfulTaskActions.set(actionLabel, (successfulTaskActions.get(actionLabel) ?? 0) + 1);
+				if (fileMutation && externalEdit) {
+					taskChangedFiles.add(externalEdit.uri.fsPath);
+					turnFileMutations++;
+				}
+				turnSuccessfulToolActions++;
+				if (fileMutation) {
+					let markerService: IMarkerService | undefined;
+					try {
+						this.instantiationService.invokeFunction(accessor => {
+							try { markerService = accessor.get(IMarkerService); } catch { }
+						});
+					} catch { }
+					const errorCount = markerService?.read({}).filter(m => m.severity === MarkerSeverity.Error).length ?? 0;
+					if (errorCount === 0) {
+						const targetLabel = String(args?.filePath ?? externalEdit?.uri.fsPath ?? 'workspace').split(/[\\/]/).pop() || 'file';
+						addEvidence(`Verified file mutation (${toolName}: ${targetLabel}) succeeded with 0 workspace diagnostic errors.`);
+					}
+				} else if (inspectionTool && toolName !== 'get_diagnostics') {
+					addEvidence(`Workspace inspection (${toolName}) verified current project state.`);
+				}
+			}
+			const diagnosticTarget = String(args?.filePath ?? 'workspace');
+			if (!failed && toolName === 'get_diagnostics' && /No diagnostic problems/i.test(output)) {
+				addEvidence('Workspace diagnostics reported no errors or warnings.');
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(`Workspace diagnostics (${diagnosticTarget}):`));
+			} else if (toolName === 'get_diagnostics' && /\[(?:ERROR|WARNING)\]/i.test(output)) {
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(`Workspace diagnostics (${diagnosticTarget}):`));
+				verificationFailures.push(`Workspace diagnostics (${diagnosticTarget}): ${output.split('\n').filter(line => /\[(?:ERROR|WARNING)\]/i.test(line)).slice(0, 5).join(' ')}`);
+			}
+			if (['run_command', 'run_in_terminal', 'create_and_run_task', 'run_task', 'get_task_output'].includes(toolName)) {
+				const verificationStatus = getDardcorVerificationCommandStatus(command, output);
+				const verificationLabel = formatDardcorVerificationLabel(command);
+				if (verificationLabel) {
+					if (verificationStatus === 'passed' && !failed) {
+						addEvidence(`Verification check passed: ${verificationLabel}`);
+						verificationFailures = verificationFailures.filter(item => !item.includes(verificationLabel));
+						verificationPending = verificationPending.filter(item => !item.includes(verificationLabel));
+					} else if (verificationStatus === 'failed' || (verificationStatus === 'passed' && failed)) {
+						verificationFailures = verificationFailures.filter(item => !item.includes(verificationLabel));
+						verificationPending = verificationPending.filter(item => !item.includes(verificationLabel));
+						verificationFailures.push(`Verification check failed: ${verificationLabel}`);
+					} else if (verificationStatus === 'inconclusive') {
+						verificationPending = verificationPending.filter(item => !item.includes(verificationLabel));
+						verificationPending.push(`Verification awaiting confirmation: ${verificationLabel}`);
+					}
+				}
+			}
+			const browserTool = ['open_browser_page', 'read_browser_page', 'read_page', 'navigate_browser', 'navigate_page', 'click_element', 'type_in_page', 'scroll_browser_page', 'hover_element', 'press_key', 'select_option', 'drag_and_drop', 'wait_for_browser', 'execute_browser_script', 'get_browser_console_logs', 'handle_browser_dialog', 'screenshot_browser_page', 'screenshot_page'].includes(toolName);
+			const browserAction = ['click_element', 'type_in_page', 'scroll_browser_page', 'hover_element', 'press_key', 'select_option', 'drag_and_drop'].includes(toolName);
+			const cleanBrowserConsole = /No console errors or warnings recorded/i.test(output);
+			const browserDiagnosticText = toolName === 'get_browser_console_logs'
+				? output
+				: output.split('#### Browser Console & Runtime Diagnostics')[1] ?? '';
+			const browserHasErrors = !cleanBrowserConsole && /(?:Console capture error|\b(?:uncaught|exception|rejected|failed|error)\b|(?:Type|Reference|Syntax)Error:)/i.test(browserDiagnosticText);
+			const browserSnapshotHasContent = /#### Page Headings|#### Visible Page Text Content|^\[\d+\] </im.test(output)
+				&& !/^\s*-\s*\*\*URL\*\*:\s*about:blank\b/im.test(output);
+			const browserPageInspection = ['open_browser_page', 'read_browser_page', 'read_page', 'navigate_browser', 'navigate_page', 'screenshot_browser_page', 'screenshot_page'].includes(toolName)
+				&& !failed
+				&& !browserHasErrors
+				&& browserSnapshotHasContent
+				&& output.includes('### Active Browser Page Snapshot');
+			const approvalBlocked = /Agent action not run|approval was denied/i.test(output);
+			const browserOperationFailed = browserTool && !approvalBlocked && (failed || browserHasErrors);
+			const pageUrl = output.match(/\*\*URL\*\*:\s*([^\s\r\n]+)|Diagnostics\s+\(([^)\s]+)/i);
+			const browserFailurePrefix = `Browser runtime (${pageUrl?.[1] ?? pageUrl?.[2] ?? 'current page'}):`;
+			if (toolName === 'get_browser_console_logs' && cleanBrowserConsole) {
+				addEvidence('Integrated browser console inspection found no errors or warnings.');
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
+			} else if (toolName === 'get_browser_console_logs' && browserHasErrors) {
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
+				verificationFailures.push(`${browserFailurePrefix} ${browserDiagnosticText.trim().slice(0, 350)}`);
+			}
+			if (browserTool && browserHasErrors) {
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
+				verificationFailures.push(`${browserFailurePrefix} ${browserDiagnosticText.trim().slice(0, 350)}`);
+			}
+			if (browserPageInspection) {
+				const inspectedUrl = output.match(/\*\*URL\*\*:\s*([^\s\r\n]+)/)?.[1] ?? 'active page';
+				addEvidence(`Integrated browser page inspected: ${inspectedUrl} with a rendered DOM snapshot and browser diagnostics.`);
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
+			}
+			if (browserAction && browserHasErrors) {
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
+				verificationFailures.push(`${browserFailurePrefix} ${browserDiagnosticText.trim().slice(0, 350)}`);
+			} else if (browserAction && toolName === 'click_element' && noBrowserChange) {
+				const actionFailurePrefix = `Browser action (${pageUrl?.[1] ?? pageUrl?.[2] ?? 'current page'}):`;
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(actionFailurePrefix));
+				verificationFailures.push(`${actionFailurePrefix} one click was sent, but the post-action snapshot showed no observable URL, title, or visible text change.`);
+			} else if (browserAction && !failed && output.includes('### Active Browser Page Snapshot') && (/\b(?:Clicked|Typed|Scrolled|Hovered|Pressed|Selected|Dragged|Wait condition met|Configured browser|Captured live)\b/i.test(output) || /✅/.test(output))) {
+				browserActions++;
+				addEvidence(`Integrated browser ${toolName} succeeded and returned a post-action DOM snapshot.`);
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserFailurePrefix));
+				if (toolName === 'click_element') {
+					const actionFailurePrefix = `Browser action (${pageUrl?.[1] ?? pageUrl?.[2] ?? 'current page'}):`;
+					verificationFailures = verificationFailures.filter(item => !item.startsWith(actionFailurePrefix));
+				}
+			}
+			if (browserOperationFailed && !browserHasErrors) {
+				const browserActionFailurePrefix = `Integrated browser (${toolName}):`;
+				verificationFailures = verificationFailures.filter(item => !item.startsWith(browserActionFailurePrefix));
+				verificationFailures.push(`${browserActionFailurePrefix} ${output.replace(/[\r\n\t]+/g, ' ').slice(0, 350)}`);
+			}
+			const dedupedEvidence = [...new Map(evidence.map(item => [`${item.workspaceRevision}:${item.message}`, item])).values()];
+			const incompleteTodo = todoListService?.getTodos(request.sessionResource).find(todo => todo.status !== 'completed');
+			const nextStep = approvalBlocked
+				? 'The requested action was not run because approval was denied. Wait for a new user decision before retrying it.'
+				: browserOperationFailed
+				? /(?:service accessor is only valid|not tracked by Playwright|could not be registered|page .* closed|did not become ready|no active browser tab|browser editor.*unavailable)/i.test(output)
+					? 'Restore the integrated Browser Editor/Playwright page attachment, then retry the requested browser action and inspect its post-action snapshot. Do not substitute HTTP or terminal output for interaction evidence.'
+					: 'Use the returned browser error and current DOM snapshot to correct the target or action arguments, then retry the browser action and inspect its post-action snapshot.'
+				: failed
+				? 'Inspect and resolve the latest failed tool action before retrying or continuing.'
+				: executionStatus === 'unknown' || executionStatus === 'running'
+					? 'Poll the task or inspect its terminal output until a final exit status is available; do not treat the current output as verification.'
+				: incompleteTodo
+					? `Continue the first incomplete checklist item: ${incompleteTodo.title.slice(0, 300)}`
+					: 'Run the task-specific verification and inspect its actual result before requesting completion.';
+			const verificationAction = toolName === 'get_diagnostics'
+				|| (['run_command', 'run_in_terminal', 'create_and_run_task', 'run_task', 'get_task_output'].includes(toolName)
+					&& getDardcorVerificationCommandStatus(String(args?.command ?? args?.commandLine ?? args?.label ?? args?.taskLabel ?? ''), output) !== 'not-verification')
+				|| browserAction;
+			saveRunState({
+				status: approvalBlocked ? 'blocked' : verificationAction ? 'verifying' : 'working',
+				verificationEvidence: dedupedEvidence,
+				workspaceRevision,
+				verificationFailures: [...new Set(verificationFailures)],
+				verificationPending: [...new Set(verificationPending)],
+				browserActions,
+				lastError: failed ? output.slice(0, 500) : undefined,
+				nextStep,
+			});
+			if (browserVerificationOnly && runState) {
+				browserVerificationOnly = !!getDardcorBrowserVerificationRequirement(activeTaskPrompt, runState);
+			}
+		};
+		const emitTaskConclusion = (): void => {
+			let todos = [] as ReturnType<IChatTodoListService['getTodos']>;
+			try {
+				todos = todoListService?.getTodos(request.sessionResource) ?? [];
+			} catch {}
+			if ((!taskIsTracked && todos.length === 0) || taskConclusionEmitted) {
+				return;
+			}
+			taskConclusionEmitted = true;
+			let status = runState?.status ?? 'blocked';
+			const completedTodos = todos.filter(todo => todo.status === 'completed').length;
+			const pendingTodos = todos.filter(todo => todo.status !== 'completed');
+
+			if (todos.length > 0 && pendingTodos.length === 0) {
+				status = 'completed';
+				acceptedTaskCompletion = true;
+			}
+
+			if (status === 'completed' && acceptedTaskCompletion && (finalSynthesisCompleted || taskConclusionSummaryEmitted)) {
+				return;
+			}
+			const isComplete = status === 'completed' && acceptedTaskCompletion;
+			const isCancelled = token.isCancellationRequested || status === 'cancelled';
+			const isBlocked = !isComplete && status === 'blocked';
+			const isPaused = !isComplete && !isCancelled && !isBlocked && status === 'paused';
+
+			const allEvidence = runState?.verificationEvidence ?? [];
+			const evidence = allEvidence.filter(item => item.workspaceRevision === runState?.workspaceRevision);
+			const pendingVerification = runState?.verificationPending ?? [];
+
+			const lang = detectDardcorLanguage(activeTaskPrompt);
+			const i18n = getDardcorLocaleStrings(lang);
+
+			const lines: string[] = [];
+			const title = isComplete
+				? i18n.taskSummaryComplete
+				: isPaused
+					? i18n.taskSummaryPaused
+					: i18n.taskSummaryBlocked;
+
+			if (isComplete) {
+				const changedFilesList: IAntigravityChangedFileInfo[] = [];
+				const seenPaths = new Set<string>();
+
+				if (chatEditingService) {
+					try {
+						const session = chatEditingService.getEditingSession(request.sessionResource);
+						const entries = session?.entries.get() ?? [];
+						for (const entry of entries) {
+							const path = entry.modifiedURI.fsPath;
+							seenPaths.add(path);
+							const added = entry.linesAdded?.get();
+							const removed = entry.linesRemoved?.get();
+							changedFilesList.push({ fsPath: path, added, removed });
+						}
+					} catch {}
+				}
+
+				for (const filePath of taskChangedFiles) {
+					if (!seenPaths.has(filePath)) {
+						seenPaths.add(filePath);
+						changedFilesList.push({ fsPath: filePath });
+					}
+				}
+
+				let diagnosticErrors = 0;
+				try {
+					this.instantiationService.invokeFunction(accessor => {
+						const ms = accessor.get(IMarkerService);
+						diagnosticErrors = ms.read({}).filter(m => m.severity === MarkerSeverity.Error).length;
+					});
+				} catch {}
+
+				if (proposedCompletionSummary && proposedCompletionSummary.trim().length >= 40) {
+					lines.push('', proposedCompletionSummary.trim());
+				} else {
+					const report = generateAntigravityFinalReport({
+						lang,
+						prompt: activeTaskPrompt || rawRequestPrompt,
+						todos,
+						changedFiles: changedFilesList,
+						evidence: evidence.map(e => e.message),
+						diagnosticErrors,
+						projectName: workspaceSnapshot?.projectName,
+						techStack: workspaceSnapshot?.techStack,
+						llmSummary: proposedCompletionSummary
+					});
+					lines.push('', report);
+				}
+				taskConclusionSummaryEmitted = true;
+			} else {
+				if (!turnEncounteredFatalModelError) {
+					lines.push(`\n\n### ${title}`);
+				}
+
+				if (todos.length > 0) {
+					lines.push('', `**${i18n.checklist}:** ${completedTodos}/${todos.length} ${i18n.complete}`);
+				}
+
+				if (evidence.length > 0) {
+					lines.push('', `**${i18n.verificationEvidence}:**`);
+					for (const item of evidence.slice(-4)) {
+						const cleanMsg = item.message.replace(/[\r\n\t]+/g, ' ').trim();
+						lines.push(`- ${cleanMsg}`);
+					}
+				}
+
+				if (pendingVerification.length > 0) {
+					lines.push('', `**${i18n.verificationPending}:**`);
+					for (const item of pendingVerification.slice(0, 3)) {
+						const cleanMsg = item.replace(/[\r\n\t]+/g, ' ').trim();
+						lines.push(`- ${cleanMsg}`);
+					}
+				}
+			}
+
+			let shouldAutoResumeIncompleteTodos = false;
+			if (!isComplete) {
+				const nextItem = pendingTodos[0]?.title ?? runState?.nextStep ?? i18n.resumeDefault;
+				lines.push('', `**${i18n.nextStep}:** ${nextItem}`);
+
+				const blocker = runState?.lastError?.replace(/[\r\n\t]+/g, ' ').trim();
+				if (blocker && blocker !== runState?.nextStep && blocker !== nextItem && !turnEncounteredFatalModelError) {
+					const cleanBlocker = cleanMessageText(blocker);
+					lines.push(`**${i18n.reason}:** ${cleanBlocker}`);
+				}
+				const hasFatalModelOrRouterError = turnEncounteredFatalModelError || !!(
+					blocker && /(?:Dardcor Router returned HTTP|forbidden_plan_required|model_not_supported|FreeUsageLimitError|quota exceeded|insufficient_credits|credits required|insufficient balance|payment required|unauthorized|pricingUrl|Requested entity was not found|Model not found|all \d+ accounts locked|Paid subscription or credits required|Connect Timeout Error|ERR_TIMED_OUT|ECONNREFUSED|ECONNRESET|fetch failed|stream reading error|did not complete after \d+ attempts)/i.test(blocker)
+				);
+				shouldAutoResumeIncompleteTodos = !isComplete
+					&& !token.isCancellationRequested
+					&& !isCancelled
+					&& !isBlocked
+					&& !hasFatalModelOrRouterError
+					&& pendingTodos.length > 0
+					&& isFullAccessActive();
+				if (hasFatalModelOrRouterError || isBlocked) {
+					const diagnosis = diagnoseProviderIssue(0, blocker || runState?.lastError || '', modelName, lang);
+					const categoryName = diagnosis.category === 'DOWN'
+						? i18n.serverDownCategory
+						: diagnosis.category === 'LIMIT'
+							? i18n.quotaLimitCategory
+							: i18n.providerErrorCategory;
+
+					lines.push(
+						'',
+						`> **[${categoryName}] ${diagnosis.provider} — ${diagnosis.model}**`,
+						`> *${diagnosis.description}*`,
+						'',
+						`> ${i18n.selectAnotherModelTip}`
+					);
+				} else if (shouldAutoResumeIncompleteTodos) {
+					lines.push('', `> **${i18n.autoContinueActive}**`);
+				} else {
+					lines.push('', `> ${i18n.taskPausedTip}`);
+				}
+			}
+
+			progress([{ kind: 'markdownContent', content: new MarkdownString(`${lines.join('\n')}\n\n`, { isTrusted: true, supportHtml: true }) }]);
+
+			if (shouldAutoResumeIncompleteTodos) {
+				setTimeout(() => {
+					try {
+						this.instantiationService.invokeFunction(accessor => {
+							const chatService = accessor.get(IChatService);
+							chatService.sendRequest(request.sessionResource, 'continue', {
+								userSelectedModelId: modelName ?? request.userSelectedModelId,
+								modeInfo: request.modeInfo,
+								agentIdSilent: request.agentId,
+								location: request.location,
+								locationData: request.locationData,
+							});
+						});
+					} catch (err) {
+						console.warn('[streamDardcorRouter] Auto-continue dispatch failed:', err);
+					}
+				}, 1200);
+			}
+		};
+		const noteToolFailure = (output: string, executionStatus?: AgentToolExecutionStatus): boolean => {
+			if (!taskIsTracked || token.isCancellationRequested) {
+				return false;
+			}
+			if (executionStatus === 'unknown' || executionStatus === 'running') {
+				return false;
+			}
+			if (/(?:Tool call rejected|Completion request rejected|Unknown tool|Browser Agent Error|No active browser tab|Could not open integrated browser|not tracked by Playwright|Agent action not run|approval was denied|one Playwright click was sent\. Post-action evidence: no observable page or interactive-control change|Command failed|Command timed out|did not report completion|without reporting an exit code|completion status not reported|not marked successful|Terminal execution error|execution failed|cancelled while running|\b(?:command|tool|action|execution|verification|task|browser)\b.{0,50}\b(?:failed|failure|timed out|error)\b|\bfailed\s+(?:to|with|while|during)\b|\btimed out\b|(?:^|\n)\s*(?:Error|Failed)(?::|\s+to\b)|❌|⚠️)/i.test(output)) {
+				if (/Agent action not run|approval was denied/i.test(output)) {
+					return true;
+				}
+				const failureState = getDardcorToolFailureState(consecutiveToolFailures, true);
+				consecutiveToolFailures = failureState.consecutiveFailures;
+				return failureState.shouldBlock;
+			} else {
+				consecutiveToolFailures = getDardcorToolFailureState(consecutiveToolFailures, false).consecutiveFailures;
+			}
+			return false;
+		};
+		const executeAgentToolCancellable = async (toolName: string, args: any, rootUri?: URI, approvedByUser = false, fileReadResolution?: IAgentFileReadResolution) => {
+			const result = await raceCancellation(this._executeAgentTool(toolName, args, rootUri, request.sessionResource, token, request.requestId, approvedByUser, fileReadResolution), token);
+			const resolved = result ?? { output: `Tool action ${toolName} was interrupted before its result was known; inspect terminal, browser, or workspace state before retrying it.` };
+			if (resolved.browserImage && !shouldAttachDardcorBrowserScreenshot(routerModelCapabilities)) {
+				resolved.output += '\n\nA screenshot was captured in the integrated browser, but it was not attached because Router metadata does not confirm vision support. The DOM and accessibility snapshot remain available.';
+			}
+			const isFailedOutput = /(?:^Error:|\[ERROR\]|Command failed with exit code|Batch edit aborted|Error in multi_edit_file|Error editing|Error reading|Error writing)/i.test(resolved.output);
+			const consciousness = recordConsciousToolAction(request.sessionResource.toString(), runState?.turn ?? 1, toolName, args ?? {}, !isFailedOutput);
+			if (isFailedOutput) {
+				const matchingLessons = findMatchingEpisodicErrorLessons(resolved.output, rootUri?.fsPath);
+				if (matchingLessons.length > 0) {
+					const formattedLessons = matchingLessons.map(l => `- **Error Pattern**: \`${l.errorPattern}\` -> **Verified Fix**: ${l.verifiedSolution}`).join('\n');
+					resolved.output += `\n\n[Dardcor Episodic Memory — Past Verified Solution(s) Found]:\n${formattedLessons}`;
+				}
+			}
+			const pivotDirective = getMetacognitivePivotDirective(detectDardcorLanguage(activeTaskPrompt), consciousness);
+			if (pivotDirective) {
+				resolved.output += `\n\n${pivotDirective}`;
+			}
+			return resolved;
+		};
+		const approvedCommandKeys = new Set<string>();
+		const getEffectiveRouterPermission = (): { permissionLevel: ChatPermissionLevel | undefined; fullAccessRestricted: boolean } => {
+			let selectedPermissionLevel = request.permissionLevel;
+			try {
+
+				const sessionPermissionLevel = this.instantiationService.invokeFunction(accessor =>
+					accessor.get(IChatService).getSession(request.sessionResource)?.inputModel.state.get()?.permissionLevel
+				);
+				if (sessionPermissionLevel !== undefined) {
+					selectedPermissionLevel = sessionPermissionLevel;
+				}
+			} catch {}
+
+			const fullAccessRestrictedByPolicy = this.configurationService.inspect<boolean>(ChatConfiguration.GlobalAutoApprove).policyValue === false;
+			return {
+				permissionLevel: getDardcorEffectivePermissionLevel(selectedPermissionLevel, fullAccessRestrictedByPolicy) as ChatPermissionLevel | undefined,
+				fullAccessRestricted: fullAccessRestrictedByPolicy && selectedPermissionLevel === ChatPermissionLevel.AutoApprove,
+			};
+		};
+		const isFullAccessActive = (): boolean => {
+			const perm = getEffectiveRouterPermission();
+			return isAutoApproveLevel(perm.permissionLevel);
+		};
+		const formatApprovalDetails = (details: string): string => {
+			const longestBacktickRun = Math.max(0, ...Array.from(details.matchAll(/`+/g), match => match[0].length));
+			const fence = '`'.repeat(Math.max(3, longestBacktickRun + 1));
+			return `${fence}text\n${details}\n${fence}`;
+		};
+		const waitForQuestionAnswers = async (
+			toolCallId: string,
+			rawQuestions: readonly any[],
+			allowSkip: boolean,
+		): Promise<{ answers?: IChatQuestionAnswers; error?: string }> => {
+			if (rawQuestions.length === 0) {
+				return { error: 'No valid questions were provided; no action was approved.' };
+			}
+
+			let chatService: IChatService;
+			try {
+				chatService = this.instantiationService.invokeFunction(accessor => accessor.get(IChatService));
+			} catch (error) {
+				return { error: `The chat input UI is unavailable: ${error instanceof Error ? error.message : String(error)}` };
+			}
+
+			const questions: IChatCarouselQuestion[] = rawQuestions.map((question, index) => {
+				const options = Array.isArray(question?.options)
+					? question.options.filter((option: any) => option && typeof option.label === 'string').map((option: any) => ({
+						id: option.id ?? option.value ?? option.label,
+						label: option.description ? `${option.label} - ${option.description}` : option.label,
+						value: option.value ?? option.id ?? option.label,
+					}))
+					: [];
+				const recommended = question?.options?.find((option: any) => option?.recommended)?.id
+					?? question?.options?.find((option: any) => option?.recommended)?.value
+					?? question?.options?.find((option: any) => option?.recommended)?.label;
+				const fullQuestion = typeof question?.question === 'string' ? question.question : '';
+				const moveLongQuestionToDetails = fullQuestion.length > 240 || /\r?\n/.test(fullQuestion);
+				const questionMessage = moveLongQuestionToDetails
+					? `${fullQuestion.slice(0, 180).trimEnd()}${fullQuestion.length > 180 ? '…' : ''}`
+					: fullQuestion;
+				const detailedParts = [
+					moveLongQuestionToDetails ? fullQuestion : undefined,
+					typeof question?.message === 'string' ? question.message : undefined,
+				].filter((part): part is string => !!part?.trim());
+				return {
+					id: `${toolCallId}:${index}`,
+					type: options.length === 0 ? 'text' : question?.multiSelect ? 'multiSelect' : 'singleSelect',
+					title: typeof question?.header === 'string' && question.header.trim() ? question.header.trim() : `Question ${index + 1}`,
+					message: questionMessage,
+					detailedMessage: detailedParts.length > 0 ? detailedParts.join('\n\n') : undefined,
+					options: options.length > 0 ? options : undefined,
+					defaultValue: recommended,
+					allowFreeformInput: question?.allowFreeformInput !== false,
+					required: question?.required !== false,
+				};
+			});
+			const carousel = new ChatQuestionCarouselData(questions, allowSkip, toolCallId);
+			const answerListener = chatService.onDidReceiveQuestionCarouselAnswer(event => {
+				if (event.resolveId === toolCallId && (!event.requestId || event.requestId === request.requestId)) {
+					carousel.dismiss(event.answers);
+				}
+			});
+			progress([carousel as any]);
+			try {
+				const result = await raceCancellation(carousel.completion.p, token);
+				return result ? { answers: result.answers } : {};
+			} finally {
+				answerListener.dispose();
+				carousel.dismiss(undefined);
+			}
+		};
+		const formatQuestionAnswers = (rawQuestions: readonly any[], answers: IChatQuestionAnswers | undefined, toolCallId: string): string => {
+			const formatted: Record<string, { selected: string[]; freeText: string | null; skipped: boolean }> = {};
+			for (let index = 0; index < rawQuestions.length; index++) {
+				const question = rawQuestions[index];
+				const header = typeof question?.header === 'string' && question.header.trim() ? question.header.trim() : `Question ${index + 1}`;
+				const answer = answers?.[`${toolCallId}:${index}`];
+				const selectedValue = typeof answer === 'string'
+					? (Array.isArray(question?.options) && question.options.length > 0 ? [answer] : [])
+					: Array.isArray((answer as any)?.selectedValues)
+						? (answer as any).selectedValues.filter((value: unknown): value is string => typeof value === 'string')
+						: typeof (answer as any)?.selectedValue === 'string' ? [(answer as any).selectedValue] : [];
+				const freeText = typeof answer === 'string' && (!question?.options || question.options.length === 0)
+					? answer
+					: typeof (answer as any)?.freeformValue === 'string' ? (answer as any).freeformValue : null;
+				formatted[header] = { selected: selectedValue, freeText, skipped: answer === undefined };
+			}
+			return JSON.stringify({ answers: formatted });
+		};
+		const routerDynamicToolByName = new Map<string, IToolData>();
+		let routerToolDefinitions: readonly DardcorRouterToolDefinition[] = DARDCOR_AGENT_TOOLS as readonly DardcorRouterToolDefinition[];
+		const routerToolRuntime = new DardcorAgentToolRuntime();
+		const executeRouterTool = async (toolName: string, args: any, rootUri: URI | undefined, toolCallId: string) => {
+			if (isPlanMode && ['edit_file', 'delete_file', 'rename_file'].includes(toolName)) {
+				return { output: `Tool rejected: In Plan Mode, you must not edit or delete workspace files. Focus on researching and formulating the implementation plan.` };
+			}
+			if (isPlanMode && toolName === 'write_file') {
+				const targetPath = extractAgentFilePath(args);
+				const isMemoryPlan = targetPath && (targetPath.includes('.dardcor/memory/plans') || targetPath.includes('.dardcor\\memory\\plans') || targetPath.endsWith('.md'));
+				if (!isMemoryPlan) {
+					return { output: `Tool rejected: In Plan Mode, you must not write code files to the project. Formulate your implementation plan and call review_plan or present it in your response.` };
+				}
+			}
+			if (browserVerificationOnly && !DARDCOR_BROWSER_VERIFICATION_TOOL_NAMES.has(toolName)) {
+				return { output: `Tool call rejected: browser verification is the only enabled action until the integrated Browser Editor returns the required live page evidence. Retry with a browser inspection or interaction tool.` };
+			}
+			if (toolName === 'ask_questions') {
+				const questions = Array.isArray(args?.questions) ? args.questions.filter((question: any) => question && typeof question === 'object') : [];
+				const result = await waitForQuestionAnswers(toolCallId, questions, true);
+				return { output: result.error ?? formatQuestionAnswers(questions, result.answers, toolCallId) };
+			}
+			if (toolName === 'review_plan') {
+				if (planApproved) {
+					return {
+						output: 'Plan has already been approved and planning mode is complete. Do NOT call review_plan again. Proceed immediately to implement the required project files step-by-step using write_file and edit_file.'
+					};
+				}
+				const actions = Array.isArray(args?.actions) && args.actions.length > 0
+					? args.actions.filter((action: any) => action && typeof action.label === 'string')
+					: [{ label: 'Approve plan', default: true }];
+				if (actions.length === 0) {
+					return { output: JSON.stringify({ rejected: true, feedback: 'The plan had no valid review actions.' }) };
+				}
+				let planUri: URI | undefined;
+				try {
+					if (fileService) {
+						const planId = Date.now().toString(36);
+						const planFileName = `plan-${planId}.md`;
+						const planHeader = `# ${args?.title || 'Implementation Plan'}\n\n`;
+						const fullContent = (args?.content || '').startsWith('#') ? (args?.content || '') : `${planHeader}${args?.content || ''}`;
+						const planBuffer = VSBuffer.fromString(fullContent);
+
+						if (pathService) {
+							const userHome = await pathService.userHome();
+							const sessionId = getSessionId(request.sessionResource);
+							const sessionPlansDir = joinPath(userHome, '.dardcor', 'sessions', sessionId, 'plans');
+							if (!await fileService.exists(sessionPlansDir)) {
+								await fileService.createFolder(sessionPlansDir);
+							}
+							const sessionPlanUri = joinPath(sessionPlansDir, planFileName);
+							await fileService.writeFile(sessionPlanUri, planBuffer);
+
+							const memorySessionDir = joinPath(userHome, '.dardcor', 'memory', 'plans', sessionId);
+							if (!await fileService.exists(memorySessionDir)) {
+								await fileService.createFolder(memorySessionDir);
+							}
+							planUri = joinPath(memorySessionDir, planFileName);
+							await fileService.writeFile(planUri, planBuffer);
+						}
+					}
+				} catch (err) {
+					console.warn('[streamDardcorRouter] Failed to write plan to store:', err);
+				}
+
+				const review = new ChatPlanReviewData(args?.title || 'Implementation Plan', args?.content || '', actions, args?.canProvideFeedback !== false, planUri, toolCallId);
+				progress([review as any]);
+
+				if (planUri) {
+					openPlanPreview(planUri).catch(err => {
+						console.warn('[streamDardcorRouter] Failed to auto-open plan preview in center editor:', err);
+					});
+				}
+				try {
+					const result = await raceCancellation(review.completion.p, token);
+					if (result && !result.rejected) {
+						planApproved = true;
+						isPlanMode = false;
+						taskIsTracked = true;
+						const planTitle = args?.title || 'Implementation Plan';
+						const extractedTodos = extractTodosFromPlan(args?.content || '', planTitle);
+						if (extractedTodos.length > 0 && todoListService && request.sessionResource) {
+							try {
+								todoListService.setTodos(request.sessionResource, extractedTodos as any);
+							} catch (e) {
+								console.warn('[review_plan] Failed to set extracted plan todos:', e);
+							}
+						}
+						if (!runState) {
+							runState = createChatAgentRunState('working');
+						}
+						saveRunState({
+							status: 'working',
+							planApproved: true,
+							stalledTurns: 0,
+							lastError: undefined,
+							taskPrompt: `Implement approved plan: ${planTitle}`,
+							nextStep: extractedTodos.length > 0 ? `Start working on: ${extractedTodos[0].title}` : 'Implement approved tasks'
+						});
+						if (messages.length > 0 && messages[0].role === 'system' && typeof messages[0].content === 'string') {
+							let replacementText = `=== PLAN APPROVED & AUTONOMOUS EXECUTION AUTHORIZED ===\nThe implementation plan "${planTitle}" has been APPROVED by the user. Planning mode is completely finished and disabled. All modification tools (write_file, edit_file, delete_file, run_command) are 100% unlocked and authorized. You MUST NOT call review_plan again. Proceed directly and immediately to implement all tasks in the approved checklist step-by-step using your tools without stopping until 100% completed.\n\n`;
+							if (hasSuperIntellegentSkill) {
+								replacementText += `=== SUPER-INTELLIGENT MODE ACTIVE (/super-intellegent) ===\nYou are executing in Unified Super-Intelligent Mode across all 7 operational pillars (Evolve, Swarm, Deep-Audit, Architect, TDD, Verify-UI, and Boost). Proceed autonomously to implement and verify each task with maximum rigor.\n\n`;
+							}
+							messages[0].content = messages[0].content.replace(
+								/=== STRICT PLAN MODE PROTOCOL \(\/plan\) ===[\s\S]*?(?:=== (?:SUPER-INTELLIGENT|STRICT OUTPUT)|$)/i,
+								replacementText
+							);
+							messages[0].content = messages[0].content.replace(
+								/--- \[SKILL: plan\] ---[\s\S]*?--- \[END SKILL: plan\] ---\n\n/gi,
+								''
+							);
+						}
+						return {
+							output: `[Plan Approved by User - Autonomous Execution Authorized]: The user has approved the implementation plan "${planTitle}". Planning mode is now COMPLETE and CLOSED. All modification tools (write_file, edit_file, delete_file, run_command) are now fully enabled. Proceed immediately to implement the required project files step-by-step according to the approved plan without stopping until 100% completed. Do NOT call review_plan again.`
+						};
+					}
+					return { output: JSON.stringify(result ?? { rejected: true, feedback: 'The review was cancelled or dismissed; no approval was recorded.' }) };
+				} finally {
+					review.dismiss();
+				}
+			}
+			if (toolName === 'confirm_terminal_command') {
+				const command = String(args?.command ?? args?.commandLine ?? '').trim();
+				if (!command) {
+					return { output: 'Command confirmation rejected: a command string is required.' };
+				}
+				const permission = getEffectiveRouterPermission();
+				if (permission.permissionLevel === ChatPermissionLevel.AutoApprove) {
+					approvedCommandKeys.add(commandApprovalKey(command, rootUri?.toString()));
+					return { output: JSON.stringify({ approved: true, command, scope: 'session full access' }) };
+				}
+				const promptForLang = activeTaskPrompt || (typeof request.message === 'string' ? request.message : (request.message as any)?.text || '');
+				const userLang = detectDardcorLanguage(promptForLang);
+				const locale = getDardcorLocaleStrings(userLang);
+				const policyNote = permission.fullAccessRestricted ? locale.confirmPolicyRestricted : '';
+				const result = await waitForQuestionAnswers(toolCallId, [{
+					header: locale.confirmTerminalHeader,
+					question: `${policyNote}${locale.confirmExactCommandQuestion}`,
+					message: formatApprovalDetails(`${args?.explanation ? `${args.explanation}\n\n` : ''}${command}`),
+					options: [
+						{ id: 'skip', value: 'skip', label: locale.confirmSkipCommand, recommended: true },
+						{ id: 'allow_once', value: 'allow_once', label: locale.confirmAllowOnce }
+					],
+					allowFreeformInput: false,
+					required: true,
+				}], false);
+				const answer = result.answers?.[`${toolCallId}:0`] as any;
+				const selected = typeof answer === 'string' ? answer : (answer?.selectedValue ?? answer?.value ?? answer?.id);
+				const approved = typeof selected === 'string'
+					&& (selected.toLowerCase() === 'allow_once' || selected.toLowerCase() === 'allow' || selected === 'Allow once' || selected === locale.confirmAllowOnce);
+				if (approved) {
+					approvedCommandKeys.add(commandApprovalKey(command, rootUri?.toString()));
+				}
+				return { output: result.error ?? JSON.stringify({ approved, command, scope: 'one-time exact command' }) };
+			}
+
+			const isCommandTool = ['run_command', 'run_in_terminal', 'bash', 'execute_command', 'cmd', 'sh', 'powershell', 'terminal', 'create_and_run_task', 'run_task', 'send_to_terminal', 'kill_terminal'].includes(toolName)
+				|| /terminal|command|runin/i.test(toolName);
+			const permission = getEffectiveRouterPermission();
+			const permissionLevel = permission.permissionLevel;
+			let approvedByUser = false;
+			if (isCommandTool) {
+				const command = toolName === 'kill_terminal'
+					? `kill_terminal:${String(args?.id ?? args?.terminalId ?? '').trim()}`
+					: String(args?.command ?? args?.commandLine ?? args?.taskLabel ?? args?.label ?? args?.text ?? '').trim();
+				const key = commandApprovalKey(command, rootUri?.toString());
+				approvedByUser = approvedCommandKeys.delete(key);
+			}
+			const isFileReadTool = ['read', 'view_file', 'read_file'].includes(toolName);
+			const fileReadResolution = isFileReadTool
+				? await resolveAgentFileReadTarget(fileService, extractAgentFilePath(args), rootUri)
+				: undefined;
+			const externalFileReadRequiresApproval = fileReadResolution?.requiresApproval ?? false;
+			const permissionRequired = requiresDardcorToolConfirmation(toolName, args, permissionLevel, externalFileReadRequiresApproval);
+			if (permissionRequired && !approvedByUser) {
+				const command = isCommandTool
+					? (toolName === 'kill_terminal'
+						? `kill_terminal:${String(args?.id ?? args?.terminalId ?? '').trim()}`
+						: String(args?.command ?? args?.commandLine ?? args?.taskLabel ?? args?.label ?? args?.text ?? '').trim())
+					: '';
+				const isTerminalConfirmation = isCommandTool;
+				const promptForLang = activeTaskPrompt || (typeof request.message === 'string' ? request.message : (request.message as any)?.text || '');
+				const userLang = detectDardcorLanguage(promptForLang);
+				const locale = getDardcorLocaleStrings(userLang);
+				const summary = isTerminalConfirmation && command
+					? command.replace(/[\r\n\t]+/g, ' ').slice(0, 400)
+					: summarizeDardcorToolAction(toolName, args, userLang);
+				const header = isTerminalConfirmation ? locale.confirmTerminalHeader : locale.confirmAgentActionHeader;
+				const policyPrefix = permission.fullAccessRestricted ? locale.confirmPolicyRestricted : '';
+				const questionBody = externalFileReadRequiresApproval
+					? locale.confirmExternalFile
+					: (isTerminalConfirmation ? locale.confirmTerminalActionQuestion : locale.confirmAgentActionQuestion);
+				const skipLabel = isTerminalConfirmation ? locale.confirmSkipCommand : locale.confirmSkipAction;
+				const allowLabel = locale.confirmAllowOnce;
+
+				const result = await waitForQuestionAnswers(toolCallId, [{
+					header,
+					question: `${policyPrefix}${questionBody}`,
+					message: formatApprovalDetails(summary),
+					options: [
+						{ id: 'skip', value: 'skip', label: skipLabel, recommended: true },
+						{ id: 'allow_once', value: 'allow_once', label: allowLabel }
+					],
+					allowFreeformInput: false,
+					required: true,
+				}], false);
+				const answer = result.answers?.[`${toolCallId}:0`] as any;
+				const selected = typeof answer === 'string' ? answer : (answer?.selectedValue ?? answer?.value ?? answer?.id);
+				const approved = typeof selected === 'string'
+					&& (selected.toLowerCase() === 'allow_once' || selected.toLowerCase() === 'allow' || selected === 'Allow once' || selected === allowLabel);
+				if (result.error || !approved) {
+					return { output: result.error
+						? `Agent action not run: ${result.error}`
+						: `Agent action not run because approval was denied: ${summary}` };
+				}
+				approvedByUser = true;
+			} else if (!permissionRequired) {
+
+				approvedByUser = true;
+			}
+			const dynamicTool = routerDynamicToolByName.get(toolName);
+			if (dynamicTool) {
+				return this._invokeBuiltinAgentTool(dynamicTool.id, args, request.sessionResource, rootUri, request.requestId, token, approvedByUser);
+			}
+			return executeAgentToolCancellable(toolName, args, rootUri, approvedByUser, fileReadResolution);
+		};
+
+		try {
+			let activeSkills = fileService ? await this.resolveDynamicSkills(request, fileService, customizationHarnessService) : [];
+
+			const snapshot = await this.getWorkspaceSnapshot();
+			workspaceSnapshot = snapshot;
+			const dynamicRouterToolDefinitions: DardcorRouterToolDefinition[] = [];
+			const unavailableDynamicTools: string[] = [];
+			try {
+				const localTools = this.instantiationService.invokeFunction(accessor => Array.from(accessor.get(ILanguageModelToolsService).getTools(undefined)));
+				const knownNames = new Set(DARDCOR_AGENT_TOOLS.map(tool => tool.function.name));
+				for (const tool of localTools) {
+					const toolName = createRouterLocalToolName(tool);
+					if (!tool.inputSchema || knownNames.has(toolName)) {
+						unavailableDynamicTools.push(tool.toolReferenceName || tool.id);
+						continue;
+					}
+					try {
+						const inputSchema = JSON.parse(JSON.stringify(tool.inputSchema)) as Record<string, unknown>;
+						if (!inputSchema.type) {
+							inputSchema.type = 'object';
+						}
+						const description = (tool.modelDescription || tool.userDescription || `Invoke local tool ${tool.displayName}`).slice(0, 2400);
+						dynamicRouterToolDefinitions.push({ type: 'function', function: { name: toolName, description, parameters: inputSchema } });
+						routerDynamicToolByName.set(toolName, tool);
+						knownNames.add(toolName);
+					} catch {
+						unavailableDynamicTools.push(tool.toolReferenceName || tool.id);
+					}
+				}
+			} catch (error) {
+				console.warn('[streamDardcorRouter] Could not enumerate local language model tools:', error);
+			}
+			routerToolDefinitions = [
+				...(DARDCOR_AGENT_TOOLS as readonly DardcorRouterToolDefinition[]),
+				...dynamicRouterToolDefinitions,
+			];
+			const commandToolNames = new Set(['run_command', 'run_in_terminal', 'run_task', 'create_and_run_task', 'send_to_terminal', 'kill_terminal']);
+			const writeToolNames = new Set(['write_file', 'edit_file', 'delete_file', 'rename_file']);
+			const networkToolNames = new Set(['fetch_web_page']);
+			const browserToolNames = new Set(['open_browser_page', 'read_browser_page', 'read_page', 'navigate_browser', 'navigate_page', 'click_element', 'type_in_page', 'scroll_browser_page', 'hover_element', 'press_key', 'select_option', 'drag_and_drop', 'wait_for_browser', 'execute_browser_script', 'get_browser_console_logs', 'handle_browser_dialog', 'screenshot_browser_page', 'screenshot_page']);
+			for (const definition of routerToolDefinitions) {
+				const name = definition.function.name;
+				const dynamicTool = routerDynamicToolByName.get(name);
+				const source: AgentToolSource = dynamicTool
+					? dynamicTool.source.type === 'extension' || dynamicTool.source.type === 'mcp' || dynamicTool.source.type === 'user' ? dynamicTool.source.type : 'builtin'
+					: 'router';
+				const risk: AgentToolRisk = dynamicTool
+					? 'unknown'
+					: commandToolNames.has(name) ? 'command' : writeToolNames.has(name) ? 'write' : networkToolNames.has(name) ? 'network' : browserToolNames.has(name) ? 'browser' : 'read';
+				routerToolRuntime.register({ name, inputSchema: definition.function.parameters, source, risk, driver: dynamicTool ? `languageModelToolsService:${dynamicTool.id}` : 'dardcorRouterLocalDriver' }, async (args, toolRequest) => {
+					const result: any = await executeRouterTool(name, args, snapshot.rootUri, toolRequest.callId);
+					return {
+						output: result.output,
+						status: isAgentToolExecutionStatus(result.executionStatus) ? result.executionStatus : undefined,
+						exitCode: typeof result.exitCode === 'number' ? result.exitCode : undefined,
+						evidence: Array.isArray(result.evidence) ? result.evidence.filter((item: unknown): item is string => typeof item === 'string') : undefined,
+						retrySafe: typeof result.retrySafe === 'boolean' ? result.retrySafe : undefined,
+						details: result,
+					};
+				});
+			}
+			const executeRouterToolThroughRuntime = async (toolName: string, args: Record<string, unknown>, callId: string) => {
+				const result = await routerToolRuntime.execute({ version: 1, callId, toolName, arguments: args });
+				const details = result.details && typeof result.details === 'object' ? result.details as Record<string, unknown> : {};
+				return { ...details, output: result.output, executionStatus: result.status };
+			};
+			const attachedFilesExcerpts: string[] = [];
+			if (request.variables?.variables && Array.isArray(request.variables.variables) && fileService) {
+				for (const variable of request.variables.variables) {
+					const varAny = variable as any;
+					if (varAny?.kind === 'file' && URI.isUri(varAny.value)) {
+						try {
+							const fileData = await fileService.readFile(varAny.value);
+							const fileText = fileData.value.toString();
+							const maxLen = 8000;
+							const truncated = fileText.length > maxLen ? fileText.substring(0, maxLen) + '\n... [content truncated]' : fileText;
+							attachedFilesExcerpts.push(`File: ${varAny.value.path || varAny.value.fsPath || varAny.name || 'attached file'}\n\`\`\`\n${truncated}\n\`\`\``);
+						} catch { }
+					}
+				}
+			}
+
+			const currentPrompt = typeof request.message === 'string' ? request.message : (request.message as any)?.text || String(request.message || '');
+			let cleanedPrompt = currentPrompt.trim();
+
+			if (activeSkills.length > 0) {
+				for (const skill of activeSkills) {
+					const escaped = skill.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+					cleanedPrompt = cleanedPrompt.replace(new RegExp(`(?:^|\\s)\\/${escaped}(?=\\s|$)`, 'gi'), '').trim();
+				}
+			}
+
+			if (attachedFilesExcerpts.length > 0) {
+				cleanedPrompt = (cleanedPrompt ? `${cleanedPrompt}\n\n` : '') +
+					`=== ATTACHED CONTEXT FILES ===\n${attachedFilesExcerpts.join('\n\n')}\n=== END ATTACHED CONTEXT FILES ===`;
+			}
+
+			const trimmedPrompt = cleanedPrompt || (activeSkills.length > 0 ? `Activate and apply skill(s): ${activeSkills.map(s => s.name).join(', ')}` : 'hello');
+			const isClarificationQuestion = /^(?:bentar|sebentar|tunggu|wait|hold on|apa itu|kenapa|mengapa|sedang apa|sedang download apa|sedang unduh apa|what are you|what is|why are you)\b/i.test(trimmedPrompt);
+			const isContinuation = isDardcorContinuation(trimmedPrompt);
+			const previousState = runStateService?.getState(request.sessionResource);
+			const existingTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+			const hasExistingIncompleteTodos = existingTodos.some(todo => todo.status !== 'completed');
+			const hasActivePreviousState = !!previousState && ['paused', 'blocked', 'planning', 'working', 'verifying'].includes(previousState.status);
+			const canResume = !isClarificationQuestion && ((isContinuation && hasActivePreviousState) || hasExistingIncompleteTodos || (hasActivePreviousState && isDardcorAutonomousTask(trimmedPrompt)));
+			const planResolution = resolvePlanExecutionState({
+				rawRequestPrompt,
+				currentPrompt,
+				requestCommand: request.command,
+				isContinuation,
+				previousState,
+				hasIncompleteTodos: hasExistingIncompleteTodos,
+				hasPlanSkill: activeSkills.some(s => s.name.toLowerCase() === 'plan'),
+				hasPlanVariable: !!(request.variables?.variables && Array.isArray(request.variables.variables) && (request.variables.variables as any[]).some(v => v?.name?.toLowerCase() === 'plan' || (v?.value?.path && String(v.value.path).includes('plan'))))
+			});
+			isPlanMode = planResolution.isPlanMode;
+			planApproved = planResolution.planApproved;
+			if (planApproved) {
+				activeSkills = activeSkills.filter(s => s.name.toLowerCase() !== 'plan');
+			}
+			hasSuperIntellegentSkill = isSuperIntellegentMode || activeSkills.some(s => s.name.toLowerCase() === 'super-intellegent' || s.name.toLowerCase() === 'super-intelligent') || /^\s*(?:\/|\[)super-intell(?:egent|igent)(?:\]|\b)/i.test(currentPrompt);
+			if (isPlanMode && commandService) {
+				commandService.executeCommand('markdown.api.render', '').catch(() => { });
+			}
+			taskIsTracked = !isPlanMode && (hasSuperIntellegentSkill || canResume || isDardcorAutonomousTask(trimmedPrompt));
+			activeTaskPrompt = canResume && previousState?.taskPrompt
+				? (isContinuation ? previousState.taskPrompt : `${previousState.taskPrompt}\n\n[User Update / Path & Requirement Correction]: ${trimmedPrompt}`.slice(0, 12000))
+				: trimmedPrompt;
+
+			let systemPrompt = buildDardcorSystemPrompt(snapshot, {
+				userPrompt: activeTaskPrompt,
+				permissionLevel: getEffectiveRouterPermission().permissionLevel,
+				activeSkills,
+				todos: todoListService?.getTodos(request.sessionResource)
+			});
+
+			if (activeSkills.length > 0) {
+				let skillDirectives = `\n\n=== ACTIVATED SKILLS & SPECIALIZED DIRECTIVES ===\n` +
+					`The user has explicitly activated the following ${activeSkills.length} specialized skill(s) for this task. ` +
+					`You MUST strictly adopt, apply, and obey all instructions, rules, patterns, constraints, and behaviors defined below:\n\n`;
+
+				for (const skill of activeSkills) {
+					skillDirectives += `--- [SKILL: ${skill.name}] ---\n`;
+					if (skill.description) {
+						skillDirectives += `Description: ${skill.description}\n\n`;
+					}
+					skillDirectives += `${skill.body}\n`;
+					skillDirectives += `--- [END SKILL: ${skill.name}] ---\n\n`;
+				}
+				skillDirectives += `=== END ACTIVATED SKILLS ===\n`;
+
+				systemPrompt += skillDirectives;
+			}
+
+			if (isPlanMode) {
+				systemPrompt += `\n\n=== STRICT PLAN MODE PROTOCOL (/plan) ===\n` +
+					`You are currently running in PLAN MODE. The user has asked you to analyze the project and formulate an implementation plan.\n` +
+					`1. STRICT READ-ONLY ENFORCEMENT: You must NOT create, edit, or delete any workspace code files. Tools write_file, edit_file, delete_file, and rename_file are strictly disabled for workspace project files.\n` +
+					`2. RESEARCH FIRST: Use read_file (small line ranges), grep_search, find_files, and get_file_outline to inspect relevant files.\n` +
+					`3. FORMULATE THE PLAN: Call the review_plan tool with your detailed implementation plan. Calling review_plan automatically saves the plan to editor memory and opens it directly in the center editor tab (as a clean GitHub-style Markdown Preview) for the user to review.\n` +
+					`   - In your conversational response to the user, DO NOT duplicate or repeat the whole plan text (since it is already opened in the center editor). Instead, provide a concise, friendly executive summary (2-3 sentences explaining what was analyzed, what was planned, and inviting the user to review the preview tab and click "Approve").\n` +
+					`4. AWAIT APPROVAL: Once the plan is presented, STOP immediately. Do NOT start implementing or modifying code files until the user explicitly reviews the plan and confirms. When approved, the system will immediately authorize you to start implementing the tasks autonomously.\n`;
+			}
+
+			if (hasSuperIntellegentSkill && isPlanMode) {
+				systemPrompt += `\n\n=== SUPER-INTELLIGENT ARCHITECTURAL PLANNING ACTIVE (/super-intellegent) ===\n` +
+					`You are operating with Super-Intelligent architectural rigor during this planning phase:\n` +
+					`1. DEEP INSPECTION & BLAST RADIUS: Map module graphs, call hierarchies, and blast radius before formulating the plan.\n` +
+					`2. CONTRACT-FIRST SPECIFICATION: Design robust interfaces, state machines, and error boundaries in the plan.\n` +
+					`3. SECURITY & CONCURRENCY AUDIT: Identify potential race conditions, OWASP vulnerabilities, and security risks upfront in the plan.\n` +
+					`4. TEST-DRIVEN STRATEGY: Define explicit Red-Green-Refactor verification suites and test commands for each phase.\n` +
+					`5. AUTONOMOUS TRANSITION: Once the plan is approved via review_plan, you will seamlessly transition to full Super-Intelligent autonomous execution across all 7 operational pillars.\n`;
+			}
+
+			if (hasSuperIntellegentSkill && !isPlanMode) {
+				systemPrompt += `\n\n=== SUPER-INTELLIGENT MODE ACTIVE (/super-intellegent) ===\n` +
+					`You are executing in Unified Super-Intelligent Mode. You possess full autonomy combining Evolve, Swarm, Deep-Audit, Architect, TDD, Verify-UI, and Boost:\n` +
+					`1. METACONSCIOUS INTROSPECTION & MEMORY: Call introspect_self to monitor cognitive depth. Store key insights into persistent memory via manage_knowledge_memory.\n` +
+					`2. PARALLEL DECOMPOSITION: If the task spans multiple independent files or layers, dispatch specialized agents via spawn_agent_swarm.\n` +
+					`3. ZERO-COMPROMISE AUDIT & TDD: Write/update tests first (Red), implement elegant solutions (Green), and verify diagnostics (0 errors).\n` +
+					`4. RUNTIME VERIFICATION: For web/UI apps, verify in Chromium browser (open_browser_page, audit_page_visual_and_network) and inspect background daemon logs.\n` +
+					`5. CHECKPOINT SAFETY: Use create_checkpoint before complex refactoring.\n`;
+			}
+
+			systemPrompt += `\n\n=== STRICT OUTPUT FORMATTING MANDATE ===\n` +
+				`1. ZERO EMOJIS OR STICKERS: Absolutely NEVER use any emojis, stickers, or emotes in conversation responses, task summaries, checklist titles, or plans. All outputs must be completely clean and professional.\n` +
+				`2. ZERO COMMENTS IN CODE: When writing or editing code files, do NOT include any inline comments, block comments, or explanatory comments in the body of the code. Only preserve or add the single-line header at the very top: "// Copyright (c) Dardcor Corporation. All rights reserved.".\n` +
+				`3. DYNAMIC MULTILINGUAL SUPPORT: Respond and formulate all queries, questions (including ask_questions tool parameters, question titles, options, and freeform prompts), and summaries in the exact natural language used by the user in their prompt. Never ask questions or present choices in English if the user communicated in Indonesian, Japanese, Spanish, German, French, etc.\n`;
+
+			systemPrompt += `\n\n=== SUBAGENT SWARM ORCHESTRATION PROTOCOL ===\n` +
+				`When the user asks to use multiple subagents (e.g. "gunakan 30 sub agent", "gunakan 100 sub agent", or multi-subagent analysis):\n` +
+				`1. DO NOT run subagents sequentially one by one.\n` +
+				`2. Call the 'run_subagent' tool once with the 'tasks' array containing all N distinct, specialized subagent tasks (each with clear 'description' and 'prompt').\n` +
+				`3. The system executes all tasks concurrently in a managed worker pool and presents the full Dardcor Swarm Monitor dashboard.\n`;
+
+			messages = [
+				{ role: 'system', content: systemPrompt }
+			];
+			let dynamicFallbackToolsAdded = false;
+			const addDynamicFallbackTools = (): void => {
+				if (dynamicFallbackToolsAdded || dynamicRouterToolDefinitions.length === 0) {
+					return;
+				}
+				dynamicFallbackToolsAdded = true;
+				const definitions = dynamicRouterToolDefinitions.map(tool => `- ${tool.function.name}: ${tool.function.description}\n  JSON schema: ${JSON.stringify(tool.function.parameters)}`).join('\n');
+				const omitted = unavailableDynamicTools.length > 0 ? `\nSome active local tools were withheld because they had no valid schema: ${unavailableDynamicTools.slice(0, 12).join(', ')}.` : '';
+				messages.splice(1, 0, { role: 'system', content: `LOCAL TOOL SCHEMAS FOR TEXT FALLBACK\nWhen a native tool-call protocol is unavailable, request local tools using a complete JSON tool call. These tool names are validated and dispatched by the local editor runtime; permissions still apply.\n${definitions}${omitted}` });
+			};
+
+			for (const h of history) {
+				if (h.request?.message) {
+					const reqMsg = typeof h.request.message === 'string' ? h.request.message : (h.request.message as any)?.text || String(h.request.message || '');
+					if (reqMsg.trim()) {
+						messages.push({ role: 'user', content: reqMsg.trim() });
+					}
+				}
+				if (h.response) {
+					let respText = '';
+					let hasContent = false;
+					for (const r of h.response as any[]) {
+						if (!r) continue;
+						if (typeof r === 'object') {
+							if (r.content && typeof r.content === 'object' && typeof r.content.value === 'string') {
+								respText += r.content.value;
+								hasContent = true;
+							} else if (typeof r.content === 'string') {
+								respText += r.content;
+								hasContent = true;
+							} else if (r.kind === 'thinking' && typeof r.value === 'string') {
+								if (!hasContent) {
+									respText += r.value;
+								}
+							}
+						}
+					}
+					const toolActionsSummary: string[] = [];
+					for (const r of h.response as any[]) {
+						if (r && typeof r === 'object' && (r.kind === 'toolInvocationSerialized' || r.kind === 'toolInvocation')) {
+							const toolName = r.toolId || r.toolCallId || 'tool';
+							const pastMsg = r.pastTenseMessage?.value || r.invocationMessage?.value || '';
+							const toolData = r.toolSpecificData?.kind === 'terminal'
+								? (r.toolSpecificData.commandLine?.forDisplay || r.toolSpecificData.commandLine?.original || '')
+								: (typeof r.toolSpecificData?.output === 'string' ? r.toolSpecificData.output.slice(0, 160) : '');
+							toolActionsSummary.push(`[Tool executed: ${toolName}${pastMsg ? ` - ${pastMsg}` : ''}${toolData ? ` | output: ${toolData}` : ''}]`);
+						}
+					}
+					respText = respText.replace(/\*\(No response content returned by model[^\)]*\)\*/g, '').trim();
+					let cleanText = DardcorThinkingStreamParser.sanitizeText(respText);
+					if (!cleanText && !hasContent && toolActionsSummary.length === 0) {
+						cleanText = '[Turn was completed with no text response]';
+					} else if (!cleanText && toolActionsSummary.length > 0) {
+						cleanText = toolActionsSummary.join('\n');
+					} else if (cleanText && toolActionsSummary.length > 0) {
+						cleanText = `${toolActionsSummary.join('\n')}\n\n${cleanText}`;
+					}
+					if (cleanText) {
+						messages.push({ role: 'assistant', content: cleanText });
+					}
+				}
+			}
+			const previousLastError = previousState?.lastError ?? '';
+			const previousRunStoppedOnEvidenceGate = !previousLastError
+				|| /(?:Browser verification is missing|No successful verification evidence has been recorded)/i.test(previousLastError);
+			if (canResume && previousState && taskIsTracked && previousRunStoppedOnEvidenceGate && previousState.verificationFailures.length === 0) {
+				const savedTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+				browserVerificationOnly = savedTodos.length > 0
+					&& savedTodos.every(todo => todo.status === 'completed')
+					&& !!getDardcorBrowserVerificationRequirement(activeTaskPrompt, previousState);
+			}
+			if (taskIsTracked) {
+				const existingSessionTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+				const allTodosCompleted = existingSessionTodos.length > 0 && existingSessionTodos.every(t => t.status === 'completed');
+				if (allTodosCompleted && !isContinuation) {
+					activeTaskPrompt = trimmedPrompt;
+					runState = createChatAgentRunState('planning');
+					saveRunState({ status: 'working', planApproved: false, taskPrompt: activeTaskPrompt.slice(0, 12000), nextStep: 'Analyze the new user request and begin execution.' });
+				} else if (canResume || existingSessionTodos.length > 0) {
+					const baseState = previousState ?? createChatAgentRunState('working');
+					runState = {
+						...baseState,
+						verificationPending: []
+					};
+					saveRunState({ status: 'working', planApproved: planApproved ? true : baseState.planApproved, stalledTurns: 0, lastError: undefined, taskPrompt: activeTaskPrompt, nextStep: baseState.nextStep || 'Review the checklist and continue from its first incomplete item.' });
+					messages.push({
+						role: 'system',
+						content: `[Resumable Task Checkpoint]: Continue the task: ${activeTaskPrompt}. Prior status=${baseState.status}; completed agent turns=${baseState.turn}; current verification evidence=${baseState.verificationEvidence.filter(item => item.workspaceRevision === baseState.workspaceRevision).map(item => item.message).join(' | ') || 'none'}; stale historical evidence=${baseState.verificationEvidence.filter(item => item.workspaceRevision !== baseState.workspaceRevision).map(item => item.message).join(' | ') || 'none'}; workspace revision=${baseState.workspaceRevision}; unresolved verification failures=${baseState.verificationFailures.join(' | ') || 'none'}; browser actions=${baseState.browserActions}; last issue=${baseState.lastError || 'none'}; next step=${baseState.nextStep || 'review the checklist and continue from its first incomplete item'}. Current checklist: ${JSON.stringify(existingSessionTodos)}. CRITICAL: Preserve completed work. If the user provided additional tasks, revisions, or questions, use manage_todo_list to append new tasks or update existing tasks, keeping completed items completed.`
+					});
+				} else {
+					runState = createChatAgentRunState('planning');
+					saveRunState({ planApproved: false, taskPrompt: trimmedPrompt.slice(0, 12000), nextStep: 'Create a checklist from the user requirements, then begin the first incomplete item.' });
+				}
+			}
+
+			if (isContinuation) {
+				messages.push({
+					role: 'user',
+					content: `${trimmedPrompt}\n\nPlease review previous progress and proceed with the next steps.`
+				});
+			} else if (isClarificationQuestion && previousState && ['paused', 'blocked', 'working'].includes(previousState.status)) {
+				const lang = detectDardcorLanguage(trimmedPrompt);
+				const userLangName = getDardcorLanguageName(lang);
+				const directive = `Please answer the user's question directly, concisely, and warmly in ${userLangName} without modifying workspace files until directed.`;
+				messages.push({
+					role: 'user',
+					content: `${trimmedPrompt}\n\n${directive}`
+				});
+			} else {
+				messages.push({ role: 'user', content: trimmedPrompt });
+			}
+			try {
+				const modelsData = await getCachedRouterModelsData();
+				if (modelsData) {
+					if (Array.isArray(modelsData?.data) && modelsData.data.length > 0) {
+						if (!modelName) {
+							modelName = modelsData.data[0].id;
+						} else {
+							const raw = modelName.trim();
+							const exactMatch = modelsData.data.find((m: any) => m?.id === raw || m?.id?.toLowerCase() === raw.toLowerCase());
+							if (exactMatch) {
+								modelName = exactMatch.id;
+							} else if (raw.includes('/')) {
+								const slashIdx = raw.indexOf('/');
+								const rawProvider = raw.slice(0, slashIdx).toLowerCase().trim();
+								const subModel = raw.slice(slashIdx + 1).toLowerCase().trim();
+								const canonicalPrefix = DARDCOR_PROVIDER_ALIAS_MAP[rawProvider] || rawProvider;
+
+								const providerScopedMatch = modelsData.data.find((m: any) => {
+									if (!m?.id) return false;
+									const mId = m.id.toLowerCase();
+									const hasMatchingPrefix = mId.startsWith(`${canonicalPrefix}/`) || mId.startsWith(`${rawProvider}/`);
+									if (!hasMatchingPrefix) return false;
+
+									return mId === `${canonicalPrefix}/${subModel}` ||
+										mId === `${rawProvider}/${subModel}` ||
+										mId.endsWith(`/${subModel}`);
+								});
+
+								if (providerScopedMatch) {
+									modelName = providerScopedMatch.id;
+								} else {
+									
+									modelName = `${canonicalPrefix}/${raw.slice(slashIdx + 1).trim()}`;
+								}
+							} else {
+								const bareTarget = raw.toLowerCase();
+								const bareMatch = modelsData.data.find((m: any) => {
+									if (!m?.id) return false;
+									const mId = m.id.toLowerCase();
+									return mId === bareTarget || mId.endsWith(`/${bareTarget}`);
+								});
+								if (bareMatch) {
+									modelName = bareMatch.id;
+								} else if (bareTarget.endsWith('-free') || bareTarget === 'big-pickle') {
+									
+									modelName = `oc/${raw}`;
+								} else {
+									
+									modelName = raw;
+								}
+							}
+						}
+					} else {
+						modelName = undefined;
+					}
+				} else {
+					modelName = undefined;
+				}
+			} catch {
+				modelName = undefined;
+			}
+			if (typeof modelName === 'string') {
+				if (modelName.includes('/')) {
+					const slash = modelName.indexOf('/');
+					const p = modelName.slice(0, slash).toLowerCase();
+					const rest = modelName.slice(slash + 1);
+					if (DARDCOR_PROVIDER_ALIAS_MAP[p]) {
+						modelName = `${DARDCOR_PROVIDER_ALIAS_MAP[p]}/${rest}`;
+					}
+				}
+				if (modelName.toLowerCase().startsWith('opencode/')) modelName = `oc/${modelName.slice('opencode/'.length)}`;
+				if (!modelName.includes('/') && (modelName.toLowerCase().endsWith('-free') || modelName.toLowerCase() === 'big-pickle')) modelName = `oc/${modelName}`;
+			}
+			if (modelName) {
+				try {
+					routerModelCapabilities = await getCachedRouterModelCapabilities(modelName);
+				} catch (error) {
+					console.debug('[streamDardcorRouter] Model capability metadata is unavailable; using a compatible best-effort mode.', error);
+				}
+			}
+
+			if (!modelName) {
+				if (taskIsTracked) {
+					const reason = 'No connected Router model is configured for this task.';
+					saveRunState({ status: 'blocked', lastError: reason, nextStep: 'Connect a model in Dardcor Router, then resume from the saved checklist.' });
+				}
+				const md = new MarkdownString('No AI model is configured. Please configure at least one provider in [Dardcor Router](http://localhost:25128/) to start chatting.');
+				md.isTrusted = true;
+				progress([{
+					kind: 'markdownContent',
+					content: md
+				}]);
+
+				return {};
+			}
+
+			
+			const normalizedMessages: any[] = [];
+			for (const m of messages) {
+				if (m.role === 'system') {
+					normalizedMessages.push(m);
+					continue;
+				}
+				const last = normalizedMessages.length > 0 ? normalizedMessages[normalizedMessages.length - 1] : null;
+				if (last && last.role !== 'system' && last.role === m.role) {
+					if (m.role === 'user') {
+						if (typeof last.content === 'string' && typeof m.content === 'string') {
+							last.content = `${last.content}\n\n${m.content}`;
+						} else {
+							normalizedMessages.push({ role: 'assistant', content: '[Continuing based on previous instructions]' });
+							normalizedMessages.push(m);
+						}
+					} else if (m.role === 'assistant') {
+						if (typeof last.content === 'string' && typeof m.content === 'string') {
+							last.content = `${last.content}\n\n${m.content}`;
+						} else {
+							normalizedMessages.push({ role: 'user', content: '[Continue]' });
+							normalizedMessages.push(m);
+						}
+					}
+				} else {
+					normalizedMessages.push(m);
+				}
+			}
+			messages = normalizedMessages;
+
+			let turn = runState?.turn ?? 0;
+			let supportsNativeTools = routerModelCapabilities.tools !== false;
+			if (!supportsNativeTools) {
+				addDynamicFallbackTools();
+			}
+			let consecutiveTextTurns = 0;
+			let consecutiveEmptyTurns = 0;
+			let emptyReasoningTurns = 0;
+			const MAX_CONSECUTIVE_TEXT_TURNS = 5;
+			const MAX_STREAM_RETRIES = 5;
+
+			if (taskIsTracked && JSON.stringify(messages).length >= DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS) {
+				const initialCompaction = compactDardcorAgentMessages(messages);
+				if (initialCompaction.compactedItemsCount > 0) {
+					messages = initialCompaction.messages;
+				}
+			}
+
+			while (true) {
+				const activeLoopTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+				const hasIncompleteLoopTodos = activeLoopTodos.some(t => t.status !== 'completed');
+				if (!taskIsTracked && activeLoopTodos.length > 0) {
+					taskIsTracked = true;
+					if (!runState) {
+						runState = createChatAgentRunState('working');
+						saveRunState({ status: 'working', taskPrompt: activeTaskPrompt.slice(0, 12000) });
+					}
+				}
+				if (taskIsTracked) {
+					let contextChars = JSON.stringify(messages).length;
+					if (contextChars >= DARDCOR_AGENT_COMPACTION_THRESHOLD_CHARS) {
+						const compaction = compactDardcorAgentMessages(messages);
+						if (compaction.compactedItemsCount > 0) {
+							messages = compaction.messages;
+							contextChars = compaction.compactedChars;
+						}
+					}
+					const guardReason = getDardcorRunGuardReason(contextChars);
+					if (guardReason) {
+						const forceCompaction = compactDardcorAgentMessages(messages, DARDCOR_AGENT_TARGET_CONTEXT_CHARS, 1);
+						messages = forceCompaction.messages;
+						contextChars = forceCompaction.compactedChars;
+						if (contextChars >= DARDCOR_AGENT_MAX_CONTEXT_CHARS && messages.length > 4) {
+							const head = messages.slice(0, 2);
+							const tail = messages.slice(-2);
+							const summaryMsg = {
+								role: 'user',
+								content: '[Historical Conversation Checkpoint]: Intermediate steps have been summarized into long-term memory to preserve continuity.'
+							};
+							messages = [...head, summaryMsg, ...tail];
+							contextChars = JSON.stringify(messages).length;
+						}
+					}
+				}
+				turn++;
+				if (token.isCancellationRequested) {
+					if (taskIsTracked) {
+						saveRunState({ status: 'paused', lastError: 'The run was cancelled before the task completion gate passed.', nextStep: 'Resume from the first incomplete checklist item and inspect any interrupted action.' });
+					}
+					break;
+				}
+				saveRunState({ turn, nextStep: 'Review the checklist, take the next concrete action, then verify the result.' });
+
+				const payload: any = {
+					model: modelName,
+					messages,
+					stream: true,
+					max_tokens: 16384
+				};
+				if (supportsNativeTools && !finalSynthesisTurnPending) {
+					let activeTools = browserVerificationOnly
+						? routerToolDefinitions.filter(tool => DARDCOR_BROWSER_VERIFICATION_TOOL_NAMES.has(tool.function.name))
+						: routerToolDefinitions;
+					if (planApproved || !isPlanMode) {
+						activeTools = activeTools.filter(tool => tool.function.name !== 'review_plan');
+					}
+					payload.tools = activeTools;
+					payload.tool_choice = (browserVerificationOnly || ((taskIsTracked || hasIncompleteLoopTodos) && consecutiveTextTurns > 0)) ? 'required' : 'auto';
+				}
+
+				let streamedAssistantText = '';
+				let streamedReasoningText = '';
+				let previouslyEmittedAssistantLength = 0;
+				let previouslyEmittedReasoningLength = 0;
+				let assistantTextRoutedToThinking = false;
+				let rawAssistantText = '';
+				let streamProtocolErrors: string[] = [];
+				const toolCallsMap = new Map<number, { id: string; name: string; arguments: string }>();
+
+				let bufferedMarkdownPrefix = '';
+				let markdownFlushed = false;
+				let cooldownNoticeEmitted = false;
+				let streamAttempt = 0;
+				let streamSucceeded = false;
+				let lastStreamError: any = undefined;
+				let sawStreamTerminal = false;
+
+				while (streamAttempt < MAX_STREAM_RETRIES && !streamSucceeded) {
+					streamAttempt++;
+					if (token.isCancellationRequested) break;
+
+					const attemptStore = new DisposableStore();
+					try {
+						const turnAbortController = new AbortController();
+						attemptStore.add(token.onCancellationRequested(() => {
+							try { turnAbortController.abort(new Error('User cancelled agent turn')); } catch { }
+						}));
+
+					streamedAssistantText = '';
+					streamedReasoningText = '';
+					previouslyEmittedAssistantLength = 0;
+					previouslyEmittedReasoningLength = 0;
+					assistantTextRoutedToThinking = false;
+					rawAssistantText = '';
+					streamProtocolErrors = [];
+					toolCallsMap.clear();
+					sawStreamTerminal = false;
+
+					let res: Response;
+					try {
+						res = await fetchRouter('/v1/chat/completions', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
+							body: JSON.stringify(payload),
+							signal: turnAbortController.signal
+						}, 3, 60000);
+					} catch (fetchErr: any) {
+						lastStreamError = fetchErr;
+						if (streamAttempt < MAX_STREAM_RETRIES && !token.isCancellationRequested) {
+							const backoffMs = Math.min(1000 * Math.pow(2, streamAttempt - 1), 6000);
+							progress([{
+								kind: 'markdownContent',
+								content: new MarkdownString(`\n\n> *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+							}]);
+							await new Promise(r => setTimeout(r, backoffMs));
+							continue;
+						} else {
+							break;
+						}
+					}
+
+					let responseErrorText: string | undefined;
+					if (!res.ok && (res.status === 400 || res.status === 422) && payload.tool_choice === 'required') {
+						payload.tool_choice = 'auto';
+						try {
+							res = await fetchRouter('/v1/chat/completions', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
+								body: JSON.stringify(payload),
+								signal: turnAbortController.signal
+							}, 3, 60000);
+						} catch (retryError) {
+							lastStreamError = retryError;
+							continue;
+						}
+					}
+					if (!res.ok && (res.status === 400 || res.status === 422)) {
+						responseErrorText = await res.text();
+						if (supportsNativeTools && isDardcorNativeToolCompatibilityError(res.status, responseErrorText)) {
+							supportsNativeTools = false;
+							addDynamicFallbackTools();
+							delete payload.tools;
+							delete payload.tool_choice;
+							try {
+								res = await fetchRouter('/v1/chat/completions', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
+									body: JSON.stringify(payload),
+									signal: turnAbortController.signal
+								}, 3, 60000);
+								responseErrorText = undefined;
+							} catch (retryError) {
+								lastStreamError = retryError;
+								continue;
+							}
+						}
+					}
+
+					if (!res.ok && payload.max_tokens !== undefined) {
+						responseErrorText ??= await res.text();
+						if (isDardcorMaxTokensCompatibilityError(res.status, responseErrorText)) {
+							delete payload.max_tokens;
+							try {
+								res = await fetchRouter('/v1/chat/completions', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', ...ROUTER_AUTH_HEADER },
+									body: JSON.stringify(payload),
+									signal: turnAbortController.signal
+								}, 3, 60000);
+								responseErrorText = undefined;
+							} catch (retryError) {
+								lastStreamError = retryError;
+								continue;
+							}
+						}
+					}
+
+					if (!res.ok) {
+						const errorText = responseErrorText ?? await res.text();
+						const parsedError = parseDardcorRouterError(res.status, errorText, modelName);
+						const isNonRetryable = res.status === 400 || res.status === 401 || res.status === 402 || res.status === 403 || res.status === 404 ||
+							parsedError.isInsufficientCredits || parsedError.isForbiddenPlan || parsedError.isUnauthorized ||
+							/FreeUsageLimitError|free usage limit|quota exceeded|insufficient_credits|credits required|insufficient balance|payment required|unauthorized|pricingUrl|model_not_found/i.test(errorText);
+
+						const retryHeader = res.headers?.get?.('Retry-After');
+						const cooldownSec = parsedError.resetAfterSec
+							|| (retryHeader ? parseInt(retryHeader, 10) : undefined);
+
+						const isTransientCooldown = !isNonRetryable && cooldownSec !== undefined && cooldownSec > 0 && cooldownSec <= 120;
+
+						if (isTransientCooldown && !token.isCancellationRequested && streamAttempt <= MAX_STREAM_RETRIES + 2) {
+							if (!cooldownNoticeEmitted && !requestCooldownNoticeEmitted) {
+								cooldownNoticeEmitted = true;
+								requestCooldownNoticeEmitted = true;
+								const lang = detectDardcorLanguage(activeTaskPrompt);
+								const modelDisplayName = formatModelDisplayName(parsedError.model || modelName || 'Model');
+								const waitNotice = getDardcorLocaleStrings(lang).cooldownWaitingNotice(modelDisplayName, cooldownSec);
+
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(`\n\n> ${waitNotice}\n\n`)
+								}]);
+							}
+
+							const waitMs = (cooldownSec + 1) * 1000;
+							const stepMs = 1000;
+							let elapsed = 0;
+							while (elapsed < waitMs && !token.isCancellationRequested) {
+								const sleepChunk = Math.min(stepMs, waitMs - elapsed);
+								await new Promise(r => setTimeout(r, sleepChunk));
+								elapsed += sleepChunk;
+							}
+
+							if (token.isCancellationRequested) {
+								return {};
+							}
+
+							responseErrorText = undefined;
+							continue;
+						}
+
+						if (!isNonRetryable && streamAttempt < MAX_STREAM_RETRIES && (res.status === 429 || res.status >= 500) && !token.isCancellationRequested) {
+							const backoffMs = Math.min(2000 * Math.pow(2, streamAttempt - 1), 8000);
+							progress([{
+								kind: 'markdownContent',
+								content: new MarkdownString(`\n\n> *Model gateway returned HTTP ${res.status}. Retrying... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+							}]);
+							await new Promise(r => setTimeout(r, backoffMs));
+							continue;
+						}
+
+						
+						if (taskIsTracked && !token.isCancellationRequested && failedOverModelsInRun.size < 3 && (res.status === 429 || res.status === 402 || res.status === 503 || parsedError.isInsufficientCredits || parsedError.isForbiddenPlan)) {
+							if (modelName) {
+								failedOverModelsInRun.add(modelName.toLowerCase());
+							}
+							try {
+								const routerModels = await getCachedRouterModelsData();
+								const candidateList: any[] = Array.isArray(routerModels?.data) ? routerModels.data : [];
+								const backupModel = candidateList.find(m => m?.id && typeof m.id === 'string' && !failedOverModelsInRun.has(m.id.toLowerCase()) && m.id !== modelName);
+								if (backupModel?.id) {
+									const oldDisplay = formatModelDisplayName(modelName || 'Model');
+									const newDisplay = formatModelDisplayName(backupModel.id);
+									const lang = detectDardcorLanguage(activeTaskPrompt);
+									modelName = backupModel.id;
+									payload.model = modelName;
+									progress([{
+										kind: 'markdownContent',
+										content: new MarkdownString(lang === 'id'
+											? `\n\n> *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** mencapai batas kuota/gangguan. Beralih otomatis ke **${newDisplay}** untuk melanjutkan eksekusi tanpa henti...\n\n`
+											: `\n\n> *[Zero-Downtime Autonomous Failover]* Model **${oldDisplay}** reached quota/downtime limit. Automatically failing over to **${newDisplay}** to continue execution seamlessly...\n\n`)
+									}]);
+									responseErrorText = undefined;
+									continue;
+								}
+							} catch { }
+						}
+
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString(formatDardcorRouterError(res.status, errorText, modelName))
+						}]);
+						turnEncounteredFatalModelError = true;
+						if (taskIsTracked) {
+							const lang = detectDardcorLanguage(activeTaskPrompt);
+							const diagnosis = diagnoseProviderIssue(res.status, errorText, modelName, lang);
+							const status = 'blocked';
+							saveRunState({
+								status,
+								lastError: diagnosis.description,
+								nextStep: getDardcorLocaleStrings(lang).selectAnotherModelTip
+							});
+						}
+						return {};
+					}
+
+					const reader = res.body?.getReader();
+					if (!reader) {
+						lastStreamError = new Error('No readable response body');
+						continue;
+					}
+
+					const decoder = new TextDecoder();
+					let buffer = '';
+					const isolateIntermediateTextAsThinking = (taskIsTracked || hasIncompleteLoopTodos || activeLoopTodos.length > 0 || turn > 1) && !finalSynthesisTurnPending;
+
+					const thinkingParser = new DardcorThinkingStreamParser({
+						onThinking: (chunk: string) => {
+							streamedReasoningText += chunk;
+							if (streamedReasoningText.length > previouslyEmittedReasoningLength) {
+								const delta = streamedReasoningText.slice(previouslyEmittedReasoningLength);
+								previouslyEmittedReasoningLength = streamedReasoningText.length;
+								progress([{ kind: 'thinking', value: delta }]);
+							}
+						},
+						onMarkdownContent: (chunk: string) => {
+							streamedAssistantText += chunk;
+							if (streamedAssistantText.length > previouslyEmittedAssistantLength) {
+								const delta = streamedAssistantText.slice(previouslyEmittedAssistantLength);
+								previouslyEmittedAssistantLength = streamedAssistantText.length;
+								const isMonologue = isInternalThinkingMonologue(streamedAssistantText.trim());
+								if (isolateIntermediateTextAsThinking || isMonologue) {
+									assistantTextRoutedToThinking = true;
+									progress([{ kind: 'thinking', value: delta }]);
+								} else {
+									if (!markdownFlushed && toolCallsMap.size === 0 && streamedAssistantText.length < 75 && !streamedAssistantText.includes('\n')) {
+										bufferedMarkdownPrefix += delta;
+									} else {
+										if (bufferedMarkdownPrefix) {
+											const combined = sanitizeDardcorIdentity(bufferedMarkdownPrefix + delta);
+											bufferedMarkdownPrefix = '';
+											markdownFlushed = true;
+											progress([{ kind: 'markdownContent', content: new MarkdownString(combined) }]);
+										} else {
+											markdownFlushed = true;
+											progress([{ kind: 'markdownContent', content: new MarkdownString(sanitizeDardcorIdentity(delta)) }]);
+										}
+									}
+								}
+							}
+						},
+						onRetroactiveReclassify: (leakedMarkdown: string) => {
+							if (streamedAssistantText.length > 0) {
+								const monologue = streamedAssistantText;
+								streamedReasoningText += (streamedReasoningText ? '\n' : '') + monologue;
+								streamedAssistantText = '';
+							}
+						}
+					});
+
+					const cancelListener = token.onCancellationRequested(() => {
+						try { turnAbortController.abort(new Error('User cancelled chat streaming')); } catch { }
+						try { reader.cancel('User cancelled chat streaming'); } catch { }
+					});
+
+					const readWithTimeout = (r: typeof reader) => {
+						return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+							const timer = setTimeout(() => {
+								try { r.cancel(); } catch { }
+								reject(new Error('Stream idle timeout'));
+							}, 90000);
+							r.read().then(
+								readVal => { clearTimeout(timer); resolve(readVal); },
+								err => { clearTimeout(timer); reject(err); }
+							);
+						});
+					};
+
+					const processSSELine = (line: string) => {
+						const trimmed = line.trim();
+						if (!trimmed || !trimmed.startsWith('data:')) return;
+						const jsonStr = trimmed.slice(5).trim();
+						if (jsonStr === '[DONE]') {
+							sawStreamTerminal = true;
+							return;
+						}
+						try {
+							const parsed = JSON.parse(jsonStr);
+							if (isDardcorRouterStreamTerminal(parsed)) {
+								sawStreamTerminal = true;
+							}
+							const choice = parsed.choices?.[0];
+							const delta = choice?.delta?.content
+								?? choice?.delta?.text
+								?? choice?.message?.content
+								?? (typeof choice?.text === 'string' ? choice.text : '')
+								?? '';
+							const reasoningDelta = choice?.delta?.reasoning_content
+								?? choice?.delta?.reasoning
+								?? choice?.delta?.reasoningContent
+								?? choice?.delta?.thought
+								?? choice?.delta?.thinking
+								?? choice?.message?.reasoning_content
+								?? choice?.message?.reasoning
+								?? choice?.message?.thought
+								?? '';
+
+							if (reasoningDelta) {
+								thinkingParser.processReasoningDelta(reasoningDelta);
+							}
+
+							if (delta) {
+								rawAssistantText += delta;
+								thinkingParser.processContentDelta(delta);
+							}
+
+							if (Array.isArray(choice?.delta?.tool_calls)) {
+								for (const tc of choice.delta.tool_calls) {
+									const idx = tc.index ?? 0;
+									const existing = toolCallsMap.get(idx) || { id: tc.id || `call_${idx}_${Date.now()}`, name: '', arguments: '' };
+									if (tc.id) existing.id = tc.id;
+									if (tc.function?.name) {
+										const newName = tc.function.name;
+										if (!existing.name) {
+											existing.name = newName;
+										} else if (existing.name === newName) {
+										} else if (newName.startsWith(existing.name)) {
+											existing.name = newName;
+										} else if (!existing.name.endsWith(newName)) {
+											existing.name += newName;
+										}
+									}
+									if (tc.function?.arguments) existing.arguments += tc.function.arguments;
+									toolCallsMap.set(idx, existing);
+									if (bufferedMarkdownPrefix) {
+										assistantTextRoutedToThinking = true;
+										progress([{ kind: 'thinking', value: bufferedMarkdownPrefix }]);
+										bufferedMarkdownPrefix = '';
+									}
+								}
+							}
+						} catch (error) {
+							if (streamProtocolErrors.length < 8) {
+								streamProtocolErrors.push(error instanceof Error ? error.message : String(error));
+							}
+						}
+					};
+
+					try {
+						while (true) {
+							if (token.isCancellationRequested) {
+								try { reader.cancel(); } catch { }
+								break;
+							}
+							const readResult = await raceCancellation(readWithTimeout(reader), token);
+							if (token.isCancellationRequested) {
+								try { reader.cancel(); } catch { }
+								break;
+							}
+							if (!readResult) {
+								throw new Error('Router stream read was interrupted before completion.');
+							}
+							if (readResult.done) {
+								if (buffer && buffer.trim()) {
+									const remainingLines = buffer.split('\n');
+									for (const l of remainingLines) {
+										processSSELine(l);
+									}
+									buffer = '';
+								}
+								break;
+							}
+							const value = readResult.value;
+							buffer += decoder.decode(value, { stream: true });
+							const lines = buffer.split('\n');
+							buffer = lines.pop() ?? '';
+							for (const line of lines) {
+								processSSELine(line);
+							}
+						}
+						thinkingParser.flush();
+						if (token.isCancellationRequested) {
+							throw new Error('Router stream was cancelled before completion.');
+						}
+						if (streamProtocolErrors.length > 0 && toolCallsMap.size > 0) {
+							throw new Error('Router stream contained malformed frames alongside tool calls; partial actions were not executed.');
+						}
+						if (toolCallsMap.size > 0 && !sawStreamTerminal && !token.isCancellationRequested) {
+							const invalidIndices: number[] = [];
+							for (const [idx, call] of toolCallsMap.entries()) {
+								if (!call.name || !call.name.trim()) {
+									invalidIndices.push(idx);
+									continue;
+								}
+								try {
+									if (call.arguments) JSON.parse(call.arguments);
+								} catch {
+									invalidIndices.push(idx);
+								}
+							}
+							for (const idx of invalidIndices) {
+								toolCallsMap.delete(idx);
+							}
+							if (toolCallsMap.size > 0 || streamedAssistantText.trim().length > 0) {
+								sawStreamTerminal = true;
+							} else {
+								throw new Error('Router stream ended before a terminal frame; partial tool calls were not executed.');
+							}
+						}
+						if (!markdownFlushed && bufferedMarkdownPrefix && toolCallsMap.size === 0) {
+							progress([{ kind: 'markdownContent', content: new MarkdownString(sanitizeDardcorIdentity(bufferedMarkdownPrefix)) }]);
+							bufferedMarkdownPrefix = '';
+						}
+						streamSucceeded = true;
+					} catch (streamErr: any) {
+						lastStreamError = streamErr;
+						if (!token.isCancellationRequested) {
+							console.warn(`[streamDardcorRouter] stream reading error (attempt ${streamAttempt}/${MAX_STREAM_RETRIES}):`, streamErr);
+							if (streamAttempt < MAX_STREAM_RETRIES) {
+								const backoffMs = Math.min(1000 * Math.pow(2, streamAttempt - 1), 6000);
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(`\n\n> *Stream connection interrupted. Reconnecting to model... (Attempt ${streamAttempt}/${MAX_STREAM_RETRIES} in ${Math.round(backoffMs / 1000)}s)*\n\n`)
+								}]);
+								await new Promise(r => setTimeout(r, backoffMs));
+							}
+						}
+					} finally {
+						cancelListener.dispose();
+						try { reader.cancel(); } catch { }
+					}
+					} finally {
+						attemptStore.dispose();
+					}
+				}
+
+				if (!streamSucceeded) {
+					turnEncounteredFatalModelError = true;
+					const reason = token.isCancellationRequested
+						? 'The Router response was cancelled before a complete response arrived.'
+						: `The Router response stream did not complete after ${MAX_STREAM_RETRIES} attempts${lastStreamError instanceof Error ? `: ${lastStreamError.message}` : '.'}`;
+					if (taskIsTracked) {
+						const status = token.isCancellationRequested ? 'paused' : 'blocked';
+						const turnLang = detectDardcorLanguage(activeTaskPrompt);
+						const localizedNextStep: Record<string, string> = {
+							id: 'Periksa koneksi router atau pilih model lain, lalu lanjutkan.',
+							ja: 'ルーターの接続を確認するか、別のモデルを選択して再開してください。',
+							zh: '请检查路由器连接或选择其他模型，然后继续。',
+							ko: '라우터 연결을 확인하거나 다른 모델을 선택한 후 다시 시작하십시오.',
+							es: 'Verifique la conexión del enrutador o seleccione otro modelo y luego reanude.',
+							fr: 'Vérifiez la connexion du routeur ou sélectionnez un autre modèle, puis reprenez.',
+							de: 'Überprüfen Sie die Router-Verbindung oder wählen Sie ein anderes Modell und setzen Sie fort.',
+							en: 'Check router connection or select another model, then resume.'
+						};
+						saveRunState({ status, lastError: reason, nextStep: localizedNextStep[turnLang] || localizedNextStep['en'] });
+					} else {
+						progress([{ kind: 'markdownContent', content: new MarkdownString(`Router response was incomplete and no partial tool call was executed. ${reason}`) }]);
+					}
+					break;
+				}
+
+				streamedAssistantText = DardcorThinkingStreamParser.sanitizeText(streamedAssistantText);
+
+				const allNativeToolCalls = Array.from(toolCallsMap.values());
+				const incompleteNativeToolCalls = allNativeToolCalls.filter(call => !call.name.trim());
+				const rawNativeToolCalls = allNativeToolCalls.filter(call => call.name.trim().length > 0);
+				const nativeToolCalls = rawNativeToolCalls.map(call => {
+					const parsed = parseDardcorAgentToolArguments(call.name, call.arguments, routerToolDefinitions);
+					return { ...call, name: parsed.name, parsedArgs: parsed.args, parseError: parsed.error };
+				});
+				const rawTextToolCalls = nativeToolCalls.length === 0 ? this._parseTextToolCalls(rawAssistantText || streamedAssistantText || streamedReasoningText) : [];
+				if (nativeToolCalls.length === 0 && rawTextToolCalls.length === 0 && incompleteNativeToolCalls.length > 0) {
+					rawTextToolCalls.push({ name: '__incomplete_tool_call__', args: {} });
+				}
+				const textToolCalls = rawTextToolCalls.map(call => {
+					const parsed = parseDardcorAgentToolArguments(call.name, call.args, routerToolDefinitions);
+					return { ...call, name: parsed.name, args: parsed.args, parseError: parsed.error };
+				});
+				if (streamProtocolErrors.length > 0 && nativeToolCalls.length === 0 && textToolCalls.length === 0) {
+					const detail = streamProtocolErrors.slice(0, 3).join('; ').slice(0, 400);
+					console.warn('[streamDardcorRouter] Ignored malformed SSE frame(s):', detail);
+					if (consecutiveEmptyTurns < 2 && !token.isCancellationRequested) {
+						consecutiveEmptyTurns++;
+						if (streamedAssistantText) {
+							messages.push({ role: 'assistant', content: streamedAssistantText });
+						}
+						messages.push({ role: 'user', content: `[Router stream protocol error]: One or more response frames were invalid JSON and were discarded (${detail}). Retry with a complete response. Any action not represented by a complete validated tool call was not executed.` });
+						continue;
+					}
+					const reason = `Router returned malformed streaming data repeatedly: ${detail}`;
+					if (taskIsTracked) {
+						saveRunState({ status: 'blocked', lastError: reason, nextStep: 'Check Router/provider streaming compatibility, then resume the saved checklist.' });
+					} else {
+						progress([{ kind: 'markdownContent', content: new MarkdownString(`Router returned invalid streaming JSON frames and no action was executed: ${detail}`) }]);
+					}
+					break;
+				}
+
+				if (taskIsTracked && isDardcorAutonomousTask(activeTaskPrompt) && nativeToolCalls.length === 0 && textToolCalls.length === 0 && turn <= 12) {
+					const isToolApology = /(?:tidak ada alat|tidak memiliki alat|alat .* tidak tersedia|tools? (?:are|is) not available|asisten percakapan|conversational assistant|cannot interact|tidak dapat berinteraksi|cannot access (?:the )?workspace|tidak dapat mengakses workspace|tidak bisa mengakses workspace|tempelkan (?:hasil|output|kode|berkas|file|materi|struktur)|kirimkan (?:hasil|output|kode|berkas|file|proyek|project|struktur)|belum menerima file|belum ada file|jalankan `?(?:tree|ls|dir)`?|bantu (?:cek|periksa) strukturnya)/i.test(streamedAssistantText);
+					if (isToolApology) {
+						const extractedFile = this._extractFilePathFromApologyOrText(streamedAssistantText);
+						if (extractedFile) {
+							textToolCalls.push({
+								name: 'read_file',
+								args: { filePath: extractedFile },
+								parseError: undefined
+							});
+						} else {
+							textToolCalls.push({
+								name: 'list_directory',
+								args: { dirPath: '.' },
+								parseError: undefined
+							});
+						}
+						const turnLang = detectDardcorLanguage(activeTaskPrompt);
+						const localizedInitText: Record<string, string> = {
+							id: '\n\n*(Inisialisasi agen otonom & sinkronisasi workspace...)*\n\n',
+							ja: '\n\n*(自律エージェントの初期化とワークスペースの同期中...)*\n\n',
+							zh: '\n\n*(初始化自主代理并同步工作区...)*\n\n',
+							ko: '\n\n*(자율 에이전트 초기化 및 워크스페이스 동기화 중...)*\n\n',
+							es: '\n\n*(Inicializando agente autónomo y sincronizando espacio de trabajo...)*\n\n',
+							fr: '\n\n*(Initialisation de l\'agent autonome et synchronisation de l\'espace de travail...)*\n\n',
+							de: '\n\n*(Autonomer Agent wird initialisiert und Arbeitsbereich synchronisiert...)*\n\n',
+							en: '\n\n*(Initializing autonomous agent & syncing workspace...)*\n\n'
+						};
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString(localizedInitText[turnLang] || localizedInitText['en'])
+						}]);
+					}
+				}
+
+				if (!streamSucceeded && !streamedAssistantText && !streamedReasoningText && nativeToolCalls.length === 0) {
+					if (lastStreamError) {
+						console.warn('[streamDardcorRouter] stream failed completely:', lastStreamError);
+					}
+					if (taskIsTracked) {
+						const reason = token.isCancellationRequested ? 'Router stream cancelled by the user.' : (lastStreamError?.message || 'Router stream failed before a response was received.');
+						saveRunState({ status: token.isCancellationRequested ? 'paused' : 'blocked', lastError: reason });
+					}
+					if (!token.isCancellationRequested) {
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString('*(Connection lost. Please verify your connection or try another model in [Dardcor Router](http://localhost:25128/).)*')
+						}]);
+					}
+					return {};
+				}
+
+				if (!streamedAssistantText && streamedReasoningText.trim().length > 0 && nativeToolCalls.length === 0 && textToolCalls.length === 0) {
+					if (taskIsTracked || hasIncompleteLoopTodos || activeLoopTodos.length > 0) {
+						if (finalSynthesisTurnPending) {
+							if (emptyReasoningTurns < 1 && !token.isCancellationRequested) {
+								emptyReasoningTurns++;
+								messages.push({
+									role: 'assistant',
+									content: `[Reasoning thoughts:\n${streamedReasoningText.trim()}]`
+								});
+								messages.push({
+									role: 'user',
+									content: 'Please output your final summary report directly in Markdown now.'
+								});
+								continue;
+							}
+							const cleanAnswer = DardcorThinkingStreamParser.sanitizeText(this._extractResponseFromReasoning(streamedReasoningText));
+							streamedAssistantText = cleanAnswer;
+							assistantTextRoutedToThinking = false;
+							progress([{
+								kind: 'markdownContent',
+								content: new MarkdownString(cleanAnswer)
+							}]);
+						} else {
+							streamedAssistantText = streamedReasoningText.trim();
+							assistantTextRoutedToThinking = true;
+						}
+					} else if (emptyReasoningTurns < 1 && turn < 3 && !token.isCancellationRequested) {
+						emptyReasoningTurns++;
+						messages.push({
+							role: 'assistant',
+							content: `[Reasoning thoughts:\n${streamedReasoningText.trim()}]`
+						});
+						messages.push({
+							role: 'user',
+							content: 'Please output your response directly now.'
+						});
+						continue;
+					} else {
+						const cleanAnswer = DardcorThinkingStreamParser.sanitizeText(this._extractResponseFromReasoning(streamedReasoningText));
+						streamedAssistantText = cleanAnswer;
+						progress([{
+							kind: 'markdownContent',
+							content: new MarkdownString(cleanAnswer)
+						}]);
+					}
+				}
+
+				if (!streamedAssistantText && !streamedReasoningText && nativeToolCalls.length === 0 && textToolCalls.length === 0) {
+					const activeTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+					const incomplete = activeTodos.filter(t => t.status !== 'completed');
+					const maxEmptyTurns = incomplete.length > 0 ? 4 : 2;
+					if (consecutiveEmptyTurns < maxEmptyTurns && !token.isCancellationRequested) {
+						consecutiveEmptyTurns++;
+						if (supportsNativeTools && consecutiveEmptyTurns >= 2) {
+							supportsNativeTools = false;
+							addDynamicFallbackTools();
+						}
+						const retryPrompt = incomplete.length > 0
+							? `Task is in progress (${activeTodos.length - incomplete.length}/${activeTodos.length} completed). Pending item: "${incomplete[0].title}". Please proceed with the required tool.`
+							: 'Please answer the prompt directly.';
+						messages.push({
+							role: 'user',
+							content: retryPrompt
+						});
+						continue;
+					}
+					progress([{
+						kind: 'markdownContent',
+						content: new MarkdownString('*(No response content returned by model. Please verify your connection or try another model in [Dardcor Router](http://localhost:25128/).)*')
+					}]);
+					break;
+				}
+				consecutiveEmptyTurns = 0;
+
+				if (nativeToolCalls.length > 0) {
+					if (finalSynthesisTurnPending) {
+						const taskCompletedCall = nativeToolCalls.find(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
+						if (taskCompletedCall) {
+							try {
+								const parsedArgs = JSON.parse(taskCompletedCall.arguments);
+								const summary = typeof parsedArgs?.summary === 'string' ? parsedArgs.summary.trim() : '';
+								if (summary.length >= 40) {
+									progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n${summary}\n\n`) }]);
+									taskConclusionSummaryEmitted = true;
+									proposedCompletionSummary = summary;
+								}
+							} catch {}
+						}
+						finalSynthesisCompleted = true;
+						finalSynthesisTurnPending = false;
+						saveRunState({ status: 'completed', planApproved: false, stalledTurns: 0, lastError: undefined });
+						break;
+					}
+					consecutiveTextTurns = 0;
+					const isTaskCompleted = nativeToolCalls.some(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
+					let completionRejectedReason: string | undefined;
+					let completionArgs: any;
+					let toolRunBlocked = false;
+					let toolRunInterrupted = false;
+					const pendingBrowserImages: Array<{ mimeType: 'image/png'; base64: string }> = [];
+					const assistantToolCalls = nativeToolCalls.map(tc => ({
+						id: tc.id,
+						type: 'function',
+						function: { name: tc.name, arguments: tc.arguments }
+					}));
+
+					messages.push({
+						role: 'assistant',
+						content: streamedAssistantText || null,
+						tool_calls: assistantToolCalls
+					});
+
+					for (const tc of nativeToolCalls) {
+						const parsedArgs: any = tc.parsedArgs ?? {};
+
+						const filePath = extractAgentFilePath(parsedArgs);
+						if (filePath && !parsedArgs.filePath) {
+							parsedArgs.filePath = filePath;
+						}
+
+						let targetUri: URI | undefined;
+						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name) && filePath) {
+							targetUri = resolveAgentUri(filePath, snapshot.rootUri);
+						}
+
+						if (chatEditingService && targetUri) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, true, [targetUri]);
+						}
+
+						let toolResult: { output: string; executionStatus?: AgentToolExecutionStatus; browserImage?: { mimeType: 'image/png'; base64: string }; nativeToolInvocation?: boolean; externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } };
+						if (tc.parseError) {
+							toolResult = { output: `Tool call rejected: ${tc.parseError}`, executionStatus: 'rejected' };
+						} else if (tc.name === 'task_completed' && (completionRejectedReason = completionBlocker(parsedArgs))) {
+							toolResult = { output: `Completion request rejected: ${completionRejectedReason}`, executionStatus: 'rejected' };
+						} else {
+							if (tc.name === 'task_completed' || tc.name === 'complete_task') {
+								acceptedTaskCompletion = true;
+								completionArgs = parsedArgs;
+								proposedCompletionSummary = typeof parsedArgs?.summary === 'string' ? parsedArgs.summary : undefined;
+							}
+							toolResult = await executeRouterToolThroughRuntime(tc.name, parsedArgs, tc.id) as typeof toolResult;
+						}
+						if ((tc.name === 'task_completed' || tc.name === 'complete_task') && acceptedTaskCompletion) {
+							const completionSummary = (typeof parsedArgs?.summary === 'string' ? parsedArgs.summary : '').trim();
+							if (completionSummary.length >= 40) {
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(`\n\n${completionSummary}\n\n`)
+								}]);
+								taskConclusionSummaryEmitted = true;
+								finalSynthesisCompleted = true;
+							}
+						}
+						recordToolEvidence(tc.name, parsedArgs, toolResult.output, toolResult.externalEdit, toolResult.executionStatus);
+						if (noteToolFailure(toolResult.output, toolResult.executionStatus)) {
+							if (isFullAccessActive() && autonomousRecoveryAttempts < MAX_AUTONOMOUS_RECOVERY_ATTEMPTS) {
+								autonomousRecoveryAttempts++;
+								consecutiveToolFailures = 0;
+								toolRunBlocked = false;
+								const errorPreview = toolResult.output.replace(/[\r\n\t]+/g, ' ').slice(0, 300);
+								const userLang = detectDardcorLanguage(activeTaskPrompt);
+								messages.push({
+									role: 'user',
+									content: getDardcorAutonomousSelfCorrectionDirective(userLang, errorPreview)
+								});
+							} else {
+								toolRunBlocked = true;
+								saveRunState({ status: 'blocked', lastError: toolResult.output.slice(0, 500) });
+							}
+						}
+
+						if (chatEditingService) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, false, []);
+							if (toolResult.externalEdit) {
+								await chatEditingService.registerFileEdit?.(
+									request.sessionResource,
+									toolResult.externalEdit.uri,
+									toolResult.externalEdit.editKind,
+									toolResult.externalEdit.initialContent,
+									request.requestId,
+									tc.id,
+									toolResult.externalEdit.diff
+								);
+							}
+						}
+
+						const reqLang = detectDardcorLanguage(request.message);
+						const display = this._getToolDisplayInfo(tc.name, parsedArgs, reqLang);
+
+						if (toolResult.externalEdit) {
+							progress([{
+								kind: 'externalEdit',
+								uri: toolResult.externalEdit.uri,
+								editKind: toolResult.externalEdit.editKind,
+								diff: toolResult.externalEdit.diff,
+								undoStopId: tc.id
+							}]);
+						}
+
+						if (!toolResult.nativeToolInvocation) {
+						progress([{
+							kind: 'toolInvocationSerialized',
+							toolCallId: tc.id,
+							toolId: tc.name,
+							source: ToolDataSource.Internal,
+							invocationMessage: new MarkdownString(display.invocationMessage),
+							originMessage: undefined,
+							pastTenseMessage: new MarkdownString(display.pastTenseMessage),
+							isConfirmed: { type: ToolConfirmKind.ConfirmationNotNeeded },
+							isComplete: true,
+							presentation: (toolResult.externalEdit || tc.name === 'task_completed' || tc.name === 'complete_task' || tc.name === 'review_plan') ? ToolInvocationPresentation.Hidden : undefined,
+							toolSpecificData: (tc.name === 'run_command' || tc.name === 'run_in_terminal' || tc.name === 'confirm_terminal_command') ? {
+								kind: 'terminal',
+								commandLine: {
+									original: (parsedArgs.command || parsedArgs.commandLine || ''),
+									forDisplay: (parsedArgs.command || parsedArgs.commandLine || '')
+								},
+								language: isWindows ? 'powershell' : 'sh',
+								terminalCommandOutput: {
+									text: toolResult.output,
+									lineCount: (toolResult.output || '').split('\n').length
+								},
+								terminalCommandState: {
+									exitCode: parseAgentCommandExitCode(toolResult.output),
+									timestamp: Date.now()
+								}
+							} : {
+								kind: 'simpleToolInvocation',
+								input: display.formattedInput,
+								output: toolResult.output
+							}
+						}]);
+						}
+
+						messages.push({
+							role: 'tool',
+							tool_call_id: tc.id,
+							content: toolResult.output
+						});
+						if (toolResult.browserImage && shouldAttachDardcorBrowserScreenshot(routerModelCapabilities)) {
+							pendingBrowserImages.push(toolResult.browserImage);
+						}
+						if (token.isCancellationRequested) {
+							toolRunInterrupted = true;
+							break;
+						}
+					}
+					for (const [index, image] of pendingBrowserImages.entries()) {
+						messages.push({
+							role: 'user',
+							content: [
+								{ type: 'text', text: `Visual evidence from integrated browser screenshot ${index + 1}. Use it alongside the preceding DOM snapshot.` },
+								{ type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.base64}` } }
+							]
+						});
+					}
+					if (incompleteNativeToolCalls.length > 0) {
+						const message = `The provider stream ended before ${incompleteNativeToolCalls.length} tool call(s) included a function name. Retry those actions using a complete tool call.`;
+						messages.push({ role: 'user', content: `[Tool call rejected]: ${message}` });
+						if (isTaskCompleted) {
+							acceptedTaskCompletion = false;
+							completionRejectedReason ||= message;
+						}
+					}
+
+					if (toolRunBlocked) {
+						saveRunState({ status: 'blocked' });
+						break;
+					}
+					if (toolRunInterrupted) {
+						saveRunState({ status: 'paused', lastError: 'Run cancelled while a tool action was in progress; inspect that action before retrying.' });
+						break;
+					}
+
+					if (isTaskCompleted) {
+						if (taskIsTracked && acceptedTaskCompletion) {
+						const finalDecision = revalidateDardcorCompletion(acceptedTaskCompletion, completionArgs, completionBlocker);
+						completionRejectedReason = finalDecision.reason;
+						acceptedTaskCompletion = finalDecision.accepted;
+						}
+						if (taskIsTracked && !acceptedTaskCompletion) {
+							const reason = completionRejectedReason || 'The completion request did not pass the task completion gate.';
+							const stalledTurns = (runState?.stalledTurns ?? 0) + 1;
+							const todos = todoListService?.getTodos(request.sessionResource) ?? [];
+							const browserRequirement = reason.startsWith('Browser verification is missing:') && runState
+								? getDardcorBrowserVerificationRequirement(activeTaskPrompt, runState)
+								: undefined;
+							browserVerificationOnly = todos.length > 0 && todos.every(todo => todo.status === 'completed') && !!browserRequirement;
+							const nextStep = browserRequirement === 'interaction'
+								? 'Use the integrated Browser Editor for one relevant, safe Playwright interaction, then inspect its post-action DOM snapshot.'
+								: browserRequirement === 'page-inspection'
+									? 'Open the implemented site in the integrated Browser Editor and inspect its rendered DOM snapshot and console diagnostics.'
+									: runState?.nextStep;
+							saveRunState({ stalledTurns, lastError: reason, nextStep });
+							if (stalledTurns >= 3) {
+								saveRunState({ status: 'blocked' });
+								break;
+							}
+							messages.push({ role: 'user', content: browserVerificationOnly
+								? `[Runtime Browser Gate]: ${reason} Use only the integrated Browser Editor tools now; the runtime will unlock other tools after the required live browser evidence is captured.`
+								: `[Completion Gate]: Do not claim completion. ${reason} Continue using tools; update the checklist and collect actual verification evidence.` });
+							continue;
+						}
+						let markerService: IMarkerService | undefined;
+						try {
+							this.instantiationService.invokeFunction(accessor => {
+								try { markerService = accessor.get(IMarkerService); } catch { }
+							});
+						} catch { }
+						if (markerService) {
+							const errorMarkers = markerService.read({}).filter(m => m.severity === MarkerSeverity.Error);
+							if (errorMarkers.length > 0 && consecutiveTextTurns === 0) {
+								const sampleErrors = errorMarkers.slice(0, 5).map(m => {
+									const rel = snapshot.rootUri ? m.resource.fsPath.replace(snapshot.rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
+									return `[ERROR] ${rel}:${m.startLineNumber} - ${m.message}`;
+								}).join('\n');
+								messages.push({
+									role: 'user',
+									content: `Diagnostic errors were detected in the workspace:\n${sampleErrors}\nPlease resolve these compilation/syntax errors before concluding.`
+								});
+								saveRunState({ status: 'working', lastError: `Workspace diagnostics contain ${errorMarkers.length} error(s).` });
+								acceptedTaskCompletion = false;
+								continue;
+							}
+						}
+						if (taskIsTracked && acceptedTaskCompletion) {
+							saveRunState({ status: 'completed', planApproved: false, stalledTurns: 0, lastError: undefined });
+							if (!finalSynthesisCompleted && !finalSynthesisTurnPending) {
+								finalSynthesisTurnPending = true;
+								consecutiveTextTurns = 0;
+								const summaryMandate = getDardcorFinalSummaryMandate(detectDardcorLanguage(activeTaskPrompt));
+								messages.push({
+									role: 'user',
+									content: summaryMandate
+								});
+								continue;
+							}
+						}
+						break;
+					}
+
+					continue;
+				} else if (textToolCalls.length > 0) {
+					if (finalSynthesisTurnPending) {
+						const taskCompletedCall = textToolCalls.find(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
+						if (taskCompletedCall) {
+							try {
+								const parsedArgs = (typeof taskCompletedCall.args === 'string' ? JSON.parse(taskCompletedCall.args) : taskCompletedCall.args) as Record<string, unknown> | undefined;
+								const summary = typeof parsedArgs?.summary === 'string' ? parsedArgs.summary.trim() : '';
+								if (summary.length >= 40) {
+									progress([{ kind: 'markdownContent', content: new MarkdownString(`\n\n${summary}\n\n`) }]);
+									taskConclusionSummaryEmitted = true;
+									proposedCompletionSummary = summary;
+								}
+							} catch {}
+						}
+						finalSynthesisCompleted = true;
+						finalSynthesisTurnPending = false;
+						saveRunState({ status: 'completed', planApproved: false, stalledTurns: 0, lastError: undefined });
+						break;
+					}
+					consecutiveTextTurns = 0;
+					const isTaskCompleted = textToolCalls.some(tc => tc.name === 'task_completed' || tc.name === 'complete_task');
+					let completionRejectedReason: string | undefined;
+					let completionArgs: any;
+					let toolRunBlocked = false;
+					let toolRunInterrupted = false;
+					messages.push({
+						role: 'assistant',
+						content: streamedAssistantText
+					});
+
+					for (const tc of textToolCalls) {
+						const toolArgs: any = tc.args ?? {};
+						const filePath = extractAgentFilePath(toolArgs);
+						if (filePath && !toolArgs.filePath) {
+							toolArgs.filePath = filePath;
+						}
+
+						let targetUri: URI | undefined;
+						if (['write_file', 'edit_file', 'delete_file'].includes(tc.name) && filePath) {
+							targetUri = resolveAgentUri(filePath, snapshot.rootUri);
+						}
+
+						const callId = `text_call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+						if (chatEditingService && targetUri) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, true, [targetUri]);
+						}
+
+						let toolResult: { output: string; executionStatus?: AgentToolExecutionStatus; browserImage?: { mimeType: 'image/png'; base64: string }; nativeToolInvocation?: boolean; externalEdit?: { uri: URI; editKind: 'create' | 'edit' | 'delete'; initialContent?: string; diff: { added: number; removed: number } } };
+						if (tc.parseError) {
+							toolResult = { output: `Tool call rejected: ${tc.parseError}`, executionStatus: 'rejected' };
+						} else if (tc.name === 'task_completed' && (completionRejectedReason = completionBlocker(toolArgs))) {
+							toolResult = { output: `Completion request rejected: ${completionRejectedReason}`, executionStatus: 'rejected' };
+						} else {
+							if (tc.name === 'task_completed' || tc.name === 'complete_task') {
+								acceptedTaskCompletion = true;
+								completionArgs = toolArgs;
+								proposedCompletionSummary = typeof toolArgs?.summary === 'string' ? toolArgs.summary : undefined;
+							}
+							toolResult = await executeRouterToolThroughRuntime(tc.name, toolArgs, callId) as typeof toolResult;
+						}
+						if ((tc.name === 'task_completed' || tc.name === 'complete_task') && acceptedTaskCompletion) {
+							const completionSummary = (typeof toolArgs?.summary === 'string' ? toolArgs.summary : '').trim();
+							if (completionSummary.length >= 40) {
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(`\n\n${completionSummary}\n\n`)
+								}]);
+								taskConclusionSummaryEmitted = true;
+								finalSynthesisCompleted = true;
+							}
+						}
+						recordToolEvidence(tc.name, toolArgs, toolResult.output, toolResult.externalEdit, toolResult.executionStatus);
+						if (noteToolFailure(toolResult.output, toolResult.executionStatus)) {
+							if (isFullAccessActive() && autonomousRecoveryAttempts < MAX_AUTONOMOUS_RECOVERY_ATTEMPTS) {
+								autonomousRecoveryAttempts++;
+								consecutiveToolFailures = 0;
+								toolRunBlocked = false;
+								const errorPreview = toolResult.output.replace(/[\r\n\t]+/g, ' ').slice(0, 300);
+								const userLang = detectDardcorLanguage(activeTaskPrompt);
+								messages.push({
+									role: 'user',
+									content: getDardcorAutonomousSelfCorrectionDirective(userLang, errorPreview)
+								});
+							} else {
+								toolRunBlocked = true;
+								saveRunState({ status: 'blocked', lastError: toolResult.output.slice(0, 500) });
+							}
+						}
+
+						if (chatEditingService) {
+							chatEditingService.setSessionRunning?.(request.sessionResource, false, []);
+							if (toolResult.externalEdit) {
+								await chatEditingService.registerFileEdit?.(
+									request.sessionResource,
+									toolResult.externalEdit.uri,
+									toolResult.externalEdit.editKind,
+									toolResult.externalEdit.initialContent,
+									request.requestId,
+									callId,
+									toolResult.externalEdit.diff
+								);
+							}
+						}
+
+						const reqLang = detectDardcorLanguage(request.message);
+						const display = this._getToolDisplayInfo(tc.name, toolArgs, reqLang);
+
+						if (toolResult.externalEdit) {
+							progress([{
+								kind: 'externalEdit',
+								uri: toolResult.externalEdit.uri,
+								editKind: toolResult.externalEdit.editKind,
+								diff: toolResult.externalEdit.diff,
+								undoStopId: callId
+							}]);
+						}
+
+						if (!toolResult.nativeToolInvocation) {
+						progress([{
+							kind: 'toolInvocationSerialized',
+							toolCallId: callId,
+							toolId: tc.name,
+							source: ToolDataSource.Internal,
+							invocationMessage: new MarkdownString(display.invocationMessage),
+							originMessage: undefined,
+							pastTenseMessage: new MarkdownString(display.pastTenseMessage),
+							isConfirmed: { type: ToolConfirmKind.ConfirmationNotNeeded },
+							isComplete: true,
+							presentation: (toolResult.externalEdit || tc.name === 'task_completed' || tc.name === 'complete_task' || tc.name === 'review_plan') ? ToolInvocationPresentation.Hidden : undefined,
+							toolSpecificData: (tc.name === 'run_command' || tc.name === 'run_in_terminal' || tc.name === 'confirm_terminal_command') ? {
+								kind: 'terminal',
+								commandLine: {
+									original: (toolArgs?.command || toolArgs?.commandLine || ''),
+									forDisplay: (toolArgs?.command || toolArgs?.commandLine || '')
+								},
+								language: isWindows ? 'powershell' : 'sh',
+								terminalCommandOutput: {
+									text: toolResult.output,
+									lineCount: (toolResult.output || '').split('\n').length
+								},
+								terminalCommandState: {
+									exitCode: parseAgentCommandExitCode(toolResult.output),
+									timestamp: Date.now()
+								}
+							} : {
+								kind: 'simpleToolInvocation',
+								input: display.formattedInput,
+								output: toolResult.output
+							}
+						}]);
+						}
+
+						const toolResultText = `[Tool Execution Result for ${tc.name}]:\n${toolResult.output}`;
+						messages.push({
+							role: 'user',
+							content: toolResult.browserImage && shouldAttachDardcorBrowserScreenshot(routerModelCapabilities)
+								? [
+									{ type: 'text', text: toolResultText },
+									{ type: 'image_url', image_url: { url: `data:${toolResult.browserImage.mimeType};base64,${toolResult.browserImage.base64}` } }
+								]
+								: toolResultText
+						});
+						if (token.isCancellationRequested) {
+							toolRunInterrupted = true;
+							break;
+						}
+					}
+
+					if (toolRunBlocked) {
+						saveRunState({ status: 'blocked' });
+						break;
+					}
+					if (toolRunInterrupted) {
+						saveRunState({ status: 'paused', lastError: 'Run cancelled while a tool action was in progress; inspect that action before retrying.' });
+						break;
+					}
+
+					if (isTaskCompleted) {
+						if (taskIsTracked && acceptedTaskCompletion) {
+						const finalDecision = revalidateDardcorCompletion(acceptedTaskCompletion, completionArgs, completionBlocker);
+						completionRejectedReason = finalDecision.reason;
+						acceptedTaskCompletion = finalDecision.accepted;
+						}
+						if (taskIsTracked && !acceptedTaskCompletion) {
+							const reason = completionRejectedReason || 'The completion request did not pass the task completion gate.';
+							const stalledTurns = (runState?.stalledTurns ?? 0) + 1;
+							const todos = todoListService?.getTodos(request.sessionResource) ?? [];
+							const browserRequirement = reason.startsWith('Browser verification is missing:') && runState
+								? getDardcorBrowserVerificationRequirement(activeTaskPrompt, runState)
+								: undefined;
+							browserVerificationOnly = todos.length > 0 && todos.every(todo => todo.status === 'completed') && !!browserRequirement;
+							const nextStep = browserRequirement === 'interaction'
+								? 'Use the integrated Browser Editor for one relevant, safe Playwright interaction, then inspect its post-action DOM snapshot.'
+								: browserRequirement === 'page-inspection'
+									? 'Open the implemented site in the integrated Browser Editor and inspect its rendered DOM snapshot and console diagnostics.'
+									: runState?.nextStep;
+							saveRunState({ stalledTurns, lastError: reason, nextStep });
+							if (stalledTurns >= 3) {
+								saveRunState({ status: 'blocked' });
+								break;
+							}
+							messages.push({ role: 'user', content: browserVerificationOnly
+								? `[Runtime Browser Gate]: ${reason} Use only the integrated Browser Editor tools now; the runtime will unlock other tools after the required live browser evidence is captured.`
+								: `[Completion Gate]: Do not claim completion. ${reason} Continue using tools; update the checklist and collect actual verification evidence.` });
+							continue;
+						}
+						let markerService: IMarkerService | undefined;
+						try {
+							this.instantiationService.invokeFunction(accessor => {
+								try { markerService = accessor.get(IMarkerService); } catch { }
+							});
+						} catch { }
+						if (markerService) {
+							const errorMarkers = markerService.read({}).filter(m => m.severity === MarkerSeverity.Error);
+							if (errorMarkers.length > 0 && consecutiveTextTurns === 0) {
+								const sampleErrors = errorMarkers.slice(0, 5).map(m => {
+									const rel = snapshot.rootUri ? m.resource.fsPath.replace(snapshot.rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
+									return `[ERROR] ${rel}:${m.startLineNumber} - ${m.message}`;
+								}).join('\n');
+								messages.push({
+									role: 'user',
+									content: `Diagnostic errors were detected in the workspace:\n${sampleErrors}\nPlease resolve these compilation/syntax errors before concluding.`
+								});
+								saveRunState({ status: 'working', lastError: `Workspace diagnostics contain ${errorMarkers.length} error(s).` });
+								acceptedTaskCompletion = false;
+								continue;
+							}
+						}
+						if (taskIsTracked && acceptedTaskCompletion) {
+							saveRunState({ status: 'completed', planApproved: false, stalledTurns: 0, lastError: undefined });
+							if (!finalSynthesisCompleted && !finalSynthesisTurnPending) {
+								finalSynthesisTurnPending = true;
+								consecutiveTextTurns = 0;
+								const summaryMandate = getDardcorFinalSummaryMandate(detectDardcorLanguage(activeTaskPrompt));
+								messages.push({
+									role: 'user',
+									content: summaryMandate
+								});
+								continue;
+							}
+						}
+						break;
+					}
+
+					continue;
+				}
+
+				if (taskIsTracked || hasIncompleteLoopTodos) {
+					if (finalSynthesisTurnPending) {
+						finalSynthesisCompleted = true;
+						finalSynthesisTurnPending = false;
+						acceptedTaskCompletion = true;
+						taskConclusionSummaryEmitted = true;
+						if (assistantTextRoutedToThinking && streamedAssistantText.trim().length > 0 && !isInternalThinkingMonologue(streamedAssistantText)) {
+							progress([{
+								kind: 'markdownContent',
+								content: new MarkdownString(streamedAssistantText.trim())
+							}]);
+						}
+						messages.push({ role: 'assistant', content: streamedAssistantText });
+						saveRunState({ status: 'completed', planApproved: false, stalledTurns: 0, lastError: undefined });
+						break;
+					}
+
+					const allTodos = todoListService?.getTodos(request.sessionResource) ?? [];
+					const incompleteTodos = allTodos.filter(t => t.status !== 'completed');
+
+					
+					if (incompleteTodos.length > 0 && !token.isCancellationRequested) {
+						consecutiveTextTurns++;
+						if (consecutiveTextTurns <= 24) {
+							const nextItem = incompleteTodos[0];
+							const userLang = detectDardcorLanguage(activeTaskPrompt);
+							messages.push({
+								role: 'assistant',
+								content: streamedAssistantText || streamedReasoningText.trim() || 'Continuing task execution...'
+							});
+							const isMonologue = isInternalThinkingMonologue(streamedAssistantText);
+							const directive = isMonologue
+								? `Checklist item "${nextItem.title}" is in progress (${allTodos.length - incompleteTodos.length}/${allTodos.length} done). Please proceed with the implementation using appropriate tools.`
+								: getDardcorAutonomousMomentumDirective(userLang, allTodos.length - incompleteTodos.length, allTodos.length, nextItem);
+							messages.push({
+								role: 'user',
+								content: directive
+							});
+							if (consecutiveTextTurns >= 2 && !supportsNativeTools) {
+								addDynamicFallbackTools();
+							}
+							continue;
+						}
+						const reason = `The agent paused after ${consecutiveTextTurns} consecutive steps on checklist item: "${incompleteTodos[0].title}".`;
+						saveRunState({ status: 'paused', lastError: reason, nextStep: `Resume checklist item: ${incompleteTodos[0].title}` });
+						break;
+					}
+
+					
+					if (allTodos.length > 0 && incompleteTodos.length === 0 && !token.isCancellationRequested) {
+						let markerService: IMarkerService | undefined;
+						try {
+							this.instantiationService.invokeFunction(accessor => {
+								try { markerService = accessor.get(IMarkerService); } catch { }
+							});
+						} catch { }
+						const errorMarkers = markerService?.read({}).filter(m => m.severity === MarkerSeverity.Error) ?? [];
+						if (errorMarkers.length > 0 && consecutiveTextTurns === 0) {
+							const sampleErrors = errorMarkers.slice(0, 5).map(m => {
+								const rel = snapshot.rootUri ? m.resource.fsPath.replace(snapshot.rootUri.fsPath, '').replace(/^[\\\/]+/, '') : m.resource.path;
+								return `[ERROR] ${rel}:${m.startLineNumber} - ${m.message}`;
+							}).join('\n');
+							messages.push({
+								role: 'user',
+								content: `Workspace diagnostic errors remain:\n${sampleErrors}\nPlease resolve these errors before concluding.`
+							});
+							saveRunState({ status: 'working', lastError: `Workspace diagnostics contain ${errorMarkers.length} error(s).` });
+							continue;
+						}
+
+						if (streamedAssistantText.trim().length >= (finalSynthesisTurnPending ? 40 : 80) && errorMarkers.length === 0 && !isInternalThinkingMonologue(streamedAssistantText)) {
+							if (assistantTextRoutedToThinking) {
+								progress([{
+									kind: 'markdownContent',
+									content: new MarkdownString(streamedAssistantText.trim())
+								}]);
+							}
+							proposedCompletionSummary = streamedAssistantText.trim();
+							acceptedTaskCompletion = true;
+							finalSynthesisCompleted = true;
+							taskConclusionSummaryEmitted = true;
+							messages.push({ role: 'assistant', content: streamedAssistantText });
+							saveRunState({ status: 'completed', planApproved: false, stalledTurns: 0, lastError: undefined });
+							break;
+						}
+
+						if (!finalSynthesisCompleted && !finalSynthesisTurnPending) {
+							finalSynthesisTurnPending = true;
+							consecutiveTextTurns = 0;
+							messages.push({ role: 'assistant', content: streamedAssistantText || 'All checklist items completed.' });
+							const userLang = detectDardcorLanguage(activeTaskPrompt);
+							const summaryMandate = getDardcorFinalSummaryMandate(userLang);
+							messages.push({
+								role: 'user',
+								content: summaryMandate
+							});
+							continue;
+						}
+					}
+
+					
+					consecutiveTextTurns++;
+					const textTurnLimit = browserVerificationOnly ? 2 : MAX_CONSECUTIVE_TEXT_TURNS;
+					if (getDardcorPlainTextTurnDecision(taskIsTracked, consecutiveTextTurns, textTurnLimit, incompleteTodos.length > 0) === 'continue' && !token.isCancellationRequested) {
+						messages.push({ role: 'assistant', content: streamedAssistantText });
+						messages.push({
+							role: 'user',
+							content: browserVerificationOnly
+								? 'Please continue with integrated browser verification.'
+								: `The task is in progress. Please proceed with the next checklist item using available tools.`
+						});
+						continue;
+					}
+					const reason = token.isCancellationRequested
+						? 'The user cancelled the run before all checklist items and verification were complete.'
+						: `The model returned ${consecutiveTextTurns} consecutive responses without a valid action tool call.`;
+					saveRunState({ status: token.isCancellationRequested ? 'paused' : 'blocked', lastError: reason });
+					break;
+				}
+
+				if (isPlanMode && !planApproved) {
+					if (!planOpenedInEditor && streamedAssistantText.trim().length > 50 && fileService) {
+						try {
+							const slug = 'plan-' + Date.now().toString(36);
+							const planBuffer = VSBuffer.fromString(streamedAssistantText);
+							let previewPlanUri: URI | undefined;
+							if (pathService) {
+								const userHome = await pathService.userHome();
+								const sessionId = getSessionId(request.sessionResource);
+								const sessionPlansDir = joinPath(userHome, '.dardcor', 'sessions', sessionId, 'plans');
+								if (!await fileService.exists(sessionPlansDir)) {
+									await fileService.createFolder(sessionPlansDir);
+								}
+								previewPlanUri = joinPath(sessionPlansDir, `${slug}.md`);
+								await fileService.writeFile(previewPlanUri, planBuffer);
+
+								const memorySessionDir = joinPath(userHome, '.dardcor', 'memory', 'plans', sessionId);
+								if (!await fileService.exists(memorySessionDir)) {
+									await fileService.createFolder(memorySessionDir);
+								}
+								await fileService.writeFile(joinPath(memorySessionDir, `${slug}.md`), planBuffer);
+							}
+							if (previewPlanUri) {
+								openPlanPreview(previewPlanUri).catch(err => {
+									console.warn('[streamDardcorRouter] Failed to auto-open streamed plan in center editor:', err);
+								});
+							}
+						} catch (err) {
+							console.warn('[streamDardcorRouter] Failed to auto-open streamed plan in center editor:', err);
+						}
+					}
+					break;
+				}
+
+				const shouldContinue = this._shouldAgentContinueAutonomousLoop(currentPrompt, streamedAssistantText, turn);
+				if (shouldContinue && consecutiveTextTurns < MAX_CONSECUTIVE_TEXT_TURNS) {
+					consecutiveTextTurns++;
+					messages.push({
+						role: 'assistant',
+						content: streamedAssistantText
+					});
+					messages.push({
+						role: 'user',
+						content: 'Please proceed with the next implementation step using available tools, or call task_completed with your summary if all requirements are fulfilled.'
+					});
+					continue;
+				}
+
+				break;
+			}
+
+			if (taskIsTracked && !acceptedTaskCompletion && runState && !['blocked', 'paused', 'cancelled', 'completed'].includes(runState.status)) {
+				const reason = token.isCancellationRequested
+					? 'The user cancelled the run before the completion gate passed.'
+					: runState.lastError || 'The agent stopped before the completion gate passed.';
+				let stalledTurns = runState.stalledTurns ?? 0;
+				if (turnSuccessfulToolActions === 0 && turnFileMutations === 0 && !token.isCancellationRequested) {
+					stalledTurns += 1;
+				} else if (turnSuccessfulToolActions > 0 || turnFileMutations > 0) {
+					stalledTurns = 0;
+				}
+				if (stalledTurns >= 2) {
+					turnEncounteredFatalModelError = true;
+					saveRunState({ status: 'blocked', stalledTurns, lastError: 'The agent completed consecutive turns without making observable progress on files or tools.', nextStep: 'Review the checklist, switch model if needed, then resume.' });
+				} else {
+					saveRunState({ status: 'paused', stalledTurns, lastError: reason, nextStep: runState.nextStep || 'Resume from the first incomplete checklist item.' });
+				}
+			}
+
+			return {};
+		} catch (e: any) {
+			turnEncounteredFatalModelError = true;
+			const errorMsg = formatAgentToolError(e ?? 'Unknown error');
+			if (taskIsTracked) {
+				saveRunState({ status: token.isCancellationRequested ? 'paused' : 'blocked', lastError: errorMsg });
+			}
+			console.error('[streamDardcorRouter] Agent turn error:', e);
+			progress([{
+				kind: 'markdownContent',
+				content: new MarkdownString(formatDardcorRouterError(0, errorMsg, modelName))
+			}]);
+			return {};
+		} finally {
+			try {
+				emitTaskConclusion();
+			} catch (error) {
+				console.warn('[streamDardcorRouter] Could not emit the final task summary:', error);
+			}
+		}
+	}
+
+	setRequestTools(id: string, requestId: string, tools: UserSelectedTools): void {
+		const data = this._agents.get(id);
+		if (!data?.impl) {
+			return;
+		}
+
+		data.impl.setRequestTools?.(requestId, tools);
+	}
+
+	setYieldRequested(id: string, requestId: string, value: boolean): void {
+		const data = this._agents.get(id);
+		if (!data?.impl) {
+			return;
+		}
+
+		data.impl.setYieldRequested?.(requestId, value);
+	}
+
+	async getFollowups(id: string, request: IChatAgentRequest, result: IChatAgentResult, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatFollowup[]> {
+		const data = this._agents.get(id);
+		if (!data?.impl?.provideFollowups) {
+			return [];
+		}
+
+		return data.impl.provideFollowups(request, result, history, token);
+	}
+
+	async getChatTitle(id: string, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<string | undefined> {
+		const data = this._agents.get(id);
+		if (!data?.impl?.provideChatTitle) {
+			return undefined;
+		}
+
+		return data.impl.provideChatTitle(history, token);
+	}
+
+	async getChatSummary(id: string, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<string | undefined> {
+		const data = this._agents.get(id);
+		if (!data?.impl?.provideChatSummary) {
+			return undefined;
+		}
+
+		return data.impl.provideChatSummary(history, token);
+	}
+
+	registerChatParticipantDetectionProvider(handle: number, provider: IChatParticipantDetectionProvider) {
+		this._chatParticipantDetectionProviders.set(handle, provider);
+		return toDisposable(() => {
+			this._chatParticipantDetectionProviders.delete(handle);
+		});
+	}
+
+	hasChatParticipantDetectionProviders() {
+		return this._chatParticipantDetectionProviders.size > 0;
+	}
+
+	async detectAgentOrCommand(request: IChatAgentRequest, history: IChatAgentHistoryEntry[], options: { location: ChatAgentLocation }, token: CancellationToken): Promise<{ agent: IChatAgentData; command?: IChatAgentCommand } | undefined> {
+		const provider = Iterable.first(this._chatParticipantDetectionProviders.values());
+		if (!provider) {
+			return;
+		}
+
+		const participants = this.getAgents().reduce<IChatParticipantMetadata[]>((acc, a) => {
+			if (a.locations.includes(options.location)) {
+				acc.push({ participant: a.id, disambiguation: a.disambiguation ?? [] });
+				for (const command of a.slashCommands) {
+					acc.push({ participant: a.id, command: command.name, disambiguation: command.disambiguation ?? [] });
+				}
+			}
+			return acc;
+		}, []);
+
+		const result = await provider.provideParticipantDetection(request, history, { ...options, participants }, token);
+		if (!result) {
+			return;
+		}
+
+		const agent = this.getAgent(result.participant);
+		if (!agent) {
+			return;
+		}
+
+		if (!result.command) {
+			return { agent };
+		}
+
+		const command = agent?.slashCommands.find(c => c.name === result.command);
+		if (!command) {
+			return;
+		}
+
+		return { agent, command };
+	}
+}
+
+export class MergedChatAgent implements IChatAgent {
+	constructor(
+		private readonly data: IChatAgentData,
+		private readonly impl: IChatAgentImplementation
+	) { }
+	when?: string | undefined;
+	publisherDisplayName?: string | undefined;
+	isDynamic?: boolean | undefined;
+
+	get id(): string { return this.data.id; }
+	get name(): string { return this.data.name ?? ''; }
+	get fullName(): string { return this.data.fullName ?? ''; }
+	get description(): string { return this.data.description ?? ''; }
+	get extensionId(): ExtensionIdentifier { return this.data.extensionId; }
+	get extensionVersion(): string | undefined { return this.data.extensionVersion; }
+	get extensionPublisherId(): string { return this.data.extensionPublisherId; }
+	get extensionPublisherDisplayName() { return this.data.publisherDisplayName; }
+	get extensionDisplayName(): string { return this.data.extensionDisplayName; }
+	get isDefault(): boolean | undefined { return this.data.isDefault; }
+	get isCore(): boolean | undefined { return this.data.isCore; }
+	get metadata(): IChatAgentMetadata { return this.data.metadata; }
+	get slashCommands(): IChatAgentCommand[] { return this.data.slashCommands; }
+	get locations(): ChatAgentLocation[] { return this.data.locations; }
+	get modes(): ChatModeKind[] { return this.data.modes; }
+	get disambiguation(): { category: string; description: string; examples: string[] }[] { return this.data.disambiguation; }
+
+	async invoke(request: IChatAgentRequest, progress: (parts: IChatProgress[]) => void, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatAgentResult> {
+		return this.impl.invoke(request, progress, history, token);
+	}
+
+	setRequestTools(requestId: string, tools: UserSelectedTools): void {
+		this.impl.setRequestTools?.(requestId, tools);
+	}
+
+	setYieldRequested(requestId: string, value: boolean): void {
+		this.impl.setYieldRequested?.(requestId, value);
+	}
+
+	async provideFollowups(request: IChatAgentRequest, result: IChatAgentResult, history: IChatAgentHistoryEntry[], token: CancellationToken): Promise<IChatFollowup[]> {
+		if (this.impl.provideFollowups) {
+			return this.impl.provideFollowups(request, result, history, token);
+		}
+
+		return [];
+	}
+
+	toJSON(): IChatAgentData {
+		return this.data;
+	}
+}
+
+export const IChatAgentNameService = createDecorator<IChatAgentNameService>('chatAgentNameService');
+
+export interface IChatAgentNameService {
+	_serviceBrand: undefined;
+	getAgentNameRestriction(chatAgentData: IChatAgentData): boolean;
+}
+
+export class ChatAgentNameService implements IChatAgentNameService {
+
+	declare _serviceBrand: undefined;
+
+	constructor(
+		@ILanguageModelsService private readonly languageModelsService: ILanguageModelsService,
+	) {
+	}
+
+	getAgentNameRestriction(chatAgentData: IChatAgentData): boolean {
+		if (chatAgentData.isCore) {
+			return true;
+		}
+
+		const nameAllowed = this.checkAgentNameRestriction(chatAgentData.name, chatAgentData).get();
+		const fullNameAllowed = !chatAgentData.fullName || this.checkAgentNameRestriction(chatAgentData.fullName.replace(/\s/g, ''), chatAgentData).get();
+		return nameAllowed && fullNameAllowed;
+	}
+
+	private checkAgentNameRestriction(name: string, chatAgentData: IChatAgentData): IObservable<boolean> {
+		const allowList = this.languageModelsService.restrictedChatParticipants.map<string[] | undefined>(registry => registry[name.toLowerCase()]);
+		return allowList.map(allowList => {
+			if (!allowList) {
+				return true;
+			}
+
+			return allowList.some(id => equalsIgnoreCase(id, id.includes('.') ? chatAgentData.extensionId.value : chatAgentData.extensionPublisherId));
+		});
+	}
+}
+
+export function getFullyQualifiedId(chatAgentData: IChatAgentData): string {
+	return `${chatAgentData?.extensionId?.value ?? ''}.${chatAgentData?.id ?? ''}`;
+}
+
+interface IOldSerializedChatAgentData extends Omit<ISerializableChatAgentData, 'name'> {
+	id: string;
+	extensionPublisher?: string;
+}
+
+function isSerializableChatAgentData(obj: ISerializableChatAgentData | IOldSerializedChatAgentData | any): obj is ISerializableChatAgentData {
+	return obj && (obj as ISerializableChatAgentData).name !== undefined;
+}
+
+export function reviveSerializedAgent(raw: ISerializableChatAgentData | IOldSerializedChatAgentData | any): IChatAgentData {
+	if (!raw) {
+		raw = { id: '', extensionId: { value: '' }, extensionPublisherId: '', extensionName: '' };
+	}
+	const normalized: ISerializableChatAgentData = isSerializableChatAgentData(raw) ?
+		raw :
+		{
+			...raw,
+			name: raw.id || '',
+		};
+
+	if (!normalized.extensionPublisherId) {
+		normalized.extensionPublisherId = (raw as IOldSerializedChatAgentData).extensionPublisher ?? '';
+	}
+
+	if (!normalized.extensionDisplayName) {
+		normalized.extensionDisplayName = '';
+	}
+
+	if (!normalized.extensionId) {
+		normalized.extensionId = new ExtensionIdentifier('');
+	}
+
+	return revive(normalized);
+}

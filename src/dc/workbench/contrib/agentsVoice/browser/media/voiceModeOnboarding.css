@@ -1,0 +1,321 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.voice-mode-onboarding-container {
+	display: none;
+}
+
+.voice-mode-onboarding-container.has-voice-mode-onboarding {
+	display: block;
+	margin-bottom: -10px;
+	padding-bottom: 10px;
+}
+
+.voice-mode-onboarding-banner {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size80);
+	box-sizing: border-box;
+	padding: var(--vscode-spacing-size120);
+	border: var(--vscode-strokeThickness) solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
+	border-radius: var(--vscode-cornerRadius-large) var(--vscode-cornerRadius-large) var(--vscode-cornerRadius-xSmall) var(--vscode-cornerRadius-xSmall);
+	background-color: var(--vscode-agentsChatInput-background, var(--vscode-input-background));
+	color: var(--vscode-foreground);
+}
+
+
+.voice-mode-onboarding-copy {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size20);
+	min-width: 0;
+	padding-right: var(--vscode-spacing-size240);
+}
+
+.voice-mode-onboarding-title {
+	font-size: var(--vscode-fontSize-label1);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.voice-mode-onboarding-description {
+	font-size: var(--vscode-fontSize-label2);
+	color: var(--vscode-descriptionForeground);
+	line-height: 1.4;
+}
+
+.voice-mode-onboarding-description a {
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+	border-radius: var(--vscode-cornerRadius-xSmall);
+}
+
+.voice-mode-onboarding-description a:hover,
+.voice-mode-onboarding-description a:active {
+	color: var(--vscode-textLink-activeForeground);
+	text-decoration: underline;
+}
+
+.voice-mode-onboarding-description a:focus-visible {
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
+
+.voice-mode-onboarding-wave {
+	height: 34px;
+	pointer-events: none;
+	mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 1) 12%, rgba(0, 0, 0, 1) 88%, transparent 100%);
+}
+
+.voice-mode-onboarding-canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	color: var(--vscode-descriptionForeground);
+}
+
+
+.voice-mode-onboarding-microphone-picker {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--vscode-spacing-size60);
+	box-sizing: border-box;
+	min-width: 0;
+	height: var(--vscode-spacing-size280);
+	padding: 0 var(--vscode-spacing-size80);
+	border: var(--vscode-strokeThickness) solid var(--vscode-dropdown-border, var(--vscode-input-border, transparent));
+	border-radius: var(--vscode-cornerRadius-small);
+	background-color: var(--vscode-dropdown-background, var(--vscode-input-background));
+	transition: border-color 100ms ease-out;
+}
+
+.voice-mode-onboarding-microphone-picker[hidden] {
+	display: none;
+}
+
+.voice-mode-onboarding-microphone-picker:hover {
+	border-color: var(--vscode-focusBorder);
+}
+
+.voice-mode-onboarding-microphone-picker:focus-within {
+	border-color: var(--vscode-focusBorder);
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: -2px;
+}
+
+.monaco-workbench .voice-mode-onboarding-microphone-icon.codicon[class*='codicon-'] {
+	flex-shrink: 0;
+	font-size: var(--vscode-codiconFontSize-compact);
+	line-height: 1;
+	color: var(--vscode-descriptionForeground);
+}
+
+.voice-mode-onboarding-microphone-picker .monaco-select-box {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 100%;
+	padding: 0;
+	border: none;
+	border-radius: var(--vscode-cornerRadius-small);
+	background-color: transparent;
+	color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+	font-family: inherit;
+	font-size: var(--vscode-fontSize-label2);
+	text-overflow: ellipsis;
+}
+
+.voice-mode-onboarding-microphone-picker .monaco-select-box:focus {
+	outline: none;
+}
+
+
+.voice-mode-onboarding-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--vscode-spacing-size80);
+}
+
+
+.voice-mode-onboarding-voices-label {
+	flex: 0 0 auto;
+	color: var(--vscode-descriptionForeground);
+	font-size: var(--vscode-fontSize-label2);
+	white-space: nowrap;
+}
+
+.voice-mode-onboarding-voices {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--vscode-spacing-size20);
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.voice-mode-onboarding-voice {
+	display: flex;
+	align-items: center;
+	gap: var(--vscode-spacing-size20);
+	padding: var(--vscode-spacing-size20) var(--vscode-spacing-size40);
+	border: var(--vscode-strokeThickness) solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
+	border-radius: var(--vscode-cornerRadius-medium);
+	background-color: var(--vscode-button-secondaryBackground);
+	color: var(--vscode-button-secondaryForeground);
+	font-size: var(--vscode-fontSize-label2);
+	white-space: nowrap;
+	cursor: pointer;
+	transition: background-color 100ms ease-out, border-color 100ms ease-out;
+}
+
+.voice-mode-onboarding-voice:hover {
+	background-color: var(--vscode-button-secondaryHoverBackground);
+	border-color: var(--vscode-agentsVoice-speakingForeground);
+}
+
+.voice-mode-onboarding-voice:active {
+	transform: translateY(1px);
+}
+
+.voice-mode-onboarding-voice:focus-visible {
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
+.voice-mode-onboarding-voice.selected {
+	background-color: var(--vscode-list-activeSelectionBackground);
+	border-color: var(--vscode-focusBorder);
+	color: var(--vscode-list-activeSelectionForeground);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+
+.voice-mode-onboarding-voice-icon {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 0;
+	height: var(--vscode-codiconFontSize-compact, 12px);
+	overflow: hidden;
+	transition: width 0.2s cubic-bezier(0.2, 0.9, 0.2, 1), margin-right 0.2s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.voice-mode-onboarding-voice:hover .voice-mode-onboarding-voice-icon,
+.voice-mode-onboarding-voice:focus-visible .voice-mode-onboarding-voice-icon,
+.voice-mode-onboarding-voice.selected .voice-mode-onboarding-voice-icon,
+.voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-icon {
+	width: var(--vscode-codiconFontSize-compact, 12px);
+	margin-right: var(--vscode-spacing-size20);
+}
+
+.voice-mode-onboarding-voice-icon > * {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 120ms ease-out;
+}
+
+.monaco-workbench .voice-mode-onboarding-voice-icon .codicon[class*='codicon-'] {
+	font-size: var(--vscode-codiconFontSize-compact, 12px);
+	line-height: 1;
+	color: inherit;
+}
+
+.voice-mode-onboarding-voice .voice-mode-onboarding-voice-idle {
+	opacity: 0.6;
+}
+
+.voice-mode-onboarding-voice:hover .voice-mode-onboarding-voice-idle {
+	opacity: 1;
+}
+
+.voice-mode-onboarding-voice.selected .voice-mode-onboarding-voice-idle {
+	opacity: 0;
+}
+
+.voice-mode-onboarding-voice.selected .voice-mode-onboarding-voice-chosen {
+	opacity: 1;
+}
+
+.voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-idle,
+.voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-chosen {
+	opacity: 0;
+}
+
+.voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-bars {
+	opacity: 1;
+}
+
+.voice-mode-onboarding-voice-bars {
+	gap: 1px;
+	height: var(--vscode-codiconFontSize-compact, 12px);
+}
+
+.voice-mode-onboarding-voice-bar {
+	width: 1.5px;
+	height: 4px;
+	border-radius: 1px;
+	background: currentColor;
+}
+
+.monaco-workbench.monaco-enable-motion .voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-bar {
+	animation: voice-mode-onboarding-eq 0.85s ease-in-out infinite;
+}
+
+.monaco-workbench.monaco-enable-motion .voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-bar:nth-child(2) {
+	animation-delay: 0.12s;
+}
+
+.monaco-workbench.monaco-enable-motion .voice-mode-onboarding-voice.playing .voice-mode-onboarding-voice-bar:nth-child(3) {
+	animation-delay: 0.24s;
+}
+
+@keyframes voice-mode-onboarding-eq {
+	0%, 100% { height: 3px; }
+	50% { height: 10px; }
+}
+
+
+.monaco-reduce-motion .voice-mode-onboarding-voice-icon,
+.monaco-reduce-motion .voice-mode-onboarding-voice-icon > * {
+	transition: none;
+}
+
+
+.voice-mode-onboarding-close {
+	position: absolute;
+	top: var(--vscode-spacing-size80);
+	right: var(--vscode-spacing-size80);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--vscode-spacing-size200);
+	height: var(--vscode-spacing-size200);
+	border-radius: var(--vscode-cornerRadius-small);
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+}
+
+.voice-mode-onboarding-close:hover {
+	background-color: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+.voice-mode-onboarding-close:focus-visible {
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: -1px;
+}
+
+.monaco-workbench .voice-mode-onboarding-close .codicon[class*='codicon-'] {
+	font-size: var(--vscode-codiconFontSize-compact, 12px);
+	line-height: 1;
+	color: inherit;
+}

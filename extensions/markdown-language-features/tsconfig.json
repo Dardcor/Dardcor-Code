@@ -1,0 +1,20 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"typeRoots": [
+			"./node_modules/@types"
+		],
+		"skipLibCheck": true
+	},
+	"include": [
+		"src/**/*",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.agentEditorComments.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.customEditorDiffs.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.documentDiff.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.documentSyntaxHighlighting.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.textEditorDiffInformation.d.ts"
+	]
+}

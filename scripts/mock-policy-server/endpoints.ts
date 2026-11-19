@@ -1,0 +1,105 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+export interface EndpointPreset {
+	id: string;
+	label: string;
+	description: string;
+	body: unknown;
+}
+
+export interface EndpointDef {
+	id: string;
+	label: string;
+	path: string;
+	productKey: string;
+	description: string;
+	presets: EndpointPreset[];
+}
+
+declare var MOCK_POLICY_ENDPOINTS: EndpointDef[];
+
+(function (root: Record<string, unknown> | undefined, factory: () => EndpointDef[]) {
+	if (typeof module === 'object' && module.exports) {
+		module.exports = factory();
+	} else if (root) {
+		root.MOCK_POLICY_ENDPOINTS = factory();
+	}
+})(typeof self !== 'undefined' ? self as unknown as Record<string, unknown> : undefined, function (): EndpointDef[] {
+
+	const endpoints: EndpointDef[] = [
+		{
+			id: 'managedSettings',
+			label: 'Managed Settings',
+			path: '/copilot_internal/managed_settings',
+			productKey: 'managedSettingsUrl',
+			description: 'Enterprise copilot settings from .github/copilot/settings.json. An empty object means no policy file is present.',
+			presets: [
+				{
+					id: 'empty',
+					label: 'Empty (no policy file)',
+					description: 'An empty object is a successful "no enterprise policy file present" response.',
+					body: {}
+				}
+			]
+		},
+		{
+			id: 'entitlements',
+			label: 'Entitlements',
+			path: '/copilot_internal/user',
+			productKey: 'entitlementUrl',
+			description: 'Gates the entire flow — token and managed settings are only fetched when chat_enabled is true.',
+			presets: [
+				{
+					id: 'enterprise-enabled',
+					label: 'Enterprise, chat enabled',
+					description: 'Chat enabled with cloud session storage; the common dev case.',
+					body: {
+						access_type_sku: 'copilot_enterprise_seat',
+						chat_enabled: true,
+						assigned_date: '2024-01-01T00:00:00Z',
+						can_signup_for_limited: false,
+						copilot_plan: 'enterprise',
+						organization_login_list: ['contoso'],
+						analytics_tracking_id: 'dev-analytics-id',
+						cloud_session_storage_enabled: true
+					}
+				}
+			]
+		},
+		{
+			id: 'token',
+			label: 'Token',
+			path: '/copilot_internal/v2/token',
+			productKey: 'tokenEntitlementUrl',
+			description: 'Token string carries policy flags as key=value pairs separated by semicolons. Flags: agent_mode, editor_preview_features, mcp, sn, fcv1.',
+			presets: [
+				{
+					id: 'all-enabled',
+					label: 'All features enabled',
+					description: 'agent_mode=1, editor_preview_features=1, mcp=1.',
+					body: { token: 'agent_mode=1;editor_preview_features=1;mcp=1;sn=dev;fcv1=dev:devsignature' }
+				}
+			]
+		},
+		{
+			id: 'mcpRegistry',
+			label: 'MCP Registry',
+			path: '/copilot/mcp_registry',
+			productKey: 'mcpRegistryDataUrl',
+			description: 'Only fetched when the token has mcp=1. Returns the enterprise MCP registry URL and access level.',
+			presets: [
+				{
+					id: 'registry-only',
+					label: 'Registry only',
+					description: 'Restrict MCP servers to the enterprise registry.',
+					body: { mcp_registries: [{ url: 'https://mcp.contoso.example/registry', registry_access: 'registry_only' }] }
+				}
+			]
+		}
+	];
+
+	return endpoints;
+});

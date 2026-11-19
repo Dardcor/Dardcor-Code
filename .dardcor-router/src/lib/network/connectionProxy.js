@@ -1,0 +1,145 @@
+import { getProxyPoolById } from "@/models";
+
+function normalizeString(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+const rotateState = new Map();
+
+export function pickProxyPoolId(poolIds, strategy, providerId) {
+  if (!poolIds || poolIds.length === 0) return null;
+  if (poolIds.length === 1) return poolIds[0];
+
+  if (strategy === "round-robin") {
+    const state = rotateState.get(providerId) || { index: -1 };
+    state.index = (state.index + 1) % poolIds.length;
+    rotateState.set(providerId, state);
+    return poolIds[state.index];
+  }
+
+  if (strategy === "random") {
+    return poolIds[Math.floor(Math.random() * poolIds.length)];
+  }
+
+  return poolIds[0];
+}
+
+function normalizeLegacyProxy(providerSpecificData = {}) {
+  const connectionProxyEnabled =
+    providerSpecificData?.connectionProxyEnabled === true;
+
+  const connectionProxyUrl = normalizeString(
+    providerSpecificData?.connectionProxyUrl
+  );
+
+  const connectionNoProxy = normalizeString(
+    providerSpecificData?.connectionNoProxy
+  );
+
+  return {
+    connectionProxyEnabled,
+    connectionProxyUrl,
+    connectionNoProxy,
+  };
+}
+
+export async function resolveConnectionProxyConfig(
+  providerSpecificData = {}
+) {
+  try {
+    const proxyPoolIdRaw = normalizeString(
+      providerSpecificData?.proxyPoolId
+    );
+
+    const proxyPoolId =
+      proxyPoolIdRaw === "__none__" ? "" : proxyPoolIdRaw;
+
+    const legacy = normalizeLegacyProxy(providerSpecificData);
+
+    if (proxyPoolId) {
+      const proxyPool = await getProxyPoolById(proxyPoolId);
+
+      const proxyUrl = normalizeString(proxyPool?.proxyUrl);
+      const noProxy = normalizeString(proxyPool?.noProxy);
+
+      const isValidPool =
+        proxyPool &&
+        proxyPool.isActive === true &&
+        proxyUrl;
+
+      if (isValidPool) {
+        if (proxyPool.type === "vercel" || proxyPool.type === "cloudflare" || proxyPool.type === "deno") {
+          return {
+            source: proxyPool.type,
+
+            proxyPoolId,
+            proxyPool,
+
+            connectionProxyEnabled: false,
+            connectionProxyUrl: "",
+            connectionNoProxy: noProxy,
+
+            strictProxy: proxyPool.strictProxy === true,
+
+            vercelRelayUrl: proxyUrl,
+          };
+        }
+
+        return {
+          source: "pool",
+
+          proxyPoolId,
+          proxyPool,
+
+          connectionProxyEnabled: true,
+          connectionProxyUrl: proxyUrl,
+          connectionNoProxy: noProxy,
+
+          strictProxy: proxyPool.strictProxy === true,
+        };
+      }
+    }
+
+    if (
+      legacy.connectionProxyEnabled &&
+      legacy.connectionProxyUrl
+    ) {
+      return {
+        source: "legacy",
+
+        proxyPoolId: proxyPoolId || null,
+        proxyPool: null,
+
+        ...legacy,
+      };
+    }
+
+    return {
+      source: "none",
+
+      proxyPoolId: proxyPoolId || null,
+      proxyPool: null,
+
+      ...legacy,
+    };
+  } catch (error) {
+    console.error(
+      "[resolveConnectionProxyConfig] Failed to resolve proxy config:",
+      error
+    );
+
+    return {
+      source: "error",
+
+      proxyPoolId: null,
+      proxyPool: null,
+
+      connectionProxyEnabled: false,
+      connectionProxyUrl: "",
+      connectionNoProxy: "",
+
+      strictProxy: false,
+    };
+  }
+}

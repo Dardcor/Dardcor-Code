@@ -1,0 +1,10 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+const cmdDelayedExpansionRegex = /![^!\r\n]+!/;
+
+export function containsCmdDelayedExpansion(value: string): boolean {
+	return cmdDelayedExpansionRegex.test(value);
+}

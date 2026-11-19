@@ -1,0 +1,1124 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import * as dom from '../../../../../../base/browser/dom.js';
+import { StandardKeyboardEvent } from '../../../../../../base/browser/keyboardEvent.js';
+import { status } from '../../../../../../base/browser/ui/aria/aria.js';
+import { Button, ButtonWithDropdown, IButton } from '../../../../../../base/browser/ui/button/button.js';
+import { DomScrollableElement } from '../../../../../../base/browser/ui/scrollbar/scrollableElement.js';
+import { Action, Separator } from '../../../../../../base/common/actions.js';
+import { Codicon } from '../../../../../../base/common/codicons.js';
+import { Emitter, Event } from '../../../../../../base/common/event.js';
+import { MarkdownString } from '../../../../../../base/common/htmlContent.js';
+import { KeyCode } from '../../../../../../base/common/keyCodes.js';
+import { Disposable, DisposableStore, MutableDisposable } from '../../../../../../base/common/lifecycle.js';
+import { ScrollbarVisibility } from '../../../../../../base/common/scrollable.js';
+import Severity from '../../../../../../base/common/severity.js';
+import { basename, isEqual, joinPath } from '../../../../../../base/common/resources.js';
+import { ThemeIcon } from '../../../../../../base/common/themables.js';
+import { URI } from '../../../../../../base/common/uri.js';
+import { generateUuid } from '../../../../../../base/common/uuid.js';
+import { VSBuffer } from '../../../../../../base/common/buffer.js';
+import { Schemas } from '../../../../../../base/common/network.js';
+import { ITextModel } from '../../../../../../editor/common/model.js';
+import { IModelService } from '../../../../../../editor/common/services/model.js';
+import { localize } from '../../../../../../nls.js';
+import { IContextMenuService } from '../../../../../../platform/contextview/browser/contextView.js';
+import { IDialogService } from '../../../../../../platform/dialogs/common/dialogs.js';
+import { FileChangeType, IFileService } from '../../../../../../platform/files/common/files.js';
+import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
+import { CHAT_CARD_LARGE_CLASS, chatCardButtonStyles } from '../chatCard.js';
+import { IMarkdownRendererService } from '../../../../../../platform/markdown/browser/markdownRenderer.js';
+import { defaultButtonStyles } from '../../../../../../platform/theme/browser/defaultStyles.js';
+import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
+import { IEditorService } from '../../../../../services/editor/common/editorService.js';
+import { IAgentEditorCommentsBridge } from '../../../../../services/agentEditorComments/common/agentEditorComments.js';
+import { ITextFileService } from '../../../../../services/textfile/common/textfiles.js';
+import { IChatPlanApprovalAction, IChatPlanReview, IChatPlanReviewResult } from '../../../common/chatService/chatService.js';
+import { IPlanReviewFeedbackItem, IPlanReviewFeedbackService } from '../../planReviewFeedback/planReviewFeedbackService.js';
+import { ChatPlanReviewData } from '../../../common/model/chatProgressTypes/chatPlanReviewData.js';
+import { IChatRendererContent, isResponseVM } from '../../../common/model/chatViewModel.js';
+import { ChatTreeItem } from '../../chat.js';
+import { IChatContentPart, IChatContentPartRenderContext } from './chatContentParts.js';
+import { ChatCollapsibleContentPart } from './chatCollapsibleContentPart.js';
+import { getChatMarkdownRenderOptions } from '../chatContentMarkdownRenderer.js';
+import './media/chatPlanReview.css';
+
+function extractPlanSummarySnippet(content: string, maxLength: number = 280): string {
+	if (!content) {
+		return '';
+	}
+	const lines = content.split(/\r?\n/);
+	const textLines: string[] = [];
+	for (const rawLine of lines) {
+		const line = rawLine.trim();
+		if (!line) {
+			continue;
+		}
+		if (line.startsWith('#')) {
+			continue;
+		}
+		if (line.startsWith('---') || line.startsWith('===') || line.startsWith('***')) {
+			continue;
+		}
+		if (line.startsWith('<!--') || line.startsWith('```')) {
+			continue;
+		}
+		const cleaned = line
+			.replace(/^[*-+]\s+/, '')
+			.replace(/^\d+\.\s+/, '')
+			.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+			.replace(/[*_`~]/g, '')
+			.trim();
+		if (cleaned.length > 0) {
+			textLines.push(cleaned);
+			if (textLines.join(' ').length >= maxLength) {
+				break;
+			}
+		}
+	}
+	const joined = textLines.join(' ');
+	if (joined.length <= maxLength) {
+		return joined;
+	}
+	return joined.slice(0, maxLength).trimEnd() + '...';
+}
+
+export interface IChatPlanReviewPartOptions {
+	onSubmit: (result: IChatPlanReviewResult) => void;
+}
+
+export class ChatPlanReviewPart extends Disposable implements IChatContentPart {
+	public readonly domNode: HTMLElement;
+
+	private readonly _onDidChangeHeight = this._register(new Emitter<void>());
+	public readonly onDidChangeHeight: Event<void> = this._onDidChangeHeight.event;
+
+	private readonly _buttonStore = this._register(new DisposableStore());
+	private _submitButton: Button | undefined;
+	private _approveButton: IButton | undefined;
+	private _renderedSubmitInlineCount = -1;
+	private readonly _messageContentDisposables = this._register(new MutableDisposable<DisposableStore>());
+	private readonly _planChangeListeners = this._register(new DisposableStore());
+
+	private readonly _titleActionsEl: HTMLElement;
+	private readonly _outdatedBadgeEl: HTMLElement;
+	private readonly _inlineActionsEl: HTMLElement;
+	private readonly _footerButtonsEl: HTMLElement;
+	private readonly _messageEl: HTMLElement;
+	private readonly _summarySnippetEl: HTMLElement;
+	private readonly _messageScrollable: DomScrollableElement;
+	private readonly _collapseButton: Button;
+	private _reviewButton: Button | undefined;
+
+	private _isCollapsed = false;
+	private _isSubmitted = false;
+	private _isSubmitting = false;
+	private _selectedAction: IChatPlanApprovalAction;
+	private _feedbackTextarea: HTMLTextAreaElement | undefined;
+	private _feedbackSection: HTMLElement | undefined;
+	private _commentsListEl: HTMLElement | undefined;
+	private _commentsListScrollable: DomScrollableElement | undefined;
+	private _clearAllButtonEl: HTMLElement | undefined;
+	private _isFeedbackMode = false;
+	private readonly _planReviewRegistration = this._register(new MutableDisposable());
+	private readonly _commentRowDisposables = this._register(new DisposableStore());
+
+	constructor(
+		public readonly review: IChatPlanReview,
+		context: IChatContentPartRenderContext,
+		private readonly _options: IChatPlanReviewPartOptions,
+		@IMarkdownRendererService private readonly _markdownRendererService: IMarkdownRendererService,
+		@IContextMenuService private readonly _contextMenuService: IContextMenuService,
+		@IDialogService private readonly _dialogService: IDialogService,
+		@IEditorService private readonly _editorService: IEditorService,
+		@IHoverService private readonly _hoverService: IHoverService,
+		@IPlanReviewFeedbackService private readonly _planReviewFeedbackService: IPlanReviewFeedbackService,
+		@IAgentEditorCommentsBridge private readonly _agentEditorCommentsBridge: IAgentEditorCommentsBridge,
+		@ITextFileService private readonly _textFileService: ITextFileService,
+		@IModelService private readonly _modelService: IModelService,
+		@IFileService private readonly _fileService: IFileService,
+		@ICommandService private readonly _commandService: ICommandService,
+	) {
+		super();
+
+		this._selectedAction = review.actions.find(a => a.default) ?? review.actions[0];
+
+		const isResponseComplete = isResponseVM(context.element) && context.element.isComplete;
+		this._isSubmitted = !!review.isUsed || isResponseComplete;
+
+		if (review instanceof ChatPlanReviewData && typeof review.draftCollapsed === 'boolean') {
+			this._isCollapsed = review.draftCollapsed;
+		} else if (this._isSubmitted) {
+			this._isCollapsed = true;
+		} else {
+			this._isCollapsed = false;
+		}
+
+		if (review instanceof ChatPlanReviewData) {
+			this._register(review.onDidDismiss(() => {
+				if (this.updatePlanContentFromModel()) {
+					this.updateSummarySnippet();
+					this.renderMarkdown();
+				}
+				this._isSubmitted = true;
+				void this.markUsed();
+			}));
+		}
+
+		if (review.planUri && review.canProvideFeedback && !this._isSubmitted) {
+			const planUri = URI.revive(review.planUri);
+			const planUriString = planUri.toString();
+			const registrationStore = new DisposableStore();
+			registrationStore.add(this._planReviewFeedbackService.registerPlanReview(planUri, {
+				sessionResource: context.element.sessionResource,
+				actions: review.actions,
+				hasOverallFeedback: () => !!this._feedbackTextarea?.value.trim(),
+				submitFeedback: () => this.submitFeedback(),
+				submitAction: action => this.submitApproval(action),
+				reject: () => this.submitRejection(),
+			}));
+			registrationStore.add(this._planReviewFeedbackService.onDidChangeFeedback(uri => {
+				if (uri.toString() === planUriString) {
+					this.onInlineFeedbackChanged();
+				}
+			}));
+			registrationStore.add(this._agentEditorCommentsBridge.onDidChangeComments(() => this.onInlineFeedbackChanged()));
+			this._planReviewRegistration.value = registrationStore;
+		}
+
+		const elements = dom.h('.chat-confirmation-widget-container.chat-plan-review-container@container', [
+			dom.h(`.chat-confirmation-widget2.chat-plan-review.${CHAT_CARD_LARGE_CLASS}@root`, [
+				dom.h('.chat-confirmation-widget-title.chat-plan-review-title@title', [
+					dom.h('.chat-plan-review-title-content@titleContent', [
+						dom.h('span.chat-plan-review-title-icon@titleIcon'),
+						dom.h('.chat-plan-review-title-label@titleLabel'),
+						dom.h('span.chat-plan-review-outdated@outdatedBadge'),
+					]),
+					dom.h('.chat-plan-review-inline-actions@inlineActions'),
+					dom.h('.chat-plan-review-title-actions@titleActions'),
+				]),
+				dom.h('.chat-plan-review-summary-snippet@summarySnippet'),
+				dom.h('.chat-confirmation-widget-message.chat-plan-review-body@message'),
+				dom.h('.chat-plan-review-feedback@feedback'),
+				dom.h('.chat-confirmation-widget-buttons.chat-plan-review-footer', [
+					dom.h('.chat-buttons@footerButtons'),
+				]),
+			]),
+		]);
+
+		this.domNode = elements.container;
+		this.domNode.id = generateUuid();
+		this.domNode.setAttribute('role', 'region');
+		this.domNode.setAttribute('aria-label', localize('chat.planReview.ariaLabel', 'Plan review: {0}', review.title));
+
+		this._titleActionsEl = elements.titleActions;
+		this._outdatedBadgeEl = elements.outdatedBadge;
+		this._inlineActionsEl = elements.inlineActions;
+		this._footerButtonsEl = elements.footerButtons;
+		this._messageEl = elements.message;
+		this._summarySnippetEl = elements.summarySnippet;
+
+		elements.titleIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.fileText));
+		elements.titleLabel.textContent = review.title;
+		this._register(this._hoverService.setupDelayedHover(elements.titleLabel, { content: review.title }));
+
+		this.updateSummarySnippet();
+
+		const handleOpenPlan = (e: MouseEvent) => {
+			e.stopPropagation();
+			void this.openPlanEditor();
+		};
+
+		this._register(dom.addDisposableListener(elements.titleContent, dom.EventType.CLICK, handleOpenPlan));
+		this._register(dom.addDisposableListener(elements.summarySnippet, dom.EventType.CLICK, handleOpenPlan));
+		this._register(dom.addDisposableListener(elements.message, dom.EventType.CLICK, (e) => {
+			if ((e.target as HTMLElement)?.tagName === 'A' || (e.target as HTMLElement)?.tagName === 'BUTTON') {
+				return;
+			}
+			handleOpenPlan(e);
+		}));
+
+		const openPlanTooltip = localize('chat.planReview.openPlanTooltip', 'Open Plan in Editor');
+		this._register(this._hoverService.setupDelayedHover(elements.summarySnippet, { content: openPlanTooltip }));
+		this._register(this._hoverService.setupDelayedHover(elements.titleContent, { content: openPlanTooltip }));
+
+		this._outdatedBadgeEl.textContent = localize('chat.planReview.outdated', 'Outdated');
+		this._outdatedBadgeEl.setAttribute('aria-label', localize('chat.planReview.outdatedAriaLabel', 'Plan summary is outdated'));
+		if (!review.isOutdated) {
+			dom.hide(this._outdatedBadgeEl);
+		}
+		this.watchPlanChanges();
+
+		const openInEditorTooltip = localize('chat.planReview.openInEditorTooltip', 'Buka di Editor');
+		const openInEditorButton = this._register(new Button(this._titleActionsEl, { ...chatCardButtonStyles, secondary: true, supportIcons: true, title: openInEditorTooltip, ariaLabel: openInEditorTooltip }));
+		openInEditorButton.element.classList.add('chat-card-icon-button', 'chat-card-icon-button-padded', 'chat-plan-review-title-button', 'chat-plan-review-open-editor-button');
+		openInEditorButton.label = `$(${Codicon.linkExternal.id})`;
+		this._register(openInEditorButton.onDidClick(() => void this.openPlanEditor()));
+
+		if (review.planUri) {
+			const fileName = basename(URI.revive(review.planUri));
+			const reviewButtonTooltip = review.canProvideFeedback
+				? localize('chat.planReview.reviewTooltip', 'Review {0}', fileName)
+				: localize('chat.planReview.openTooltip', 'Open {0}', fileName);
+			const reviewButton = this._register(new Button(this._titleActionsEl, { ...chatCardButtonStyles, secondary: true, supportIcons: true, title: reviewButtonTooltip, ariaLabel: reviewButtonTooltip }));
+			reviewButton.element.classList.add('chat-card-icon-button', 'chat-card-icon-button-padded', 'chat-plan-review-title-button', 'chat-plan-review-review-button');
+			this._reviewButton = reviewButton;
+			this._register(reviewButton.onDidClick(() => void this.enterReviewMode()));
+		}
+
+		this._collapseButton = this._register(new Button(this._titleActionsEl, { ...chatCardButtonStyles, secondary: true, supportIcons: true }));
+		this._collapseButton.element.classList.add('chat-card-icon-button', 'chat-card-icon-button-padded', 'chat-plan-review-title-button', 'chat-plan-review-title-icon-button');
+		this._register(this._collapseButton.onDidClick(() => this.toggleCollapsed()));
+
+		const messageParent = this._messageEl.parentElement!;
+		const messageNextSibling = this._messageEl.nextSibling;
+		this._messageScrollable = this._register(new DomScrollableElement(this._messageEl, {
+			vertical: ScrollbarVisibility.Auto,
+			horizontal: ScrollbarVisibility.Hidden,
+			consumeMouseWheelIfScrollbarIsNeeded: true,
+		}));
+		this._messageScrollable.getDomNode().classList.add('chat-confirmation-widget-message-scrollable', 'chat-plan-review-body-scrollable');
+		messageParent.insertBefore(this._messageScrollable.getDomNode(), messageNextSibling);
+		const resizeObserver = this._register(new dom.DisposableResizeObserver('ChatPlanReviewPart.messageScrollable', () => this._messageScrollable.scanDomNode()));
+		this._register(resizeObserver.observe(this._messageScrollable.getDomNode()));
+
+		this.renderMarkdown();
+
+		if (review.canProvideFeedback) {
+			this.renderFeedback(elements.feedback);
+			this._feedbackSection = elements.feedback;
+			if (review.planUri) {
+				dom.hide(elements.feedback);
+			} else {
+				this.domNode.classList.add('chat-plan-review-textarea-mode');
+			}
+		} else {
+			dom.hide(elements.feedback);
+		}
+
+		this.renderActionButtons(
+			this._isCollapsed ? this._inlineActionsEl : this._footerButtonsEl,
+			{ includeReject: !this._isCollapsed },
+		);
+
+		this.updateCollapsedPresentation();
+
+		if (this._isSubmitted) {
+			this.domNode.classList.add('chat-plan-review-used');
+		}
+
+		if (this._feedbackTextarea && review instanceof ChatPlanReviewData && review.draftFeedback) {
+			this._feedbackTextarea.value = review.draftFeedback;
+			this._feedbackTextarea.style.height = 'auto';
+			this._feedbackTextarea.style.height = `${this._feedbackTextarea.scrollHeight}px`;
+		}
+
+		if (!this._isSubmitted && this.getInlineFeedbackItems().length > 0) {
+			void this.enterFeedbackMode({ focus: false });
+		}
+	}
+
+	private watchPlanChanges(): void {
+		if (!this.review.planUri || this.review.isOutdated) {
+			return;
+		}
+
+		const planUri = URI.revive(this.review.planUri);
+		const modelListener = this._planChangeListeners.add(new MutableDisposable());
+		const watchModel = (model: ITextModel) => {
+			if (isEqual(model.uri, planUri)) {
+				modelListener.value = model.onDidChangeContent(() => this.markOutdated());
+			}
+		};
+
+		const model = this._modelService.getModel(planUri);
+		if (model) {
+			watchModel(model);
+		}
+		this._planChangeListeners.add(this._modelService.onModelAdded(watchModel));
+		const watcher = this._planChangeListeners.add(this._fileService.createWatcher(planUri, { recursive: false, excludes: [] }));
+		this._planChangeListeners.add(watcher.onDidChange(event => {
+			if (event.contains(planUri, FileChangeType.DELETED) || (!this._modelService.getModel(planUri) && event.contains(planUri, FileChangeType.ADDED, FileChangeType.UPDATED))) {
+				this.markOutdated();
+			}
+		}));
+	}
+
+	private markOutdated(): void {
+		if (this.review.isOutdated) {
+			return;
+		}
+
+		this.review.isOutdated = true;
+		dom.show(this._outdatedBadgeEl);
+		this._planChangeListeners.clear();
+		status(localize('chat.planReview.outdatedAnnouncement', 'Plan summary is outdated'));
+	}
+
+	hasSameContent(other: IChatRendererContent, _followingContent: IChatRendererContent[], _element: ChatTreeItem): boolean {
+		if (other.kind !== 'planReview') {
+			return false;
+		}
+		if (!!other.isUsed !== !!this.review.isUsed) {
+			return false;
+		}
+		if (this.review.resolveId && other.resolveId) {
+			return this.review.resolveId === other.resolveId;
+		}
+		return other === this.review;
+	}
+
+	private renderMarkdown(): void {
+		dom.clearNode(this._messageEl);
+		const store = new DisposableStore();
+		this._messageContentDisposables.value = store;
+		const rendered = store.add(this._markdownRendererService.render(
+			new MarkdownString(this.review.content, { supportThemeIcons: true, isTrusted: false }),
+			getChatMarkdownRenderOptions({
+				asyncRenderCallback: () => {
+					this._messageScrollable.scanDomNode();
+					this._onDidChangeHeight.fire();
+				}
+			})
+		));
+		this._messageEl.append(rendered.element);
+		this._messageScrollable.scanDomNode();
+		this._onDidChangeHeight.fire();
+	}
+
+	private renderFeedback(section: HTMLElement): void {
+		dom.clearNode(section);
+		const header = dom.append(section, dom.$('.chat-plan-review-feedback-header'));
+		const label = dom.append(header, dom.$('.chat-plan-review-feedback-label'));
+		label.textContent = localize('chat.planReview.feedbackLabel', 'Feedback');
+
+		const headerActions = dom.append(header, dom.$('.chat-plan-review-feedback-header-actions'));
+
+		if (this.review.planUri) {
+			const clearAllLabel = localize('chat.planReview.clearAll', "Clear All");
+			const clearAllButton = this._register(new Button(headerActions, { ...chatCardButtonStyles, secondary: true, supportIcons: true, title: clearAllLabel, ariaLabel: clearAllLabel }));
+			clearAllButton.element.classList.add('chat-card-icon-button', 'chat-card-icon-button-padded', 'chat-plan-review-title-button', 'chat-plan-review-feedback-clear-all');
+			clearAllButton.label = clearAllLabel;
+			this._register(clearAllButton.onDidClick(() => this.clearAllInlineFeedback()));
+			this._clearAllButtonEl = clearAllButton.element;
+		}
+
+		if (this.review.planUri) {
+			const closeButtonLabel = localize('chat.planReview.close', "Close");
+			const closeButton = this._register(new Button(headerActions, { ...chatCardButtonStyles, secondary: true, supportIcons: true, title: closeButtonLabel, ariaLabel: closeButtonLabel }));
+			closeButton.element.classList.add('chat-card-icon-button', 'chat-card-icon-button-padded', 'chat-plan-review-title-button', 'chat-plan-review-title-icon-button', 'chat-plan-review-feedback-close');
+			closeButton.label = `$(${Codicon.closeSmall.id})`;
+			this._register(closeButton.onDidClick(() => this.exitFeedbackMode()));
+		}
+
+		this._commentsListEl = dom.$('.chat-plan-review-comments-list');
+		this._commentsListScrollable = this._register(new DomScrollableElement(this._commentsListEl, {
+			vertical: ScrollbarVisibility.Auto,
+			horizontal: ScrollbarVisibility.Hidden,
+			consumeMouseWheelIfScrollbarIsNeeded: true,
+		}));
+		this._commentsListScrollable.getDomNode().classList.add('chat-plan-review-comments-list-scrollable');
+		dom.append(section, this._commentsListScrollable.getDomNode());
+		dom.hide(this._commentsListScrollable.getDomNode());
+		this.renderCommentsList();
+
+		const textarea = dom.append(section, dom.$<HTMLTextAreaElement>('textarea.chat-plan-review-feedback-textarea'));
+		textarea.rows = 1;
+		textarea.placeholder = localize('chat.planReview.feedbackPlaceholder', 'Add an overall comment for the agent...');
+		this._feedbackTextarea = textarea;
+
+		const autoResize = () => {
+			textarea.style.height = 'auto';
+			textarea.style.height = `${textarea.scrollHeight}px`;
+			this._onDidChangeHeight.fire();
+		};
+
+		this._register(dom.addDisposableListener(textarea, dom.EventType.INPUT, () => {
+			autoResize();
+			this._messageScrollable.scanDomNode();
+			if (this.review instanceof ChatPlanReviewData) {
+				this.review.draftFeedback = textarea.value;
+			}
+			if (this.review.planUri) {
+				this._planReviewFeedbackService.notifyFeedbackChanged(URI.revive(this.review.planUri));
+			}
+			this.updateFeedbackActionButtonState();
+		}));
+
+		if (this.review.planUri) {
+			this._register(dom.addDisposableListener(textarea, dom.EventType.KEY_DOWN, (e: KeyboardEvent) => {
+				const ev = new StandardKeyboardEvent(e);
+				if (ev.keyCode === KeyCode.Enter && !ev.shiftKey) {
+					e.preventDefault();
+					e.stopPropagation();
+					void this.submitFeedback();
+				}
+			}));
+		}
+	}
+
+	private renderCommentsList(): void {
+		if (!this._commentsListEl) {
+			return;
+		}
+		this._commentRowDisposables.clear();
+		dom.clearNode(this._commentsListEl);
+
+		const items = this.getInlineFeedbackItems();
+		if (this._clearAllButtonEl) {
+			if (items.length > 0) {
+				dom.show(this._clearAllButtonEl);
+			} else {
+				dom.hide(this._clearAllButtonEl);
+			}
+		}
+		const scrollableNode = this._commentsListScrollable?.getDomNode();
+		if (items.length === 0) {
+			if (scrollableNode) {
+				dom.hide(scrollableNode);
+			}
+			this._commentsListScrollable?.scanDomNode();
+			return;
+		}
+		if (scrollableNode) {
+			dom.show(scrollableNode);
+		}
+
+		for (const item of items) {
+			const row = dom.append(this._commentsListEl, dom.$('.chat-plan-review-comment-row'));
+			const rowLabel = localize('chat.planReview.commentRowAriaLabel', 'Line {0}: {1}', item.line, item.text);
+
+			const revealButton = dom.append(row, dom.$<HTMLButtonElement>('button.chat-plan-review-comment-reveal'));
+			revealButton.type = 'button';
+			revealButton.setAttribute('aria-label', rowLabel);
+
+			const lineEl = dom.append(revealButton, dom.$('span.chat-plan-review-comment-line'));
+			lineEl.textContent = localize('chat.planReview.commentRowLine', 'Line {0}', item.line);
+
+			const textEl = dom.append(revealButton, dom.$('span.chat-plan-review-comment-text'));
+			textEl.textContent = item.text;
+
+			this._commentRowDisposables.add(dom.addDisposableListener(revealButton, dom.EventType.CLICK, () => {
+				this.revealInlineComment(item);
+			}));
+
+			const removeLabel = localize('chat.planReview.removeComment', "Remove comment on line {0}", item.line);
+			const removeButton = dom.append(row, dom.$<HTMLButtonElement>('button.chat-plan-review-comment-remove'));
+			removeButton.type = 'button';
+			removeButton.setAttribute('aria-label', removeLabel);
+			removeButton.title = removeLabel;
+			removeButton.classList.add(...ThemeIcon.asClassNameArray(Codicon.closeSmall));
+
+			this._commentRowDisposables.add(dom.addDisposableListener(removeButton, dom.EventType.CLICK, e => {
+				e.stopPropagation();
+				this.removeInlineComment(item.id);
+			}));
+		}
+		this._commentsListScrollable?.scanDomNode();
+	}
+
+	private getInlineFeedbackItems(): readonly IPlanReviewFeedbackItem[] {
+		return this.review.planUri
+			? this._planReviewFeedbackService.getFeedback(URI.revive(this.review.planUri))
+			: [];
+	}
+
+	private async revealInlineComment(item: IPlanReviewFeedbackItem): Promise<void> {
+		const planUri = this.review.planUri ? URI.revive(this.review.planUri) : undefined;
+		if (!planUri) {
+			return;
+		}
+		this._planReviewFeedbackService.setNavigationAnchor(planUri, item.id);
+		await this._editorService.openEditor({
+			resource: item.resource,
+			options: {
+				pinned: true,
+				selection: { startLineNumber: item.line, startColumn: item.column },
+			},
+		});
+	}
+
+	private removeInlineComment(itemId: string): void {
+		if (this._isSubmitted) {
+			return;
+		}
+		if (this.review.planUri) {
+			this._planReviewFeedbackService.removeFeedback(URI.revive(this.review.planUri), itemId);
+		}
+	}
+
+	private async clearAllInlineFeedback(): Promise<void> {
+		if (this._isSubmitted) {
+			return;
+		}
+		const items = this.getInlineFeedbackItems();
+		if (items.length === 0) {
+			return;
+		}
+		const result = await this._dialogService.confirm({
+			type: Severity.Warning,
+			message: localize('chat.planReview.clearAllConfirm', 'Clear {0} inline comment(s)?', items.length),
+			detail: localize('chat.planReview.clearAllDetail', 'These comments will be removed from the plan file and not sent to the agent.'),
+			primaryButton: localize('chat.planReview.clearAllConfirmPrimary', 'Clear All'),
+		});
+		if (!result.confirmed) {
+			return;
+		}
+		if (this.review.planUri) {
+			this._planReviewFeedbackService.clearFeedback(URI.revive(this.review.planUri));
+		}
+	}
+
+	private onInlineFeedbackChanged(): void {
+		if (this._isSubmitted) {
+			return;
+		}
+		const items = this.getInlineFeedbackItems();
+
+		if (items.length > 0 && !this._isFeedbackMode) {
+			void this.enterFeedbackMode({ focus: false });
+			return;
+		}
+
+		this.renderCommentsList();
+		this.updateFeedbackActionButtonState();
+		this._messageScrollable.scanDomNode();
+		this._onDidChangeHeight.fire();
+	}
+
+	private renderCurrentActionButtons(): void {
+		if (this._isSubmitted) {
+			return;
+		}
+		const target = this._isCollapsed ? this._inlineActionsEl : this._footerButtonsEl;
+		const other = this._isCollapsed ? this._footerButtonsEl : this._inlineActionsEl;
+		dom.clearNode(other);
+		this.renderActionButtons(target, { includeReject: !this._isCollapsed });
+	}
+
+	private renderActionButtons(container: HTMLElement, options?: { includeReject?: boolean }): void {
+		const includeReject = options?.includeReject ?? true;
+		this._buttonStore.clear();
+		this._submitButton = undefined;
+		this._approveButton = undefined;
+		this._renderedSubmitInlineCount = -1;
+		dom.clearNode(container);
+
+		if (this._isFeedbackMode) {
+			const inlineCount = this.getInlineFeedbackItems().length;
+			const submitButton = new Button(container, { ...defaultButtonStyles, supportIcons: true });
+			submitButton.label = this.computeSubmitLabel(inlineCount);
+			submitButton.enabled = this.canSubmitFeedback();
+			this._submitButton = submitButton;
+			this._renderedSubmitInlineCount = inlineCount;
+			this._buttonStore.add(submitButton);
+			this._buttonStore.add(submitButton.onDidClick(() => void this.submitFeedback()));
+		}
+
+		const primary = this._selectedAction;
+		const moreActions = this.review.actions.filter(a => a !== primary);
+
+		let approveButton: IButton;
+		if (moreActions.length > 0) {
+			approveButton = new ButtonWithDropdown(container, {
+				...defaultButtonStyles,
+				supportIcons: true,
+				secondary: this._isFeedbackMode,
+				contextMenuProvider: this._contextMenuService,
+				addPrimaryActionToDropdown: false,
+				actions: moreActions.map(action => {
+					const button = new Action(
+						action.label,
+						action.label,
+						undefined,
+						true,
+						() => {
+							this.submitApproval(action);
+							return Promise.resolve();
+						},
+					);
+					button.tooltip = action.description || '';
+					return this._buttonStore.add(button);
+				}) as (Action | Separator)[],
+			});
+		} else {
+			approveButton = new Button(container, { ...defaultButtonStyles, secondary: this._isFeedbackMode, supportIcons: true });
+		}
+		this._buttonStore.add(approveButton);
+		this._approveButton = approveButton;
+		approveButton.label = primary.label;
+		if (primary.description) {
+			approveButton.element.title = primary.description;
+		}
+		approveButton.enabled = !this.review.planUri || !this.canSubmitFeedback();
+		this._buttonStore.add(approveButton.onDidClick(() => this.submitApproval(primary)));
+
+		if (includeReject) {
+			const rejectButton = new Button(container, { ...defaultButtonStyles, secondary: true });
+			rejectButton.label = localize('chat.planReview.reject', 'Reject');
+			this._buttonStore.add(rejectButton);
+			this._buttonStore.add(rejectButton.onDidClick(() => this.submitRejection()));
+		}
+	}
+
+	private canSubmitFeedback(): boolean {
+		const textareaText = this._feedbackTextarea?.value.trim() ?? '';
+		if (textareaText) {
+			return true;
+		}
+		return this.getInlineFeedbackItems().length > 0;
+	}
+
+	private computeSubmitLabel(inlineCount: number): string {
+		return inlineCount > 0
+			? localize('chat.planReview.submitFeedbackWithCount', 'Submit Feedback ({0})', inlineCount)
+			: localize('chat.planReview.submitFeedback', 'Submit Feedback');
+	}
+
+	private updateFeedbackActionButtonState(): void {
+		const canSubmitFeedback = this.canSubmitFeedback();
+		if (this._submitButton) {
+			this._submitButton.enabled = canSubmitFeedback;
+		}
+		if (this._approveButton) {
+			this._approveButton.enabled = !this.review.planUri || !canSubmitFeedback;
+		}
+		const inlineCount = this.getInlineFeedbackItems().length;
+		if (this._submitButton && inlineCount !== this._renderedSubmitInlineCount) {
+			this._submitButton.label = this.computeSubmitLabel(inlineCount);
+			this._renderedSubmitInlineCount = inlineCount;
+		}
+	}
+
+	private toggleCollapsed(): void {
+		this.domNode.dispatchEvent(new CustomEvent(ChatCollapsibleContentPart.userToggleEvent, { bubbles: true }));
+		this._isCollapsed = !this._isCollapsed;
+		if (this.review instanceof ChatPlanReviewData) {
+			this.review.draftCollapsed = this._isCollapsed;
+		}
+		this.updateCollapsedPresentation();
+		if (!this._isCollapsed) {
+			if (!this._messageEl.firstElementChild) {
+				this.renderMarkdown();
+			} else {
+				this._messageScrollable.scanDomNode();
+			}
+		}
+		this._onDidChangeHeight.fire();
+	}
+
+	private updateCollapsedPresentation(): void {
+		this.domNode.classList.toggle('chat-plan-review-collapsed', this._isCollapsed);
+		this._collapseButton.label = this._isCollapsed
+			? `$(${Codicon.chevronDown.id})`
+			: `$(${Codicon.chevronUp.id})`;
+		const collapseTooltip = this._isCollapsed
+			? localize('chat.planReview.expand', 'Expand')
+			: localize('chat.planReview.collapse', 'Collapse');
+		this._collapseButton.element.setAttribute('aria-label', collapseTooltip);
+		this._collapseButton.element.setAttribute('aria-expanded', String(!this._isCollapsed));
+		this._collapseButton.setTitle(collapseTooltip);
+
+		if (this._reviewButton) {
+			const isIconOnly = this._isCollapsed;
+			this._reviewButton.element.classList.toggle('chat-plan-review-title-icon-button', isIconOnly);
+			let label: string;
+			let tooltip: string;
+			if (isIconOnly) {
+				label = `$(${Codicon.edit.id})`;
+				const fileName = this.review.planUri ? basename(URI.revive(this.review.planUri)) : '';
+				tooltip = this.review.canProvideFeedback
+					? localize('chat.planReview.reviewTooltip', 'Review {0}', fileName)
+					: localize('chat.planReview.openTooltip', 'Open {0}', fileName);
+			} else {
+				const fileName = this.review.planUri ? basename(URI.revive(this.review.planUri)) : '';
+				if (this.review.canProvideFeedback) {
+					label = localize('chat.planReview.reviewButtonLabel', "Open Full Plan");
+					tooltip = localize('chat.planReview.reviewTooltip', 'Review {0}', fileName);
+				} else {
+					label = localize('chat.planReview.openButtonLabel', "Open Plan");
+					tooltip = localize('chat.planReview.openTooltip', 'Open {0}', fileName);
+				}
+			}
+			this._reviewButton.label = label;
+			this._reviewButton.element.setAttribute('aria-label', tooltip);
+			this._reviewButton.setTitle(tooltip);
+		}
+
+		this.renderCurrentActionButtons();
+	}
+
+
+	private async ensureFileOnDisk(uri: URI): Promise<boolean> {
+		try {
+			const stat = await this._fileService.stat(uri);
+			return stat.size > 0;
+		} catch {
+			return false;
+		}
+	}
+
+	private async materializePlanDocument(): Promise<URI> {
+		const planContent = this.review.content || '# Implementation Plan\n\nNo plan details provided.';
+		const fullMarkdown = planContent.startsWith('#')
+			? planContent
+			: `# ${this.review.title || 'Implementation Plan'}\n\n${planContent}`;
+		const planBuffer = VSBuffer.fromString(fullMarkdown);
+		const planId = Date.now().toString(36);
+		const planFileName = `plan-${planId}.md`;
+
+		if (this.review.planUri) {
+			const targetUri = URI.revive(this.review.planUri);
+			try {
+				await this._fileService.writeFile(targetUri, planBuffer);
+				return targetUri;
+			} catch { }
+		}
+
+		try {
+			const homePath = process.env.USERPROFILE || process.env.HOME || 'C:\\';
+			const homeUri = URI.file(homePath);
+			const plansFolder = joinPath(homeUri, '.dardcor', 'memory', 'plans');
+			if (!await this._fileService.exists(plansFolder)) {
+				await this._fileService.createFolder(plansFolder);
+			}
+			const targetUri = joinPath(plansFolder, planFileName);
+			await this._fileService.writeFile(targetUri, planBuffer);
+			(this.review as any).planUri = targetUri;
+			return targetUri;
+		} catch { }
+
+		const untitledUri = URI.from({
+			scheme: Schemas.untitled,
+			path: `${(this.review.title || 'Implementation_Plan').replace(/[^a-zA-Z0-9_-]/g, '_')}.md`
+		});
+		const model = this._modelService.getModel(untitledUri) || this._modelService.createModel(fullMarkdown, null, untitledUri, false);
+		if (model && model.getValue() !== fullMarkdown) {
+			model.setValue(fullMarkdown);
+		}
+		(this.review as any).planUri = untitledUri;
+		return untitledUri;
+	}
+
+	private async openPlanEditor(planUri?: URI): Promise<void> {
+		let targetUri = planUri ? URI.revive(planUri) : (this.review.planUri ? URI.revive(this.review.planUri) : undefined);
+
+		if (targetUri) {
+			const MAX_WAIT = 1200;
+			const POLL_INTERVAL = 60;
+			let waited = 0;
+			while (waited < MAX_WAIT) {
+				if (await this.ensureFileOnDisk(targetUri)) {
+					break;
+				}
+				await new Promise<void>(r => setTimeout(r, POLL_INTERVAL));
+				waited += POLL_INTERVAL;
+			}
+		}
+
+		if (!targetUri || !await this.ensureFileOnDisk(targetUri)) {
+			targetUri = await this.materializePlanDocument();
+		}
+
+		try {
+			await this._editorService.openEditor({
+				resource: targetUri,
+				options: {
+					pinned: true,
+					preserveFocus: false,
+				},
+				label: this.review.title || 'Implementasi Plan'
+			});
+			return;
+		} catch {
+			try {
+				await this._commandService.executeCommand('vscode.open', targetUri);
+				return;
+			} catch {
+				try {
+					const untitledUri = URI.from({
+						scheme: Schemas.untitled,
+						path: `${(this.review.title || 'Implementation_Plan').replace(/[^a-zA-Z0-9_-]/g, '_')}.md`
+					});
+					const fullMarkdown = (this.review.content || '').startsWith('#') ? (this.review.content || '') : `# ${this.review.title || 'Implementation Plan'}\n\n${this.review.content || ''}`;
+					const model = this._modelService.getModel(untitledUri) || this._modelService.createModel(fullMarkdown, null, untitledUri, false);
+					if (model) {
+						model.setValue(fullMarkdown);
+					}
+					await this._editorService.openEditor({
+						resource: untitledUri,
+						options: {
+							pinned: true,
+							preserveFocus: false
+						}
+					});
+				} catch { }
+			}
+		}
+	}
+
+	private async enterReviewMode(): Promise<void> {
+		void this.openPlanEditor();
+		if (this._isCollapsed) {
+			this._isCollapsed = false;
+			if (this.review instanceof ChatPlanReviewData) {
+				this.review.draftCollapsed = false;
+			}
+			this.updateCollapsedPresentation();
+		}
+		if (this.review.canProvideFeedback && !this._isSubmitted) {
+			await this.enterFeedbackMode({ focus: true });
+		}
+	}
+
+	private async submitApproval(action: IChatPlanApprovalAction): Promise<void> {
+		if (this._isSubmitted || this._isSubmitting) {
+			return;
+		}
+		this._isSubmitting = true;
+		try {
+			if (action.permissionLevel === 'autopilot') {
+				const confirmed = await this.confirmAutopilot();
+				if (!confirmed) {
+					return;
+				}
+			}
+			if (this.review.planUri && !await this.savePlanFile()) {
+				return;
+			}
+			this._isSubmitted = true;
+			const ridesAlong = !this.review.planUri;
+			const textareaFeedback = ridesAlong ? this._feedbackTextarea?.value.trim() : undefined;
+			this._options.onSubmit({
+				action: action.label,
+				...(action.id ? { actionId: action.id } : {}),
+				rejected: false,
+				...(textareaFeedback ? { feedback: textareaFeedback, feedbackOverall: textareaFeedback } : {}),
+			});
+			void this.markUsed();
+		} finally {
+			if (!this._isSubmitted) {
+				this._isSubmitting = false;
+			}
+		}
+	}
+
+	private async submitRejection(): Promise<void> {
+		if (this._isSubmitted || this._isSubmitting) {
+			return;
+		}
+		this._isSubmitting = true;
+		try {
+			if (this.review.planUri && !await this.savePlanFile()) {
+				return;
+			}
+			this._isSubmitted = true;
+			const ridesAlong = !this.review.planUri;
+			const textareaFeedback = ridesAlong ? this._feedbackTextarea?.value.trim() : undefined;
+			this._options.onSubmit({
+				rejected: true,
+				...(textareaFeedback ? { feedback: textareaFeedback, feedbackOverall: textareaFeedback } : {}),
+			});
+			void this.markUsed();
+		} finally {
+			if (!this._isSubmitted) {
+				this._isSubmitting = false;
+			}
+		}
+	}
+
+	private async savePlanFile(): Promise<boolean> {
+		if (!this.review.planUri) {
+			return true;
+		}
+		const planUri = URI.revive(this.review.planUri);
+		if (this._textFileService.isDirty(planUri) && !await this._textFileService.save(planUri)) {
+			return false;
+		}
+		if (this.review instanceof ChatPlanReviewData) {
+			if (!this.updatePlanContentFromModel()) {
+				this.review.content = (await this._textFileService.read(planUri)).value;
+			}
+			this.updateSummarySnippet();
+			this.renderMarkdown();
+		}
+		return true;
+	}
+
+	private updatePlanContentFromModel(): boolean {
+		if (!(this.review instanceof ChatPlanReviewData) || !this.review.planUri) {
+			return false;
+		}
+		const model = this._textFileService.files.get(URI.revive(this.review.planUri));
+		if (!model?.isResolved()) {
+			return false;
+		}
+		this.review.content = model.textEditorModel.getValue();
+		return true;
+	}
+
+	private async enterFeedbackMode(options?: { focus?: boolean }): Promise<void> {
+		if (this._isFeedbackMode) {
+			if (this.review.planUri) {
+				await this.openPlanEditor(URI.revive(this.review.planUri));
+			} else if (options?.focus) {
+				this.focusFeedbackInput();
+			}
+			return;
+		}
+		this._isFeedbackMode = true;
+		if (this._feedbackSection) {
+			dom.show(this._feedbackSection);
+		}
+		this.domNode.classList.add('chat-plan-review-feedback-mode');
+		this.renderCommentsList();
+		this.updateCollapsedPresentation();
+		if (this.review.planUri) {
+			await this.openPlanEditor(URI.revive(this.review.planUri));
+		}
+		if (!this.review.planUri && options?.focus !== false) {
+			this.focusFeedbackInput();
+		}
+		this._messageScrollable.scanDomNode();
+		this._onDidChangeHeight.fire();
+	}
+
+	private async exitFeedbackMode(): Promise<void> {
+		if (!this._isFeedbackMode) {
+			return;
+		}
+
+		this._isFeedbackMode = false;
+		if (this._feedbackSection) {
+			dom.hide(this._feedbackSection);
+		}
+		this.domNode.classList.remove('chat-plan-review-feedback-mode');
+		this.updateCollapsedPresentation();
+		this._messageScrollable.scanDomNode();
+		this._onDidChangeHeight.fire();
+	}
+
+	private focusFeedbackInput(): void {
+		this._feedbackTextarea?.focus();
+	}
+
+	private async submitFeedback(): Promise<boolean> {
+		if (this._isSubmitted || this._isSubmitting) {
+			return false;
+		}
+		const textareaFeedback = this._feedbackTextarea?.value.trim();
+
+		const editorFeedbackItems = [...this.getInlineFeedbackItems()];
+
+		if (!textareaFeedback && editorFeedbackItems.length === 0) {
+			return false;
+		}
+		this._isSubmitting = true;
+		try {
+			if (!await this.savePlanFile()) {
+				return false;
+			}
+
+			let feedbackInlineMarkdown: string | undefined;
+			if (editorFeedbackItems.length > 0) {
+				const itemsByResource = new Map<string, IPlanReviewFeedbackItem[]>();
+				for (const item of editorFeedbackItems) {
+					const key = item.resource.toString();
+					const items = itemsByResource.get(key) ?? [];
+					items.push(item);
+					itemsByResource.set(key, items);
+				}
+				const sections = [...itemsByResource.values()].flatMap(items => [
+					localize('chat.planReview.inlineCommentsHeading', "Inline comments on `{0}`:", basename(items[0].resource)),
+					...items.map(item => {
+						const location = item.column > 1
+							? localize('chat.planReview.inlineCommentLocation', "Line {0}, Column {1}", item.line, item.column)
+							: localize('chat.planReview.inlineCommentLocationLine', "Line {0}", item.line);
+						return `- **${location}:** ${item.text}`;
+					}),
+				]);
+				feedbackInlineMarkdown = sections.join('\n');
+			}
+
+			const sections: string[] = [];
+			if (textareaFeedback) {
+				sections.push(textareaFeedback);
+			}
+			if (feedbackInlineMarkdown) {
+				sections.push(feedbackInlineMarkdown);
+			}
+
+			const feedback = sections.join('\n\n');
+			this._isSubmitted = true;
+			const planUri = this.review.planUri ? URI.revive(this.review.planUri) : undefined;
+			if (planUri) {
+				for (const item of editorFeedbackItems) {
+					this._planReviewFeedbackService.removeFeedback(planUri, item.id);
+				}
+			}
+			this._options.onSubmit({
+				rejected: false,
+				feedback,
+				feedbackOverall: textareaFeedback || undefined,
+				feedbackInlineMarkdown,
+			});
+			await this.markUsed();
+			return true;
+		} finally {
+			if (!this._isSubmitted) {
+				this._isSubmitting = false;
+			}
+		}
+	}
+
+	private async confirmAutopilot(): Promise<boolean> {
+		const result = await this._dialogService.prompt({
+			type: Severity.Warning,
+			message: localize('chat.planReview.autopilot.title', 'Enable Autopilot?'),
+			buttons: [
+				{
+					label: localize('chat.planReview.autopilot.confirm', 'Enable'),
+					run: () => true
+				},
+				{
+					label: localize('chat.planReview.autopilot.cancel', 'Cancel'),
+					run: () => false
+				},
+			],
+			custom: {
+				icon: Codicon.rocket,
+				markdownDetails: [{
+					markdown: new MarkdownString(localize('chat.planReview.autopilot.detail', 'Autopilot will auto-approve all tool calls and continue working autonomously until the task is complete. This includes terminal commands, file edits, and external tool calls. The agent will make decisions on your behalf without asking for confirmation.\n\nYou can stop the agent at any time by clicking the stop button. This applies to the current session only.')),
+				}],
+			},
+		});
+		return result.result === true;
+	}
+
+	private updateSummarySnippet(): void {
+		if (this._summarySnippetEl) {
+			this._summarySnippetEl.textContent = extractPlanSummarySnippet(this.review.content);
+		}
+	}
+
+	private async markUsed(): Promise<void> {
+		this.domNode.classList.add('chat-plan-review-used');
+		this._isCollapsed = true;
+		if (this.review instanceof ChatPlanReviewData) {
+			this.review.draftCollapsed = true;
+		}
+		this.updateCollapsedPresentation();
+		this._buttonStore.clear();
+		this._submitButton = undefined;
+		this._approveButton = undefined;
+		this._renderedSubmitInlineCount = -1;
+		this._planReviewRegistration.clear();
+		if (this._feedbackTextarea) {
+			this._feedbackTextarea.disabled = true;
+		}
+		this._onDidChangeHeight.fire();
+	}
+}

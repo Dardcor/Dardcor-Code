@@ -1,0 +1,424 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.interactive-session .interactive-response .value .chat-thinking-fixed-mode.chat-subagent-part {
+
+	&.chat-used-context-collapsed .chat-used-context-list.chat-thinking-collapsible.chat-thinking-streaming {
+		max-height: var(--chat-subagent-last-item-height, 200px);
+		overflow: hidden;
+		display: block;
+	}
+
+	&.chat-subagent-has-chat.chat-used-context-collapsed .chat-used-context-list.chat-thinking-collapsible {
+		display: none;
+	}
+
+	.chat-used-context-list.chat-thinking-collapsible {
+		max-height: none;
+		overflow: visible;
+	}
+
+	.chat-subagent-section {
+		padding: 4px 12px 4px 18px;
+
+		.chat-used-context {
+			margin-bottom: 0px;
+			margin-left: 2px;
+			padding-left: 2px;
+		}
+
+		.chat-used-context-list {
+			border: none;
+			padding: 0px 2px;
+		}
+	}
+
+	.chat-thinking-tool-wrapper {
+
+		.codicon:not(.chat-thinking-icon) {
+			display: none;
+		}
+
+		.chat-confirmation-widget-container .codicon:not(.codicon-terminal) {
+			display: inline-flex;
+		}
+
+		.chat-tool-invocation-part.has-confirmation {
+			padding: 4px;
+		}
+
+		.chat-collapsible-markdown-content {
+			.rendered-markdown {
+				font-size: var(--vscode-chat-font-size-body-s);
+				line-height: 1.5em;
+			}
+		}
+	}
+
+	button.chat-subagent-confirmation-placeholder {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px 6px 24px;
+		background: none;
+		border: none;
+		outline: none;
+		color: var(--vscode-descriptionForeground);
+		cursor: pointer;
+		font-size: var(--vscode-chat-font-size-body-s);
+		position: relative;
+
+		&::before {
+			content: '\2022';
+			position: absolute;
+			left: 8px;
+			color: var(--vscode-descriptionForeground);
+		}
+
+		&:hover {
+			color: var(--vscode-textLink-foreground);
+		}
+
+		&:focus-visible {
+			outline: 1px solid var(--vscode-focusBorder);
+			outline-offset: 2px;
+		}
+	}
+}
+
+.chat-subagent-part .chat-subagent-open-chat-toolbar {
+	display: inline-flex;
+	align-items: center;
+	margin-right: 2px;
+	flex-shrink: 1;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.chat-subagent-part .chat-subagent-open-chat-toolbar .monaco-action-bar,
+.chat-subagent-part .chat-subagent-open-chat-toolbar .actions-container {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.chat-subagent-part .chat-subagent-open-chat-toolbar.hidden,
+.chat-subagent-part .chat-subagent-open-chat-toolbar.has-no-actions {
+	display: none;
+}
+
+.chat-subagent-swarm-dashboard {
+	margin: 8px 12px 12px 18px;
+	background: var(--vscode-sideBar-background, rgba(30, 30, 30, 0.6));
+	border: 1px solid var(--vscode-widget-border, rgba(124, 77, 255, 0.25));
+	border-radius: 8px;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.chat-subagent-swarm-header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.chat-subagent-swarm-title-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.chat-subagent-swarm-badge {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	color: #ffffff;
+	background: linear-gradient(135deg, #7c4dff, #651fff);
+	padding: 3px 8px;
+	border-radius: 4px;
+	box-shadow: 0 0 10px rgba(124, 77, 255, 0.4);
+}
+
+.chat-subagent-swarm-metrics {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.chat-subagent-swarm-metrics .metric-pill {
+	font-size: 11px;
+	padding: 2px 7px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.06);
+	color: var(--vscode-foreground);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-subagent-swarm-metrics .metric-running {
+	color: #b388ff;
+	border-color: rgba(179, 136, 255, 0.3);
+	background: rgba(124, 77, 255, 0.15);
+	animation: swarm-pulse 2s infinite ease-in-out;
+}
+
+.chat-subagent-swarm-metrics .metric-completed {
+	color: #69f0ae;
+	border-color: rgba(105, 240, 174, 0.3);
+	background: rgba(105, 240, 174, 0.1);
+}
+
+.chat-subagent-swarm-metrics .metric-failed {
+	color: #ff5252;
+	border-color: rgba(255, 82, 82, 0.3);
+	background: rgba(255, 82, 82, 0.1);
+}
+
+@keyframes swarm-pulse {
+	0% { opacity: 0.8; }
+	50% { opacity: 1; }
+	100% { opacity: 0.8; }
+}
+
+.chat-subagent-swarm-progress-track {
+	height: 5px;
+	background: rgba(255, 255, 255, 0.08);
+	border-radius: 3px;
+	overflow: hidden;
+	position: relative;
+}
+
+.chat-subagent-swarm-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #7c4dff, #00e5ff);
+	border-radius: 3px;
+	transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 0 0 8px rgba(124, 77, 255, 0.6);
+}
+
+.chat-subagent-swarm-filters {
+	display: flex;
+	gap: 4px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	padding-bottom: 6px;
+}
+
+.chat-subagent-swarm-filters .swarm-tab {
+	background: none;
+	border: none;
+	padding: 4px 8px;
+	font-size: 11px;
+	border-radius: 4px;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	transition: background 0.15s, color 0.15s;
+}
+
+.chat-subagent-swarm-filters .swarm-tab:hover {
+	color: var(--vscode-foreground);
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-subagent-swarm-filters .swarm-tab.active {
+	color: #ffffff;
+	background: rgba(124, 77, 255, 0.25);
+	font-weight: 600;
+}
+
+.chat-subagent-swarm-matrix {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+	gap: 6px;
+	max-height: 240px;
+	overflow-y: auto;
+	padding-right: 2px;
+}
+
+.chat-subagent-swarm-matrix::-webkit-scrollbar {
+	width: 5px;
+}
+
+.chat-subagent-swarm-matrix::-webkit-scrollbar-thumb {
+	background: rgba(124, 77, 255, 0.3);
+	border-radius: 3px;
+}
+
+.chat-subagent-swarm-card {
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 6px;
+	padding: 6px 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	cursor: pointer;
+	transition: all 0.18s ease;
+	position: relative;
+	user-select: none;
+}
+
+.chat-subagent-swarm-card:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(124, 77, 255, 0.4);
+	transform: translateY(-1px);
+}
+
+.chat-subagent-swarm-card.selected {
+	background: rgba(124, 77, 255, 0.18);
+	border-color: #7c4dff;
+	box-shadow: 0 0 8px rgba(124, 77, 255, 0.35);
+}
+
+.chat-subagent-swarm-card.status-running {
+	border-left: 3px solid #7c4dff;
+}
+
+.chat-subagent-swarm-card.status-completed {
+	border-left: 3px solid #4caf50;
+}
+
+.chat-subagent-swarm-card.status-failed {
+	border-left: 3px solid #f44336;
+}
+
+.chat-subagent-swarm-card.status-queued {
+	border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.swarm-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.swarm-card-number {
+	font-size: 10px;
+	font-weight: 700;
+	color: var(--vscode-descriptionForeground);
+	font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.swarm-card-status-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #888888;
+}
+
+.status-running .swarm-card-status-dot {
+	background: #7c4dff;
+	box-shadow: 0 0 6px #7c4dff;
+	animation: swarm-pulse 1.2s infinite;
+}
+
+.status-completed .swarm-card-status-dot {
+	background: #4caf50;
+	box-shadow: 0 0 4px #4caf50;
+}
+
+.status-failed .swarm-card-status-dot {
+	background: #f44336;
+	box-shadow: 0 0 4px #f44336;
+}
+
+.swarm-card-title {
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--vscode-foreground);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.swarm-card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 9px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.swarm-card-tool {
+	max-width: 80px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 1px 4px;
+	border-radius: 3px;
+}
+
+.chat-subagent-swarm-inspector {
+	background: rgba(0, 0, 0, 0.25);
+	border: 1px solid rgba(124, 77, 255, 0.3);
+	border-radius: 6px;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 11px;
+}
+
+.chat-subagent-swarm-inspector.hidden {
+	display: none;
+}
+
+.swarm-inspector-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	padding-bottom: 6px;
+}
+
+.swarm-inspector-title {
+	font-weight: 600;
+	color: #b388ff;
+}
+
+.swarm-inspector-close {
+	background: none;
+	border: none;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	padding: 2px 5px;
+	font-size: 12px;
+	border-radius: 3px;
+}
+
+.swarm-inspector-close:hover {
+	color: var(--vscode-foreground);
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.swarm-inspector-body {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	max-height: 160px;
+	overflow-y: auto;
+}
+
+.swarm-inspector-prompt {
+	color: var(--vscode-descriptionForeground);
+	font-style: italic;
+	line-height: 1.4;
+}
+
+.swarm-inspector-output {
+	background: rgba(0, 0, 0, 0.3);
+	padding: 6px;
+	border-radius: 4px;
+	font-family: var(--vscode-editor-font-family, monospace);
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 120px;
+	overflow-y: auto;
+}

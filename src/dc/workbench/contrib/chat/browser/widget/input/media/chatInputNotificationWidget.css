@@ -1,0 +1,116 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.interactive-session .chat-input-stack.chat-input-stack-input-focused > .chat-input-notification-container .chat-input-notification-widget.severity-info {
+	border-color: var(--vscode-focusBorder);
+}
+
+.interactive-session .chat-input-stack.chat-input-stack-input-focused.chat-input-stack-input-working > .chat-input-notification-container .chat-input-notification-widget.severity-info {
+	border-color: color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
+}
+
+.chat-input-notification-widget {
+	--chat-input-notification-line-height: 18px;
+}
+
+.chat-input-notification-widget .chat-input-notification-header {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--vscode-spacing-size60);
+	min-width: 0;
+}
+
+.chat-input-notification-widget .chat-input-notification-icon {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	height: var(--chat-input-notification-line-height);
+	color: var(--chat-input-notice-severity);
+}
+
+.chat-input-notification-widget .chat-input-notification-title,
+.chat-input-notification-widget .chat-input-notification-description {
+	font-size: var(--vscode-fontSize-label1);
+	line-height: var(--chat-input-notification-line-height);
+	min-width: 0;
+	overflow-wrap: break-word;
+	white-space: normal;
+}
+
+.chat-input-notification-widget .chat-input-notification-title {
+	font-weight: var(--vscode-fontWeight-semiBold);
+	color: var(--vscode-foreground);
+	flex: 1;
+}
+
+.chat-input-notification-widget .chat-input-notification-title-markdown,
+.chat-input-notification-widget .chat-input-notification-description-markdown {
+	display: inline;
+}
+
+.chat-input-notification-widget .chat-input-notification-title-markdown > p,
+.chat-input-notification-widget .chat-input-notification-description-markdown > p {
+	display: inline;
+	margin: 0;
+}
+
+.chat-input-notification-widget .chat-input-notification-title-markdown code,
+.chat-input-notification-widget .chat-input-notification-description-markdown code {
+	font-family: var(--monaco-monospace-font);
+	font-size: var(--vscode-fontSize-label2);
+	padding: 0 3px;
+	border-radius: 3px;
+	background: var(--vscode-textCodeBlock-background);
+}
+
+.chat-input-notification-widget .chat-input-notification-body {
+	display: flex;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: var(--vscode-spacing-size80);
+	min-width: 0;
+	padding-left: 22px;
+}
+
+.chat-input-notification-widget .chat-input-notification-description {
+	color: var(--vscode-descriptionForeground);
+	flex: 1 1 auto;
+}
+
+.chat-input-notification-widget .chat-input-notification-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--vscode-spacing-size80);
+	flex-shrink: 0;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	min-width: 0;
+	max-width: 100%;
+	margin-left: auto;
+}
+
+.chat-input-notification-widget .chat-input-notification-action-button {
+	font-size: var(--vscode-fontSize-label2);
+	padding: var(--vscode-spacing-size20) var(--vscode-spacing-size120);
+	min-width: unset;
+	width: auto;
+	height: auto;
+	min-height: 24px;
+}
+
+.chat-input-notification-widget .chat-input-notification-action-button.secondary {
+	border: none;
+	background: transparent;
+	color: var(--vscode-foreground);
+	padding: var(--vscode-spacing-size40) var(--vscode-spacing-size80);
+	opacity: 0.8;
+}
+
+.chat-input-notification-widget .chat-input-notification-action-button.secondary:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	opacity: 1;
+}
+

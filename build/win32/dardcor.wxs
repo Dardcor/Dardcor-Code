@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="Dardcor Code" Language="1033" Version="1.0.0.0" Manufacturer="Dardcor Corporation" UpgradeCode="C8B7F5E2-9A4B-4E38-9C21-8D1F7B6E4A32">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" Description="Dardcor Code Installer" Comments="Dardcor Code Setup Package" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="Dardcor Code" />
+      </Directory>
+    </Directory>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MainSetupComponent" Guid="D9A4C6B1-3E2A-4F8D-9B7C-1E4A5C6D7E8F" Win64="yes">
+        <File Id="SetupFile" Source="SETUP_EXE_PATH" KeyPath="yes" Checksum="yes" />
+      </Component>
+    </DirectoryRef>
+    <Feature Id="MainFeature" Title="Dardcor Code" Level="1">
+      <ComponentRef Id="MainSetupComponent" />
+    </Feature>
+  </Product>
+</Wix>

@@ -1,0 +1,105 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { MarkdownString } from '../../../../../base/common/htmlContent.js';
+import { escapeRegExpCharacters } from '../../../../../base/common/strings.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { ITextModel } from '../../../../../editor/common/model.js';
+import type { ITerminalSandboxPrecheckInputs } from '../../../../../platform/sandbox/common/terminalSandboxService.js';
+import { IUriIdentityService } from '../../../../../platform/uriIdentity/common/uriIdentity.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import type { IChatWidgetService } from '../chat.js';
+import type { IChatService } from '../../common/chatService/chatService.js';
+import { ChatPermissionLevel, isAutoApproveLevel } from '../../common/constants.js';
+import { IToolResult } from '../../common/tools/languageModelToolsService.js';
+import { createToolSimpleTextResult } from '../../common/tools/builtinTools/toolHelpers.js';
+import { WorkingDirectory } from '../../common/workingDirectory.js';
+
+export interface ISymbolToolInput {
+	symbol: string;
+	uri?: string;
+	filePath?: string;
+	lineContent: string;
+}
+
+export function isSymbolToolResourceInScope(resource: URI, workspaceContextService: IWorkspaceContextService, uriIdentityService: IUriIdentityService, workingDirectory?: URI): boolean {
+	const normalizedResource = uriIdentityService.extUri.normalizePath(resource);
+	const scopeRoots = workingDirectory ? [workingDirectory] : workspaceContextService.getWorkspace().folders.map(folder => folder.uri);
+	return scopeRoots.some(root => uriIdentityService.extUri.isEqualOrParent(normalizedResource, uriIdentityService.extUri.normalizePath(root)));
+}
+
+export function resolveSymbolToolFileUri(input: ISymbolToolInput, workspaceContextService: IWorkspaceContextService, uriIdentityService: IUriIdentityService, workingDirectory?: URI): URI | undefined {
+	if (input.uri) {
+		const uri = uriIdentityService.extUri.normalizePath(URI.parse(input.uri));
+		return isSymbolToolResourceInScope(uri, workspaceContextService, uriIdentityService, workingDirectory) ? uri : undefined;
+	}
+	if (input.filePath) {
+		const workingDir = new WorkingDirectory(workspaceContextService, workingDirectory);
+		const uri = workingDir.resolveRelativePath(input.filePath);
+		return uri && isSymbolToolResourceInScope(uri, workspaceContextService, uriIdentityService, workingDirectory) ? uri : undefined;
+	}
+	return undefined;
+}
+
+export function getChatPermissionLevelForToolInvocation(
+	chatSessionResource: URI | undefined,
+	chatRequestId: string | undefined,
+	chatWidgetService: IChatWidgetService,
+	chatService: IChatService,
+): ChatPermissionLevel | undefined {
+	if (!chatSessionResource) {
+		return undefined;
+	}
+
+	const model = chatService.getSession(chatSessionResource);
+	const request = chatRequestId
+		? model?.getRequests().find(request => request.id === chatRequestId)
+		: undefined;
+	if (request) {
+		return request.modeInfo?.permissionLevel ?? ChatPermissionLevel.Default;
+	}
+
+	const widget = chatWidgetService.getWidgetBySessionResource(chatSessionResource);
+	if (widget) {
+		return widget.input.currentModeInfo.permissionLevel ?? ChatPermissionLevel.Default;
+	}
+
+	return model?.getRequests().at(-1)?.modeInfo?.permissionLevel ?? ChatPermissionLevel.Default;
+}
+
+export function getSandboxPrecheckInputsForToolInvocation(
+	chatSessionResource: URI | undefined,
+	chatRequestId: string | undefined,
+	chatWidgetService: IChatWidgetService,
+	chatService: IChatService,
+): ITerminalSandboxPrecheckInputs | undefined {
+	const chatPermissionLevel = getChatPermissionLevelForToolInvocation(chatSessionResource, chatRequestId, chatWidgetService, chatService);
+	return chatPermissionLevel === undefined ? undefined : { isDefaultApprovalPermissionEnabled: !isAutoApproveLevel(chatPermissionLevel) };
+}
+
+export function findLineNumber(model: ITextModel, lineContent: string): number | undefined {
+	const parts = lineContent.trim().split(/\s+/);
+	const pattern = parts.map(escapeRegExpCharacters).join('\\s+');
+	const matches = model.findMatches(pattern, false, true, false, null, false, 1);
+	if (matches.length === 0) {
+		return undefined;
+	}
+	return matches[0].range.startLineNumber;
+}
+
+export function findSymbolColumn(lineText: string, symbol: string): number | undefined {
+	const pattern = new RegExp(`\\b${escapeRegExpCharacters(symbol)}\\b`);
+	const match = pattern.exec(lineText);
+	if (match) {
+		return match.index + 1;
+	}
+	return undefined;
+}
+
+export function errorResult(message: string): IToolResult {
+	const result = createToolSimpleTextResult(message);
+	result.toolResultMessage = new MarkdownString(message);
+	return result;
+}

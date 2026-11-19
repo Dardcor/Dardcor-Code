@@ -1,0 +1,167 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.monaco-segmented-icon-toggle-container.chat-voice-input-mode-item {
+	--segmented-icon-toggle-height: 22px;
+	--segmented-icon-toggle-radius: var(--vscode-cornerRadius-circle);
+	--segmented-icon-toggle-cell-radius: var(--vscode-cornerRadius-circle);
+}
+
+.monaco-segmented-icon-toggle-container.chat-voice-input-mode-item.single:has(.dictation.preparing) .monaco-segmented-icon-toggle {
+	border-color: var(--vscode-input-border, var(--vscode-editorWidget-border));
+}
+
+.chat-voice-input-mode-cell.sim-hover::before {
+	background: var(--vscode-toolbar-hoverBackground, transparent);
+}
+
+.monaco-workbench:not(.monaco-enable-motion) .chat-voice-input-mode-cell {
+	transition: none;
+}
+
+.chat-voice-input-mode-cell.voice {
+	color: var(--vscode-icon-foreground);
+}
+
+.chat-voice-input-mode-cell.voice.listening {
+	color: var(--voice-color-listening, var(--vscode-charts-blue, #58a6ff));
+}
+
+.chat-voice-input-mode-cell.voice.speaking {
+	color: var(--voice-color-speaking, var(--vscode-charts-purple, #a371f7));
+}
+
+.monaco-workbench .chat-voice-input-mode-icon.codicon[class*='codicon-'] {
+	font-size: var(--vscode-codiconFontSize-compact);
+	width: auto;
+	height: auto;
+}
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.dictation.preparing .chat-voice-input-mode-icon.codicon-loading-compact::before {
+	display: inline-block;
+	animation: codicon-spin 1.5s steps(30) infinite;
+}
+
+.chat-voice-input-mode-cell.voice > .chat-voice-input-mode-spinner {
+	display: none;
+}
+
+.chat-voice-input-mode-cell.voice.connecting > .chat-voice-input-mode-spinner {
+	display: inline-block;
+}
+
+.chat-voice-input-mode-cell.voice.connecting > .chat-voice-input-mode-bars {
+	display: none;
+}
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.connecting .chat-voice-input-mode-spinner.codicon-loading-compact::before {
+	display: inline-block;
+	animation: codicon-spin 1.5s steps(30) infinite;
+}
+
+.chat-voice-input-mode-cell.dictation {
+	position: relative;
+}
+
+.chat-voice-input-mode-cell.dictation > .dictation-download-ring {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 16px;
+	height: 16px;
+	transform: translate(-50%, -50%) rotate(-90deg);
+	pointer-events: none;
+}
+
+.chat-voice-input-mode-cell.dictation > .dictation-download-ring .dictation-download-ring-track {
+	fill: none;
+	stroke: var(--vscode-progressBar-background);
+	stroke-width: 1.5;
+	opacity: 0.25;
+}
+
+.hc-black .chat-voice-input-mode-cell.dictation > .dictation-download-ring .dictation-download-ring-track,
+.hc-light .chat-voice-input-mode-cell.dictation > .dictation-download-ring .dictation-download-ring-track {
+	opacity: 1;
+}
+
+.chat-voice-input-mode-cell.dictation > .dictation-download-ring .dictation-download-ring-progress {
+	fill: none;
+	stroke: var(--vscode-progressBar-background);
+	stroke-width: 1.5;
+	stroke-linecap: round;
+}
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.dictation > .dictation-download-ring .dictation-download-ring-progress {
+	transition: stroke-dashoffset 120ms ease;
+}
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.dictation > .dictation-download-ring.indeterminate {
+	animation: dictation-download-ring-spin 1.2s linear infinite;
+}
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.dictation > .dictation-download-ring.indeterminate .dictation-download-ring-progress {
+	transition: none;
+}
+
+.chat-voice-input-mode-bars {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	width: var(--vscode-codiconFontSize-compact);
+	height: var(--vscode-codiconFontSize-compact);
+}
+
+.chat-voice-input-mode-bar {
+	width: 1px;
+	border-radius: var(--vscode-cornerRadius-circle);
+	background: currentColor;
+	transform-origin: center center;
+	transition: height 0.22s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.chat-voice-input-mode-bar:nth-child(1) { height: 6px; }
+.chat-voice-input-mode-bar:nth-child(2) { height: 12px; }
+.chat-voice-input-mode-bar:nth-child(3) { height: 8px; }
+.chat-voice-input-mode-bar:nth-child(4) { height: 4px; }
+
+.chat-voice-input-mode-cell.voice.on:hover .chat-voice-input-mode-bar,
+.chat-voice-input-mode-cell.voice.on.sim-hover .chat-voice-input-mode-bar {
+	animation: none;
+	height: 3px;
+}
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.idle-on:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar {
+	animation: chat-voice-input-mode-wave 2.6s ease-in-out infinite;
+}
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.idle-on:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(1) { animation-delay: 0s; }
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.idle-on:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(2) { animation-delay: -0.34s; }
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.idle-on:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(3) { animation-delay: -0.68s; }
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.idle-on:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(4) { animation-delay: -1.02s; }
+
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.listening:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar,
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.speaking:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar {
+	animation: chat-voice-input-mode-eq 0.85s ease-in-out infinite;
+}
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.listening:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(1),
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.speaking:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(1) { animation-delay: 0s; }
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.listening:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(2),
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.speaking:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(2) { animation-delay: 0.12s; }
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.listening:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(3),
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.speaking:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(3) { animation-delay: 0.24s; }
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.listening:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(4),
+.monaco-workbench.monaco-enable-motion .chat-voice-input-mode-cell.voice.speaking:not(:hover):not(.sim-hover) .chat-voice-input-mode-bar:nth-child(4) { animation-delay: 0.36s; }
+
+@keyframes chat-voice-input-mode-wave {
+	0%, 100% { transform: scaleY(0.72); }
+	50% { transform: scaleY(1); }
+}
+
+@keyframes chat-voice-input-mode-eq {
+	0%, 100% { height: 2px; }
+	50% { height: 12px; }
+}

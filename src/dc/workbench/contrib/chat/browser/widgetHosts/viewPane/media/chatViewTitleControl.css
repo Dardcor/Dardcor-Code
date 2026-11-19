@@ -1,0 +1,86 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.chat-viewpane {
+
+	.chat-view-title-container {
+		display: none;
+		cursor: pointer;
+
+		.chat-view-title-inner {
+			display: flex;
+			align-items: center;
+			max-width: 950px;
+			margin: 0 auto;
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.chat-view-title-navigation-toolbar {
+			overflow: hidden;
+
+			.chat-view-title-action-item {
+				flex: 1 1 auto;
+				min-width: 0;
+
+				.chat-view-title-label-container {
+					display: flex;
+					gap: 4px;
+				}
+			}
+		}
+
+		.chat-view-title-label {
+			text-transform: uppercase;
+			font-size: 11px;
+			font-weight: 700;
+			line-height: 16px;
+			display: block;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			min-width: 0;
+		}
+
+		.chat-view-title-actions-toolbar {
+			margin-left: auto;
+			padding-left: 4px;
+			flex-shrink: 0;
+		}
+	}
+
+	.chat-view-title-container.visible {
+		display: block;
+	}
+}
+
+.chat-viewpane {
+
+	&.chat-view-location-sidebar,
+	&.chat-view-location-panel,
+	&.chat-view-location-auxiliarybar {
+		.chat-view-title-inner {
+			padding: 0 12px 0 16px;
+		}
+	}
+
+	&.activity-bar-location-other.chat-view-location-auxiliarybar {
+		.chat-view-title-inner {
+			padding: 0 8px 0 16px;
+		}
+	}
+
+	&.has-sessions-control.sessions-control-orientation-sidebyside.chat-view-position-left {
+		.chat-view-title-inner {
+			padding: 0 8px;
+		}
+	}
+
+	&.activity-bar-location-default.has-sessions-control.sessions-control-orientation-sidebyside.chat-view-position-right {
+		.chat-view-title-inner {
+			padding: 0 8px 0 16px;
+		}
+	}
+}

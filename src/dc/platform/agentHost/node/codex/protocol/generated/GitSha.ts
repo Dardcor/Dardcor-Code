@@ -1,0 +1,2 @@
+
+export type GitSha = string;

@@ -1,0 +1,104 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import type { ChatLanguageModelToolReference, ChatPromptReference } from 'vscode';
+import * as vscode from 'vscode';
+import { IChatDebugFileLoggerService } from '../../../platform/chat/common/chatDebugFileLoggerService';
+import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
+import { IPromptPathRepresentationService } from '../../../platform/prompts/common/promptPathRepresentationService';
+import { getToolName } from '../../tools/common/toolNames';
+import { IPromptVariablesService } from '../node/promptVariablesService';
+import type { LanguageModelToolInformation } from '../../../dardcorTypes';
+
+type VariableResolver = (sessionId: string | undefined, debugTargetSessionIds: readonly string[] | undefined) => string | undefined;
+
+export class PromptVariablesServiceImpl implements IPromptVariablesService {
+
+	declare readonly _serviceBrand: undefined;
+
+	private readonly _resolvers: ReadonlyMap<string, VariableResolver>;
+
+	constructor(
+		@IChatDebugFileLoggerService private readonly chatDebugFileLoggerService: IChatDebugFileLoggerService,
+		@IPromptPathRepresentationService private readonly promptPathRepresentationService: IPromptPathRepresentationService,
+		@IVSCodeExtensionContext private readonly extensionContext: IVSCodeExtensionContext,
+	) {
+		this._resolvers = new Map<string, VariableResolver>([
+			['VSCODE_USER_PROMPTS_FOLDER', () => {
+				const globalStorageUri = this.extensionContext.globalStorageUri;
+				const userFolderUri = vscode.Uri.joinPath(globalStorageUri, '..', '..');
+				const userPromptsFolderUri = vscode.Uri.joinPath(userFolderUri, 'prompts');
+				return userPromptsFolderUri.fsPath;
+			}],
+			['VSCODE_TARGET_SESSION_LOG', (sessionId, debugTargetSessionIds) => {
+				if (debugTargetSessionIds && debugTargetSessionIds.length > 0) {
+					return debugTargetSessionIds.map(id => {
+						const sessionDir = this.chatDebugFileLoggerService.getSessionDir(id);
+						return sessionDir ? this.promptPathRepresentationService.getFilePath(sessionDir) : undefined;
+					}).filter((path): path is string => path !== undefined).join(', ');
+				}
+				if (!sessionId) {
+					return undefined;
+				}
+				const sessionDir = this.chatDebugFileLoggerService.getSessionDir(sessionId);
+				if (!sessionDir) {
+					return undefined;
+				}
+				return this.promptPathRepresentationService.getFilePath(sessionDir);
+			}],
+		]);
+	}
+
+	async resolveVariablesInPrompt(message: string, variables: ChatPromptReference[]): Promise<{ message: string }> {
+		for (const variable of this._reverseSortRefsWithRange(variables)) {
+			message = message.slice(0, variable.range[0]) + `[#${variable.name}](#${variable.name}-context)` + message.slice(variable.range[1]);
+		}
+
+		return { message };
+	}
+
+	async resolveToolReferencesInPrompt(message: string, toolReferences: ChatLanguageModelToolReference[]): Promise<string> {
+
+		let previousRange: [start: number, end: number] | undefined;
+		for (const toolReference of this._reverseSortRefsWithRange(toolReferences)) {
+			const range = toolReference.range;
+			if (previousRange && range[0] === previousRange[0] && range[1] === previousRange[1]) {
+				continue;
+			}
+			message = message.slice(0, toolReference.range[0]) + getToolReferencePromptContent(toolReference) + message.slice(toolReference.range[1]);
+			previousRange = range;
+		}
+		return message;
+	}
+
+	buildTemplateVariablesContext(sessionId: string | undefined, debugTargetSessionIds?: readonly string[]): string {
+		const entries: [string, string][] = [];
+		for (const [name, resolve] of this._resolvers) {
+			const value = resolve(sessionId, debugTargetSessionIds);
+			if (value !== undefined) {
+				entries.push([name, value]);
+			}
+		}
+		if (entries.length === 0) {
+			return '';
+		}
+		const lines = entries.map(([name, value]) => `- ${name}: ${value}`);
+		return [
+			'The following template variables are available for this session:',
+			...lines,
+			'When a skill or instruction references {{VSCODE_VARIABLE_NAME}}, substitute the corresponding value above.',
+		].join('\n');
+	}
+
+	private _reverseSortRefsWithRange<T extends { range?: [number, number] }>(refs: T[]): (T & { range: [number, number] })[] {
+		const refsWithRange = refs.filter(ref => !!ref.range) as (T & { range: [number, number] })[];
+		return refsWithRange.sort((a, b) => b.range[0] - a.range[0]);
+	}
+}
+
+export function getToolReferencePromptContent(toolRef: ChatLanguageModelToolReference | LanguageModelToolInformation): string {
+	const toolName = getToolName(toolRef.name);
+	return `'${toolName}'`;
+}

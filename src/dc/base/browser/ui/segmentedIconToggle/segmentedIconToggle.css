@@ -1,0 +1,90 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.monaco-segmented-icon-toggle-container {
+	display: flex;
+	align-items: center;
+}
+
+.monaco-segmented-icon-toggle {
+	display: inline-flex;
+	justify-content: center;
+	align-items: stretch;
+	box-sizing: border-box;
+	width: var(--segmented-icon-toggle-width, 56px);
+	height: var(--segmented-icon-toggle-height, 24px);
+	border: 1px solid var(--vscode-input-border, var(--vscode-editorWidget-border));
+	border-radius: var(--segmented-icon-toggle-radius, 8px);
+}
+
+.monaco-segmented-icon-toggle-reel {
+	display: flex;
+	align-items: stretch;
+}
+
+.monaco-segmented-icon-toggle-cell {
+	position: relative;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	width: var(--segmented-icon-toggle-cell-width, 27px);
+	height: 100%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--vscode-icon-foreground);
+	cursor: pointer;
+	overflow: hidden;
+	transition: width 0.3s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.22s ease, color 0.2s ease;
+}
+
+.monaco-segmented-icon-toggle-cell > * {
+	position: relative;
+	z-index: 1;
+}
+
+.monaco-segmented-icon-toggle-cell::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: var(--segmented-icon-toggle-cell-radius, 7px);
+	background: transparent;
+	transition: background 0.15s ease;
+	z-index: 0;
+}
+
+.monaco-segmented-icon-toggle-cell:hover::before {
+	background: var(--vscode-toolbar-hoverBackground, transparent);
+}
+
+.monaco-segmented-icon-toggle-container.single .monaco-segmented-icon-toggle-cell:not(.collapsed) {
+	width: var(--segmented-icon-toggle-single-width, 54px);
+}
+
+.monaco-segmented-icon-toggle-container.single .monaco-segmented-icon-toggle {
+	border-color: transparent;
+}
+
+.monaco-segmented-icon-toggle-cell.collapsed {
+	width: 0;
+	opacity: 0;
+	pointer-events: none;
+	visibility: hidden;
+	transition: width 0.3s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.22s ease, color 0.2s ease, visibility 0s linear 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.monaco-segmented-icon-toggle-cell {
+		transition: none;
+	}
+}
+
+.monaco-segmented-icon-toggle-cell:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: -1px;
+}

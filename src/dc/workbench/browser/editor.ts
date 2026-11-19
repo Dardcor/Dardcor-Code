@@ -1,0 +1,244 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { localize } from '../../nls.js';
+import { EditorResourceAccessor, EditorExtensions, SideBySideEditor, IEditorDescriptor as ICommonEditorDescriptor, EditorCloseContext, IWillInstantiateEditorPaneEvent } from '../common/editor.js';
+import { EditorInput } from '../common/editor/editorInput.js';
+import { SyncDescriptor } from '../../platform/instantiation/common/descriptors.js';
+import { Registry } from '../../platform/registry/common/platform.js';
+import { EditorPane } from './parts/editor/editorPane.js';
+import { IConstructorSignature, IInstantiationService, BrandedService, ServicesAccessor } from '../../platform/instantiation/common/instantiation.js';
+import { IDisposable, toDisposable } from '../../base/common/lifecycle.js';
+import { Promises } from '../../base/common/async.js';
+import { IEditorService } from '../services/editor/common/editorService.js';
+import { IUriIdentityService } from '../../platform/uriIdentity/common/uriIdentity.js';
+import { IWorkingCopyService } from '../services/workingCopy/common/workingCopyService.js';
+import { URI } from '../../base/common/uri.js';
+import { Schemas } from '../../base/common/network.js';
+import { IEditorGroup } from '../services/editor/common/editorGroupsService.js';
+import { Iterable } from '../../base/common/iterator.js';
+import { Emitter } from '../../base/common/event.js';
+
+
+export interface IEditorPaneDescriptor extends ICommonEditorDescriptor<EditorPane> { }
+
+export interface IEditorPaneRegistry {
+
+	registerEditorPane(editorPaneDescriptor: IEditorPaneDescriptor, editorDescriptors: readonly SyncDescriptor<EditorInput>[]): IDisposable;
+
+	getEditorPane(editor: EditorInput): IEditorPaneDescriptor | undefined;
+}
+
+export class EditorPaneDescriptor implements IEditorPaneDescriptor {
+
+	private static readonly instantiatedEditorPanes = new Set<string>();
+	static didInstantiateEditorPane(typeId: string): boolean {
+		return EditorPaneDescriptor.instantiatedEditorPanes.has(typeId);
+	}
+
+	private static readonly _onWillInstantiateEditorPane = new Emitter<IWillInstantiateEditorPaneEvent>();
+	static readonly onWillInstantiateEditorPane = EditorPaneDescriptor._onWillInstantiateEditorPane.event;
+
+	static create<Services extends BrandedService[]>(
+		ctor: { new(group: IEditorGroup, ...services: Services): EditorPane },
+		typeId: string,
+		name: string
+	): EditorPaneDescriptor {
+		return new EditorPaneDescriptor(ctor as IConstructorSignature<EditorPane, [IEditorGroup]>, typeId, name);
+	}
+
+	private constructor(
+		private readonly ctor: IConstructorSignature<EditorPane, [IEditorGroup]>,
+		readonly typeId: string,
+		readonly name: string
+	) { }
+
+	instantiate(instantiationService: IInstantiationService, group: IEditorGroup): EditorPane {
+		EditorPaneDescriptor._onWillInstantiateEditorPane.fire({ typeId: this.typeId });
+
+		const pane = instantiationService.createInstance(this.ctor, group);
+		EditorPaneDescriptor.instantiatedEditorPanes.add(this.typeId);
+
+		return pane;
+	}
+
+	describes(editorPane: EditorPane): boolean {
+		return editorPane.getId() === this.typeId;
+	}
+}
+
+export class EditorPaneRegistry implements IEditorPaneRegistry {
+
+	private readonly mapEditorPanesToEditors = new Map<EditorPaneDescriptor, readonly SyncDescriptor<EditorInput>[]>();
+
+	registerEditorPane(editorPaneDescriptor: EditorPaneDescriptor, editorDescriptors: readonly SyncDescriptor<EditorInput>[]): IDisposable {
+		this.mapEditorPanesToEditors.set(editorPaneDescriptor, editorDescriptors);
+
+		return toDisposable(() => {
+			this.mapEditorPanesToEditors.delete(editorPaneDescriptor);
+		});
+	}
+
+	getEditorPane(editor: EditorInput): EditorPaneDescriptor | undefined {
+		const descriptors = this.findEditorPaneDescriptors(editor);
+
+		if (descriptors.length === 0) {
+			return undefined;
+		}
+
+		if (descriptors.length === 1) {
+			return descriptors[0];
+		}
+
+		return editor.prefersEditorPane(descriptors);
+	}
+
+	private findEditorPaneDescriptors(editor: EditorInput, byInstanceOf?: boolean): EditorPaneDescriptor[] {
+		const matchingEditorPaneDescriptors: EditorPaneDescriptor[] = [];
+
+		for (const editorPane of this.mapEditorPanesToEditors.keys()) {
+			const editorDescriptors = this.mapEditorPanesToEditors.get(editorPane) || [];
+			for (const editorDescriptor of editorDescriptors) {
+				const editorClass = editorDescriptor.ctor;
+
+				if (!byInstanceOf && editor.constructor === editorClass) {
+					matchingEditorPaneDescriptors.push(editorPane);
+					break;
+				}
+
+				else if (byInstanceOf && editor instanceof editorClass) {
+					matchingEditorPaneDescriptors.push(editorPane);
+					break;
+				}
+			}
+		}
+
+		if (!byInstanceOf && matchingEditorPaneDescriptors.length === 0) {
+			return this.findEditorPaneDescriptors(editor, true);
+		}
+
+		return matchingEditorPaneDescriptors;
+	}
+
+
+	getEditorPaneByType(typeId: string): EditorPaneDescriptor | undefined {
+		return Iterable.find(this.mapEditorPanesToEditors.keys(), editor => editor.typeId === typeId);
+	}
+
+	getEditorPanes(): readonly EditorPaneDescriptor[] {
+		return Array.from(this.mapEditorPanesToEditors.keys());
+	}
+
+	getEditors(): SyncDescriptor<EditorInput>[] {
+		const editorClasses: SyncDescriptor<EditorInput>[] = [];
+		for (const editorPane of this.mapEditorPanesToEditors.keys()) {
+			const editorDescriptors = this.mapEditorPanesToEditors.get(editorPane);
+			if (editorDescriptors) {
+				editorClasses.push(...editorDescriptors.map(editorDescriptor => editorDescriptor.ctor));
+			}
+		}
+
+		return editorClasses;
+	}
+
+}
+
+Registry.add(EditorExtensions.EditorPane, new EditorPaneRegistry());
+
+
+
+export function whenEditorClosed(accessor: ServicesAccessor, resources: URI[]): Promise<void> {
+	const editorService = accessor.get(IEditorService);
+	const uriIdentityService = accessor.get(IUriIdentityService);
+	const workingCopyService = accessor.get(IWorkingCopyService);
+
+	return new Promise(resolve => {
+		let remainingResources = [...resources];
+
+		const listener = editorService.onDidCloseEditor(async event => {
+			if (event.context === EditorCloseContext.MOVE) {
+				return;
+			}
+
+			let primaryResource = EditorResourceAccessor.getOriginalUri(event.editor, { supportSideBySide: SideBySideEditor.PRIMARY });
+			let secondaryResource = EditorResourceAccessor.getOriginalUri(event.editor, { supportSideBySide: SideBySideEditor.SECONDARY });
+
+			if (event.context === EditorCloseContext.REPLACE) {
+				const newPrimaryResource = EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { supportSideBySide: SideBySideEditor.PRIMARY });
+				const newSecondaryResource = EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { supportSideBySide: SideBySideEditor.SECONDARY });
+
+				if (uriIdentityService.extUri.isEqual(primaryResource, newPrimaryResource)) {
+					primaryResource = undefined;
+				}
+
+				if (uriIdentityService.extUri.isEqual(secondaryResource, newSecondaryResource)) {
+					secondaryResource = undefined;
+				}
+			}
+
+			remainingResources = remainingResources.filter(resource => {
+
+				if (uriIdentityService.extUri.isEqual(resource, primaryResource) || uriIdentityService.extUri.isEqual(resource, secondaryResource)) {
+					return false;
+				}
+
+				if (event.context !== EditorCloseContext.REPLACE) {
+					if (
+						(primaryResource?.scheme === Schemas.untitled && uriIdentityService.extUri.isEqual(resource, primaryResource.with({ scheme: resource.scheme }))) ||
+						(secondaryResource?.scheme === Schemas.untitled && uriIdentityService.extUri.isEqual(resource, secondaryResource.with({ scheme: resource.scheme })))
+					) {
+						return false;
+					}
+				}
+
+				return true;
+			});
+
+			if (remainingResources.length === 0) {
+
+				const dirtyResources = resources.filter(resource => workingCopyService.isDirty(resource));
+				if (dirtyResources.length > 0) {
+					await Promises.settled(dirtyResources.map(async resource => await new Promise<void>(resolve => {
+						if (!workingCopyService.isDirty(resource)) {
+							return resolve();
+						}
+
+						const listener = workingCopyService.onDidChangeDirty(workingCopy => {
+							if (!workingCopy.isDirty() && uriIdentityService.extUri.isEqual(resource, workingCopy.resource)) {
+								listener.dispose();
+
+								return resolve();
+							}
+						});
+					})));
+				}
+
+				listener.dispose();
+
+				return resolve();
+			}
+		});
+	});
+}
+
+
+
+export function computeEditorAriaLabel(input: EditorInput, index: number | undefined, group: IEditorGroup | undefined, groupCount: number | undefined): string {
+	let ariaLabel = input.getAriaLabel();
+	if (group && !group.isPinned(input)) {
+		ariaLabel = localize('preview', "{0}, preview", ariaLabel);
+	}
+
+	if (group?.isSticky(index ?? input)) {
+		ariaLabel = localize('pinned', "{0}, pinned", ariaLabel);
+	}
+
+	if (group && typeof groupCount === 'number' && groupCount > 1) {
+		ariaLabel = `${ariaLabel}, ${group.ariaLabel}`;
+	}
+
+	return ariaLabel;
+}
+

@@ -1,0 +1,7 @@
+{
+	"extends": "./tsconfig.dardcor-dts.json",
+	"include": [
+		"dardcor-dts/dardcor.d.ts",
+		"dardcor-dts/dardcor.proposed.*.d.ts"
+	]
+}

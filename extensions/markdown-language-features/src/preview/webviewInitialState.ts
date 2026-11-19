@@ -1,0 +1,14 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+export interface MarkdownEditorInitialState {
+	readonly content: string;
+	readonly documentVersion: number;
+	readonly readonly: boolean;
+}
+
+export function encodeWebviewInitialState(state: MarkdownEditorInitialState): string {
+	return encodeURIComponent(JSON.stringify(state));
+}

@@ -1,0 +1,17 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"types": [
+			"node",
+			"mocha"
+		],
+		"skipLibCheck": true
+	},
+	"include": [
+		"src/**/*",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.*.d.ts"
+	]
+}

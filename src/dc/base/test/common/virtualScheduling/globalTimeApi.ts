@@ -1,0 +1,97 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { IDisposable } from '../../../common/lifecycle.js';
+import { captureGlobalTimeApi, realTimeApi, TimeApi } from './timeApi.js';
+
+type AsGlobal<K extends keyof typeof globalThis> = (typeof globalThis)[K];
+
+function ensureSetTimeoutOriginalFn(fn: TimeApi['setTimeout'], previousFn: TimeApi['setTimeout']): TimeApi['setTimeout'] {
+	const tagged = fn as TimeApi['setTimeout'] & { originalFn?: TimeApi['setTimeout'] };
+	if (!tagged.originalFn) {
+		const previousTagged = previousFn as TimeApi['setTimeout'] & { originalFn?: TimeApi['setTimeout'] };
+		const realTagged = realTimeApi.setTimeout as TimeApi['setTimeout'] & { originalFn?: TimeApi['setTimeout'] };
+		tagged.originalFn = previousTagged.originalFn ?? realTagged.originalFn ?? realTimeApi.setTimeout;
+	}
+	return tagged;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export function pushGlobalTimeApi(api: TimeApi): IDisposable {
+	const previous = captureGlobalTimeApi();
+	const previousPerformanceNowDescriptor = globalThis.performance
+		? Object.getOwnPropertyDescriptor(globalThis.performance, 'now')
+		: undefined;
+	const previousPerformanceTimeOriginDescriptor = globalThis.performance
+		? Object.getOwnPropertyDescriptor(globalThis.performance, 'timeOrigin')
+		: undefined;
+
+	globalThis.setTimeout = ensureSetTimeoutOriginalFn(api.setTimeout, previous.setTimeout) as unknown as AsGlobal<'setTimeout'>;
+	globalThis.clearTimeout = api.clearTimeout as unknown as AsGlobal<'clearTimeout'>;
+	globalThis.setInterval = api.setInterval as unknown as AsGlobal<'setInterval'>;
+	globalThis.clearInterval = api.clearInterval as unknown as AsGlobal<'clearInterval'>;
+	globalThis.Date = api.Date;
+	if (globalThis.performance) {
+		Object.defineProperty(globalThis.performance, 'now', {
+			configurable: true,
+			value: api.performanceNow,
+		});
+		Object.defineProperty(globalThis.performance, 'timeOrigin', {
+			configurable: true,
+			value: api.performanceTimeOrigin,
+		});
+	}
+
+	if (api.requestAnimationFrame) {
+		globalThis.requestAnimationFrame = api.requestAnimationFrame as unknown as AsGlobal<'requestAnimationFrame'>;
+	}
+	if (api.cancelAnimationFrame) {
+		globalThis.cancelAnimationFrame = api.cancelAnimationFrame as unknown as AsGlobal<'cancelAnimationFrame'>;
+	}
+
+	return {
+		dispose: () => {
+			globalThis.setTimeout = ensureSetTimeoutOriginalFn(previous.setTimeout, previous.setTimeout) as unknown as AsGlobal<'setTimeout'>;
+			globalThis.clearTimeout = previous.clearTimeout as unknown as AsGlobal<'clearTimeout'>;
+			globalThis.setInterval = previous.setInterval as unknown as AsGlobal<'setInterval'>;
+			globalThis.clearInterval = previous.clearInterval as unknown as AsGlobal<'clearInterval'>;
+			globalThis.Date = previous.Date;
+			if (globalThis.performance) {
+				if (previousPerformanceNowDescriptor) {
+					Object.defineProperty(globalThis.performance, 'now', previousPerformanceNowDescriptor);
+				} else {
+					Reflect.deleteProperty(globalThis.performance, 'now');
+				}
+				if (previousPerformanceTimeOriginDescriptor) {
+					Object.defineProperty(globalThis.performance, 'timeOrigin', previousPerformanceTimeOriginDescriptor);
+				} else {
+					Reflect.deleteProperty(globalThis.performance, 'timeOrigin');
+				}
+			}
+			if (previous.requestAnimationFrame) {
+				globalThis.requestAnimationFrame = previous.requestAnimationFrame as unknown as AsGlobal<'requestAnimationFrame'>;
+			}
+			if (previous.cancelAnimationFrame) {
+				globalThis.cancelAnimationFrame = previous.cancelAnimationFrame as unknown as AsGlobal<'cancelAnimationFrame'>;
+			}
+		},
+	};
+}
+
+(realTimeApi.setTimeout as unknown as { originalFn: TimeApi['setTimeout'] }).originalFn = realTimeApi.setTimeout;

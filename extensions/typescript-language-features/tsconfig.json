@@ -1,0 +1,23 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"typeRoots": [
+			"./node_modules/@types"
+		],
+		"esModuleInterop": true,
+		"types": [
+			"node"
+		]
+	},
+	"include": [
+		"src/**/*",
+		"../../src/dardcor-dts/dardcor.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.codeActionAI.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.codeActionRanges.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.multiDocumentHighlightProvider.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.workspaceTrust.d.ts",
+		"../../src/dardcor-dts/dardcor.proposed.editorHoverVerbosityLevel.d.ts",
+	]
+}

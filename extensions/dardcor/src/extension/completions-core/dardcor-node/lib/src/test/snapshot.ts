@@ -1,0 +1,77 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { PromptSnapshotNode } from '../../../prompt/src/components/components';
+
+interface PathSegment {
+	name: string;
+	index: string | number;
+}
+
+export function querySnapshot(snapshot: PromptSnapshotNode, path: string): string | PromptSnapshotNode[] {
+	const segments = path
+		.trim()
+		.split('.')
+		.map(s => s.trim());
+	let current = snapshot;
+	for (const segment of segments) {
+		if (!current?.children?.length) {
+			throw new Error(`No children found at path segment '${segment}'. Path: ${path}`);
+		}
+		const { name, index } = parsePathSegment(segment);
+		validateNodeName(name, current, segment, path);
+		validateNodeChildrenLength(index, current.children, segment, path);
+		if (typeof index === 'number') {
+			current = current.children[index];
+		} else if (index === '*') {
+			break;
+		} else {
+			const child = current.children.find(c => c.path.includes(index));
+			if (!child) {
+				throw new Error(`No children with index '${index}' found at path segment '${segment}'. Path: ${path}`);
+			}
+			current = child;
+		}
+	}
+	if (!current?.value) {
+		return current.children || [];
+	}
+	return current.value;
+}
+
+function parsePathSegment(segment: string): PathSegment {
+	const match = segment.match(/^([^[]+)(?:\[(\d+|\*|["'][\w-]+["'])\])?$/);
+	if (!match) {
+		throw new Error(`Invalid path segment: ${segment}`);
+	}
+	const stringIndex = match[2] ?? 0;
+	const index = isNaN(Number(stringIndex)) ? stringIndex : Number(stringIndex);
+
+	return {
+		name: match[1],
+		index,
+	};
+}
+
+function validateNodeName(name: string, current: PromptSnapshotNode, segment: string, path: string) {
+	if (name !== '*' && name !== current.name) {
+		throw new Error(
+			`Name mismatch at segment '${segment}'. Expected '${current.name}' but got '${name}'. Path: ${path}`
+		);
+	}
+}
+
+function validateNodeChildrenLength(
+	index: number | string,
+	children: PromptSnapshotNode[],
+	segment: string,
+	path: string
+) {
+	if (typeof index === 'number' && index >= children.length) {
+		throw new Error(
+			`Index out of bounds at segment '${segment}'. Maximum index is ${children.length - 1}. Path: ${path}`
+		);
+	}
+}

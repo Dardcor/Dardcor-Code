@@ -1,0 +1,18 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.monaco-animated-counter {
+	position: relative;
+	display: inline-grid;
+	overflow: hidden;
+	justify-items: start;
+}
+
+.monaco-animated-counter > div {
+	grid-area: 1 / 1;
+	display: block;
+	will-change: transform, opacity;
+}

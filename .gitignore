@@ -1,0 +1,72 @@
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules
+npm-debug.log
+build/node_modules
+
+# Temporary & Build Outputs
+.cache
+.tmp/
+.build/
+dist
+/out*/
+/extensions/**/out/
+extensions/**/dist/
+.dardcor-code/extensions/**/out/
+/extensionsCG/
+src/dc/base/browser/ui/codicons/codicon/codicon.ttf
+build/darwin/.dmgbuild
+
+# Test & Coverage Outputs
+coverage/
+test_data/
+test-results/
+test-results.xml
+test-output.json
+test/componentFixtures/.screenshots/*
+!test/componentFixtures/.screenshots/baseline/
+.dardcor-test
+.chat-simulation-data
+
+# Native CLI
+/cli/target
+/cli/openssl
+
+# TypeScript & Linter
+*.snap.actual
+*.tsbuildinfo
+.eslintcache
+
+# Dardcor Code Metadata & Settings
+dardcor.lsif
+dardcor.db
+/.profile-oss
+product.overrides.json
+/.dardcor-code/
+/.dardcor-router/.dardcor-code/
+/extensions/dardcor/.dardcor-code/launch.json
+/extensions/dardcor/.dardcor-code/mcp.json
+/extensions/dardcor/.dardcor-code/settings.json
+/extensions/dardcor/.dardcor-code/tasks.json
+
+# Local Customizations (.github)
+.github/agents/*.local.md
+.github/agents/*.local.agent.md
+.github/hooks/*.local.json
+.github/instructions/*.local.instructions.md
+.github/prompts/*.local.prompt.md
+.github/skills/.local/
+
+# Data Penting / Rahasia & Lingkungan Lokal
+.env
+.env.*
+*.pem
+*.key
+keys/
+secrets/
+
+# Workflow-generated local run state
+/Workflow/

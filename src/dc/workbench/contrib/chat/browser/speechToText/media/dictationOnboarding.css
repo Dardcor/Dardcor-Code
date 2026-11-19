@@ -1,0 +1,71 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+.chat-input-notice.dictation-onboarding-banner {
+	gap: var(--vscode-spacing-size120);
+	padding: var(--vscode-spacing-size160);
+}
+
+
+.dictation-onboarding-header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size40);
+	min-width: 0;
+	padding-right: var(--vscode-spacing-size240);
+}
+
+
+.dictation-onboarding-device {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size80);
+	min-width: 0;
+}
+
+.monaco-workbench .dictation-onboarding-picker-icon.codicon[class*='codicon-'] {
+	flex-shrink: 0;
+	font-size: var(--vscode-codiconFontSize-compact);
+	line-height: 1;
+	color: var(--vscode-descriptionForeground);
+}
+
+
+.dictation-onboarding-waveform {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: var(--vscode-spacing-size280);
+	padding: 0 var(--vscode-spacing-size60);
+	opacity: 0.35;
+	mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 1) 8%, rgba(0, 0, 0, 1) 92%, transparent);
+}
+
+.dictation-onboarding-bar {
+	flex: 0 0 auto;
+	width: 1px;
+	height: 100%;
+	border-radius: var(--vscode-cornerRadius-circle);
+	background: currentColor;
+	transform: scaleY(0.08);
+	transform-origin: center;
+	will-change: transform;
+}
+
+
+.dictation-onboarding-hint {
+	font-size: var(--vscode-fontSize-label3);
+	color: var(--vscode-descriptionForeground);
+	line-height: 1.4;
+}
+
+.dictation-onboarding-hint:empty {
+	display: none;
+}
+
+.dictation-onboarding-banner.has-error .dictation-onboarding-hint {
+	color: var(--vscode-inputValidation-errorForeground, var(--vscode-foreground));
+}

@@ -1,0 +1,174 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { Dimension } from '../../../../base/browser/dom.js';
+import { Event } from '../../../../base/common/event.js';
+import { readHotReloadableExport } from '../../../../base/common/hotReloadHelpers.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+import { derived, IObservable, observableValue, recomputeInitiallyAndOnChange, transaction } from '../../../../base/common/observable.js';
+import { URI } from '../../../../base/common/uri.js';
+import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { Range } from '../../../common/core/range.js';
+import { DiffEditorViewMode, IDiffEditorOptions } from '../../../common/config/editorOptions.js';
+import { IDiffEditor } from '../../../common/editorCommon.js';
+import { IMultiDiffResourceId } from '../../../common/multiDiffEditor.js';
+import { ICodeEditor } from '../../editorBrowser.js';
+import { DiffEditorWidget } from '../diffEditor/diffEditorWidget.js';
+import './colors.js';
+import { DiffEditorItemTemplate } from './diffEditorItemTemplate.js';
+import { IDocumentDiffItem, IMultiDiffEditorModel } from './model.js';
+import { getMultiDiffEditorVariantConfiguration, IMultiDiffEditorVariantConfiguration, IMultiDiffEditorWidgetOptions } from './multiDiffEditorOptions.js';
+import { MultiDiffEditorViewModel } from './multiDiffEditorViewModel.js';
+import { IMultiDiffEditorLayoutDebugState, IMultiDiffEditorViewState, MultiDiffEditorWidgetImpl } from './multiDiffEditorWidgetImpl.js';
+import { IWorkbenchUIElementFactory } from './workbenchUIElementFactory.js';
+
+export class MultiDiffEditorWidget extends Disposable {
+	private readonly _dimension = observableValue<Dimension | undefined>(this, undefined);
+	private readonly _viewModel = observableValue<MultiDiffEditorViewModel | undefined>(this, undefined);
+	private readonly _diffLayoutOptions = observableValue<IDiffEditorOptions | undefined>(this, undefined);
+	private readonly _paddingBottomPx = observableValue<number>(this, 0);
+	private readonly _variantConfiguration: IMultiDiffEditorVariantConfiguration;
+	private readonly _widgetImpl: IObservable<MultiDiffEditorWidgetImpl>;
+
+	constructor(
+		private readonly _element: HTMLElement,
+		private readonly _workbenchUIElementFactory: IWorkbenchUIElementFactory,
+		private readonly _options: IMultiDiffEditorWidgetOptions,
+		@IInstantiationService private readonly _instantiationService: IInstantiationService,
+	) {
+		super();
+
+		this._variantConfiguration = getMultiDiffEditorVariantConfiguration(this._options.variant);
+		this._widgetImpl = derived(this, reader => {
+			readHotReloadableExport(DiffEditorItemTemplate, reader);
+			return reader.store.add(this._instantiationService.createInstance((
+				readHotReloadableExport(MultiDiffEditorWidgetImpl, reader)),
+				this._element,
+				this._dimension,
+				this._viewModel,
+				this._workbenchUIElementFactory,
+				this._variantConfiguration,
+				this._diffLayoutOptions,
+				this._options.diffEditorOptions,
+				this._paddingBottomPx,
+			));
+		});
+		this._register(recomputeInitiallyAndOnChange(this._widgetImpl));
+	}
+
+	public reveal(resource: IMultiDiffResourceId, options?: RevealOptions): void {
+		this._widgetImpl.get().reveal(resource, options);
+	}
+
+	public createViewModel(model: IMultiDiffEditorModel): MultiDiffEditorViewModel {
+		return new MultiDiffEditorViewModel(model, this._instantiationService);
+	}
+
+	public setViewModel(viewModel: MultiDiffEditorViewModel | undefined, options?: { readonly preserveFocus?: boolean; readonly viewState?: IMultiDiffEditorViewState }): void {
+		if (this._store.isDisposed) {
+			return;
+		}
+		this._widgetImpl.get().setPreserveFocusOnLoad(!!options?.preserveFocus);
+
+		transaction(tx => {
+			this._viewModel.set(viewModel, tx);
+			if (options?.viewState) {
+				this._widgetImpl.get().setViewState(options.viewState, tx);
+			} else {
+				this._widgetImpl.get().clearPendingRestorationState();
+			}
+		});
+	}
+
+	public layout(dimension: Dimension): void {
+		this._dimension.set(dimension, undefined);
+	}
+
+	public setRenderSideBySide(renderSideBySide: boolean, options?: { readonly useInlineViewWhenSpaceIsLimited?: boolean }): void {
+		this._diffLayoutOptions.set({
+			renderSideBySide,
+			useInlineViewWhenSpaceIsLimited: options?.useInlineViewWhenSpaceIsLimited ?? false,
+		}, undefined);
+	}
+
+	public setViewMode(mode: DiffEditorViewMode): void {
+		const currentOptions = this._diffLayoutOptions.get();
+		const wasAutomatic = currentOptions?.renderSideBySide === true && currentOptions.useInlineViewWhenSpaceIsLimited === true;
+		this.setRenderSideBySide(mode !== 'inline', { useInlineViewWhenSpaceIsLimited: mode === 'automatic' });
+		if (mode === 'automatic' && !wasAutomatic) {
+			this.resetWidthBasedLayout();
+		}
+	}
+
+	public toggleRenderSideBySide(): void {
+		this.setRenderSideBySide(!(this._diffLayoutOptions.get()?.renderSideBySide ?? true));
+	}
+
+	public setPaddingBottom(px: number): void {
+		this._paddingBottomPx.set(px, undefined);
+	}
+
+	private readonly _activeControl = derived(this, (reader) => this._widgetImpl.read(reader).activeControl.read(reader));
+
+	public getActiveControl(): DiffEditorWidget | undefined {
+		return this._activeControl.get();
+	}
+
+	public readonly onDidChangeActiveControl = Event.fromObservableLight(this._activeControl);
+
+	public focus(): boolean {
+		return this._widgetImpl.get().focus();
+	}
+
+	public getViewState(): IMultiDiffEditorViewState {
+		return this._widgetImpl.get().getViewState();
+	}
+
+	public getLayoutDebugState(): IObservable<IMultiDiffEditorLayoutDebugState> {
+		return this._widgetImpl.get().layoutDebugState;
+	}
+
+	public setViewState(viewState: IMultiDiffEditorViewState): void {
+		this._widgetImpl.get().setViewState(viewState);
+	}
+
+	public tryGetCodeEditor(resource: URI): { diffEditor: IDiffEditor; editor: ICodeEditor } | undefined {
+		return this._widgetImpl.get().tryGetCodeEditor(resource);
+	}
+
+	public getRootElement(): HTMLElement {
+		return this._widgetImpl.get().getRootElement();
+	}
+
+	public getContextKeyService(): IContextKeyService {
+		return this._widgetImpl.get().getContextKeyService();
+	}
+
+	public getScopedInstantiationService(): IInstantiationService {
+		return this._widgetImpl.get().getScopedInstantiationService();
+	}
+
+	public resetWidthBasedLayout(): void {
+		this._widgetImpl.get().resetWidthBasedLayout();
+	}
+
+	public findDocumentDiffItem(resource: URI): IDocumentDiffItem | undefined {
+		return this._widgetImpl.get().findDocumentDiffItem(resource);
+	}
+
+	public goToNextChange(): void {
+		this._widgetImpl.get().goToNextChange();
+	}
+
+	public goToPreviousChange(): void {
+		this._widgetImpl.get().goToPreviousChange();
+	}
+}
+
+export interface RevealOptions {
+	range?: Range;
+	highlight: boolean;
+}

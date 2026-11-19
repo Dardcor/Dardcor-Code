@@ -1,0 +1,2 @@
+
+export type McpElicitationObjectType = "object";

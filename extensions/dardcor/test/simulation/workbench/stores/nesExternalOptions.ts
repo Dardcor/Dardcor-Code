@@ -1,0 +1,15 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { SimulationStorage, SimulationStorageValue } from './simulationStorage';
+
+export class NesExternalOptions {
+
+	public readonly externalScenariosPath: SimulationStorageValue<string>;
+
+	constructor(storage: SimulationStorage) {
+		this.externalScenariosPath = new SimulationStorageValue(storage, 'nesExternalScenariosPath', '');
+	}
+}

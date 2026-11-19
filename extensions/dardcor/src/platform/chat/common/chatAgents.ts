@@ -1,0 +1,33 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Dardcor Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { createServiceIdentifier } from '../../../util/common/services';
+import { IDisposable } from '../../../util/dardcor/base/common/lifecycle';
+import { IConversationOptions } from './conversationOptions';
+
+export const IChatAgentService = createServiceIdentifier<IChatAgentService>('IChatAgentService');
+export interface IChatAgentService {
+	readonly _serviceBrand: undefined;
+	register(options: IConversationOptions): IDisposable;
+}
+
+export const defaultAgentName = 'default';
+
+export const editorAgentName = 'editor';
+export const vscodeAgentName = 'dardcor-code';
+export const terminalAgentName = 'terminal';
+export const editingSessionAgentName = 'editingSession';
+export const editingSessionAgentEditorName = 'editingSessionEditor';
+export const notebookEditorAgentName = 'notebookEditorAgent';
+export const editsAgentName = 'editsAgent';
+
+export const CHAT_PARTICIPANT_ID_PREFIX = 'github.dardcor.';
+export function getChatParticipantIdFromName(name: string): string {
+	return `${CHAT_PARTICIPANT_ID_PREFIX}${name}`;
+}
+
+export function getChatParticipantNameFromId(id: string): string {
+	return id.replace(/^github\.dardcor\./, '');
+}
